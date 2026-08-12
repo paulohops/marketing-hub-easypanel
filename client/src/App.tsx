@@ -4,12 +4,14 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import ProtectedModule from "./pages/ProtectedModule";
 
 function Router() {
   return <Switch>
     <Route path="/" component={Home} />
+    <Route path="/login" component={LoginPage} />
     <Route path="/estoque">{() => <ProtectedModule module="estoque" />}</Route>
     <Route path="/financeiro">{() => <ProtectedModule module="financeiro" />}</Route>
     <Route path="/midias">{() => <ProtectedModule module="midias" />}</Route>

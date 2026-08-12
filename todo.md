@@ -45,3 +45,15 @@
 - [x] Testar integralidade persistente das associaações N:N de fornecedores por API e banco de dados.
 - [x] Testar o histórico cronológico e o upload documental em cada entidade operacional suportada.
 - [x] Corrigir o carregamento duplicado da API do Google Maps na rota de indicadores e adicionar regressão automatizada.
+- [x] Reposicionar a marca como Trade HUB — Cluster MG em toda a interface.
+- [x] Aplicar Montserrat e a paleta institucional #F45103 e #0E723B nos tokens globais.
+- [x] Refinar navegação, dashboard e módulos com a linguagem visual do Cluster MG, mantendo acessibilidade e responsividade.
+- [x] Atualizar explicitamente a marca Trade HUB — Cluster MG no login e nas páginas operacionais restantes.
+- [x] Aplicar a linguagem visual Cluster MG aos módulos de configurações, estoque, financeiro, mídias, ações e eventos.
+- [x] Registrar e validar a responsividade pós-rebranding nas principais áreas modulares.
+- [x] Disponibilizar a tela de login pela rota direta /login e validar sua identidade Cluster MG.
+- [x] Substituir cores legadas restantes nos workspaces e componentes auxiliares por tokens Cluster MG.
+- [x] Executar uma varredura final para remover hexadecimais legados dos módulos operacionais.
+- [x] Auditar e ajustar explicitamente a marca Trade HUB — Cluster MG em todas as telas auxiliares e operacionais.
+- [x] Substituir os hexadecimais hardcoded rebrandizados dos workspaces e componentes por tokens CSS centralizados do Cluster MG.
+- [x] Executar uma verificação final página a página, incluindo telas auxiliares, e registrar evidências de rebranding completo.

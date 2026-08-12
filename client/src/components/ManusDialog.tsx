@@ -65,12 +65,12 @@ export function ManusDialog({
 
           {/* Title and subtitle */}
           {title ? (
-            <DialogTitle className="text-xl font-semibold text-[#34322d] leading-[26px] tracking-[-0.44px]">
+            <DialogTitle className="text-xl font-semibold text-foreground leading-[26px] tracking-[-0.44px]">
               {title}
             </DialogTitle>
           ) : null}
-          <DialogDescription className="text-sm text-[#858481] leading-5 tracking-[-0.154px]">
-            Please login with Manus to continue
+          <DialogDescription className="text-sm text-muted-foreground leading-5 tracking-[-0.154px]">
+            Entre com sua conta autorizada para continuar.
           </DialogDescription>
         </div>
 
@@ -78,9 +78,9 @@ export function ManusDialog({
           {/* Login button */}
           <Button
             onClick={onLogin}
-            className="w-full h-10 bg-[#1a1a19] hover:bg-[#1a1a19]/90 text-white rounded-[10px] text-sm font-medium leading-5 tracking-[-0.154px]"
+            className="w-full h-10 bg-primary hover:bg-primary/90 text-white rounded-[10px] text-sm font-medium leading-5 tracking-[-0.154px]"
           >
-            Login with Manus
+            Entrar na plataforma
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -43,12 +43,12 @@
 }
 
 :root {
-  --primary: oklch(0.35 0.07 179); --primary-foreground: oklch(0.98 0.01 180); --sidebar-primary: oklch(0.76 0.13 75); --sidebar-primary-foreground: oklch(0.22 0.03 180);
-  --chart-1: oklch(0.54 0.08 177); --chart-2: oklch(0.72 0.13 75); --chart-3: oklch(0.64 0.09 148); --chart-4: oklch(0.6 0.09 20); --chart-5: oklch(0.58 0.08 300); --radius: 0.8rem;
-  --background: oklch(0.965 0.008 110); --foreground: oklch(0.25 0.025 175); --card: oklch(1 0.004 110); --card-foreground: oklch(0.25 0.025 175); --popover: oklch(1 0.004 110); --popover-foreground: oklch(0.25 0.025 175);
-  --secondary: oklch(0.95 0.012 145); --secondary-foreground: oklch(0.35 0.04 170); --muted: oklch(0.94 0.01 140); --muted-foreground: oklch(0.52 0.03 165); --accent: oklch(0.93 0.025 150); --accent-foreground: oklch(0.28 0.035 165);
-  --destructive: oklch(0.56 0.19 25); --destructive-foreground: oklch(0.98 0 0); --border: oklch(0.89 0.012 145); --input: oklch(0.89 0.012 145); --ring: oklch(0.55 0.1 177);
-  --sidebar: oklch(0.18 0.03 177); --sidebar-foreground: oklch(0.91 0.02 160); --sidebar-accent: oklch(0.26 0.04 177); --sidebar-accent-foreground: oklch(0.96 0.01 150); --sidebar-border: oklch(0.32 0.04 177); --sidebar-ring: oklch(0.74 0.12 75);
+  --primary: #0e723b; --primary-foreground: #ffffff; --sidebar-primary: #f45103; --sidebar-primary-foreground: #ffffff;
+  --chart-1: #0e723b; --chart-2: #f45103; --chart-3: #3d9362; --chart-4: #cc3e00; --chart-5: #75b38a; --radius: 0.75rem;
+  --background: #f7faf7; --foreground: #133523; --card: #ffffff; --card-foreground: #133523; --popover: #ffffff; --popover-foreground: #133523;
+  --secondary: #e9f5ed; --secondary-foreground: #0e723b; --muted: #eef4ef; --muted-foreground: #557064; --accent: #fff0e9; --accent-foreground: #b63c03;
+  --destructive: #c73710; --destructive-foreground: #ffffff; --border: #d8e8dc; --input: #d1e2d5; --ring: #f45103;
+  --sidebar: #0e723b; --sidebar-foreground: #ecf8f0; --sidebar-accent: #126b3e; --sidebar-accent-foreground: #ffffff; --sidebar-border: #2b8a54; --sidebar-ring: #f45103;
 }
 
 .dark {
@@ -92,7 +92,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -135,7 +135,37 @@
   }
 
   .font-display {
-    font-family: "DM Serif Display", Georgia, serif;
+    font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.035em;
+  }
+
+  .cluster-grid {
+    background-image: linear-gradient(rgba(14, 114, 59, 0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 114, 59, 0.055) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .cluster-chip {
+    background: linear-gradient(118deg, #f45103, #e86016);
+    box-shadow: 0 10px 24px rgba(244, 81, 3, 0.2);
+  }
+
+  .cluster-workspace {
+    position: relative;
+    isolation: isolate;
+    min-height: calc(100vh - 72px);
+  }
+
+  .cluster-workspace::before {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    right: 3%;
+    width: min(42vw, 440px);
+    height: 240px;
+    content: "";
+    pointer-events: none;
+    opacity: 0.5;
+    background: radial-gradient(circle at 70% 30%, rgba(244, 81, 3, 0.12), transparent 38%), radial-gradient(circle at 35% 55%, rgba(14, 114, 59, 0.1), transparent 54%);
   }
 
   @media (min-width: 640px) {
