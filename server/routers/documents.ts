@@ -33,13 +33,13 @@ async function requireDatabase() {
 
 export const documentsRouter = router({
   listForEntity: protectedProcedure.input(z.object({ entityType: z.enum(entityTypes), entityId: z.number().int().positive() })).query(async ({ ctx, input }) => {
-    assertPermission(ctx.user, permissionForEntity(input.entityType, false));
+    await assertPermission(ctx.user, permissionForEntity(input.entityType, false));
     const database = await requireDatabase();
     return database.select().from(documents).where(and(eq(documents.entityType, input.entityType), eq(documents.entityId, input.entityId))).orderBy(asc(documents.createdAt));
   }),
 
   upload: protectedProcedure.input(z.object({ entityType: z.enum(entityTypes), entityId: z.number().int().positive(), regionalId: z.number().int().positive().nullable(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(allowedMimeTypes), dataBase64: z.string().min(1).max(7_000_000) })).mutation(async ({ ctx, input }) => {
-    assertPermission(ctx.user, permissionForEntity(input.entityType, true));
+    await assertPermission(ctx.user, permissionForEntity(input.entityType, true));
     const database = await requireDatabase();
     if (input.entityType === "invoice") {
       const [invoice] = await database.select({ id: invoices.id }).from(invoices).where(eq(invoices.id, input.entityId));

@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { actions, documents, events, invoices, mediaCampaigns, payments, suppliers } from "../../drizzle/schema";
@@ -11,6 +11,20 @@ export function paymentStatus(total: number, paid: number) {
   if (paid <= 0) return "open" as const;
   if (paid >= total) return "paid" as const;
   return "partially_paid" as const;
+}
+
+export const invoiceListFiltersInput = z.object({
+  status: z.enum(["open", "partially_paid", "paid", "overdue", "cancelled"]).optional(),
+  dueStartsAt: z.string().date().optional(),
+  dueEndsAt: z.string().date().optional(),
+  supplierId: z.number().int().positive().optional(),
+  operationType: z.enum(["media_campaign", "action", "event", "other"]).optional(),
+  operationId: z.number().int().positive().optional(),
+});
+
+export function deriveInvoiceStatus(status: string, dueDate: string, today = new Date().toISOString().slice(0, 10)) {
+  if (status === "cancelled" || status === "paid") return status;
+  return dueDate < today ? "overdue" : status;
 }
 
 async function requireDatabase() {
@@ -35,35 +49,44 @@ async function operationCatalog(database: Awaited<ReturnType<typeof getDb>>) {
 
 export const financeRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
-    assertPermission(ctx.user, "finance.read");
+    await assertPermission(ctx.user, "finance.read");
     const database = await requireDatabase();
     return database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName));
   }),
 
   operationOptions: protectedProcedure.query(async ({ ctx }) => {
-    assertPermission(ctx.user, "finance.read");
+    await assertPermission(ctx.user, "finance.read");
     return operationCatalog(await requireDatabase());
   }),
 
-  listInvoices: protectedProcedure.query(async ({ ctx }) => {
-    assertPermission(ctx.user, "finance.read");
+  listInvoices: protectedProcedure.input(invoiceListFiltersInput.optional()).query(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.read");
     const database = await requireDatabase();
+    const conditions = [];
+    if (input?.supplierId) conditions.push(eq(invoices.supplierId, input.supplierId));
+    if (input?.dueStartsAt) conditions.push(gte(invoices.dueDate, input.dueStartsAt));
+    if (input?.dueEndsAt) conditions.push(lte(invoices.dueDate, input.dueEndsAt));
+    if (input?.operationType) conditions.push(eq(invoices.operationType, input.operationType));
+    if (input?.operationId) conditions.push(eq(invoices.operationId, input.operationId));
     const [invoiceRows, paymentRows, documentRows, operations] = await Promise.all([
-      database.select({ invoice: invoices, supplierName: suppliers.displayName }).from(invoices).innerJoin(suppliers, eq(invoices.supplierId, suppliers.id)).orderBy(asc(invoices.dueDate)),
+      database.select({ invoice: invoices, supplierName: suppliers.displayName }).from(invoices).innerJoin(suppliers, eq(invoices.supplierId, suppliers.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(invoices.dueDate)),
       database.select().from(payments),
       database.select().from(documents).where(eq(documents.entityType, "invoice")),
       operationCatalog(database),
     ]);
-    return invoiceRows.map(({ invoice, supplierName }) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const result = invoiceRows.map(({ invoice, supplierName }) => {
       const totalPaid = paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((total, payment) => total + Number(payment.amount), 0);
       const attachedDocuments = documentRows.filter(document => document.entityId === invoice.id);
       const operation = operations.find(row => row.type === invoice.operationType && row.id === invoice.operationId);
-      return { ...invoice, supplierName, totalPaid, outstandingAmount: Math.max(0, Number(invoice.amount) - totalPaid), operationLabel: operation?.label ?? (invoice.operationType === "other" ? "Outra operação" : null), attachedDocuments };
+      const status = deriveInvoiceStatus(invoice.status, invoice.dueDate, today);
+      return { ...invoice, status, supplierName, totalPaid, outstandingAmount: Math.max(0, Number(invoice.amount) - totalPaid), operationLabel: operation?.label ?? (invoice.operationType === "other" ? "Outra operação" : null), attachedDocuments };
     });
+    return input?.status ? result.filter(invoice => invoice.status === input.status) : result;
   }),
 
   createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
-    assertPermission(ctx.user, "finance.write");
+    await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
     if (input.operationType === null && input.operationId !== null) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione o tipo da operação vinculada." });
     if (["media_campaign", "action", "event"].includes(input.operationType ?? "") && input.operationId === null) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione a operação vinculada à nota fiscal." });
@@ -78,7 +101,7 @@ export const financeRouter = router({
   }),
 
   registerPayment: protectedProcedure.input(z.object({ invoiceId: z.number().int().positive(), paidAt: z.coerce.date(), amount: z.number().positive().max(10_000_000), method: z.string().trim().min(2).max(80), reference: z.string().trim().max(140).optional(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
-    assertPermission(ctx.user, "finance.write");
+    await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
     const [invoice] = await database.select().from(invoices).where(eq(invoices.id, input.invoiceId));
     if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Nota fiscal não encontrada." });

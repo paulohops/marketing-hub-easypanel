@@ -9,7 +9,7 @@ async function requireDatabase() { const database = await getDb(); if (!database
 
 export const mapRouter = router({
   locations: protectedProcedure.query(async ({ ctx }) => {
-    assertPermission(ctx.user, "dashboard.read");
+    await assertPermission(ctx.user, "dashboard.read");
     const database = await requireDatabase();
     const [pointRows, actionRows, eventRows, campaignRows, actionSupplierRows, eventSupplierRows] = await Promise.all([
       database.select({ point: mediaPoints, cityName: cities.name, regionalName: regionals.name, supplierName: suppliers.displayName, typeName: mediaTypes.name }).from(mediaPoints).innerJoin(cities, eq(mediaPoints.cityId, cities.id)).innerJoin(regionals, eq(cities.regionalId, regionals.id)).innerJoin(suppliers, eq(mediaPoints.supplierId, suppliers.id)).innerJoin(mediaTypes, eq(mediaPoints.mediaTypeId, mediaTypes.id)).orderBy(asc(mediaPoints.name)),

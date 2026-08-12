@@ -22,19 +22,31 @@ export const mediaPointStatusEnum = pgEnum("media_point_status", ["active", "ina
 export const invoiceStatusEnum = pgEnum("invoice_status", ["open", "partially_paid", "paid", "overdue", "cancelled"]);
 export const operationTypeEnum = pgEnum("financial_operation_type", ["media_campaign", "action", "event", "other"]);
 export const documentEntityEnum = pgEnum("document_entity_type", ["media_campaign", "action", "event", "invoice", "stock", "regional_media"]);
-export const notificationCategoryEnum = pgEnum("notification_category", ["campaign_expiry", "payment_due", "action_pending"]);
+export const notificationCategoryEnum = pgEnum("notification_category", ["campaign_expiry", "payment_due", "action_pending", "stock_minimum"]);
+export const permissionModuleEnum = pgEnum("permission_module", ["dashboard", "settings", "inventory", "finance", "media", "actions", "events", "documents", "map", "notifications"]);
+export const permissionActionEnum = pgEnum("permission_action", ["read", "create", "update", "delete"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 32 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: userRoleEnum("role").default("viewer").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const rolePermissions = pgTable("role_permissions", {
+  id: serial("id").primaryKey(),
+  role: userRoleEnum("role").notNull(),
+  module: permissionModuleEnum("module").notNull(),
+  action: permissionActionEnum("action").notNull(),
+  allowed: boolean("allowed").default(false).notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+}, table => [uniqueIndex("role_permissions_role_module_action_uq").on(table.role, table.module, table.action)]);
 
 export const providers = pgTable("providers", {
   id: serial("id").primaryKey(),
@@ -174,6 +186,13 @@ export const stockMovements = pgTable("stock_movements", {
   notes: text("notes"),
   performedByUserId: integer("performedByUserId").references(() => users.id, { onDelete: "restrict" }),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const stockBalances = pgTable("stock_balances", {
+  id: serial("id").primaryKey(),
+  stockItemId: integer("stockItemId").notNull().unique().references(() => stockItems.id, { onDelete: "cascade" }),
+  quantity: numeric("quantity", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const mediaPoints = pgTable("media_points", {

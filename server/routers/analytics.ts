@@ -17,7 +17,7 @@ async function requireDatabase() {
 
 export const analyticsRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
-    assertPermission(ctx.user, "dashboard.read");
+    await assertPermission(ctx.user, "dashboard.read");
     const database = await requireDatabase();
     const [supplierRows, pointRows, campaignRows, actionRows, actionSupplierRows, debriefRows, eventRows, eventSupplierRows, invoiceRows, paymentRows] = await Promise.all([
       database.select().from(suppliers), database.select().from(mediaPoints), database.select().from(mediaCampaigns), database.select().from(actions), database.select().from(actionSuppliers), database.select().from(actionDebriefs), database.select().from(events), database.select().from(eventSuppliers), database.select().from(invoices), database.select().from(payments),

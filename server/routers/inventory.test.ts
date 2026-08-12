@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateStockBalance, orderMovementHistory } from "./inventory";
+import { calculateStockBalance, canApplyStockMovement, inventoryHistoryInput, orderMovementHistory } from "./inventory";
 
 describe("calculateStockBalance", () => {
   it("soma entradas e ajustes e desconta saídas", () => {
@@ -17,5 +17,15 @@ describe("calculateStockBalance", () => {
       { id: 3, occurredAt: new Date("2026-08-11T09:00:00Z") },
     ]);
     expect(ordered.map(movement => movement.id)).toEqual([3, 1, 2]);
+  });
+
+  it("rejeita uma saída que deixaria o saldo abaixo de zero antes da atualização atômica", () => {
+    expect(canApplyStockMovement(3, "exit", 4)).toBe(false);
+    expect(canApplyStockMovement(3, "exit", 3)).toBe(true);
+  });
+
+  it("aceita paginação e filtros territoriais dentro dos limites do histórico", () => {
+    expect(inventoryHistoryInput.parse({ stockItemId: 7, regionalId: 2, cityId: 5, page: 3, pageSize: 50 })).toMatchObject({ stockItemId: 7, regionalId: 2, cityId: 5, page: 3, pageSize: 50 });
+    expect(inventoryHistoryInput.safeParse({ page: 0, pageSize: 101 }).success).toBe(false);
   });
 });

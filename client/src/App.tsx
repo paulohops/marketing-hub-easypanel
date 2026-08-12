@@ -19,6 +19,9 @@ function Router() {
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
     <Route path="/configuracoes">{() => <ProtectedModule module="configuracoes" />}</Route>
+    <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
+    <Route path="/usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
+    <Route path="/administracao-usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />
   </Switch>;

@@ -10,6 +10,8 @@ import IndicatorsWorkspace from "./IndicatorsWorkspace";
 import InventoryWorkspace from "./InventoryWorkspace";
 import MediaWorkspace from "./MediaWorkspace";
 import SettingsWorkspace from "./SettingsWorkspace";
+import ProfileWorkspace from "./ProfileWorkspace";
+import UserAdministrationWorkspace from "./UserAdministrationWorkspace";
 
 expect.extend(toHaveNoViolations);
 
@@ -68,6 +70,8 @@ const workspaces = [
   ["Ações", ActionsWorkspace],
   ["Eventos", EventsWorkspace],
   ["Indicadores", IndicatorsWorkspace],
+  ["Meu perfil", ProfileWorkspace],
+  ["Usuários e permissões", UserAdministrationWorkspace],
 ] as const;
 
 for (const [label, Workspace] of workspaces) {

@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { hasModulePermission } from "@/lib/permissions";
+import { trpc } from "@/lib/trpc";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,8 @@ import {
   MapPinned,
   Megaphone,
   Settings2,
+  ShieldCheck,
+  UserRound,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -45,6 +48,7 @@ type NavItem = {
   path: string;
   icon: typeof LayoutDashboard;
   permission: string;
+  adminOnly?: boolean;
 };
 
 const navigation: NavItem[] = [
@@ -55,7 +59,9 @@ const navigation: NavItem[] = [
   { label: "Ações", path: "/acoes", icon: CalendarDays, permission: "actions.read" },
   { label: "Eventos", path: "/eventos", icon: MapPinned, permission: "events.read" },
   { label: "BI & indicadores", path: "/indicadores", icon: BarChart3, permission: "dashboard.read" },
+  { label: "Meu perfil", path: "/perfil", icon: UserRound, permission: "dashboard.read" },
   { label: "Configurações", path: "/configuracoes", icon: Settings2, permission: "settings.read" },
+  { label: "Usuários e permissões", path: "/usuarios", icon: ShieldCheck, permission: "settings.read", adminOnly: true },
 ];
 
 const roleNames: Record<string, string> = {
@@ -69,11 +75,13 @@ const roleNames: Record<string, string> = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const effectivePermissions = trpc.users.effectivePermissions.useQuery(undefined, { enabled: Boolean(user) });
 
   if (loading) return <DashboardLayoutSkeleton />;
   if (!user) return null;
 
-  const allowedNavigation = navigation.filter(item => hasModulePermission(user.role, item.permission));
+  const canNavigate = (permission: string) => user.role === "admin" || (effectivePermissions.isSuccess ? effectivePermissions.data.includes(permission) : hasModulePermission(user.role, permission));
+  const allowedNavigation = navigation.filter(item => canNavigate(item.permission) && (!item.adminOnly || user.role === "admin"));
   const profileName = user.name?.trim() || "Paulo Oliveira";
   const initials = profileName.slice(0, 2).toUpperCase();
 
@@ -134,9 +142,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">{user.email}</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2" onClick={() => setLocation("/configuracoes")}>
-                <Settings2 className="h-4 w-4" /> Preferências
+              <DropdownMenuItem className="gap-2" onClick={() => setLocation("/perfil")}>
+                <UserRound className="h-4 w-4" /> Meu perfil
               </DropdownMenuItem>
+              {user.role === "admin" && <DropdownMenuItem className="gap-2" onClick={() => setLocation("/usuarios")}><ShieldCheck className="h-4 w-4" /> Usuários e permissões</DropdownMenuItem>}
               <DropdownMenuItem className="gap-2" onClick={() => window.open("mailto:suporte@hubtrade.app", "_blank")}>
                 <CircleHelp className="h-4 w-4" /> Ajuda e suporte
               </DropdownMenuItem>

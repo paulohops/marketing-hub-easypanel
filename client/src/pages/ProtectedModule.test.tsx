@@ -11,6 +11,7 @@ const authState = vi.hoisted(() => ({
 }));
 
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => authState }));
+vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: false }) } } } }));
 vi.mock("./MediaWorkspace", () => ({ default: () => <h1>Mídias e campanhas</h1> }));
 vi.mock("@/components/MediaCoverageExplorer", () => ({ default: () => null }));
 vi.mock("@/components/MediaCampaignLibrary", () => ({ default: () => null }));

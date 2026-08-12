@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { InsertUser, users } from "../drizzle/schema";
@@ -36,6 +37,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     openId: user.openId,
     name: user.name ?? null,
     email: user.email ?? null,
+    phone: user.phone ?? null,
     loginMethod: user.loginMethod ?? null,
     lastSignedIn: user.lastSignedIn ?? new Date(),
     role: user.role ?? (user.openId === ENV.ownerOpenId ? "admin" : "viewer"),
@@ -44,9 +46,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   await database.insert(users).values(values).onConflictDoUpdate({
     target: users.openId,
     set: {
-      name: values.name,
-      email: values.email,
-      loginMethod: values.loginMethod,
+      name: sql`coalesce(excluded."name", "users"."name")`,
+      email: sql`coalesce(excluded."email", "users"."email")`,
+      loginMethod: sql`coalesce(excluded."loginMethod", "users"."loginMethod")`,
       lastSignedIn: values.lastSignedIn,
       updatedAt: new Date(),
     },

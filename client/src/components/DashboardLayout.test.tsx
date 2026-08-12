@@ -13,6 +13,8 @@ vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({ ...authState, isAuthenticated: true }),
 }));
 
+vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: false }) } } } }));
+
 describe("DashboardLayout", () => {
   it("oculta configurações para o perfil visualizador", () => {
     authState.user.role = "viewer";

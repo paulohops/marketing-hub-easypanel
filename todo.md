@@ -58,3 +58,19 @@
 - [x] Substituir os hexadecimais hardcoded rebrandizados dos workspaces e componentes por tokens CSS centralizados do Cluster MG.
 - [x] Executar uma verificação final página a página, incluindo telas auxiliares, e registrar evidências de rebranding completo.
 - [x] Atualizar o rótulo exibido no perfil da navegação de "Usuário" para "Paulo Oliveira".
+- [x] Auditar e evoluir o schema para perfis, telefones, permissões granulares e regras de negócio reforçadas.
+- [x] Reforçar validações de cadastros territoriais e operacionais no frontend e backend, incluindo prevenção de duplicidades.
+- [x] Tornar movimentações de estoque atômicas, adicionar paginação e filtros de data ao histórico e alertas de estoque mínimo.
+- [x] Adicionar filtros financeiros por status, vencimento, fornecedor e campanha, preservando anexos seguros no S3.
+- [x] Implementar a página de perfil para atualização segura de dados pessoais compatível com a autenticação OAuth atual.
+- [x] Implementar administração protegida de usuários, roles e permissões granulares, com auditoria de mudanças de acesso.
+- [x] Adicionar testes automatizados e validações de acessibilidade para os novos fluxos administrativos e operacionais.
+- [x] Adicionar validações de frontend verificáveis para regionais, cidades, lojas, parceiros e demais cadastros operacionais, alinhadas às regras de duplicidade já aplicadas no backend.
+- [x] Criar testes automatizados específicos para users router, filtros financeiros avançados e estoque atômico com saldo mínimo e paginação do histórico.
+- [x] Executar e registrar validações de acessibilidade das novas telas de perfil e administração de usuários com evidência explícita vinculada aos testes adicionados.
+- [x] Adicionar testes de interface ou integração dos formulários de regionais, cidades, lojas, parceiros e fornecedores com bloqueio e mensagem de erro de duplicidade ou consistência.
+- [x] Criar testes tRPC de perfil, listagem administrativa, alteração de papel e atualização de permissões de usuários.
+- [x] Adicionar testes de integração para os filtros financeiros combinados e para o saldo atômico, bloqueio de saída negativa e histórico paginado do estoque.
+- [x] Corrigir e testar a rota protegida de administração de usuários identificada como página 404 na validação visual.
+- [x] Adicionar cobertura explícita de interface para regionais, cidades, lojas, parceiros e fornecedores, validando o bloqueio e a mensagem de erro de cada formulário.
+- [x] Adicionar teste automatizado de roteamento para garantir que /usuarios e /administracao-usuarios renderizam a administração protegida sem retorno 404.
