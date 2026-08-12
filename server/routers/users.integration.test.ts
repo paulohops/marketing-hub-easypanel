@@ -80,7 +80,7 @@ describe("usersRouter via tRPC", () => {
       select: vi.fn(() => ({ from: vi.fn(() => ({ orderBy: vi.fn(() => users) })) })),
     });
     const adminCaller = appRouter.createCaller(createContext());
-    await expect(adminCaller.users.adminList()).resolves.toEqual(users);
+    await expect(adminCaller.users.adminList()).resolves.toEqual(users.map(user => ({ ...user, hasLocalPassword: false })));
 
     const viewerCaller = appRouter.createCaller(createContext({ role: "viewer" }));
     await expect(viewerCaller.users.adminList()).rejects.toMatchObject({ code: "FORBIDDEN" });

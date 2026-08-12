@@ -49,7 +49,6 @@ type NavItem = {
   path: string;
   icon: typeof LayoutDashboard;
   permission: string;
-  adminOnly?: boolean;
 };
 
 const navigation: NavItem[] = [
@@ -63,7 +62,7 @@ const navigation: NavItem[] = [
   { label: "BI & indicadores", path: "/indicadores", icon: BarChart3, permission: "dashboard.read" },
   { label: "Meu perfil", path: "/perfil", icon: UserRound, permission: "dashboard.read" },
   { label: "Configurações", path: "/configuracoes", icon: Settings2, permission: "settings.read" },
-  { label: "Usuários e permissões", path: "/usuarios", icon: ShieldCheck, permission: "settings.read", adminOnly: true },
+  { label: "Usuários e permissões", path: "/usuarios", icon: ShieldCheck, permission: "settings.read" },
 ];
 
 const roleNames: Record<string, string> = {
@@ -83,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   const canNavigate = (permission: string) => user.role === "admin" || (effectivePermissions.isSuccess ? effectivePermissions.data.includes(permission) : hasModulePermission(user.role, permission));
-  const allowedNavigation = navigation.filter(item => canNavigate(item.permission) && (!item.adminOnly || user.role === "admin"));
+  const allowedNavigation = navigation.filter(item => canNavigate(item.permission));
   const profileName = user.name?.trim() || "Paulo Oliveira";
   const initials = profileName.slice(0, 2).toUpperCase();
 

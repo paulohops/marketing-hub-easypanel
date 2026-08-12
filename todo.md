@@ -89,3 +89,13 @@
 - [x] Adicionar teste de interface do estoque para filtros por categoria e território no fluxo mais próximo da pessoa usuária.
 - [x] Registrar validação responsiva verificável do estoque V2 em múltiplos breakpoints.
 - [x] Adicionar asserções automatizadas da estrutura responsiva do estoque territorial nos breakpoints móvel e desktop.
+- [x] Criar credenciais locais seguras para usuários, mantendo o acesso OAuth institucional como alternativa.
+- [x] Permitir criação, edição detalhada, ativação/inativação e redefinição administrativa de senha para usuários locais.
+- [x] Implementar permissões individuais por usuário, com precedência clara sobre as permissões do papel e auditoria.
+- [x] Reorganizar a tela de permissões em grupos por módulo e fluxo, substituindo a lista plana atual.
+- [x] Criar o centro "Cadastros operacionais" em Configurações, com cartões por domínio configurável.
+- [x] Permitir administrar empresas, regionais, cidades, fornecedores, parceiros, tipos de ação, eventos, mídias, serviços e parâmetros financeiros.
+- [x] Ampliar fornecedores com status, cidades atendidas, ofertas e preços configuráveis.
+- [x] Adicionar testes de autenticação local, status de conta, permissões individuais e cadastros operacionais.
+- [x] Cobrir em interface a abertura do detalhe de usuário com cargo, status, redefinição de senha e permissões individuais.
+- [x] Validar explicitamente no centro operacional os fluxos de Empresas e Categorias financeiras, incluindo criação e status ativo/inativo.

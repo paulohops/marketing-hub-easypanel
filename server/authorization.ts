@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import type { User } from "../drizzle/schema";
-import { rolePermissions as rolePermissionRows } from "../drizzle/schema";
+import { rolePermissions as rolePermissionRows, userPermissions as userPermissionRows } from "../drizzle/schema";
 import { getDb } from "./db";
 
 export type TradeRole = "user" | "admin" | "regional_manager" | "operator" | "viewer";
@@ -28,29 +28,43 @@ function splitPermission(permission: string) {
 
 function hasLegacyPermission(role: TradeRole, permission: string) {
   const assigned = legacyRolePermissions[role] ?? [];
-  return assigned.includes("*") || assigned.includes(permission);
+  const [module, action] = permission.split(".");
+  return assigned.includes("*") || assigned.includes(permission) || (["create", "update", "delete"].includes(action) && assigned.includes(`${module}.write`));
 }
 
-export async function assertPermission(user: Pick<User, "role">, permission: string) {
-  if (user.role === "admin") return;
-  const { module, action } = splitPermission(permission);
+export async function effectivePermissionKeys(user: Pick<User, "id" | "role" | "isActive">) {
+  if (user.isActive === false) return [];
+  if (!user.id) {
+    return permissionModules.flatMap(module => permissionActions.flatMap(action => hasLegacyPermission(user.role as TradeRole, `${module}.${action}`) ? [`${module}.${action}`] : []));
+  }
   const database = await getDb();
   if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
+  const [roleEntries, userEntries] = await Promise.all([
+    user.role === "admin"
+      ? Promise.resolve(permissionModules.flatMap(module => permissionActions.map(action => ({ module, action, allowed: true }))))
+      : database.select({ module: rolePermissionRows.module, action: rolePermissionRows.action, allowed: rolePermissionRows.allowed }).from(rolePermissionRows).where(eq(rolePermissionRows.role, user.role)),
+    database.select({ module: userPermissionRows.module, action: userPermissionRows.action, allowed: userPermissionRows.allowed }).from(userPermissionRows).where(eq(userPermissionRows.userId, user.id)),
+  ]);
+  return permissionModules.flatMap(module => permissionActions.flatMap(action => {
+    const override = userEntries.find(entry => entry.module === module && entry.action === action);
+    const rolePermission = roleEntries.find(entry => entry.module === module && entry.action === action);
+    const inherited = rolePermission?.allowed ?? hasLegacyPermission(user.role as TradeRole, `${module}.${action}`);
+    return (override?.allowed ?? inherited) ? [`${module}.${action}`] : [];
+  }));
+}
 
-  const entries = await database.select({ action: rolePermissionRows.action, allowed: rolePermissionRows.allowed })
-    .from(rolePermissionRows)
-    .where(and(eq(rolePermissionRows.role, user.role), eq(rolePermissionRows.module, module)));
-
+export async function assertPermission(user: Pick<User, "id" | "role" | "isActive">, permission: string) {
+  const { module, action } = splitPermission(permission);
+  const effective = await effectivePermissionKeys(user);
   const allowed = action === "write"
-    ? entries.some(entry => entry.allowed && ["create", "update", "delete"].includes(entry.action))
-    : entries.some(entry => entry.action === action && entry.allowed);
-
-  if (!allowed && !(entries.length === 0 && hasLegacyPermission(user.role as TradeRole, permission))) {
+    ? ["create", "update", "delete"].some(writeAction => effective.includes(`${module}.${writeAction}`))
+    : effective.includes(`${module}.${action}`);
+  if (!allowed) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui permissão para esta operação." });
   }
 }
 
-export async function canPermission(user: Pick<User, "role">, permission: string) {
+export async function canPermission(user: Pick<User, "id" | "role" | "isActive">, permission: string) {
   try {
     await assertPermission(user, permission);
     return true;

@@ -36,9 +36,25 @@ const trpcStub = vi.hoisted(() => {
       return Reflect.get(target, property, receiver);
     },
   });
+  const profileData = { id: 1, name: "Ana", email: "ana@empresa.com", phone: null, role: "admin", avatarUrl: null, loginMethod: "local" };
+  const adminUsers: never[] = [];
+  const rolePermissions: never[] = [];
   const stub: Record<string | symbol, unknown> = {};
+  const usersStub = new Proxy(stub, {
+    get(_target, property) {
+      if (property === "profile") return { useQuery: () => ({ data: profileData, isLoading: false, isError: false }) };
+      if (property === "passwordPolicy") return { useQuery: () => ({ data: { message: "A senha local é gerenciada com segurança." }, isLoading: false, isError: false }) };
+      if (property === "adminList") return { useQuery: () => ({ data: adminUsers, isLoading: false, isError: false }) };
+      if (property === "adminPermissions") return { useQuery: () => ({ data: rolePermissions, isLoading: false, isError: false, refetch: vi.fn() }) };
+      if (property === "adminDetail") return { useQuery: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }) };
+      if (property === "useQuery") return () => ({ data: emptyData, isLoading: false, isError: false });
+      if (property === "useMutation") return () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false });
+      return trpcStub;
+    },
+  });
   return new Proxy(stub, {
     get(_target, property) {
+      if (property === "users") return usersStub;
       if (property === "useQuery") return () => ({ data: emptyData, isLoading: false, isError: false });
       if (property === "useMutation") return () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false });
       if (property === "useUtils") return () => trpcStub;

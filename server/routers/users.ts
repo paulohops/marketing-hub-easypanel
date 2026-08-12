@@ -1,12 +1,14 @@
 import { TRPCError } from "@trpc/server";
-import { asc, eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { rolePermissions, userRoles, users } from "../../drizzle/schema";
-import { permissionActions, permissionModules } from "../authorization";
+import { rolePermissions, userPermissions, userRegionals, userRoles, users } from "../../drizzle/schema";
+import { effectivePermissionKeys, permissionActions, permissionModules } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { hashLocalPassword, localPasswordInput, verifyLocalPassword } from "../auth/localPasswords";
 
 export const profileInput = z.object({
   name: z.string().trim().min(2, "Informe seu nome.").max(160),
@@ -14,16 +16,47 @@ export const profileInput = z.object({
 });
 export const roleInput = z.enum(userRoles);
 export const permissionInput = z.object({ role: roleInput, module: z.enum(permissionModules), action: z.enum(permissionActions), allowed: z.boolean() });
+export const userPermissionInput = z.object({ userId: z.number().int().positive(), module: z.enum(permissionModules), action: z.enum(permissionActions), allowed: z.boolean() });
 const avatarMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+const adminUserFields = z.object({
+  name: z.string().trim().min(2, "Informe o nome.").max(160),
+  email: z.string().trim().email("Informe um e-mail válido.").max(320),
+  phone: z.string().trim().max(32).optional().or(z.literal("")),
+  jobTitle: z.string().trim().max(120).optional().or(z.literal("")),
+  role: roleInput,
+  regionalIds: z.array(z.number().int().positive()).max(100).optional(),
+});
+const createLocalUserInput = adminUserFields.extend({ password: localPasswordInput });
+const updateAdminUserInput = adminUserFields.extend({ userId: z.number().int().positive() });
 
 export function allowedPermissionKeys(rows: Array<{ module: string; action: string; allowed: boolean }>) {
   return rows.filter(row => row.allowed).map(row => `${row.module}.${row.action}`);
+}
+
+function redactUser<T extends { passwordHash?: string | null }>(user: T) {
+  const { passwordHash, ...safeUser } = user;
+  return { ...safeUser, hasLocalPassword: Boolean(passwordHash) };
 }
 
 async function requireDatabase() {
   const database = await getDb();
   if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
   return database;
+}
+
+async function findUserOrFail(database: Awaited<ReturnType<typeof requireDatabase>>, userId: number) {
+  const [user] = await database.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
+  return user;
+}
+
+async function replaceUserRegionals(database: Awaited<ReturnType<typeof requireDatabase>>, userId: number, regionalIds: number[]) {
+  const uniqueRegionalIds = Array.from(new Set(regionalIds));
+  await database.transaction(async transaction => {
+    await transaction.delete(userRegionals).where(eq(userRegionals.userId, userId));
+    if (uniqueRegionalIds.length) await transaction.insert(userRegionals).values(uniqueRegionalIds.map(regionalId => ({ userId, regionalId })));
+  });
+  return uniqueRegionalIds;
 }
 
 export const usersRouter = router({
@@ -33,18 +66,19 @@ export const usersRouter = router({
     email: ctx.user.email,
     phone: ctx.user.phone,
     avatarUrl: ctx.user.avatarUrl,
+    jobTitle: ctx.user.jobTitle,
     role: ctx.user.role,
     loginMethod: ctx.user.loginMethod,
+    hasLocalPassword: Boolean(ctx.user.passwordHash),
     lastSignedIn: ctx.user.lastSignedIn,
   })),
 
   updateProfile: protectedProcedure.input(profileInput).mutation(async ({ ctx, input }) => {
     const database = await requireDatabase();
-    const [before] = await database.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
-    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
+    const before = await findUserOrFail(database, ctx.user.id);
     const [updated] = await database.update(users).set({ name: input.name, phone: input.phone || null, updatedAt: new Date() }).where(eq(users.id, ctx.user.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_profile", entityId: ctx.user.id, action: "update", beforeData: { name: before.name, phone: before.phone }, afterData: { name: updated.name, phone: updated.phone } });
-    return updated;
+    return redactUser(updated);
   }),
 
   uploadAvatar: protectedProcedure.input(z.object({ originalName: z.string().trim().min(1).max(255), mimeType: z.enum(avatarMimeTypes), dataBase64: z.string().min(1).max(4_000_000) })).mutation(async ({ ctx, input }) => {
@@ -53,29 +87,47 @@ export const usersRouter = router({
     const extension = input.mimeType === "image/jpeg" ? "jpg" : input.mimeType === "image/png" ? "png" : "webp";
     const stored = await storagePut(`trade/profiles/${ctx.user.id}/avatar-${Date.now()}.${extension}`, bytes, input.mimeType);
     const database = await requireDatabase();
-    const [before] = await database.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
-    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
+    const before = await findUserOrFail(database, ctx.user.id);
     const [updated] = await database.update(users).set({ avatarStorageKey: stored.key, avatarUrl: stored.url, updatedAt: new Date() }).where(eq(users.id, ctx.user.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_profile", entityId: ctx.user.id, action: "upload_avatar", beforeData: { avatarStorageKey: before.avatarStorageKey }, afterData: { avatarStorageKey: updated.avatarStorageKey } });
     return { avatarUrl: updated.avatarUrl };
   }),
 
-  passwordPolicy: protectedProcedure.query(() => ({
-    providerManaged: true,
-    canChangePasswordHere: false,
-    message: "A senha é gerenciada pelo provedor de acesso Manus OAuth. Para sua segurança, não armazenamos senhas locais no Trade HUB.",
+  passwordPolicy: protectedProcedure.query(({ ctx }) => ({
+    providerManaged: !ctx.user.passwordHash,
+    canChangePasswordHere: Boolean(ctx.user.passwordHash),
+    message: ctx.user.passwordHash
+      ? "Sua conta possui senha local. Use a troca de senha com sua senha atual para manter o acesso protegido."
+      : "A senha é gerenciada pelo provedor de acesso Manus OAuth. Para sua segurança, não armazenamos senhas locais nesta conta.",
   })),
 
-  effectivePermissions: protectedProcedure.query(async ({ ctx }) => {
-    if (ctx.user.role === "admin") return permissionModules.flatMap(module => permissionActions.map(action => `${module}.${action}`));
+  changeOwnLocalPassword: protectedProcedure.input(z.object({ currentPassword: z.string().min(1).max(128), newPassword: localPasswordInput })).mutation(async ({ ctx, input }) => {
     const database = await requireDatabase();
-    const rows = await database.select({ module: rolePermissions.module, action: rolePermissions.action, allowed: rolePermissions.allowed }).from(rolePermissions).where(eq(rolePermissions.role, ctx.user.role));
-    return allowedPermissionKeys(rows);
+    const account = await findUserOrFail(database, ctx.user.id);
+    if (!account.passwordHash) throw new TRPCError({ code: "BAD_REQUEST", message: "Esta conta usa autenticação institucional e não possui senha local." });
+    if (!await verifyLocalPassword(input.currentPassword, account.passwordHash)) throw new TRPCError({ code: "UNAUTHORIZED", message: "A senha atual está incorreta." });
+    const passwordHash = await hashLocalPassword(input.newPassword);
+    await database.update(users).set({ passwordHash, passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, account.id));
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: account.id, action: "change_own_password", beforeData: null, afterData: { passwordUpdated: true } });
+    return { success: true } as const;
   }),
+
+  effectivePermissions: protectedProcedure.query(async ({ ctx }) => effectivePermissionKeys(ctx.user)),
 
   adminList: adminProcedure.query(async () => {
     const database = await requireDatabase();
-    return database.select({ id: users.id, name: users.name, email: users.email, phone: users.phone, role: users.role, loginMethod: users.loginMethod, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).orderBy(asc(users.name), asc(users.email));
+    const rows = await database.select().from(users).orderBy(asc(users.name), asc(users.email));
+    return rows.map(redactUser);
+  }),
+
+  adminDetail: adminProcedure.input(z.object({ userId: z.number().int().positive() })).query(async ({ input }) => {
+    const database = await requireDatabase();
+    const user = await findUserOrFail(database, input.userId);
+    const [permissions, regionalAssignments] = await Promise.all([
+      database.select().from(userPermissions).where(eq(userPermissions.userId, input.userId)),
+      database.select().from(userRegionals).where(eq(userRegionals.userId, input.userId)),
+    ]);
+    return { user: redactUser(user), permissions, regionalIds: regionalAssignments.map(row => row.regionalId) };
   }),
 
   adminPermissions: adminProcedure.query(async () => {
@@ -83,14 +135,58 @@ export const usersRouter = router({
     return database.select().from(rolePermissions).orderBy(asc(rolePermissions.role), asc(rolePermissions.module), asc(rolePermissions.action));
   }),
 
+  createLocalUser: adminProcedure.input(createLocalUserInput).mutation(async ({ ctx, input }) => {
+    const database = await requireDatabase();
+    const email = input.email.toLowerCase();
+    const [existing] = await database.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${email}`).limit(1);
+    if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já existe uma conta com este e-mail." });
+    const passwordHash = await hashLocalPassword(input.password);
+    const now = new Date();
+    const [created] = await database.insert(users).values({ openId: `local_${randomUUID()}`, name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, loginMethod: "local", passwordHash, passwordUpdatedAt: now, isActive: true, lastSignedIn: now, updatedAt: now }).returning();
+    const regionalIds = await replaceUserRegionals(database, created.id, input.regionalIds ?? []);
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: created.id, action: "create_local_user", afterData: { ...redactUser(created), regionalIds } });
+    return redactUser(created);
+  }),
+
+  updateAdminUser: adminProcedure.input(updateAdminUserInput).mutation(async ({ ctx, input }) => {
+    const database = await requireDatabase();
+    const before = await findUserOrFail(database, input.userId);
+    if (input.userId === ctx.user.id && input.role !== before.role) throw new TRPCError({ code: "BAD_REQUEST", message: "Para preservar o acesso administrativo, não é permitido alterar seu próprio papel nesta tela." });
+    const email = input.email.toLowerCase();
+    const [sameEmail] = await database.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${email} AND ${users.id} <> ${input.userId}`).limit(1);
+    if (sameEmail) throw new TRPCError({ code: "CONFLICT", message: "Já existe outra conta com este e-mail." });
+    const [updated] = await database.update(users).set({ name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
+    const regionalIds = input.regionalIds === undefined ? undefined : await replaceUserRegionals(database, input.userId, input.regionalIds);
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: "update_user", beforeData: redactUser(before), afterData: { ...redactUser(updated), regionalIds } });
+    return redactUser(updated);
+  }),
+
+  setUserActive: adminProcedure.input(z.object({ userId: z.number().int().positive(), isActive: z.boolean() })).mutation(async ({ ctx, input }) => {
+    if (input.userId === ctx.user.id && !input.isActive) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é permitido inativar a própria conta." });
+    const database = await requireDatabase();
+    const before = await findUserOrFail(database, input.userId);
+    const [updated] = await database.update(users).set({ isActive: input.isActive, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: input.isActive ? "activate_user" : "deactivate_user", beforeData: { isActive: before.isActive }, afterData: { isActive: updated.isActive } });
+    return redactUser(updated);
+  }),
+
+  resetLocalPassword: adminProcedure.input(z.object({ userId: z.number().int().positive(), password: localPasswordInput })).mutation(async ({ ctx, input }) => {
+    const database = await requireDatabase();
+    const account = await findUserOrFail(database, input.userId);
+    if (!account.passwordHash) throw new TRPCError({ code: "BAD_REQUEST", message: "Esta conta usa autenticação institucional e não possui senha local para redefinir." });
+    const passwordHash = await hashLocalPassword(input.password);
+    await database.update(users).set({ passwordHash, passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, account.id));
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: account.id, action: "reset_local_password", beforeData: null, afterData: { passwordReset: true } });
+    return { success: true } as const;
+  }),
+
   updateRole: adminProcedure.input(z.object({ userId: z.number().int().positive(), role: roleInput })).mutation(async ({ ctx, input }) => {
     if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Para preservar o acesso administrativo, não é permitido alterar sua própria função nesta tela." });
     const database = await requireDatabase();
-    const [before] = await database.select().from(users).where(eq(users.id, input.userId)).limit(1);
-    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
+    const before = await findUserOrFail(database, input.userId);
     const [updated] = await database.update(users).set({ role: input.role, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: "update_role", beforeData: { role: before.role }, afterData: { role: updated.role } });
-    return updated;
+    return redactUser(updated);
   }),
 
   updateRolePermission: adminProcedure.input(permissionInput).mutation(async ({ ctx, input }) => {
@@ -100,5 +196,23 @@ export const usersRouter = router({
     const [updated] = await database.insert(rolePermissions).values({ ...input, updatedAt: new Date() }).onConflictDoUpdate({ target: [rolePermissions.role, rolePermissions.module, rolePermissions.action], set: { allowed: input.allowed, updatedAt: new Date() } }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "role_permission", entityId: updated.id, action: "update_permission", beforeData: before, afterData: updated });
     return updated;
+  }),
+
+  updateUserPermission: adminProcedure.input(userPermissionInput).mutation(async ({ ctx, input }) => {
+    const database = await requireDatabase();
+    await findUserOrFail(database, input.userId);
+    const [before] = await database.select().from(userPermissions).where(sql`${userPermissions.userId} = ${input.userId} AND ${userPermissions.module} = ${input.module} AND ${userPermissions.action} = ${input.action}`).limit(1);
+    const [updated] = await database.insert(userPermissions).values({ ...input, updatedAt: new Date() }).onConflictDoUpdate({ target: [userPermissions.userId, userPermissions.module, userPermissions.action], set: { allowed: input.allowed, updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_permission", entityId: updated.id, action: "update_user_permission", beforeData: before ?? null, afterData: updated });
+    return updated;
+  }),
+
+  clearUserPermission: adminProcedure.input(z.object({ userId: z.number().int().positive(), module: z.enum(permissionModules), action: z.enum(permissionActions) })).mutation(async ({ ctx, input }) => {
+    const database = await requireDatabase();
+    const [before] = await database.select().from(userPermissions).where(sql`${userPermissions.userId} = ${input.userId} AND ${userPermissions.module} = ${input.module} AND ${userPermissions.action} = ${input.action}`).limit(1);
+    if (!before) return { success: true } as const;
+    await database.delete(userPermissions).where(eq(userPermissions.id, before.id));
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_permission", entityId: before.id, action: "clear_user_permission", beforeData: before, afterData: null });
+    return { success: true } as const;
   }),
 });

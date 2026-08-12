@@ -23,6 +23,7 @@ export const tradeOperationTypeEnum = pgEnum("trade_operation_type", ["trade_act
 export const tradeOperationStatusEnum = pgEnum("trade_operation_status", ["planned", "approved", "in_progress", "completed", "cancelled"]);
 export const budgetTypeEnum = pgEnum("budget_type", ["trade_events", "branding_b2c"]);
 export const operationCostStatusEnum = pgEnum("operation_cost_status", ["draft", "pending_approval", "approved", "rejected"]);
+export const supplierOfferingKindEnum = pgEnum("supplier_offering_kind", ["service", "media", "action", "event", "other"]);
 export const mediaPointStatusEnum = pgEnum("media_point_status", ["active", "inactive", "maintenance"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["open", "partially_paid", "paid", "overdue", "cancelled"]);
 export const operationTypeEnum = pgEnum("financial_operation_type", ["media_campaign", "action", "event", "trade_operation", "other"]);
@@ -40,6 +41,10 @@ export const users = pgTable("users", {
   avatarStorageKey: varchar("avatarStorageKey", { length: 512 }),
   avatarUrl: text("avatarUrl"),
   loginMethod: varchar("loginMethod", { length: 64 }),
+  jobTitle: varchar("jobTitle", { length: 120 }),
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  passwordUpdatedAt: timestamp("passwordUpdatedAt", { withTimezone: true }),
+  isActive: boolean("isActive").default(true).notNull(),
   role: userRoleEnum("role").default("viewer").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
@@ -54,6 +59,15 @@ export const rolePermissions = pgTable("role_permissions", {
   allowed: boolean("allowed").default(false).notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 }, table => [uniqueIndex("role_permissions_role_module_action_uq").on(table.role, table.module, table.action)]);
+
+export const userPermissions = pgTable("user_permissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  module: permissionModuleEnum("module").notNull(),
+  action: permissionActionEnum("action").notNull(),
+  allowed: boolean("allowed").notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+}, table => [uniqueIndex("user_permissions_user_module_action_uq").on(table.userId, table.module, table.action)]);
 
 export const providers = pgTable("providers", {
   id: serial("id").primaryKey(),
@@ -133,6 +147,15 @@ export const eventTypes = pgTable("event_types", {
   active: boolean("active").default(true).notNull(),
 });
 
+export const financialCategories = pgTable("financial_categories", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull().unique(),
+  description: text("description"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
   providerId: integer("providerId").references(() => providers.id, { onDelete: "restrict" }),
@@ -167,6 +190,19 @@ export const supplierServiceTypes = pgTable("supplier_service_types", {
   supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "cascade" }),
   serviceTypeId: integer("serviceTypeId").notNull().references(() => serviceTypes.id, { onDelete: "restrict" }),
 }, table => [uniqueIndex("supplier_service_types_uq").on(table.supplierId, table.serviceTypeId)]);
+
+export const supplierOfferings = pgTable("supplier_offerings", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "cascade" }),
+  kind: supplierOfferingKindEnum("kind").notNull(),
+  name: varchar("name", { length: 180 }).notNull(),
+  unit: varchar("unit", { length: 64 }).default("unidade").notNull(),
+  unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).notNull(),
+  notes: text("notes"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+}, table => [uniqueIndex("supplier_offerings_supplier_kind_name_uq").on(table.supplierId, table.kind, table.name)]);
 
 export const stockItems = pgTable("stock_items", {
   id: serial("id").primaryKey(),
