@@ -57,3 +57,4 @@
 - [x] Auditar e ajustar explicitamente a marca Trade HUB — Cluster MG em todas as telas auxiliares e operacionais.
 - [x] Substituir os hexadecimais hardcoded rebrandizados dos workspaces e componentes por tokens CSS centralizados do Cluster MG.
 - [x] Executar uma verificação final página a página, incluindo telas auxiliares, e registrar evidências de rebranding completo.
+- [x] Atualizar o rótulo exibido no perfil da navegação de "Usuário" para "Paulo Oliveira".

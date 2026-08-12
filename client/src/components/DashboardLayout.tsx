@@ -74,7 +74,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   const allowedNavigation = navigation.filter(item => hasModulePermission(user.role, item.permission));
-  const initials = (user.name || user.email || "U").slice(0, 2).toUpperCase();
+  const profileName = user.name?.trim() || "Paulo Oliveira";
+  const initials = profileName.slice(0, 2).toUpperCase();
 
   return (
     <SidebarProvider defaultOpen>
@@ -121,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <AvatarFallback className="bg-sidebar-accent text-xs font-semibold text-accent">{initials}</AvatarFallback>
                 </Avatar>
                 <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-                  <span className="block truncate text-xs font-semibold text-white">{user.name || "Usuário"}</span>
+                  <span className="block truncate text-xs font-semibold text-white">{profileName}</span>
                   <span className="mt-0.5 block truncate text-[11px] text-sidebar-foreground">{roleNames[user.role] ?? "Usuário"}</span>
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
@@ -129,7 +130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5">
               <DropdownMenuLabel className="px-2 py-2 font-normal">
-                <p className="text-sm font-semibold">{user.name || "Usuário"}</p>
+                <p className="text-sm font-semibold">{profileName}</p>
                 <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">{user.email}</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
