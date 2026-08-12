@@ -1,0 +1,21 @@
+import { asc, eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { cities, events, eventSuppliers, eventTypes, suppliers } from "../../drizzle/schema";
+import { assertPermission } from "../authorization";
+import { writeAuditLog } from "../audit";
+import { getDb } from "../db";
+import { protectedProcedure, router } from "../_core/trpc";
+
+async function requireDatabase() { const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." }); return database; }
+
+export function validEventRange(startsAt: Date, endsAt: Date | null) {
+  return !endsAt || endsAt >= startsAt;
+}
+
+export const eventsRouter = router({
+  referenceData: protectedProcedure.query(async ({ ctx }) => { assertPermission(ctx.user, "events.read"); const database = await requireDatabase(); const [cityRows, typeRows, supplierRows] = await Promise.all([database.select().from(cities).where(eq(cities.active, true)).orderBy(asc(cities.name)), database.select().from(eventTypes).where(eq(eventTypes.active, true)).orderBy(asc(eventTypes.name)), database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName))]); return { cities: cityRows, eventTypes: typeRows, suppliers: supplierRows }; }),
+  list: protectedProcedure.query(async ({ ctx }) => { assertPermission(ctx.user, "events.read"); const database = await requireDatabase(); return database.select({ event: events, cityName: cities.name, eventTypeName: eventTypes.name }).from(events).innerJoin(cities, eq(events.cityId, cities.id)).innerJoin(eventTypes, eq(events.eventTypeId, eventTypes.id)).orderBy(asc(events.startsAt)); }),
+  create: protectedProcedure.input(z.object({ cityId: z.number().int().positive(), eventTypeId: z.number().int().positive(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), startsAt: z.coerce.date(), endsAt: z.coerce.date().nullable(), preEventNotes: z.string().trim().max(3000).optional(), supplierIds: z.array(z.number().int().positive()).max(20) })).mutation(async ({ ctx, input }) => { assertPermission(ctx.user, "events.write"); if (!validEventRange(input.startsAt, input.endsAt)) throw new TRPCError({ code: "BAD_REQUEST", message: "O término do evento deve ser posterior ao início." }); const database = await requireDatabase(); const created = await database.transaction(async transaction => { const [event] = await transaction.insert(events).values({ cityId: input.cityId, eventTypeId: input.eventTypeId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, startsAt: input.startsAt, endsAt: input.endsAt, preEventNotes: input.preEventNotes || null }).returning(); if (input.supplierIds.length) await transaction.insert(eventSuppliers).values(Array.from(new Set(input.supplierIds)).map(supplierId => ({ eventId: event.id, supplierId }))); return event; }); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "event", entityId: created.id, action: "create", afterData: created }); return created; }),
+  savePostEvent: protectedProcedure.input(z.object({ eventId: z.number().int().positive(), postEventNotes: z.string().trim().max(3000).optional(), rating: z.number().int().min(1).max(5).nullable(), resultAchieved: z.boolean().nullable(), status: z.enum(["planned", "in_progress", "completed", "cancelled"]) })).mutation(async ({ ctx, input }) => { assertPermission(ctx.user, "events.write"); const database = await requireDatabase(); const [updated] = await database.update(events).set({ postEventNotes: input.postEventNotes || null, rating: input.rating, resultAchieved: input.resultAchieved, status: input.status, updatedAt: new Date() }).where(eq(events.id, input.eventId)).returning(); if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Evento não encontrado." }); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "event", entityId: updated.id, action: "update", afterData: updated }); return updated; }),
+});

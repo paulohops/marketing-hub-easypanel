@@ -1,0 +1,46 @@
+# Project TODO
+
+- [x] Definir o modelo de implantação do banco PostgreSQL e a conexão segura do servidor.
+- [x] Configurar a credencial do PostgreSQL externo em segredo de ambiente e validar a conexão TLS.
+- [x] Adaptar o schema, o acesso a dados e as migrações do projeto para PostgreSQL.
+- [x] Exigir e testar conexão PostgreSQL com TLS/SSL no servidor.
+- [x] Definir a matriz de permissões para os perfis admin, gestor regional, operador e visualizador.
+- [x] Projetar a identidade visual sofisticada, responsiva e acessível da plataforma.
+- [x] Implementar a tela de login e sessão autenticada.
+- [x] Implementar a navegação principal condicionada às permissões do usuário.
+- [x] Aplicar e validar a identidade visual premium em todas as áreas principais, incluindo responsividade e acessibilidade.
+- [x] Restringir o acesso direto às rotas dos módulos conforme as permissões do perfil.
+- [x] Criar testes automatizados para visibilidade de navegação e bloqueio de acesso por perfil.
+- [x] Criar testes de interface para validar menu e bloqueio de acesso direto às rotas por perfil.
+- [x] Implementar cadastros de regionais, cidades, lojas, fornecedores, serviços, parceiros e tipos operacionais.
+- [x] Implementar a associação de fornecedores a cidades, serviços e tipos de mídia com integridade N:N.
+- [x] Implementar o estoque de brindes com entradas, saídas, saldo, histórico, regional e cidade.
+- [x] Implementar o financeiro com notas fiscais, contas a pagar, pagamentos e vínculos operacionais.
+- [x] Implementar o armazenamento seguro de comprovantes, PDFs e mídias por regional.
+- [x] Implementar histórico detalhado de movimentações de estoque por item, com consulta e exibição cronológica.
+- [x] Implementar seleção, validação e visualização de vínculo operacional no financeiro.
+- [x] Implementar fluxo de upload e visualização de mídias por regional com permissões adequadas.
+- [x] Implementar anexação e visualização de evidências para campanhas, ações e eventos, com permissões específicas por módulo.
+- [x] Adicionar testes automatizados para histórico de estoque, pagamentos e upload documental por entidade.
+- [x] Corrigir e validar os auxiliares de documentos para permissões e normalização segura de anexos.
+- [x] Implementar pontos de mídia, geolocalização e filtros por regional e cidade.
+- [x] Implementar campanhas de mídia com renovação, histórico e regra de uma campanha ativa por ponto.
+- [x] Implementar planejamento, execução e debriefing de ações de trade marketing.
+- [x] Implementar pré-evento, pós-evento, fornecedores, avaliações e histórico de eventos.
+- [x] Implementar o mapa de mídias, ações e eventos com filtros e detalhes operacionais.
+- [x] Implementar o dashboard analítico e views de desempenho para fornecedores, mídias, ações e eventos.
+- [x] Implementar alertas para vencimento de campanhas, pagamentos pendentes e ações sem execução.
+- [x] Implementar callback agendado, seguro e idempotente para gerar alertas operacionais recorrentes.
+- [ ] Após a publicação, ativar a rotina diária de alertas por meio do agendamento gerenciado.
+- [x] Implementar trilha de auditoria para mudanças administrativas e operacionais relevantes.
+- [x] Criar testes automatizados para regras de permissão, integridade e fluxos críticos.
+- [x] Validar responsividade, acessibilidade, segurança e qualidade visual antes da entrega.
+- [x] Implementar UI/API para gerenciar associações N:N de fornecedores com cidades, serviços e tipos de mídia, com testes de integridade.
+- [x] Ampliar a cobertura de testes para histórico, anexos por entidade, campanhas, ações, eventos, alertas e auditoria.
+- [x] Explicitar e validar as consultas analíticas de fornecedores, mídias, ações e eventos no dashboard.
+- [x] Executar validações verificáveis de acessibilidade, responsividade e segurança antes da entrega.
+- [x] Executar auditoria automatizada de acessibilidade nas telas principais.
+- [x] Adicionar auditorias de acessibilidade para Dashboard, Estoque, Financeiro, Configurações, Mídias, Ações, Eventos e Indicadores.
+- [x] Executar a suíte de acessibilidade por tela e registrar a aprovação verificável.
+- [x] Testar integralidade persistente das associaações N:N de fornecedores por API e banco de dados.
+- [x] Testar o histórico cronológico e o upload documental em cada entidade operacional suportada.
