@@ -92,21 +92,41 @@ const FORGE_BASE_URL =
   "https://forge.butterfly-effect.dev";
 const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
 
-function loadMapScript() {
-  return new Promise(resolve => {
+const MAP_SCRIPT_SELECTOR = 'script[data-hub-trade-google-maps="true"]';
+let mapsLoader: Promise<void> | null = null;
+
+export function loadMapScript() {
+  if (window.google?.maps) return Promise.resolve();
+  if (mapsLoader) return mapsLoader;
+
+  mapsLoader = new Promise<void>((resolve, reject) => {
+    const handleLoad = () => resolve();
+    const handleError = () => {
+      mapsLoader = null;
+      reject(new Error("Não foi possível carregar a API do Google Maps."));
+    };
+    const existing = document.querySelector<HTMLScriptElement>(MAP_SCRIPT_SELECTOR);
+    if (existing) {
+      existing.addEventListener("load", handleLoad, { once: true });
+      existing.addEventListener("error", handleError, { once: true });
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
     script.async = true;
     script.crossOrigin = "anonymous";
-    script.onload = () => {
-      resolve(null);
-      script.remove(); // Clean up immediately
-    };
-    script.onerror = () => {
-      console.error("Failed to load Google Maps script");
-    };
+    script.dataset.hubTradeGoogleMaps = "true";
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
     document.head.appendChild(script);
   });
+  return mapsLoader;
+}
+
+export function resetMapLoaderForTests() {
+  mapsLoader = null;
+  document.querySelector(MAP_SCRIPT_SELECTOR)?.remove();
 }
 
 interface MapViewProps {
@@ -127,7 +147,7 @@ export function MapView({
 
   const init = usePersistFn(async () => {
     await loadMapScript();
-    if (!mapContainer.current) {
+    if (!mapContainer.current || !window.google?.maps) {
       console.error("Map container not found");
       return;
     }

@@ -44,3 +44,4 @@
 - [x] Executar a suíte de acessibilidade por tela e registrar a aprovação verificável.
 - [x] Testar integralidade persistente das associaações N:N de fornecedores por API e banco de dados.
 - [x] Testar o histórico cronológico e o upload documental em cada entidade operacional suportada.
+- [x] Corrigir o carregamento duplicado da API do Google Maps na rota de indicadores e adicionar regressão automatizada.
