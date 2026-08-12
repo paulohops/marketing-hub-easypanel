@@ -74,3 +74,18 @@
 - [x] Corrigir e testar a rota protegida de administração de usuários identificada como página 404 na validação visual.
 - [x] Adicionar cobertura explícita de interface para regionais, cidades, lojas, parceiros e fornecedores, validando o bloqueio e a mensagem de erro de cada formulário.
 - [x] Adicionar teste automatizado de roteamento para garantir que /usuarios e /administracao-usuarios renderizam a administração protegida sem retorno 404.
+- [x] Restringir o módulo de configurações às configurações administrativas, usuários e sistema, mantendo os cadastros operacionais em seu contexto próprio.
+- [x] Adicionar foto de perfil e exibição do cargo no perfil do usuário, com armazenamento seguro de imagem no S3.
+- [x] Evoluir o estoque para categorias amplas de materiais, visão por regional e cidade e transferências rastreáveis entre cidades.
+- [x] Criar catálogo operacional completo de ações de trade, mídias e serviços de fornecedores a partir da matriz fornecida.
+- [x] Implementar operações unificadas de trade, mídia e evento, incluindo alvará obrigatório quando aplicável, evidências e debriefing.
+- [x] Adicionar custos de operação e orçamento mensal por verba, com painel de verba total, realizado e saldo disponível.
+- [x] Reforçar permissões para criação de operações e aprovação de custos, incluindo trilha de auditoria.
+- [x] Documentar a limitação de senha gerenciada pelo provedor OAuth e oferecer o fluxo seguro compatível no perfil.
+- [x] Adicionar testes e validação de acessibilidade e responsividade para os novos fluxos territoriais, operacionais e financeiros.
+- [x] Adicionar testes automatizados específicos para categorias, visão territorial por regional/cidade e transferências rastreáveis do estoque V2.
+- [x] Executar e registrar a validação responsiva do fluxo territorial de estoque V2.
+- [x] Adicionar teste positivo de transferência entre cidades, cobrindo saldos atômicos, dupla movimentação e auditoria.
+- [x] Adicionar teste de interface do estoque para filtros por categoria e território no fluxo mais próximo da pessoa usuária.
+- [x] Registrar validação responsiva verificável do estoque V2 em múltiplos breakpoints.
+- [x] Adicionar asserções automatizadas da estrutura responsiva do estoque territorial nos breakpoints móvel e desktop.

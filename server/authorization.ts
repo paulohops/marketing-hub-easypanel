@@ -5,18 +5,18 @@ import { rolePermissions as rolePermissionRows } from "../drizzle/schema";
 import { getDb } from "./db";
 
 export type TradeRole = "user" | "admin" | "regional_manager" | "operator" | "viewer";
-export type PermissionModule = "dashboard" | "settings" | "inventory" | "finance" | "media" | "actions" | "events" | "documents" | "map" | "notifications";
+export type PermissionModule = "dashboard" | "settings" | "inventory" | "finance" | "media" | "actions" | "events" | "operations" | "documents" | "map" | "notifications";
 export type PermissionAction = "read" | "create" | "update" | "delete";
 
-export const permissionModules: PermissionModule[] = ["dashboard", "settings", "inventory", "finance", "media", "actions", "events", "documents", "map", "notifications"];
+export const permissionModules: PermissionModule[] = ["dashboard", "settings", "inventory", "finance", "media", "actions", "events", "operations", "documents", "map", "notifications"];
 export const permissionActions: PermissionAction[] = ["read", "create", "update", "delete"];
 
 const legacyRolePermissions: Record<TradeRole, readonly string[]> = {
   user: ["dashboard.read", "inventory.read", "finance.read", "media.read", "actions.read", "events.read"],
   admin: ["*"],
-  regional_manager: ["dashboard.read", "settings.read", "settings.write", "inventory.read", "inventory.write", "finance.read", "finance.write", "media.read", "media.write", "actions.read", "actions.write", "events.read", "events.write", "documents.write"],
-  operator: ["dashboard.read", "inventory.read", "inventory.write", "media.read", "media.write", "actions.read", "actions.write", "events.read", "events.write", "documents.write"],
-  viewer: ["dashboard.read", "inventory.read", "finance.read", "media.read", "actions.read", "events.read"],
+  regional_manager: ["dashboard.read", "settings.read", "settings.write", "inventory.read", "inventory.write", "finance.read", "finance.write", "media.read", "media.write", "actions.read", "actions.write", "events.read", "events.write", "operations.read", "operations.create", "operations.update", "documents.write"],
+  operator: ["dashboard.read", "inventory.read", "inventory.write", "media.read", "media.write", "actions.read", "actions.write", "events.read", "events.write", "operations.read", "operations.create", "operations.update", "documents.write"],
+  viewer: ["dashboard.read", "inventory.read", "finance.read", "media.read", "actions.read", "events.read", "operations.read"],
 };
 
 function splitPermission(permission: string) {

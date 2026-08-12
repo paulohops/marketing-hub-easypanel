@@ -1,14 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { actions, documents, events, invoices, mediaCampaigns, regionals, stockItems } from "../../drizzle/schema";
+import { actions, documents, events, invoices, mediaCampaigns, regionals, stockItems, tradeOperations } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 
-const entityTypes = ["media_campaign", "action", "event", "invoice", "stock", "regional_media"] as const;
+const entityTypes = ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media"] as const;
 const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
 
 export function permissionForEntity(entityType: (typeof entityTypes)[number], write: boolean) {
@@ -17,6 +17,7 @@ export function permissionForEntity(entityType: (typeof entityTypes)[number], wr
   if (entityType === "stock") return `inventory.${mode}`;
   if (entityType === "action") return `actions.${mode}`;
   if (entityType === "event") return `events.${mode}`;
+  if (entityType === "trade_operation") return `operations.${mode}`;
   return `media.${mode}`;
 }
 
@@ -60,6 +61,10 @@ export const documentsRouter = router({
     if (input.entityType === "event") {
       const [event] = await database.select({ id: events.id }).from(events).where(eq(events.id, input.entityId));
       if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Evento não encontrado." });
+    }
+    if (input.entityType === "trade_operation") {
+      const [operation] = await database.select({ id: tradeOperations.id }).from(tradeOperations).where(eq(tradeOperations.id, input.entityId));
+      if (!operation) throw new TRPCError({ code: "NOT_FOUND", message: "Operação não encontrada." });
     }
     if (input.entityType === "regional_media") {
       const [regional] = await database.select({ id: regionals.id }).from(regionals).where(eq(regionals.id, input.entityId));

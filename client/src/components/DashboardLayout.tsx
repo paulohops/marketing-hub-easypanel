@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { hasModulePermission } from "@/lib/permissions";
 import { trpc } from "@/lib/trpc";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ import {
   ChevronDown,
   CircleHelp,
   FolderCog,
+  Flag,
   Landmark,
   LayoutDashboard,
   LogOut,
@@ -55,6 +56,7 @@ const navigation: NavItem[] = [
   { label: "Visão geral", path: "/", icon: LayoutDashboard, permission: "dashboard.read" },
   { label: "Estoque", path: "/estoque", icon: Boxes, permission: "inventory.read" },
   { label: "Financeiro", path: "/financeiro", icon: Landmark, permission: "finance.read" },
+  { label: "Operações", path: "/operacoes", icon: Flag, permission: "operations.read" },
   { label: "Mídias", path: "/midias", icon: Megaphone, permission: "media.read" },
   { label: "Ações", path: "/acoes", icon: CalendarDays, permission: "actions.read" },
   { label: "Eventos", path: "/eventos", icon: MapPinned, permission: "events.read" },
@@ -127,6 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DropdownMenuTrigger asChild>
               <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/[0.12] focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:justify-center">
                 <Avatar className="h-8 w-8 border border-white/30 bg-sidebar-accent">
+                  <AvatarImage src={user.avatarUrl ?? undefined} alt={`Foto de ${profileName}`} />
                   <AvatarFallback className="bg-sidebar-accent text-xs font-semibold text-accent">{initials}</AvatarFallback>
                 </Avatar>
                 <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">

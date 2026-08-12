@@ -14,6 +14,7 @@ function Router() {
     <Route path="/login" component={LoginPage} />
     <Route path="/estoque">{() => <ProtectedModule module="estoque" />}</Route>
     <Route path="/financeiro">{() => <ProtectedModule module="financeiro" />}</Route>
+    <Route path="/operacoes">{() => <ProtectedModule module="operacoes" />}</Route>
     <Route path="/midias">{() => <ProtectedModule module="midias" />}</Route>
     <Route path="/acoes">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { cities, regionals, stockBalances, stockItems, stockMovements, users } from "../../drizzle/schema";
+import { cities, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -39,6 +39,13 @@ export const inventoryHistoryInput = z.object({
   pageSize: z.number().int().min(5).max(100).default(20),
 });
 
+const stockCategoryValues = ["brinde_relacionamento", "brinde_vip", "material_suporte"] as const;
+const inventoryListInput = z.object({
+  regionalId: z.number().int().positive().optional(),
+  cityId: z.number().int().positive().optional(),
+  category: z.enum(stockCategoryValues).optional(),
+}).optional();
+
 async function requireDatabase() {
   const database = await getDb();
   if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
@@ -56,17 +63,42 @@ export const inventoryRouter = router({
     return { regionals: regionalRows, cities: cityRows };
   }),
 
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: protectedProcedure.input(inventoryListInput).query(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "inventory.read");
     const database = await requireDatabase();
+    const conditions = [];
+    if (input?.regionalId) conditions.push(eq(stockItems.regionalId, input.regionalId));
+    if (input?.cityId) conditions.push(eq(stockItems.cityId, input.cityId));
+    if (input?.category) conditions.push(eq(stockItems.category, input.category));
+    const where = conditions.length ? and(...conditions) : undefined;
     const [items, movements] = await Promise.all([
-      database.select({ item: stockItems, regionalName: regionals.name, cityName: cities.name, materializedBalance: stockBalances.quantity }).from(stockItems).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(stockBalances, eq(stockBalances.stockItemId, stockItems.id)).orderBy(asc(stockItems.name)),
+      database.select({ item: stockItems, regionalName: regionals.name, cityName: cities.name, materializedBalance: stockBalances.quantity }).from(stockItems).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(stockBalances, eq(stockBalances.stockItemId, stockItems.id)).where(where).orderBy(asc(stockItems.name)),
       database.select().from(stockMovements),
     ]);
     return items.map(({ item, regionalName, cityName, materializedBalance }) => {
       const relatedMovements = movements.filter(movement => movement.stockItemId === item.id);
       return { ...item, regionalName, cityName, balance: materializedBalance === null ? calculateStockBalance(relatedMovements) : Number(materializedBalance), movementCount: relatedMovements.length };
     });
+  }),
+
+  territorialSummary: protectedProcedure.input(z.object({ regionalId: z.number().int().positive().optional(), cityId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "inventory.read");
+    const database = await requireDatabase();
+    const conditions = [];
+    if (input?.regionalId) conditions.push(eq(stockItems.regionalId, input.regionalId));
+    if (input?.cityId) conditions.push(eq(stockItems.cityId, input.cityId));
+    const where = conditions.length ? and(...conditions) : undefined;
+    const rows = await database.select({ regionalId: stockItems.regionalId, regionalName: regionals.name, cityId: stockItems.cityId, cityName: cities.name, category: stockItems.category, balance: stockBalances.quantity }).from(stockItems).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(stockBalances, eq(stockBalances.stockItemId, stockItems.id)).where(where);
+    const summary = new Map<string, { regionalId: number; regionalName: string; cityId: number | null; cityName: string; category: (typeof stockCategoryValues)[number]; itemCount: number; quantity: number }>();
+    for (const row of rows) {
+      const cityName = row.cityName ?? "Estoque regional";
+      const key = [row.regionalId, row.cityId ?? "regional", row.category].join(":");
+      const current = summary.get(key) ?? { regionalId: row.regionalId, regionalName: row.regionalName, cityId: row.cityId, cityName, category: row.category, itemCount: 0, quantity: 0 };
+      current.itemCount += 1;
+      current.quantity += Number(row.balance ?? 0);
+      summary.set(key, current);
+    }
+    return Array.from(summary.values()).sort((first, second) => first.regionalName.localeCompare(second.regionalName) || first.cityName.localeCompare(second.cityName) || first.category.localeCompare(second.category));
   }),
 
   listMovements: protectedProcedure.input(inventoryHistoryInput.optional()).query(async ({ ctx, input }) => {
@@ -87,7 +119,7 @@ export const inventoryRouter = router({
     return { items: rows, total: Number(totalRows[0]?.total ?? 0), page: filters.page, pageSize: filters.pageSize };
   }),
 
-  createItem: protectedProcedure.input(z.object({ regionalId: z.number().int().positive(), cityId: z.number().int().positive().nullable(), sku: z.string().trim().min(2).max(64).toUpperCase(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(2000).optional(), unit: z.string().trim().min(1).max(24).default("un"), minimumQuantity: z.number().nonnegative().max(1_000_000).default(0) })).mutation(async ({ ctx, input }) => {
+  createItem: protectedProcedure.input(z.object({ regionalId: z.number().int().positive(), cityId: z.number().int().positive().nullable(), sku: z.string().trim().min(2).max(64).toUpperCase(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(2000).optional(), unit: z.string().trim().min(1).max(24).default("un"), category: z.enum(stockCategoryValues).default("material_suporte"), minimumQuantity: z.number().nonnegative().max(1_000_000).default(0) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "inventory.write");
     const database = await requireDatabase();
     const created = await database.transaction(async transaction => {
@@ -114,5 +146,33 @@ export const inventoryRouter = router({
     });
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: item.regionalId, entityType: "stock_movement", entityId: created.id, action: "create", afterData: created });
     return created;
+  }),
+
+  transfer: protectedProcedure.input(z.object({ sourceStockItemId: z.number().int().positive(), destinationStockItemId: z.number().int().positive(), quantity: z.number().positive().max(1_000_000), occurredAt: z.coerce.date(), notes: z.string().trim().max(2_000).optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "inventory.update");
+    if (input.sourceStockItemId === input.destinationStockItemId) throw new TRPCError({ code: "BAD_REQUEST", message: "Escolha itens de origem e destino diferentes." });
+    const database = await requireDatabase();
+    const transfer = await database.transaction(async transaction => {
+      const [source, destination] = await Promise.all([
+        transaction.select().from(stockItems).where(eq(stockItems.id, input.sourceStockItemId)).limit(1),
+        transaction.select().from(stockItems).where(eq(stockItems.id, input.destinationStockItemId)).limit(1),
+      ]);
+      if (!source[0] || !destination[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item de origem ou destino não encontrado." });
+      if (!source[0].cityId || !destination[0].cityId || source[0].cityId === destination[0].cityId) throw new TRPCError({ code: "BAD_REQUEST", message: "A transferência deve ocorrer entre duas cidades diferentes." });
+      if (source[0].sku !== destination[0].sku || source[0].unit !== destination[0].unit || source[0].category !== destination[0].category) throw new TRPCError({ code: "BAD_REQUEST", message: "Os itens transferidos devem possuir o mesmo SKU, unidade e categoria." });
+      await transaction.insert(stockBalances).values([{ stockItemId: source[0].id, quantity: "0.00" }, { stockItemId: destination[0].id, quantity: "0.00" }]).onConflictDoNothing();
+      const [created] = await transaction.insert(stockTransfers).values({ sourceStockItemId: source[0].id, destinationStockItemId: destination[0].id, quantity: input.quantity.toFixed(2), transferredAt: input.occurredAt, notes: input.notes || null, performedByUserId: ctx.user.id }).returning();
+      const [sourceBalance] = await transaction.update(stockBalances).set({ quantity: sql`${stockBalances.quantity} - ${input.quantity.toFixed(2)}`, updatedAt: new Date() }).where(and(eq(stockBalances.stockItemId, source[0].id), sql`${stockBalances.quantity} - ${input.quantity.toFixed(2)} >= 0`)).returning();
+      if (!sourceBalance) throw new TRPCError({ code: "BAD_REQUEST", message: "A transferência deixaria o estoque de origem negativo." });
+      await transaction.update(stockBalances).set({ quantity: sql`${stockBalances.quantity} + ${input.quantity.toFixed(2)}`, updatedAt: new Date() }).where(eq(stockBalances.stockItemId, destination[0].id));
+      const reference = `Transferência #${created.id}`;
+      await transaction.insert(stockMovements).values([
+        { stockItemId: source[0].id, movementType: "exit", quantity: input.quantity.toFixed(2), occurredAt: input.occurredAt, reference, notes: input.notes || "Transferência para a cidade de destino.", performedByUserId: ctx.user.id },
+        { stockItemId: destination[0].id, movementType: "entry", quantity: input.quantity.toFixed(2), occurredAt: input.occurredAt, reference, notes: input.notes || "Transferência recebida da cidade de origem.", performedByUserId: ctx.user.id },
+      ]);
+      return { created, source: source[0] };
+    });
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: transfer.source.regionalId, entityType: "stock_transfer", entityId: transfer.created.id, action: "create", beforeData: { sourceStockItemId: input.sourceStockItemId }, afterData: transfer.created });
+    return transfer.created;
   }),
 });

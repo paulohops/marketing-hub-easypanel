@@ -98,4 +98,53 @@ describe("inventoryRouter via tRPC", () => {
     await expect(caller.inventory.listMovements({ page: 2, pageSize: 5, regionalId: 3 })).resolves.toEqual({ items: pagedRows, total: 3, page: 2, pageSize: 5 });
     expect(offsetMock).toHaveBeenCalledWith(5);
   });
+
+  it("consolida saldos por regional, cidade e categoria de material", async () => {
+    const territorialRows = [
+      { regionalId: 3, regionalName: "Central", cityId: 10, cityName: "Belo Horizonte", category: "material_suporte", balance: "4.00" },
+      { regionalId: 3, regionalName: "Central", cityId: 10, cityName: "Belo Horizonte", category: "material_suporte", balance: "6.00" },
+      { regionalId: 3, regionalName: "Central", cityId: 11, cityName: "Contagem", category: "brinde_vip", balance: "2.00" },
+    ];
+    const database = { select: vi.fn(() => ({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ leftJoin: vi.fn(() => ({ leftJoin: vi.fn(() => ({ where: vi.fn(() => territorialRows) })) })) })) })) })) };
+    getDbMock.mockResolvedValue(database);
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.inventory.territorialSummary()).resolves.toEqual([
+      { regionalId: 3, regionalName: "Central", cityId: 10, cityName: "Belo Horizonte", category: "material_suporte", itemCount: 2, quantity: 10 },
+      { regionalId: 3, regionalName: "Central", cityId: 11, cityName: "Contagem", category: "brinde_vip", itemCount: 1, quantity: 2 },
+    ]);
+  });
+
+  it("bloqueia transferência para o próprio item antes de abrir transação", async () => {
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.inventory.transfer({ sourceStockItemId: 5, destinationStockItemId: 5, quantity: 1, occurredAt: new Date("2026-08-12") })).rejects.toMatchObject({ code: "BAD_REQUEST", message: "Escolha itens de origem e destino diferentes." });
+    expect(getDbMock).not.toHaveBeenCalled();
+  });
+
+  it("transfere entre cidades com saldo atômico, dupla movimentação e auditoria", async () => {
+    const source = { id: 5, cityId: 10, regionalId: 3, sku: "TENDA-3X3", unit: "un", category: "material_suporte" };
+    const destination = { id: 6, cityId: 11, regionalId: 3, sku: "TENDA-3X3", unit: "un", category: "material_suporte" };
+    const createdTransfer = { id: 91, sourceStockItemId: 5, destinationStockItemId: 6, quantity: "2.00" };
+    const transaction = {
+      select: vi.fn()
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [source]) })) })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [destination]) })) })) }),
+      insert: vi.fn()
+        .mockReturnValueOnce({ values: vi.fn(() => ({ onConflictDoNothing: vi.fn() })) })
+        .mockReturnValueOnce({ values: vi.fn(() => ({ returning: vi.fn(() => [createdTransfer]) })) })
+        .mockReturnValueOnce({ values: vi.fn() }),
+      update: vi.fn()
+        .mockReturnValueOnce({ set: vi.fn(() => ({ where: vi.fn(() => ({ returning: vi.fn(() => [{ stockItemId: 5, quantity: "8.00" }]) })) })) })
+        .mockReturnValueOnce({ set: vi.fn(() => ({ where: vi.fn() })) }),
+    };
+    const database = { transaction: vi.fn(async callback => callback(transaction)) };
+    getDbMock.mockResolvedValue(database);
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.inventory.transfer({ sourceStockItemId: 5, destinationStockItemId: 6, quantity: 2, occurredAt: new Date("2026-08-12"), notes: "Remanejamento para Contagem" })).resolves.toEqual(createdTransfer);
+    expect(transaction.insert).toHaveBeenCalledTimes(3);
+    expect(transaction.update).toHaveBeenCalledTimes(2);
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "stock_transfer", entityId: 91, regionalId: 3 }));
+  });
 });

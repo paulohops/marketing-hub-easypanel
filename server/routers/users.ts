@@ -5,6 +5,7 @@ import { rolePermissions, userRoles, users } from "../../drizzle/schema";
 import { permissionActions, permissionModules } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
+import { storagePut } from "../storage";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 
 export const profileInput = z.object({
@@ -13,6 +14,7 @@ export const profileInput = z.object({
 });
 export const roleInput = z.enum(userRoles);
 export const permissionInput = z.object({ role: roleInput, module: z.enum(permissionModules), action: z.enum(permissionActions), allowed: z.boolean() });
+const avatarMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export function allowedPermissionKeys(rows: Array<{ module: string; action: string; allowed: boolean }>) {
   return rows.filter(row => row.allowed).map(row => `${row.module}.${row.action}`);
@@ -30,6 +32,7 @@ export const usersRouter = router({
     name: ctx.user.name,
     email: ctx.user.email,
     phone: ctx.user.phone,
+    avatarUrl: ctx.user.avatarUrl,
     role: ctx.user.role,
     loginMethod: ctx.user.loginMethod,
     lastSignedIn: ctx.user.lastSignedIn,
@@ -42,6 +45,19 @@ export const usersRouter = router({
     const [updated] = await database.update(users).set({ name: input.name, phone: input.phone || null, updatedAt: new Date() }).where(eq(users.id, ctx.user.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_profile", entityId: ctx.user.id, action: "update", beforeData: { name: before.name, phone: before.phone }, afterData: { name: updated.name, phone: updated.phone } });
     return updated;
+  }),
+
+  uploadAvatar: protectedProcedure.input(z.object({ originalName: z.string().trim().min(1).max(255), mimeType: z.enum(avatarMimeTypes), dataBase64: z.string().min(1).max(4_000_000) })).mutation(async ({ ctx, input }) => {
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A foto de perfil deve ter até 2 MB." });
+    const extension = input.mimeType === "image/jpeg" ? "jpg" : input.mimeType === "image/png" ? "png" : "webp";
+    const stored = await storagePut(`trade/profiles/${ctx.user.id}/avatar-${Date.now()}.${extension}`, bytes, input.mimeType);
+    const database = await requireDatabase();
+    const [before] = await database.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
+    const [updated] = await database.update(users).set({ avatarStorageKey: stored.key, avatarUrl: stored.url, updatedAt: new Date() }).where(eq(users.id, ctx.user.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_profile", entityId: ctx.user.id, action: "upload_avatar", beforeData: { avatarStorageKey: before.avatarStorageKey }, afterData: { avatarStorageKey: updated.avatarStorageKey } });
+    return { avatarUrl: updated.avatarUrl };
   }),
 
   passwordPolicy: protectedProcedure.query(() => ({

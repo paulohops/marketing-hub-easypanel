@@ -12,6 +12,7 @@ import MediaWorkspace from "./MediaWorkspace";
 import SettingsWorkspace from "./SettingsWorkspace";
 import ProfileWorkspace from "./ProfileWorkspace";
 import UserAdministrationWorkspace from "./UserAdministrationWorkspace";
+import TradeOperationsWorkspace from "./TradeOperationsWorkspace";
 
 expect.extend(toHaveNoViolations);
 
@@ -66,6 +67,7 @@ const workspaces = [
   ["Configurações", SettingsWorkspace],
   ["Estoque", InventoryWorkspace],
   ["Financeiro", FinanceWorkspace],
+  ["Operações", TradeOperationsWorkspace],
   ["Mídias", MediaWorkspace],
   ["Ações", ActionsWorkspace],
   ["Eventos", EventsWorkspace],

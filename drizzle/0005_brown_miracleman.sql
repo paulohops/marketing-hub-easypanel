@@ -1,0 +1,1 @@
+ALTER TYPE "public"."permission_module" ADD VALUE 'operations' BEFORE 'documents';
