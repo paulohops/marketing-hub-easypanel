@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
 import { asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { rolePermissions, userPermissions, userRegionals, userRoles, users } from "../../drizzle/schema";
+import { rolePermissions, userCities, userPermissions, userRegionals, userRoles, users } from "../../drizzle/schema";
 import { effectivePermissionKeys, permissionActions, permissionModules } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -25,6 +25,7 @@ const adminUserFields = z.object({
   jobTitle: z.string().trim().max(120).optional().or(z.literal("")),
   role: roleInput,
   regionalIds: z.array(z.number().int().positive()).max(100).optional(),
+  cityIds: z.array(z.number().int().positive()).max(300).optional(),
 });
 const createLocalUserInput = adminUserFields.extend({ password: localPasswordInput });
 const updateAdminUserInput = adminUserFields.extend({ userId: z.number().int().positive() });
@@ -57,6 +58,15 @@ async function replaceUserRegionals(database: Awaited<ReturnType<typeof requireD
     if (uniqueRegionalIds.length) await transaction.insert(userRegionals).values(uniqueRegionalIds.map(regionalId => ({ userId, regionalId })));
   });
   return uniqueRegionalIds;
+}
+
+async function replaceUserCities(database: Awaited<ReturnType<typeof requireDatabase>>, userId: number, cityIds: number[]) {
+  const uniqueCityIds = Array.from(new Set(cityIds));
+  await database.transaction(async transaction => {
+    await transaction.delete(userCities).where(eq(userCities.userId, userId));
+    if (uniqueCityIds.length) await transaction.insert(userCities).values(uniqueCityIds.map(cityId => ({ userId, cityId })));
+  });
+  return uniqueCityIds;
 }
 
 export const usersRouter = router({
@@ -123,11 +133,12 @@ export const usersRouter = router({
   adminDetail: adminProcedure.input(z.object({ userId: z.number().int().positive() })).query(async ({ input }) => {
     const database = await requireDatabase();
     const user = await findUserOrFail(database, input.userId);
-    const [permissions, regionalAssignments] = await Promise.all([
+    const [permissions, regionalAssignments, cityAssignments] = await Promise.all([
       database.select().from(userPermissions).where(eq(userPermissions.userId, input.userId)),
       database.select().from(userRegionals).where(eq(userRegionals.userId, input.userId)),
+      database.select().from(userCities).where(eq(userCities.userId, input.userId)),
     ]);
-    return { user: redactUser(user), permissions, regionalIds: regionalAssignments.map(row => row.regionalId) };
+    return { user: redactUser(user), permissions, regionalIds: regionalAssignments.map(row => row.regionalId), cityIds: cityAssignments.map(row => row.cityId) };
   }),
 
   adminPermissions: adminProcedure.query(async () => {
@@ -144,7 +155,8 @@ export const usersRouter = router({
     const now = new Date();
     const [created] = await database.insert(users).values({ openId: `local_${randomUUID()}`, name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, loginMethod: "local", passwordHash, passwordUpdatedAt: now, isActive: true, lastSignedIn: now, updatedAt: now }).returning();
     const regionalIds = await replaceUserRegionals(database, created.id, input.regionalIds ?? []);
-    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: created.id, action: "create_local_user", afterData: { ...redactUser(created), regionalIds } });
+    const cityIds = await replaceUserCities(database, created.id, input.cityIds ?? []);
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: created.id, action: "create_local_user", afterData: { ...redactUser(created), regionalIds, cityIds } });
     return redactUser(created);
   }),
 
@@ -157,7 +169,8 @@ export const usersRouter = router({
     if (sameEmail) throw new TRPCError({ code: "CONFLICT", message: "Já existe outra conta com este e-mail." });
     const [updated] = await database.update(users).set({ name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
     const regionalIds = input.regionalIds === undefined ? undefined : await replaceUserRegionals(database, input.userId, input.regionalIds);
-    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: "update_user", beforeData: redactUser(before), afterData: { ...redactUser(updated), regionalIds } });
+    const cityIds = input.cityIds === undefined ? undefined : await replaceUserCities(database, input.userId, input.cityIds);
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: "update_user", beforeData: redactUser(before), afterData: { ...redactUser(updated), regionalIds, cityIds } });
     return redactUser(updated);
   }),
 

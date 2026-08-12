@@ -14,7 +14,7 @@ const localUser = {
 };
 
 const detailQuery = vi.hoisted(() => vi.fn((input: { userId: number }) => ({
-  data: input.userId === 10 ? { user: localUser, permissions: [], regionalIds: [] } : undefined,
+  data: input.userId === 10 ? { user: localUser, permissions: [], regionalIds: [], cityIds: [] } : undefined,
   isLoading: false,
   refetch: vi.fn(),
 })));
@@ -32,6 +32,9 @@ const trpcStub = vi.hoisted(() => ({
     updateRolePermission: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     updateUserPermission: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     clearUserPermission: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+  },
+  settings: {
+    overview: { useQuery: () => ({ data: { regionals: [], cities: [] }, isLoading: false }) },
   },
 }));
 

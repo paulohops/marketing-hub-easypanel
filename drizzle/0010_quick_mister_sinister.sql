@@ -1,0 +1,1 @@
+ALTER TABLE "action_debriefs" ADD COLUMN "worthRepeating" boolean;

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const listQuery = vi.hoisted(() => vi.fn());
 const territorialQuery = vi.hoisted(() => vi.fn());
+const updateMutation = vi.hoisted(() => vi.fn());
 
 const references = {
   regionals: [
@@ -23,6 +24,7 @@ const trpcStub = vi.hoisted(() => ({
     referenceData: { useQuery: () => ({ data: references, isLoading: false }) },
     listMovements: { useQuery: () => ({ data: undefined, isLoading: false }) },
     createItem: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    updateStockItem: { useMutation: () => ({ mutate: updateMutation, isPending: false }) },
     registerMovement: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     transfer: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
@@ -64,5 +66,19 @@ describe("estoque territorial", () => {
 
     expect(filterGrid).toHaveClass("grid", "sm:grid-cols-3");
     expect(workspaceHeader).toHaveClass("flex", "flex-col", "sm:flex-row", "sm:items-end", "sm:justify-between");
+  });
+
+  it("permite editar os dados cadastrais sem alterar o histórico de saldo", () => {
+    listQuery.mockReturnValue({ data: [{ id: 21, sku: "TENDA-01", name: "Tenda 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: "2.00", active: true, regionalName: "Central", cityName: "Belo Horizonte", cityId: 10, balance: 4, movementCount: 3 }], isLoading: false });
+    territorialQuery.mockReturnValue({ data: [], isLoading: false });
+    render(<InventoryWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Nome do material"), { target: { value: "Tenda promocional 3x3" } });
+    fireEvent.change(screen.getByLabelText("Estoque mínimo"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar edição" }));
+
+    expect(updateMutation).toHaveBeenCalledWith({ id: 21, sku: "TENDA-01", name: "Tenda promocional 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: 3, active: true });
+    expect(screen.getByText(/Saldo transacional atualizado de forma atômica/i)).toBeInTheDocument();
   });
 });

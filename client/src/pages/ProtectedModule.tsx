@@ -17,11 +17,12 @@ import IndicatorsWorkspace from "./IndicatorsWorkspace";
 import ProfileWorkspace from "./ProfileWorkspace";
 import UserAdministrationWorkspace from "./UserAdministrationWorkspace";
 import TradeOperationsWorkspace from "./TradeOperationsWorkspace";
+import HelpWorkspace from "./HelpWorkspace";
 import TradeEvidencePanel from "@/components/TradeEvidencePanel";
 import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
 import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
-import { BarChart3, Boxes, CalendarDays, Flag, Landmark, MapPinned, Megaphone, Settings2, ShieldCheck, UserRound } from "lucide-react";
+import { BarChart3, Boxes, CalendarDays, CircleHelp, Flag, Landmark, MapPinned, Megaphone, Settings2, ShieldCheck, UserRound } from "lucide-react";
 
 const definitions = {
   estoque: { permission: "inventory.read", eyebrow: "Operação e materiais", title: "Estoque de materiais", description: "Controle entradas, saídas, saldo, transferências e histórico de materiais por regional e cidade.", icon: Boxes, resources: [{ title: "Catálogo de materiais", description: "Itens, SKU, categoria, unidade e estoque mínimo." }, { title: "Movimentações", description: "Entradas, saídas, ajustes e responsáveis." }, { title: "Saldo por território", description: "Visão consolidada por regional e cidade." }], accent: "var(--primary)" },
@@ -31,9 +32,10 @@ const definitions = {
   acoes: { permission: "actions.read", eyebrow: "Ativação de marca", title: "Ações de trade", description: "Planeje, execute e documente ações, serviços, fornecedores e debriefings.", icon: CalendarDays, resources: [{ title: "Planejamento", description: "Objetivo, agenda e fornecedores envolvidos." }, { title: "Execução", description: "Status, evidências e acompanhamento." }, { title: "Debriefing", description: "Nota, resultado, pontos positivos e negativos." }], accent: "var(--primary)" },
   eventos: { permission: "events.read", eyebrow: "Experiências presenciais", title: "Eventos", description: "Centralize etapas de pré-evento, execução, avaliação e histórico operacional.", icon: MapPinned, resources: [{ title: "Pré-evento", description: "Planejamento, fornecedores e entregáveis." }, { title: "Acompanhamento", description: "Status, localização e registros." }, { title: "Pós-evento", description: "Avaliação e resultados alcançados." }], accent: "var(--primary)" },
   indicadores: { permission: "dashboard.read", eyebrow: "Business intelligence", title: "Indicadores", description: "Acompanhe indicadores de fornecedores, mídias, ações e eventos para tomada de decisão.", icon: BarChart3, resources: [{ title: "Performance", description: "Indicadores comparativos por fornecedor." }, { title: "Investimento", description: "Leitura de custos e pagamentos por operação." }, { title: "Mapa analítico", description: "Cobertura e resultados por localidade." }], accent: "var(--primary)" },
-  configuracoes: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Configurações", description: "Gerencie segurança, usuários e os cadastros operacionais que abastecem cada módulo.", icon: Settings2, resources: [{ title: "Segurança", description: "Papéis, permissões e rastreabilidade." }, { title: "Usuários", description: "Acessos e administração da equipe." }, { title: "Cadastros operacionais", description: "Empresas, territórios, fornecedores, serviços, mídias e parâmetros financeiros." }], accent: "var(--primary)" },
+  configuracoes: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Cadastros", description: "Gerencie cadastros operacionais, usuários, segurança e a governança que abastece cada módulo.", icon: Settings2, resources: [{ title: "Segurança", description: "Papéis, permissões e rastreabilidade." }, { title: "Usuários", description: "Acessos e administração da equipe." }, { title: "Cadastros operacionais", description: "Empresas, territórios, fornecedores, serviços, mídias e parâmetros financeiros." }], accent: "var(--primary)" },
   perfil: { permission: "dashboard.read", eyebrow: "Conta e segurança", title: "Meu perfil", description: "Mantenha seus dados pessoais atualizados.", icon: UserRound, resources: [], accent: "var(--primary)" },
   usuarios: { permission: "settings.read", eyebrow: "Acesso administrativo", title: "Usuários e permissões", description: "Gerencie papéis e acessos operacionais.", icon: ShieldCheck, resources: [], accent: "var(--primary)" },
+  ajuda: { permission: "dashboard.read", eyebrow: "Central de conhecimento", title: "Ajuda e suporte", description: "Consulte os fluxos do sistema e envie solicitações de suporte.", icon: CircleHelp, resources: [], accent: "var(--primary)" },
 } as const;
 
 export default function ProtectedModule({ module }: { module: keyof typeof definitions }) {
@@ -58,5 +60,6 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "indicadores") return <DashboardLayout><div className="cluster-workspace"><IndicatorsWorkspace /></div></DashboardLayout>;
   if (module === "perfil") return <DashboardLayout><div className="cluster-workspace"><ProfileWorkspace /></div></DashboardLayout>;
   if (module === "usuarios") return <DashboardLayout><div className="cluster-workspace"><UserAdministrationWorkspace /></div></DashboardLayout>;
+  if (module === "ajuda") return <DashboardLayout><div className="cluster-workspace"><HelpWorkspace /></div></DashboardLayout>;
   return <DashboardLayout><ModulePage {...definition} /></DashboardLayout>;
 }

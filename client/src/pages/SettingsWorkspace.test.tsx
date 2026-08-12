@@ -18,7 +18,7 @@ describe("configurações administrativas", () => {
   it("apresenta administração, segurança, governança e cadastros operacionais", () => {
     render(<SettingsWorkspace />);
 
-    expect(screen.getAllByRole("heading", { name: "Configurações" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("heading", { name: "Cadastros" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Cadastros operacionais" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Usuários e permissões" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Segurança de acesso" }).length).toBeGreaterThan(0);

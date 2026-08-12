@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actions, documents, events, invoices, mediaCampaigns, payments, suppliers } from "../../drizzle/schema";
+import { actionSuppliers, actions, documents, eventSuppliers, events, invoices, mediaCampaigns, mediaPoints, payments, suppliers } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -57,6 +57,29 @@ export const financeRouter = router({
   operationOptions: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "finance.read");
     return operationCatalog(await requireDatabase());
+  }),
+
+  operationForecasts: protectedProcedure.query(async ({ ctx }) => {
+    await assertPermission(ctx.user, "finance.read");
+    const database = await requireDatabase();
+    const [actionRows, eventRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows, supplierRows] = await Promise.all([
+      database.select({ id: actions.id, name: actions.name, startsAt: actions.scheduledFor, estimatedCost: actions.estimatedCost }).from(actions).orderBy(asc(actions.scheduledFor)),
+      database.select({ id: events.id, name: events.name, startsAt: events.startsAt, estimatedCost: events.estimatedCost }).from(events).orderBy(asc(events.startsAt)),
+      database.select({ id: mediaCampaigns.id, name: mediaCampaigns.name, startsOn: mediaCampaigns.startsOn, estimatedCost: mediaCampaigns.estimatedCost, supplierId: mediaPoints.supplierId }).from(mediaCampaigns).innerJoin(mediaPoints, eq(mediaCampaigns.mediaPointId, mediaPoints.id)).orderBy(asc(mediaCampaigns.startsOn)),
+      database.select().from(actionSuppliers),
+      database.select().from(eventSuppliers),
+      database.select({ id: suppliers.id, displayName: suppliers.displayName }).from(suppliers),
+    ]);
+    const supplierDetails = (supplierId: number) => {
+      const supplier = supplierRows.find(row => row.id === supplierId);
+      return { id: supplierId, name: supplier?.displayName ?? "Fornecedor não localizado" };
+    };
+    const result = [
+      ...actionRows.map(row => ({ ...row, type: "action" as const, label: `Ação · ${row.name}`, suppliers: actionSupplierRows.filter(link => link.actionId === row.id).map(link => supplierDetails(link.supplierId)) })),
+      ...eventRows.map(row => ({ ...row, type: "event" as const, label: `Evento · ${row.name}`, suppliers: eventSupplierRows.filter(link => link.eventId === row.id).map(link => supplierDetails(link.supplierId)) })),
+      ...mediaCampaignRows.map(row => ({ id: row.id, name: row.name, startsAt: new Date(`${row.startsOn}T12:00:00.000Z`), estimatedCost: row.estimatedCost, type: "media_campaign" as const, label: `Mídia · ${row.name}`, suppliers: [supplierDetails(row.supplierId)] })),
+    ];
+    return result.filter(row => Number(row.estimatedCost) > 0).sort((first, second) => first.startsAt.getTime() - second.startsAt.getTime());
   }),
 
   listInvoices: protectedProcedure.input(invoiceListFiltersInput.optional()).query(async ({ ctx, input }) => {

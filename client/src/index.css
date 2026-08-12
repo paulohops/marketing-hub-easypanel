@@ -52,38 +52,12 @@
 }
 
 .dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  --primary: #47ad71; --primary-foreground: #062613; --sidebar-primary: #f46b2a; --sidebar-primary-foreground: #ffffff;
+  --background: #0a1710; --foreground: #eef8f1; --card: #10251a; --card-foreground: #eef8f1; --popover: #12291c; --popover-foreground: #eef8f1;
+  --secondary: #183825; --secondary-foreground: #9bd7b0; --muted: #173222; --muted-foreground: #aac3b2; --accent: #3a281e; --accent-foreground: #ffd4bd;
+  --destructive: #f47f57; --destructive-foreground: #301007; --border: #28513a; --input: #315b43; --ring: #f46b2a;
+  --chart-1: #71ce95; --chart-2: #f46b2a; --chart-3: #acdcb5; --chart-4: #ffb08b; --chart-5: #2f8c55;
+  --sidebar: #0d512a; --sidebar-foreground: #ecf8f0; --sidebar-accent: #146a38; --sidebar-accent-foreground: #ffffff; --sidebar-border: #287044; --sidebar-ring: #f46b2a;
 }
 
 @layer base {
@@ -152,7 +126,7 @@
   .cluster-workspace {
     position: relative;
     isolation: isolate;
-    min-height: calc(100vh - 72px);
+    min-height: calc(100vh - 40px);
   }
 
   .cluster-workspace::before {

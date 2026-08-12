@@ -29,6 +29,7 @@ export const invoiceStatusEnum = pgEnum("invoice_status", ["open", "partially_pa
 export const operationTypeEnum = pgEnum("financial_operation_type", ["media_campaign", "action", "event", "trade_operation", "other"]);
 export const documentEntityEnum = pgEnum("document_entity_type", ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media"]);
 export const notificationCategoryEnum = pgEnum("notification_category", ["campaign_expiry", "payment_due", "action_pending", "stock_minimum"]);
+export const partnershipTypeEnum = pgEnum("partnership_type", ["paid", "barter", "mixed"]);
 export const permissionModuleEnum = pgEnum("permission_module", ["dashboard", "settings", "inventory", "finance", "media", "actions", "events", "operations", "documents", "map", "notifications"]);
 export const permissionActionEnum = pgEnum("permission_action", ["read", "create", "update", "delete"]);
 
@@ -72,8 +73,15 @@ export const userPermissions = pgTable("user_permissions", {
 export const providers = pgTable("providers", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),
+  legalName: varchar("legalName", { length: 220 }),
+  billingCnpj: varchar("billingCnpj", { length: 32 }).unique(),
+  contactName: varchar("contactName", { length: 160 }),
+  phone: varchar("phone", { length: 32 }),
+  email: varchar("email", { length: 320 }),
+  address: text("address"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const regionals = pgTable("regionals", {
@@ -91,8 +99,14 @@ export const cities = pgTable("cities", {
   name: varchar("name", { length: 160 }).notNull(),
   state: varchar("state", { length: 2 }).notNull(),
   ibgeCode: varchar("ibgeCode", { length: 16 }),
+  address: text("address"),
+  zipCode: varchar("zipCode", { length: 16 }),
+  latitude: numeric("latitude", { precision: 10, scale: 7 }),
+  longitude: numeric("longitude", { precision: 10, scale: 7 }),
+  locationNotes: text("locationNotes"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 }, table => [uniqueIndex("cities_regional_name_state_uq").on(table.regionalId, table.name, table.state)]);
 
 export const userRegionals = pgTable("user_regionals", {
@@ -100,6 +114,23 @@ export const userRegionals = pgTable("user_regionals", {
   userId: integer("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   regionalId: integer("regionalId").notNull().references(() => regionals.id, { onDelete: "cascade" }),
 }, table => [uniqueIndex("user_regionals_uq").on(table.userId, table.regionalId)]);
+
+export const userCities = pgTable("user_cities", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "cascade" }),
+}, table => [uniqueIndex("user_cities_uq").on(table.userId, table.cityId)]);
+
+export const commercialSupervisors = pgTable("commercial_supervisors", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").references(() => users.id, { onDelete: "set null" }),
+  name: varchar("name", { length: 160 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 32 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const stores = pgTable("stores", {
   id: serial("id").primaryKey(),
@@ -320,6 +351,7 @@ export const mediaCampaigns = pgTable("media_campaigns", {
   status: campaignStatusEnum("status").default("active").notNull(),
   startsOn: date("startsOn").notNull(),
   endsOn: date("endsOn").notNull(),
+  estimatedCost: numeric("estimatedCost", { precision: 14, scale: 2 }).default("0.00").notNull(),
   notes: text("notes"),
   rating: integer("rating"),
   resultAchieved: boolean("resultAchieved"),
@@ -341,7 +373,11 @@ export const actions = pgTable("actions", {
   latitude: numeric("latitude", { precision: 10, scale: 7 }),
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
   scheduledFor: timestamp("scheduledFor", { withTimezone: true }).notNull(),
+  endsAt: timestamp("endsAt", { withTimezone: true }),
   objective: text("objective").notNull(),
+  commercialSupervisorId: integer("commercialSupervisorId").references(() => commercialSupervisors.id, { onDelete: "set null" }),
+  partnershipType: partnershipTypeEnum("partnershipType").default("paid").notNull(),
+  estimatedCost: numeric("estimatedCost", { precision: 14, scale: 2 }).default("0.00").notNull(),
   status: operationStatusEnum("status").default("planned").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
@@ -359,6 +395,19 @@ export const actionServices = pgTable("action_services", {
   serviceTypeId: integer("serviceTypeId").notNull().references(() => serviceTypes.id, { onDelete: "restrict" }),
 }, table => [uniqueIndex("action_services_uq").on(table.actionId, table.serviceTypeId)]);
 
+export const actionTeamMembers = pgTable("action_team_members", {
+  id: serial("id").primaryKey(),
+  actionId: integer("actionId").notNull().references(() => actions.id, { onDelete: "cascade" }),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: "restrict" }),
+}, table => [uniqueIndex("action_team_members_uq").on(table.actionId, table.userId)]);
+
+export const actionStockItems = pgTable("action_stock_items", {
+  id: serial("id").primaryKey(),
+  actionId: integer("actionId").notNull().references(() => actions.id, { onDelete: "cascade" }),
+  stockItemId: integer("stockItemId").notNull().references(() => stockItems.id, { onDelete: "restrict" }),
+  plannedQuantity: numeric("plannedQuantity", { precision: 12, scale: 2 }).notNull(),
+}, table => [uniqueIndex("action_stock_items_uq").on(table.actionId, table.stockItemId)]);
+
 export const actionDebriefs = pgTable("action_debriefs", {
   id: serial("id").primaryKey(),
   actionId: integer("actionId").notNull().unique().references(() => actions.id, { onDelete: "cascade" }),
@@ -367,6 +416,7 @@ export const actionDebriefs = pgTable("action_debriefs", {
   positives: text("positives"),
   negatives: text("negatives"),
   resultAchieved: boolean("resultAchieved"),
+  worthRepeating: boolean("worthRepeating"),
   completedAt: timestamp("completedAt", { withTimezone: true }).notNull(),
 });
 
@@ -380,6 +430,11 @@ export const events = pgTable("events", {
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
   startsAt: timestamp("startsAt", { withTimezone: true }).notNull(),
   endsAt: timestamp("endsAt", { withTimezone: true }),
+  commercialSupervisorId: integer("commercialSupervisorId").references(() => commercialSupervisors.id, { onDelete: "set null" }),
+  partnershipType: partnershipTypeEnum("partnershipType").default("paid").notNull(),
+  estimatedCost: numeric("estimatedCost", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  partnershipReason: text("partnershipReason"),
+  worthRenewing: boolean("worthRenewing"),
   status: operationStatusEnum("status").default("planned").notNull(),
   preEventNotes: text("preEventNotes"),
   postEventNotes: text("postEventNotes"),
@@ -394,6 +449,25 @@ export const eventSuppliers = pgTable("event_suppliers", {
   eventId: integer("eventId").notNull().references(() => events.id, { onDelete: "cascade" }),
   supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "restrict" }),
 }, table => [uniqueIndex("event_suppliers_uq").on(table.eventId, table.supplierId)]);
+
+export const eventServices = pgTable("event_services", {
+  id: serial("id").primaryKey(),
+  eventId: integer("eventId").notNull().references(() => events.id, { onDelete: "cascade" }),
+  serviceTypeId: integer("serviceTypeId").notNull().references(() => serviceTypes.id, { onDelete: "restrict" }),
+}, table => [uniqueIndex("event_services_uq").on(table.eventId, table.serviceTypeId)]);
+
+export const eventTeamMembers = pgTable("event_team_members", {
+  id: serial("id").primaryKey(),
+  eventId: integer("eventId").notNull().references(() => events.id, { onDelete: "cascade" }),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: "restrict" }),
+}, table => [uniqueIndex("event_team_members_uq").on(table.eventId, table.userId)]);
+
+export const eventStockItems = pgTable("event_stock_items", {
+  id: serial("id").primaryKey(),
+  eventId: integer("eventId").notNull().references(() => events.id, { onDelete: "cascade" }),
+  stockItemId: integer("stockItemId").notNull().references(() => stockItems.id, { onDelete: "restrict" }),
+  plannedQuantity: numeric("plannedQuantity", { precision: 12, scale: 2 }).notNull(),
+}, table => [uniqueIndex("event_stock_items_uq").on(table.eventId, table.stockItemId)]);
 
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
@@ -440,6 +514,7 @@ export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("userId").references(() => users.id, { onDelete: "cascade" }),
   regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "cascade" }),
+  cityId: integer("cityId").references(() => cities.id, { onDelete: "cascade" }),
   category: notificationCategoryEnum("category").notNull(),
   title: varchar("title", { length: 180 }).notNull(),
   message: text("message").notNull(),

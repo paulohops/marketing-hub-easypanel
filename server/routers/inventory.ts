@@ -46,6 +46,17 @@ const inventoryListInput = z.object({
   category: z.enum(stockCategoryValues).optional(),
 }).optional();
 
+const stockItemUpdateInput = z.object({
+  id: z.number().int().positive(),
+  sku: z.string().trim().min(2).max(64).toUpperCase(),
+  name: z.string().trim().min(2).max(180),
+  description: z.string().trim().max(2_000).optional(),
+  unit: z.string().trim().min(1).max(24),
+  category: z.enum(stockCategoryValues),
+  minimumQuantity: z.number().nonnegative().max(1_000_000),
+  active: z.boolean(),
+});
+
 async function requireDatabase() {
   const database = await getDb();
   if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
@@ -129,6 +140,25 @@ export const inventoryRouter = router({
     });
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId, entityType: "stock_item", entityId: created.id, action: "create", afterData: created });
     return created;
+  }),
+
+  updateStockItem: protectedProcedure.input(stockItemUpdateInput).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "inventory.update");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(stockItems).where(eq(stockItems.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Item de estoque não encontrado." });
+    const [updated] = await database.update(stockItems).set({
+      sku: input.sku,
+      name: input.name,
+      description: input.description || null,
+      unit: input.unit,
+      category: input.category,
+      minimumQuantity: input.minimumQuantity.toFixed(2),
+      active: input.active,
+      updatedAt: new Date(),
+    }).where(eq(stockItems.id, input.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: before.regionalId, entityType: "stock_item", entityId: updated.id, action: "update", beforeData: before, afterData: updated });
+    return updated;
   }),
 
   registerMovement: protectedProcedure.input(z.object({ stockItemId: z.number().int().positive(), movementType: z.enum(["entry", "exit", "adjustment"]), quantity: z.number().positive().max(1_000_000), unitCost: z.number().nonnegative().max(10_000_000).optional(), occurredAt: z.coerce.date(), reference: z.string().trim().max(120).optional(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {

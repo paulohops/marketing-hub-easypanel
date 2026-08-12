@@ -99,3 +99,32 @@
 - [x] Adicionar testes de autenticação local, status de conta, permissões individuais e cadastros operacionais.
 - [x] Cobrir em interface a abertura do detalhe de usuário com cargo, status, redefinição de senha e permissões individuais.
 - [x] Validar explicitamente no centro operacional os fluxos de Empresas e Categorias financeiras, incluindo criação e status ativo/inativo.
+- [x] Corrigir o detalhe de usuário e tornar os controles individuais de permissão legíveis e acionáveis.
+- [x] Associar responsáveis a regionais e cidades, com escopo operacional e alertas dirigidos por território.
+- [x] Ampliar empresas com CNPJ de faturamento, edição e visão de regionais e cidades atendidas.
+- [x] Ampliar cidades com endereço, localização e edição completa dos cadastros existentes.
+- [x] Disponibilizar edição e status para todos os cadastros operacionais, preservando histórico e integridade.
+- [x] Permitir editar fornecedores, parceiros, supervisores comerciais, categorias financeiras e ofertas, mantendo auditoria e status ativo/inativo.
+- [x] Exibir na ficha da empresa as regionais e cidades vinculadas por sua estrutura territorial.
+- [x] Adicionar testes de interface para edição e ativação/inativação de parceiros no centro operacional.
+- [x] Adicionar testes de interface para edição e ativação/inativação de supervisores comerciais no centro operacional.
+- [x] Registrar evidência verificável de que todos os cadastros operacionais expõem edição e status sem remover o histórico.
+- [x] Adicionar supervisores comerciais configuráveis e vinculá-los a ações e eventos.
+- [x] Expor o cadastro e a ativação de supervisores comerciais no centro de Cadastros operacionais.
+- [x] Ampliar ações e eventos com horário, custos previstos, modalidade de parceria, recursos de estoque, equipe, serviços, avaliação e debriefing decisório.
+- [x] Adicionar decisão explícita ao debriefing de ações e exibi-la no acompanhamento operacional.
+- [x] Criar testes de integração e interface para a criação e o pós-operacional de ações e eventos com supervisor, equipe, serviços e recursos de estoque.
+- [x] Adicionar testes tRPC de integração dos routers de ações e eventos cobrindo persistência de supervisão, equipe, serviços, recursos e pós-operação.
+- [x] Cobrir nos testes de integração dos routers os erros de duração inválida, vínculos inexistentes e quantidades de estoque inválidas.
+- [x] Evoluir mídias com detalhe navegável, fornecedor, histórico de alterações e atualização de evidências.
+- [x] Integrar valores previstos e fornecedores das operações ao financeiro, preservando notas fiscais e anexos.
+- [x] Exibir no financeiro previsões de ações e eventos com fornecedores vinculados e facilitar a seleção da operação ao registrar uma nota fiscal.
+- [x] Adicionar investimento previsto às campanhas de mídia e incluí-lo na visão financeira com o fornecedor do ponto de mídia.
+- [x] Permitir editar produtos do estoque sem perder o histórico de movimentações.
+- [x] Registrar evidência verificável da edição de produto e teste de integração que comprove a preservação de saldos, histórico e transferências existentes.
+- [x] Reorganizar o menu por Operação, Gestão, Relatórios e Configurações, renomeando Configurações para Cadastros e movendo Usuários e permissões para dentro dele.
+- [x] Remover o cabeçalho superior redundante, oferecer recolhimento da barra lateral e criar alternância de tema claro/escuro.
+- [x] Criar página de Ajuda e suporte com solicitação de ajuda e documentação do sistema.
+- [x] Expandir a documentação da central de ajuda com fluxos por módulo, permissões, cadastros, suporte e boas práticas.
+- [x] Remover o controle de envio e alteração de foto na página de perfil.
+- [x] Validar os novos fluxos com testes automatizados, acessibilidade e responsividade.

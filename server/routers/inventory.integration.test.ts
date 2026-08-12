@@ -99,6 +99,28 @@ describe("inventoryRouter via tRPC", () => {
     expect(offsetMock).toHaveBeenCalledWith(5);
   });
 
+  it("edita somente os metadados do produto, preservando saldos, movimentos e transferências", async () => {
+    const before = { id: 5, regionalId: 3, cityId: 10, sku: "TENDA-3X3", name: "Tenda antiga", unit: "un", category: "material_suporte", minimumQuantity: "2.00", active: true };
+    const updated = { ...before, sku: "TENDA-3X3", name: "Tenda 3x3 premium", description: "Lona reforçada", minimumQuantity: "4.00", active: true, updatedAt: new Date("2026-08-12T12:00:00Z") };
+    const setMock = vi.fn(() => ({ where: vi.fn(() => ({ returning: vi.fn(() => [updated]) })) }));
+    const database = {
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [before]) })) })) })),
+      update: vi.fn(() => ({ set: setMock })),
+      transaction: vi.fn(),
+      insert: vi.fn(),
+    };
+    getDbMock.mockResolvedValue(database);
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.inventory.updateStockItem({ id: 5, sku: "tenda-3x3", name: "Tenda 3x3 premium", description: "Lona reforçada", unit: "un", category: "material_suporte", minimumQuantity: 4, active: true })).resolves.toEqual(updated);
+    expect(database.transaction).not.toHaveBeenCalled();
+    expect(database.insert).not.toHaveBeenCalled();
+    expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ sku: "TENDA-3X3", name: "Tenda 3x3 premium", description: "Lona reforçada", minimumQuantity: "4.00" }));
+    expect(setMock.mock.calls[0][0]).not.toHaveProperty("regionalId");
+    expect(setMock.mock.calls[0][0]).not.toHaveProperty("cityId");
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "stock_item", entityId: 5, regionalId: 3, action: "update", beforeData: before, afterData: updated }));
+  });
+
   it("consolida saldos por regional, cidade e categoria de material", async () => {
     const territorialRows = [
       { regionalId: 3, regionalName: "Central", cityId: 10, cityName: "Belo Horizonte", category: "material_suporte", balance: "4.00" },

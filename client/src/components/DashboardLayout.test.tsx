@@ -1,6 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import DashboardLayout from "./DashboardLayout";
 
 const authState = vi.hoisted(() => ({
@@ -16,18 +16,25 @@ vi.mock("@/_core/hooks/useAuth", () => ({
 vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: false }) } } } }));
 
 describe("DashboardLayout", () => {
-  it("oculta configurações para o perfil visualizador", () => {
+  afterEach(cleanup);
+
+  it("oculta Cadastros para o perfil visualizador", () => {
     authState.user.role = "viewer";
     render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);
 
     expect(screen.getByText("Estoque")).toBeInTheDocument();
-    expect(screen.queryByText("Configurações")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cadastros")).not.toBeInTheDocument();
   });
 
-  it("exibe configurações para o perfil administrador", () => {
+  it("exibe Cadastros para o perfil administrador", () => {
     authState.user.role = "admin";
     render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);
 
-    expect(screen.getByText("Configurações")).toBeInTheDocument();
+    expect(screen.getByText("Cadastros")).toBeInTheDocument();
+    expect(screen.getAllByText("Operação").length).toBeGreaterThan(0);
+    expect(screen.getByText("Gestão")).toBeInTheDocument();
+    expect(screen.getByText("Relatórios")).toBeInTheDocument();
+    expect(screen.getByText("Ajuda e suporte")).toBeInTheDocument();
+    expect(screen.queryByText("Operações unificadas")).not.toBeInTheDocument();
   });
 });

@@ -11,7 +11,7 @@ vi.mock("./components/ErrorBoundary", () => ({
 
 import App from "./App";
 
-describe("rotas administrativas", () => {
+describe("rotas protegidas", () => {
   const originalPath = window.location.pathname;
 
   beforeEach(() => {
@@ -23,11 +23,17 @@ describe("rotas administrativas", () => {
     window.history.pushState({}, "", originalPath);
   });
 
-  it.each(["/usuarios", "/administracao-usuarios"])("renderiza a administração protegida em %s", path => {
+  it.each([
+    ["/usuarios", "usuarios"],
+    ["/administracao-usuarios", "usuarios"],
+    ["/cadastros", "configuracoes"],
+    ["/configuracoes", "configuracoes"],
+    ["/ajuda", "ajuda"],
+  ])("renderiza o módulo protegido %s", (path, module) => {
     window.history.pushState({}, "", path);
     render(<App />);
 
-    expect(screen.getByTestId("protected-module")).toHaveTextContent("Módulo protegido: usuarios");
+    expect(screen.getByTestId("protected-module")).toHaveTextContent(`Módulo protegido: ${module}`);
     expect(screen.queryByText("Página não encontrada")).not.toBeInTheDocument();
   });
 });
