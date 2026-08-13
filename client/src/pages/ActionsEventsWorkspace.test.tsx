@@ -7,12 +7,13 @@ const saveActionDebrief = vi.hoisted(() => vi.fn());
 const savePostEvent = vi.hoisted(() => vi.fn());
 const actionListQuery = vi.hoisted(() => vi.fn());
 const eventListQuery = vi.hoisted(() => vi.fn());
-const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [] };
+const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [], campaigns: [] };
 const trpcStub = vi.hoisted(() => ({
-  useUtils: () => ({ actions: { list: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } } }),
+  useUtils: () => ({ actions: { list: { invalidate: vi.fn() }, referenceData: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } }, campaigns: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
-  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
+  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
   events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) } },
+  campaigns: { create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));
@@ -27,7 +28,8 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 beforeEach(() => { actionListQuery.mockReturnValue({ data: [], isLoading: false }); eventListQuery.mockReturnValue({ data: [], isLoading: false }); });
 
 function selectMultiple(label: string, option: string) {
-  fireEvent.click(screen.getByLabelText(label));
+  const controls = screen.getAllByLabelText(label);
+  fireEvent.click(controls[controls.length - 1]);
   fireEvent.click(screen.getByLabelText(`Selecionar ${option}`));
 }
 
@@ -35,7 +37,7 @@ describe("formulários operacionais ampliados", () => {
   it("expõe campos pesquisáveis e ponto comercial no planejamento de ação", () => {
     render(<ActionsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "Nova ação" }));
-    expect(screen.getByLabelText("Supervisor")).toBeInTheDocument();
+    expect(screen.getByLabelText("Supervisor responsável")).toBeInTheDocument();
     expect(screen.getByLabelText("Responsáveis do trade")).toBeInTheDocument();
     expect(screen.getByLabelText("Fornecedores envolvidos")).toBeInTheDocument();
     expect(screen.getByLabelText("Ponto comercial ou local de ação")).toBeInTheDocument();
@@ -54,9 +56,9 @@ describe("formulários operacionais ampliados", () => {
     render(<ActionsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "Nova ação" }));
     fireEvent.change(screen.getByLabelText("Nome da ação"), { target: { value: "Blitz Centro" } });
-    fireEvent.change(screen.getAllByLabelText("Cidade")[1], { target: { value: "1" } });
-    fireEvent.change(screen.getByLabelText("Tipo de ação"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("Supervisor"), { target: { value: "6" } });
+    selectMultiple("Cidade", "Belo Horizonte");
+    selectMultiple("Tipo de ação", "Blitz");
+    selectMultiple("Supervisor responsável", "Larissa Souza");
     fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2026-08-14T09:00" } });
     fireEvent.change(screen.getByLabelText("Término"), { target: { value: "2026-08-14T12:00" } });
     fireEvent.change(screen.getByLabelText("Modalidade"), { target: { value: "mixed" } });

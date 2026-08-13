@@ -328,6 +328,19 @@ export const supplierContracts = pgTable("supplier_contracts", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 }, table => [uniqueIndex("supplier_contracts_supplier_code_uq").on(table.supplierId, table.contractCode)]);
 
+export const tradeCampaigns = pgTable("trade_campaigns", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 180 }).notNull(),
+  objective: text("objective"),
+  regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "set null" }),
+  startsAt: timestamp("startsAt", { withTimezone: true }),
+  endsAt: timestamp("endsAt", { withTimezone: true }),
+  status: campaignStatusEnum("status").default("scheduled").notNull(),
+  createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const stockItems = pgTable("stock_items", {
   id: serial("id").primaryKey(),
   regionalId: integer("regionalId").notNull().references(() => regionals.id, { onDelete: "restrict" }),
@@ -355,6 +368,8 @@ export const stockMovements = pgTable("stock_movements", {
   reference: varchar("reference", { length: 120 }),
   notes: text("notes"),
   performedByUserId: integer("performedByUserId").references(() => users.id, { onDelete: "restrict" }),
+  responsibleCommercialSupervisorId: integer("responsibleCommercialSupervisorId").references(() => commercialSupervisors.id, { onDelete: "set null" }),
+  recipientCommercialSupervisorId: integer("recipientCommercialSupervisorId").references(() => commercialSupervisors.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -373,6 +388,8 @@ export const stockTransfers = pgTable("stock_transfers", {
   transferredAt: timestamp("transferredAt", { withTimezone: true }).notNull(),
   notes: text("notes"),
   performedByUserId: integer("performedByUserId").references(() => users.id, { onDelete: "restrict" }),
+  responsibleCommercialSupervisorId: integer("responsibleCommercialSupervisorId").references(() => commercialSupervisors.id, { onDelete: "set null" }),
+  recipientCommercialSupervisorId: integer("recipientCommercialSupervisorId").references(() => commercialSupervisors.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -443,6 +460,7 @@ export const mediaPoints = pgTable("media_points", {
 
 export const mediaCampaigns = pgTable("media_campaigns", {
   id: serial("id").primaryKey(),
+  tradeCampaignId: integer("tradeCampaignId").references(() => tradeCampaigns.id, { onDelete: "set null" }),
   mediaPointId: integer("mediaPointId").notNull().references(() => mediaPoints.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
   status: campaignStatusEnum("status").default("active").notNull(),
@@ -485,6 +503,7 @@ export const mediaCampaignCityDistributions = pgTable("media_campaign_city_distr
 
 export const actions = pgTable("actions", {
   id: serial("id").primaryKey(),
+  tradeCampaignId: integer("tradeCampaignId").references(() => tradeCampaigns.id, { onDelete: "set null" }),
   cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
   actionTypeId: integer("actionTypeId").notNull().references(() => actionTypes.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
@@ -513,6 +532,7 @@ export const actionServices = pgTable("action_services", {
   id: serial("id").primaryKey(),
   actionId: integer("actionId").notNull().references(() => actions.id, { onDelete: "cascade" }),
   serviceTypeId: integer("serviceTypeId").notNull().references(() => serviceTypes.id, { onDelete: "restrict" }),
+  estimatedAmount: numeric("estimatedAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
 }, table => [uniqueIndex("action_services_uq").on(table.actionId, table.serviceTypeId)]);
 
 export const actionTeamMembers = pgTable("action_team_members", {
@@ -536,12 +556,17 @@ export const actionDebriefs = pgTable("action_debriefs", {
   positives: text("positives"),
   negatives: text("negatives"),
   resultAchieved: boolean("resultAchieved"),
+  resultSummary: text("resultSummary"),
+  leadCount: integer("leadCount").default(0).notNull(),
+  saleCount: integer("saleCount").default(0).notNull(),
+  renewalCount: integer("renewalCount").default(0).notNull(),
   worthRepeating: boolean("worthRepeating"),
   completedAt: timestamp("completedAt", { withTimezone: true }).notNull(),
 });
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
+  tradeCampaignId: integer("tradeCampaignId").references(() => tradeCampaigns.id, { onDelete: "set null" }),
   cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
   eventTypeId: integer("eventTypeId").notNull().references(() => eventTypes.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),

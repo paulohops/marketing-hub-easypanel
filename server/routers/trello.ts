@@ -4,6 +4,7 @@ import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 type TrelloListPayload = { id: string; name: string; pos: number; closed?: boolean };
 type TrelloCardPayload = { id: string; idList: string; name: string; desc?: string; url: string; due?: string | null; dueComplete?: boolean; closed?: boolean; pos: number; dateLastActivity?: string; labels?: Array<{ id: string; name: string; color?: string | null }> };
@@ -88,6 +89,38 @@ async function loadBoardFromTrello(boardReference: string) {
   }
 }
 
+async function getCurrentBoardReference(userId: number) {
+  const database = await requireDatabase();
+  const [personalRows, sharedRows] = await Promise.all([
+    database.select().from(userTrelloBoards).where(eq(userTrelloBoards.userId, userId)).limit(1),
+    database.select().from(appSettings).where(eq(appSettings.key, "trello_board_url")).limit(1),
+  ]);
+  const boardUrl = personalRows[0]?.boardUrl ?? sharedRows[0]?.value ?? "";
+  const reference = getTrelloBoardReference(boardUrl);
+  if (!reference) throw new TRPCError({ code: "BAD_REQUEST", message: "Configure um quadro do Trello válido antes de editar." });
+  return reference;
+}
+
+async function trelloWrite(path: string, method: "POST" | "PUT", body: Record<string, string | boolean | null | undefined>) {
+  const key = process.env.TRELLO_API_KEY;
+  const token = process.env.TRELLO_TOKEN;
+  if (!key || !token) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A integração autenticada do Trello não está configurada." });
+  const endpoint = new URL(`https://api.trello.com/1/${path.replace(/^\//, "")}`);
+  endpoint.searchParams.set("key", key);
+  endpoint.searchParams.set("token", token);
+  for (const [field, value] of Object.entries(body)) if (value !== undefined && value !== null) endpoint.searchParams.set(field, String(value));
+  try {
+    const response = await fetch(endpoint, { method, headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
+    if (response.status === 401 || response.status === 403) throw new TRPCError({ code: "FORBIDDEN", message: "O token do Trello não possui permissão para alterar este quadro." });
+    if (response.status === 404) throw new TRPCError({ code: "NOT_FOUND", message: "O cartão ou a lista não foi encontrado no Trello." });
+    if (!response.ok) throw new TRPCError({ code: "BAD_GATEWAY", message: "O Trello recusou a alteração solicitada." });
+    return await response.json() as { id: string };
+  } catch (error) {
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: "BAD_GATEWAY", message: "Não foi possível comunicar a alteração ao Trello." });
+  }
+}
+
 export const trelloRouter = router({
   currentBoard: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
@@ -107,5 +140,30 @@ export const trelloRouter = router({
     const result = await loadBoardFromTrello(reference);
     if (result.status === "ready") return { status: "ready" as const, source, boardUrl, board: result.board };
     return { status: result.status, source, boardUrl };
+  }),
+  createList: protectedProcedure.input(z.object({ name: z.string().trim().min(1).max(160) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.update");
+    const boardReference = await getCurrentBoardReference(ctx.user.id);
+    return trelloWrite(`boards/${encodeURIComponent(boardReference)}/lists`, "POST", { name: input.name, pos: "bottom" });
+  }),
+  renameList: protectedProcedure.input(z.object({ listId: z.string().trim().min(1), name: z.string().trim().min(1).max(160) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.update");
+    await getCurrentBoardReference(ctx.user.id);
+    return trelloWrite(`lists/${encodeURIComponent(input.listId)}`, "PUT", { name: input.name });
+  }),
+  createCard: protectedProcedure.input(z.object({ listId: z.string().trim().min(1), name: z.string().trim().min(1).max(500), description: z.string().trim().max(16_384).optional(), due: z.coerce.date().nullable().optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.update");
+    await getCurrentBoardReference(ctx.user.id);
+    return trelloWrite("cards", "POST", { idList: input.listId, name: input.name, desc: input.description || "", due: input.due ? input.due.toISOString() : null, pos: "bottom" });
+  }),
+  updateCard: protectedProcedure.input(z.object({ cardId: z.string().trim().min(1), name: z.string().trim().min(1).max(500).optional(), description: z.string().trim().max(16_384).optional(), due: z.coerce.date().nullable().optional(), dueComplete: z.boolean().optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.update");
+    await getCurrentBoardReference(ctx.user.id);
+    return trelloWrite(`cards/${encodeURIComponent(input.cardId)}`, "PUT", { name: input.name, desc: input.description, due: input.due === undefined ? undefined : input.due ? input.due.toISOString() : null, dueComplete: input.dueComplete });
+  }),
+  moveCard: protectedProcedure.input(z.object({ cardId: z.string().trim().min(1), listId: z.string().trim().min(1), position: z.union([z.number(), z.literal("bottom")]).default("bottom") })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.update");
+    await getCurrentBoardReference(ctx.user.id);
+    return trelloWrite(`cards/${encodeURIComponent(input.cardId)}`, "PUT", { idList: input.listId, pos: String(input.position) });
   }),
 });

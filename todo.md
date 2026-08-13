@@ -222,3 +222,11 @@
 - [x] Criar gestão contratual completa de fornecedores com ordem de compra guarda-chuva, contrato, código, nomes para nota fiscal, vigência, recorrência, dia de pagamento e status.
 - [x] Integrar contratos de fornecedores ao Financeiro para gerar e acompanhar obrigações, pagamentos, boletos, notas fiscais e documentos associados.
 - [x] Criar testes e revisão visual para lojas, filtros territoriais, Trello, financeiro operacional, exportação e contratos de fornecedores.
+- [x] Avaliar a incorporação oficial do Trello e implementar uma experiência visual de quadro com edição de listas e cartões pelo Trade HUB.
+- [x] Reorganizar os filtros de Ações para preservar hierarquia, responsividade e leitura rápida na lista operacional.
+- [x] Permitir editar integralmente uma Ação pela sua ficha, incluindo planejamento, datas, vínculos, serviços, estoque e custos.
+- [x] Exibir na ficha de Ação o resumo financeiro de previsto, gasto e diferença, além dos serviços separados com seus valores e itens de estoque com quantidades.
+- [x] Ampliar o debriefing de Ações com resultado, leads, vendas e renovações mensuráveis.
+- [x] Padronizar os campos de escolha única em seletores pesquisáveis com uma única opção selecionável.
+- [x] Criar campanhas operacionais que agrupem Ações, Eventos e Mídias externas em diferentes locais.
+- [x] Criar ficha detalhada de item de estoque com movimentações, responsável e recebedor, iniciando pelo supervisor responsável.

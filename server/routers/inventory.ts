@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { cities, notifications, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
+import { cities, commercialSupervisors, notifications, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -73,11 +73,12 @@ export const inventoryRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "inventory.read");
     const database = await requireDatabase();
-    const [regionalRows, cityRows] = await Promise.all([
+    const [regionalRows, cityRows, supervisorRows] = await Promise.all([
       database.select().from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
       database.select().from(cities).where(eq(cities.active, true)).orderBy(asc(cities.name)),
+      database.select().from(commercialSupervisors).where(eq(commercialSupervisors.active, true)).orderBy(asc(commercialSupervisors.name)),
     ]);
-    return { regionals: regionalRows, cities: cityRows };
+    return { regionals: regionalRows, cities: cityRows, supervisors: supervisorRows };
   }),
 
   list: protectedProcedure.input(inventoryListInput).query(async ({ ctx, input }) => {
@@ -131,7 +132,7 @@ export const inventoryRouter = router({
     const where = conditions.length ? and(...conditions) : undefined;
     const [totalRows, rows] = await Promise.all([
       database.select({ total: count() }).from(stockMovements).innerJoin(stockItems, eq(stockMovements.stockItemId, stockItems.id)).where(where),
-      database.select({ movement: stockMovements, performedByName: users.name, itemName: stockItems.name, regionalName: regionals.name, cityName: cities.name }).from(stockMovements).innerJoin(stockItems, eq(stockMovements.stockItemId, stockItems.id)).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(users, eq(stockMovements.performedByUserId, users.id)).where(where).orderBy(desc(stockMovements.occurredAt), desc(stockMovements.id)).limit(filters.pageSize).offset((filters.page - 1) * filters.pageSize),
+      database.select({ movement: stockMovements, performedByName: users.name, itemName: stockItems.name, regionalName: regionals.name, cityName: cities.name, responsibleName: sql<string | null>`responsible_supervisor.name`, recipientName: sql<string | null>`recipient_supervisor.name` }).from(stockMovements).innerJoin(stockItems, eq(stockMovements.stockItemId, stockItems.id)).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(users, eq(stockMovements.performedByUserId, users.id)).leftJoin(sql`${commercialSupervisors} as responsible_supervisor`, sql`responsible_supervisor.id = ${stockMovements.responsibleCommercialSupervisorId}`).leftJoin(sql`${commercialSupervisors} as recipient_supervisor`, sql`recipient_supervisor.id = ${stockMovements.recipientCommercialSupervisorId}`).where(where).orderBy(desc(stockMovements.occurredAt), desc(stockMovements.id)).limit(filters.pageSize).offset((filters.page - 1) * filters.pageSize),
     ]);
     return { items: rows, total: Number(totalRows[0]?.total ?? 0), page: filters.page, pageSize: filters.pageSize };
   }),
@@ -180,7 +181,7 @@ export const inventoryRouter = router({
     return updated;
   }),
 
-  registerMovement: protectedProcedure.input(z.object({ stockItemId: z.number().int().positive(), movementType: z.enum(["entry", "exit", "adjustment"]), quantity: z.number().positive().max(1_000_000), unitCost: z.number().nonnegative().max(10_000_000).optional(), occurredAt: z.coerce.date(), reference: z.string().trim().max(120).optional(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+  registerMovement: protectedProcedure.input(z.object({ stockItemId: z.number().int().positive(), movementType: z.enum(["entry", "exit", "adjustment"]), quantity: z.number().positive().max(1_000_000), unitCost: z.number().nonnegative().max(10_000_000).optional(), occurredAt: z.coerce.date(), reference: z.string().trim().max(120).optional(), notes: z.string().trim().max(2000).optional(), responsibleCommercialSupervisorId: z.number().int().positive().nullable().optional(), recipientCommercialSupervisorId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "inventory.write");
     const database = await requireDatabase();
     const { item, created, balance } = await database.transaction(async transaction => {
@@ -190,7 +191,7 @@ export const inventoryRouter = router({
       const delta = movementDelta(input.movementType, input.quantity);
       const [balance] = await transaction.update(stockBalances).set({ quantity: sql`${stockBalances.quantity} + ${delta.toFixed(2)}`, updatedAt: new Date() }).where(and(eq(stockBalances.stockItemId, stockItem.id), sql`${stockBalances.quantity} + ${delta.toFixed(2)} >= 0`)).returning();
       if (!balance) throw new TRPCError({ code: "BAD_REQUEST", message: "A saída informada deixaria o estoque negativo." });
-      const [movement] = await transaction.insert(stockMovements).values({ ...input, quantity: input.quantity.toFixed(2), unitCost: input.unitCost?.toFixed(2), reference: input.reference || null, notes: input.notes || null, performedByUserId: ctx.user.id }).returning();
+      const [movement] = await transaction.insert(stockMovements).values({ ...input, quantity: input.quantity.toFixed(2), unitCost: input.unitCost?.toFixed(2), reference: input.reference || null, notes: input.notes || null, responsibleCommercialSupervisorId: input.responsibleCommercialSupervisorId || null, recipientCommercialSupervisorId: input.recipientCommercialSupervisorId || null, performedByUserId: ctx.user.id }).returning();
       return { item: stockItem, created: movement, balance: Number(balance.quantity) };
     });
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: item.regionalId, entityType: "stock_movement", entityId: created.id, action: "create", afterData: created });
@@ -202,7 +203,7 @@ export const inventoryRouter = router({
     return created;
   }),
 
-  transfer: protectedProcedure.input(z.object({ sourceStockItemId: z.number().int().positive(), destinationStockItemId: z.number().int().positive(), quantity: z.number().positive().max(1_000_000), occurredAt: z.coerce.date(), notes: z.string().trim().max(2_000).optional() })).mutation(async ({ ctx, input }) => {
+  transfer: protectedProcedure.input(z.object({ sourceStockItemId: z.number().int().positive(), destinationStockItemId: z.number().int().positive(), quantity: z.number().positive().max(1_000_000), occurredAt: z.coerce.date(), notes: z.string().trim().max(2_000).optional(), responsibleCommercialSupervisorId: z.number().int().positive().nullable().optional(), recipientCommercialSupervisorId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "inventory.update");
     if (input.sourceStockItemId === input.destinationStockItemId) throw new TRPCError({ code: "BAD_REQUEST", message: "Escolha itens de origem e destino diferentes." });
     const database = await requireDatabase();
@@ -215,14 +216,14 @@ export const inventoryRouter = router({
       if (!source[0].cityId || !destination[0].cityId || source[0].cityId === destination[0].cityId) throw new TRPCError({ code: "BAD_REQUEST", message: "A transferência deve ocorrer entre duas cidades diferentes." });
       if (source[0].sku !== destination[0].sku || source[0].unit !== destination[0].unit || source[0].category !== destination[0].category) throw new TRPCError({ code: "BAD_REQUEST", message: "Os itens transferidos devem possuir o mesmo SKU, unidade e categoria." });
       await transaction.insert(stockBalances).values([{ stockItemId: source[0].id, quantity: "0.00" }, { stockItemId: destination[0].id, quantity: "0.00" }]).onConflictDoNothing();
-      const [created] = await transaction.insert(stockTransfers).values({ sourceStockItemId: source[0].id, destinationStockItemId: destination[0].id, quantity: input.quantity.toFixed(2), transferredAt: input.occurredAt, notes: input.notes || null, performedByUserId: ctx.user.id }).returning();
+      const [created] = await transaction.insert(stockTransfers).values({ sourceStockItemId: source[0].id, destinationStockItemId: destination[0].id, quantity: input.quantity.toFixed(2), transferredAt: input.occurredAt, notes: input.notes || null, responsibleCommercialSupervisorId: input.responsibleCommercialSupervisorId || null, recipientCommercialSupervisorId: input.recipientCommercialSupervisorId || null, performedByUserId: ctx.user.id }).returning();
       const [sourceBalance] = await transaction.update(stockBalances).set({ quantity: sql`${stockBalances.quantity} - ${input.quantity.toFixed(2)}`, updatedAt: new Date() }).where(and(eq(stockBalances.stockItemId, source[0].id), sql`${stockBalances.quantity} - ${input.quantity.toFixed(2)} >= 0`)).returning();
       if (!sourceBalance) throw new TRPCError({ code: "BAD_REQUEST", message: "A transferência deixaria o estoque de origem negativo." });
       await transaction.update(stockBalances).set({ quantity: sql`${stockBalances.quantity} + ${input.quantity.toFixed(2)}`, updatedAt: new Date() }).where(eq(stockBalances.stockItemId, destination[0].id));
       const reference = `Transferência #${created.id}`;
       await transaction.insert(stockMovements).values([
-        { stockItemId: source[0].id, movementType: "exit", quantity: input.quantity.toFixed(2), occurredAt: input.occurredAt, reference, notes: input.notes || "Transferência para a cidade de destino.", performedByUserId: ctx.user.id },
-        { stockItemId: destination[0].id, movementType: "entry", quantity: input.quantity.toFixed(2), occurredAt: input.occurredAt, reference, notes: input.notes || "Transferência recebida da cidade de origem.", performedByUserId: ctx.user.id },
+        { stockItemId: source[0].id, movementType: "exit", quantity: input.quantity.toFixed(2), occurredAt: input.occurredAt, reference, notes: input.notes || "Transferência para a cidade de destino.", responsibleCommercialSupervisorId: input.responsibleCommercialSupervisorId || null, recipientCommercialSupervisorId: input.recipientCommercialSupervisorId || null, performedByUserId: ctx.user.id },
+        { stockItemId: destination[0].id, movementType: "entry", quantity: input.quantity.toFixed(2), occurredAt: input.occurredAt, reference, notes: input.notes || "Transferência recebida da cidade de origem.", responsibleCommercialSupervisorId: input.responsibleCommercialSupervisorId || null, recipientCommercialSupervisorId: input.recipientCommercialSupervisorId || null, performedByUserId: ctx.user.id },
       ]);
       return { created, source: source[0] };
     });

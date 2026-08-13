@@ -17,6 +17,7 @@ import { tradeOperationsRouter } from "./routers/tradeOperations";
 import { budgetsRouter } from "./routers/budgets";
 import { localAuthRouter } from "./routers/localAuth";
 import { trelloRouter } from "./routers/trello";
+import { campaignsRouter } from "./routers/campaigns";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -46,6 +47,7 @@ export const appRouter = router({
   tradeOperations: tradeOperationsRouter,
   budgets: budgetsRouter,
   trello: trelloRouter,
+  campaigns: campaignsRouter,
 });
 
 export type AppRouter = typeof appRouter;

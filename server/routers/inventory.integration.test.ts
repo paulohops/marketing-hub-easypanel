@@ -80,7 +80,11 @@ describe("inventoryRouter via tRPC", () => {
           innerJoin: vi.fn(() => ({
             leftJoin: vi.fn(() => ({
               leftJoin: vi.fn(() => ({
-                where: vi.fn(() => ({ orderBy: vi.fn(() => ({ limit: vi.fn(() => ({ offset: offsetMock })) })) })),
+                leftJoin: vi.fn(() => ({
+                  leftJoin: vi.fn(() => ({
+                    where: vi.fn(() => ({ orderBy: vi.fn(() => ({ limit: vi.fn(() => ({ offset: offsetMock })) })) })),
+                  })),
+                })),
               })),
             })),
           })),

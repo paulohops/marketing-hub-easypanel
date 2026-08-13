@@ -21,6 +21,7 @@ const trpcStub = vi.hoisted(() => ({
     renewCampaign: { useMutation: () => ({ mutate: renewCampaignMutation, isPending: false }) },
     saveDebrief: { useMutation: () => ({ mutate: saveDebriefMutation, isPending: false }) },
   },
+  campaigns: { list: { useQuery: () => ({ data: [], isLoading: false }) } },
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));
@@ -85,6 +86,6 @@ describe("detalhe de mídias", () => {
     fireEvent.change(modal.getByLabelText("Investimento previsto"), { target: { value: "2450.50" } });
     fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
 
-    expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, materialFormat: undefined, materialQuantity: undefined, deadlineDays: undefined, deliveryInstructions: undefined }, cityDistributions: [] });
+    expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, tradeCampaignId: null, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, materialFormat: undefined, materialQuantity: undefined, deadlineDays: undefined, deliveryInstructions: undefined }, cityDistributions: [] });
   });
 });

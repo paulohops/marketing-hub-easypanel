@@ -9,7 +9,14 @@ const trpcStub = vi.hoisted(() => ({
     getTrelloConfiguration: { useQuery: () => ({ data: trelloConfiguration, isLoading: false }) },
     updateTrelloConfiguration: { useMutation: () => ({ mutate: updateConfiguration, isPending: false }) },
   },
-  trello: { currentBoard: { useQuery: () => ({ data: { status: "missing", boardUrl: null, source: null }, isLoading: false }) } },
+  trello: {
+    currentBoard: { useQuery: () => ({ data: { status: "missing", boardUrl: null, source: null }, isLoading: false }) },
+    createList: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    renameList: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    createCard: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    updateCard: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    moveCard: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+  },
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));
@@ -36,6 +43,6 @@ describe("workspace Trello", () => {
     await waitFor(() => expect(screen.getByLabelText("URL do quadro")).toHaveValue(""));
     fireEvent.change(screen.getByLabelText("URL do quadro"), { target: { value: "https://trello.com/b/abc123/comercial" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
-    expect(updateConfiguration).toHaveBeenCalledWith({ url: "https://trello.com/b/abc123/comercial" }, expect.objectContaining({ onSuccess: expect.any(Function) }));
+    expect(updateConfiguration).toHaveBeenCalledWith({ url: "https://trello.com/b/abc123/comercial" });
   });
 });
