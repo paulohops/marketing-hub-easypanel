@@ -188,4 +188,4 @@
 - [x] Exibir contadores relacionais de ações, eventos e mídias em empresas, regionais e cidades.
 - [x] Permitir exclusão segura dos cadastros operacionais quando não houver dependências relacionadas.
 - [x] Criar cadastro de pontos de ação e vinculá-los ao planejamento e análise de ações.
-- [ ] Tornar debriefing e nota disponíveis de forma consistente em ações, eventos e mídias.
+- [x] Tornar debriefing e nota disponíveis de forma consistente em ações, eventos e mídias.

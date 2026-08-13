@@ -5,6 +5,7 @@ const listQuery = vi.hoisted(() => vi.fn());
 const detailQuery = vi.hoisted(() => vi.fn());
 const createCampaignMutation = vi.hoisted(() => vi.fn());
 const renewCampaignMutation = vi.hoisted(() => vi.fn());
+const saveDebriefMutation = vi.hoisted(() => vi.fn());
 
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() } } }),
@@ -16,6 +17,7 @@ const trpcStub = vi.hoisted(() => ({
     createPoint: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     createCampaign: { useMutation: () => ({ mutate: createCampaignMutation, isPending: false }) },
     renewCampaign: { useMutation: () => ({ mutate: renewCampaignMutation, isPending: false }) },
+    saveDebrief: { useMutation: () => ({ mutate: saveDebriefMutation, isPending: false }) },
   },
 }));
 
