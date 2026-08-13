@@ -197,3 +197,18 @@
 - [x] Reestruturar mídias externas para selecionar fornecedor, serviço configurado e campos específicos por modalidade, incluindo áudio para carro de som e distribuição territorial para panfletagem.
 - [x] Ampliar a configuração e o acompanhamento de mídias convencionais com parâmetros de serviço, valores, prazos, materiais e evidências específicos.
 - [x] Permitir cadastrar a verba financeira anual por categoria, com estimativa mensal e acompanhamento do realizado.
+- [x] Corrigir a experiência do Trello quando a incorporação for recusada, preservando o quadro individual e oferecendo abertura segura fora do sistema.
+- [x] Reestruturar Ações em lista filtrável e página de detalhe única, reunindo agenda, edição, status, reagendamento, vínculos, debriefing, nota, evidências e histórico.
+- [x] Corrigir o formulário de Eventos, garantir o carregamento de tipos de evento e aplicar a mesma jornada de lista, filtros e detalhe operacional.
+- [x] Substituir seleções múltiplas dependentes de teclado por campos pesquisáveis com caixas de seleção para equipes, fornecedores, serviços e recursos de estoque.
+- [x] Corrigir o carregamento e a persistência de fornecedores envolvidos e recursos de estoque em ações e eventos.
+- [x] Vincular endereço e ponto de referência a pontos de ação/parceiros cadastrados, preenchendo automaticamente a localização quando houver seleção.
+- [x] Permitir imagem de identificação para ações, mídias convencionais e mídias externas, exibida nas respectivas listas e detalhes.
+- [x] Restaurar o envio, a visualização e a substituição de logotipo no detalhe de Empresas.
+- [x] Adicionar busca, filtros, ações de visualizar, editar e excluir em todas as listas de Cadastros.
+- [x] Ampliar detalhes relacionais dos cadastros com cobertura, vínculos operacionais, fornecedores, mídias, ações, eventos e indicadores de custo médio aplicáveis.
+- [x] Expor redefinição de senha no menu Meu Perfil para usuários elegíveis, respeitando o tipo de autenticação.
+- [x] Manter a exportação de relatórios somente em Configurações e removê-la de BI e Indicadores.
+- [x] Garantir retorno claro em todas as telas de lista e detalhe.
+- [x] Corrigir a exclusão segura de Empresas e demais cadastros, bloqueando dependências com mensagem orientativa em vez de erro técnico do banco.
+- [x] Validar fluxos novos com testes automatizados de interface e integração, revisão visual desktop e mobile e suíte completa.

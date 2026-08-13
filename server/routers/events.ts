@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { cities, commercialSupervisors, events, eventServices, eventStockItems, eventSuppliers, eventTeamMembers, eventTypes, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
+import { actionPoints, cities, commercialSupervisors, events, eventServices, eventStockItems, eventSuppliers, eventTeamMembers, eventTypes, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -52,16 +52,18 @@ export const eventsRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "events.read");
     const database = await requireDatabase();
-    const [cityRows, typeRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows] = await Promise.all([
+    const [cityRows, typeRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows, actionPointRows, supplierCityRows] = await Promise.all([
       database.select({ city: cities, regionalName: regionals.name }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(regionals.name), asc(cities.name)),
       database.select().from(eventTypes).where(eq(eventTypes.active, true)).orderBy(asc(eventTypes.name)),
       database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName)),
       database.select().from(serviceTypes).where(eq(serviceTypes.active, true)).orderBy(asc(serviceTypes.name)),
       database.select().from(commercialSupervisors).where(eq(commercialSupervisors.active, true)).orderBy(asc(commercialSupervisors.name)),
       database.select({ id: users.id, name: users.name, email: users.email, jobTitle: users.jobTitle }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)),
-      database.select({ id: stockItems.id, name: stockItems.name, sku: stockItems.sku, unit: stockItems.unit, cityId: stockItems.cityId }).from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)),
+      database.select({ id: stockItems.id, name: stockItems.name, sku: stockItems.sku, unit: stockItems.unit, cityId: stockItems.cityId, regionalId: stockItems.regionalId }).from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)),
+      database.select().from(actionPoints).where(eq(actionPoints.active, true)).orderBy(asc(actionPoints.name)),
+      database.select({ supplierId: supplierCities.supplierId, cityId: supplierCities.cityId }).from(supplierCities),
     ]);
-    return { cities: cityRows, eventTypes: typeRows, suppliers: supplierRows, serviceTypes: serviceRows, supervisors: supervisorRows, teamUsers: teamRows, stockItems: stockRows };
+    return { cities: cityRows, eventTypes: typeRows, suppliers: supplierRows, serviceTypes: serviceRows, supervisors: supervisorRows, teamUsers: teamRows, stockItems: stockRows, actionPoints: actionPointRows, supplierCities: supplierCityRows };
   }),
   list: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "events.read");

@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionPoints, actions, actionTypes, appSettings, cities, commercialSupervisorStores, commercialSupervisors, events, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
+import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -61,7 +61,7 @@ export const settingsRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows] = await Promise.all([
+    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows] = await Promise.all([
       database.select().from(providers).orderBy(asc(providers.name)),
       database.select().from(regionals).orderBy(asc(regionals.name)),
       database.select().from(cities).orderBy(asc(cities.name)),
@@ -77,12 +77,14 @@ export const settingsRouter = router({
       database.select().from(commercialSupervisors).orderBy(asc(commercialSupervisors.name)),
       database.select().from(actionPoints).orderBy(asc(actionPoints.name)),
       database.select().from(commercialSupervisorStores),
-      database.select({ cityId: actions.cityId }).from(actions),
-      database.select({ cityId: events.cityId }).from(events),
-      database.select({ id: mediaPoints.id, cityId: mediaPoints.cityId }).from(mediaPoints),
+      database.select({ id: actions.id, name: actions.name, cityId: actions.cityId }).from(actions),
+      database.select({ id: events.id, name: events.name, cityId: events.cityId }).from(events),
+      database.select({ id: mediaPoints.id, name: mediaPoints.name, cityId: mediaPoints.cityId, supplierId: mediaPoints.supplierId }).from(mediaPoints),
       database.select({ mediaPointId: mediaCampaigns.mediaPointId }).from(mediaCampaigns),
+      database.select({ actionId: actionSuppliers.actionId, supplierId: actionSuppliers.supplierId }).from(actionSuppliers),
+      database.select({ eventId: eventSuppliers.eventId, supplierId: eventSuppliers.supplierId }).from(eventSuppliers),
     ]);
-    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows } };
+    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
   }),
 
   createProvider: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), address: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
@@ -347,10 +349,12 @@ export const settingsRouter = router({
     try {
       await database.delete(table).where(eq(table.id, input.id));
     } catch (error) {
-      const postgresCode = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code) : "";
       const details = error instanceof Error ? error.message.toLowerCase() : "";
-      if (postgresCode === "23503" || details.includes("foreign key")) throw new TRPCError({ code: "CONFLICT", message: "Este cadastro possui vínculos operacionais e não pode ser excluído. Inative-o para preservar o histórico." });
-      throw error;
+      const cause = typeof error === "object" && error && "cause" in error ? (error as { cause?: unknown }).cause : null;
+      const causeCode = typeof cause === "object" && cause && "code" in cause ? String((cause as { code?: unknown }).code) : "";
+      const directCode = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code) : "";
+      if (directCode === "23503" || causeCode === "23503" || details.includes("foreign key") || details.includes("violates foreign key")) throw new TRPCError({ code: "CONFLICT", message: "Este cadastro possui vínculos operacionais e não pode ser excluído. Inative-o para preservar o histórico." });
+      throw new TRPCError({ code: "CONFLICT", message: "Não foi possível excluir este cadastro com segurança. Verifique os vínculos existentes ou inative o registro para preservar o histórico." });
     }
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: input.kind, entityId: input.id, action: "delete", beforeData: before });
     return { success: true } as const;

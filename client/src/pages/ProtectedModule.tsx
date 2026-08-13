@@ -25,7 +25,6 @@ import CompaniesWorkspace from "./CompaniesWorkspace";
 import RegistryEntityWorkspace from "./RegistryEntityWorkspace";
 import TrelloWorkspace from "./TrelloWorkspace";
 import DataImportWorkspace from "./DataImportWorkspace";
-import TradeEvidencePanel from "@/components/TradeEvidencePanel";
 import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
 import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
@@ -78,8 +77,8 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   const canWrite = (permission: string) => canPermission(permission);
   if (module === "midias") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace /><MediaCoverageExplorer /><MediaCampaignLibrary canWrite={canWrite("media.write")} /><RegionalMediaPanel canWrite={canWrite("media.write")} /></div></DashboardLayout>;
   if (module === "midias-externas") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialChannel="external" /></div></DashboardLayout>;
-  if (module === "acoes") return <DashboardLayout><div className="cluster-workspace"><ActionsWorkspace /><TradeEvidencePanel mode="action" canWrite={canWrite("actions.write")} /></div></DashboardLayout>;
-  if (module === "eventos") return <DashboardLayout><div className="cluster-workspace"><EventsWorkspace /><TradeEvidencePanel mode="event" canWrite={canWrite("events.write")} /></div></DashboardLayout>;
+  if (module === "acoes") return <DashboardLayout><div className="cluster-workspace"><ActionsWorkspace /></div></DashboardLayout>;
+  if (module === "eventos") return <DashboardLayout><div className="cluster-workspace"><EventsWorkspace /></div></DashboardLayout>;
   if (module === "indicadores") return <DashboardLayout><div className="cluster-workspace"><IndicatorsWorkspace /></div></DashboardLayout>;
   if (module === "perfil") return <DashboardLayout><div className="cluster-workspace"><ProfileWorkspace /></div></DashboardLayout>;
   if (module === "usuarios") return <DashboardLayout><div className="cluster-workspace"><UserAdministrationWorkspace /></div></DashboardLayout>;
