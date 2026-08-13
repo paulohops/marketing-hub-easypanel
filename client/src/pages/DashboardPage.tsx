@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, BellRing, Boxes, CalendarDays, Landmark, Map, Megaphone, Plus } from "lucide-react";
+import { ArrowRight, BellRing, Boxes, CalendarDays, CircleHelp, Landmark, Map, Megaphone } from "lucide-react";
 import { useLocation } from "wouter";
 
 const modules = [
@@ -14,11 +14,12 @@ const modules = [
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const month = new Date().toISOString().slice(0, 7);
-  const budgetSummary = trpc.budgets.summary.useQuery({ month });
-  const totalBudget = budgetSummary.data?.reduce((sum, budget) => sum + budget.total, 0) ?? 0;
-  const totalRealized = budgetSummary.data?.reduce((sum, budget) => sum + budget.realized, 0) ?? 0;
-  const availableBalance = budgetSummary.data?.reduce((sum, budget) => sum + budget.available, 0) ?? 0;
-  const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+  const media = trpc.media.list.useQuery();
+  const actions = trpc.actions.list.useQuery();
+  const events = trpc.events.list.useQuery();
+  const activeMedia = media.data?.filter(point => point.status === "active").length ?? 0;
+  const completedActions = actions.data?.filter(({ action }) => action.status === "completed").length ?? 0;
+  const completedEvents = events.data?.filter(({ event }) => event.status === "completed").length ?? 0;
   return (
     <div className="mx-auto max-w-[1480px]">
       <section className="cluster-grid relative overflow-hidden rounded-[22px] bg-primary px-6 py-7 text-white shadow-[0_16px_42px_rgba(14,114,59,0.18)] sm:px-8 sm:py-9">
@@ -30,19 +31,19 @@ export default function DashboardPage() {
             <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Trade HUB em movimento</h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-sidebar-foreground">A central de gestão do Cluster MG para conectar território, campanhas, fornecedores e resultados.</p>
           </div>
-          <Button onClick={() => setLocation("/acoes")} className="h-10 rounded-xl bg-sidebar-primary px-4 text-xs font-bold text-white hover:bg-accent-foreground"><Plus className="mr-1.5 h-4 w-4" /> Nova ação</Button>
+          <Button onClick={() => setLocation("/ajuda")} className="h-10 rounded-xl bg-sidebar-primary px-4 text-xs font-bold text-white hover:bg-accent-foreground"><CircleHelp className="mr-1.5 h-4 w-4" /> Ver ajuda e suporte</Button>
         </div>
       </section>
 
       <section className="mt-5 grid gap-3 sm:grid-cols-3">
-        <article className="rounded-2xl border border-border bg-white p-5 shadow-[0_3px_12px_rgba(14,114,59,0.04)]"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Verba total</p><p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{currency.format(totalBudget)}</p><p className="mt-1 text-xs text-muted-foreground">Competência {month}</p></article>
-        <article className="rounded-2xl border border-border bg-white p-5 shadow-[0_3px_12px_rgba(14,114,59,0.04)]"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Valor realizado</p><p className="mt-2 text-2xl font-semibold tracking-tight text-primary">{currency.format(totalRealized)}</p><p className="mt-1 text-xs text-muted-foreground">Custos aprovados no período</p></article>
-        <article className="rounded-2xl border border-border bg-white p-5 shadow-[0_3px_12px_rgba(14,114,59,0.04)]"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Saldo disponível</p><p className={`mt-2 text-2xl font-semibold tracking-tight ${availableBalance < 0 ? "text-destructive" : "text-foreground"}`}>{currency.format(availableBalance)}</p><p className="mt-1 text-xs text-muted-foreground">Orçamento menos custos realizados</p></article>
+        <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_3px_12px_rgba(14,114,59,0.04)]"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Mídias ativas</p><p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{activeMedia}</p><p className="mt-1 text-xs text-muted-foreground">Pontos disponíveis para veiculação</p></article>
+        <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_3px_12px_rgba(14,114,59,0.04)]"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Ações realizadas</p><p className="mt-2 text-2xl font-semibold tracking-tight text-primary">{completedActions}</p><p className="mt-1 text-xs text-muted-foreground">Ativações concluídas</p></article>
+        <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_3px_12px_rgba(14,114,59,0.04)]"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Eventos realizados</p><p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{completedEvents}</p><p className="mt-1 text-xs text-muted-foreground">Eventos concluídos</p></article>
       </section>
 
       <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {modules.map(module => (
-          <button key={module.title} onClick={() => setLocation(module.href)} className="group rounded-2xl border border-border bg-white p-5 text-left shadow-[0_3px_12px_rgba(14,114,59,0.04)] transition-all hover:-translate-y-0.5 hover:border-sidebar-primary/50 hover:shadow-[0_12px_28px_rgba(14,114,59,0.1)]">
+          <button key={module.title} onClick={() => setLocation(module.href)} className="group rounded-2xl border border-border bg-card p-5 text-left shadow-[0_3px_12px_rgba(14,114,59,0.04)] transition-all hover:-translate-y-0.5 hover:border-sidebar-primary/50 hover:shadow-[0_12px_28px_rgba(14,114,59,0.1)]">
             <span className={`grid h-10 w-10 place-items-center rounded-xl ${module.color}`}><module.icon className="h-5 w-5" /></span>
             <p className="mt-5 font-display text-base font-bold text-foreground">{module.title}</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">{module.description}</p>
@@ -52,11 +53,11 @@ export default function DashboardPage() {
       </section>
 
       <section className="mt-7 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-        <div className="rounded-2xl border border-border bg-white p-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-start justify-between gap-4"><div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Atividade operacional</p><h2 className="mt-1 font-display text-xl font-semibold text-foreground">Sua operação começa aqui</h2></div><span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-primary"><Map className="h-4 w-4" /></span></div>
-          <div className="mt-10 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background px-6 py-10 text-center"><span className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-primary"><Map className="h-5 w-5" /></span><p className="mt-4 text-sm font-semibold text-foreground">Ainda não há dados operacionais</p><p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">Cadastre regionais, cidades e fornecedores para iniciar o acompanhamento consolidado.</p><Button variant="outline" onClick={() => setLocation("/cadastros")} className="mt-5 h-9 rounded-lg border-border bg-white text-xs text-primary hover:bg-secondary">Abrir cadastros</Button></div>
+          <div className="mt-10 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background px-6 py-10 text-center"><span className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-primary"><Map className="h-5 w-5" /></span><p className="mt-4 text-sm font-semibold text-foreground">Ainda não há dados operacionais</p><p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">Cadastre regionais, cidades e fornecedores para iniciar o acompanhamento consolidado.</p><Button variant="outline" onClick={() => setLocation("/cadastros")} className="mt-5 h-9 rounded-lg border-border bg-card text-xs text-primary hover:bg-secondary">Abrir cadastros</Button></div>
         </div>
-        <div className="rounded-2xl border border-border bg-white p-6"><div className="flex items-center justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Alertas</p><h2 className="mt-1 font-display text-xl font-semibold text-foreground">Acompanhar</h2></div><BellRing className="h-5 w-5 text-accent-foreground" /></div><div className="mt-7 rounded-xl bg-accent p-4"><p className="text-xs font-semibold text-accent-foreground">Nenhum alerta pendente</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Os alertas de campanha, pagamentos e ações serão exibidos neste painel.</p></div><Button variant="ghost" onClick={() => setLocation("/indicadores")} className="mt-5 h-8 px-0 text-xs font-semibold text-primary hover:bg-transparent hover:text-primary">Ver indicadores <ArrowRight className="ml-1 h-3.5 w-3.5" /></Button></div>
+        <div className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Alertas</p><h2 className="mt-1 font-display text-xl font-semibold text-foreground">Acompanhar</h2></div><BellRing className="h-5 w-5 text-accent-foreground" /></div><div className="mt-7 rounded-xl bg-accent p-4"><p className="text-xs font-semibold text-accent-foreground">Nenhum alerta pendente</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Os alertas de campanha, pagamentos e ações serão exibidos neste painel.</p></div><Button variant="ghost" onClick={() => setLocation("/indicadores")} className="mt-5 h-8 px-0 text-xs font-semibold text-primary hover:bg-transparent hover:text-primary">Ver indicadores <ArrowRight className="ml-1 h-3.5 w-3.5" /></Button></div>
       </section>
     </div>
   );

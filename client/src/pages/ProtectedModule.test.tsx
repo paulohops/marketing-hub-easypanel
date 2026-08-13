@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ProtectedModule from "./ProtectedModule";
 
 const authState = vi.hoisted(() => ({
@@ -11,13 +11,16 @@ const authState = vi.hoisted(() => ({
 }));
 
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => authState }));
-vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: false }) } } } }));
+vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read"] }) } } } }));
 vi.mock("./MediaWorkspace", () => ({ default: () => <h1>Mídias e campanhas</h1> }));
 vi.mock("@/components/MediaCoverageExplorer", () => ({ default: () => null }));
 vi.mock("@/components/MediaCampaignLibrary", () => ({ default: () => null }));
 vi.mock("@/components/RegionalMediaPanel", () => ({ default: () => null }));
 
 describe("ProtectedModule", () => {
+  beforeEach(() => window.localStorage.setItem("trade_hub_onboarding_done", "true"));
+  afterEach(() => window.localStorage.removeItem("trade_hub_onboarding_done"));
+
   it("bloqueia acesso direto às configurações para visualizador", () => {
     authState.user.role = "viewer";
     render(<ProtectedModule module="configuracoes" />);

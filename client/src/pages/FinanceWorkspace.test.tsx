@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const mutation = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ finance: { listInvoices: { invalidate: vi.fn() } }, budgets: { listBudgets: { invalidate: vi.fn() }, summary: { invalidate: vi.fn() }, listCosts: { invalidate: vi.fn() } } }),
+  users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["finance.read", "finance.create", "finance.update", "finance.delete"] }) } },
   budgets: {
     summary: { useQuery: () => ({ data: [], isLoading: false }) }, listBudgets: { useQuery: () => ({ data: [] }) }, listCosts: { useQuery: () => ({ data: [], isLoading: false }) }, operationOptions: { useQuery: () => ({ data: [] }) }, saveBudget: { useMutation: mutation }, upsertCost: { useMutation: mutation }, reviewCost: { useMutation: mutation },
   },
@@ -22,6 +23,14 @@ import FinanceWorkspace from "./FinanceWorkspace";
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("previsões operacionais no financeiro", () => {
+  it("mantém orçamento e previsões em superfícies semânticas sob o tema escuro", () => {
+    const { container } = render(<div className="dark"><FinanceWorkspace /></div>);
+
+    expect(container.querySelector(".dark")).toBeInTheDocument();
+    expect(container.querySelectorAll(".bg-card").length).toBeGreaterThan(0);
+    expect(container.querySelector(".bg-white")).toBeNull();
+  });
+
   it("preenche fornecedor, valor e vínculo da nota a partir de uma ação prevista", () => {
     render(<FinanceWorkspace />);
     expect(screen.getByText("Previsões operacionais")).toBeInTheDocument();

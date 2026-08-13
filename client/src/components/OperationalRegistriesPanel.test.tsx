@@ -11,7 +11,7 @@ const trpcStub = vi.hoisted(() => {
     settings: {
       overview: { useQuery: () => ({ isLoading: false, data: overviewData }) },
       supplierCoverage: { useQuery: () => ({ isLoading: false, data: coverageData }) },
-      createProvider: { useMutation: () => ({ mutate: mutations.createProvider, isPending: false }) }, updateProvider: { useMutation: mutation }, createRegional: { useMutation: mutation }, updateRegional: { useMutation: mutation }, createCity: { useMutation: mutation }, updateCity: { useMutation: mutation }, createPartner: { useMutation: mutation }, updatePartner: { useMutation: () => ({ mutate: mutations.updatePartner, isPending: false }) }, createCommercialSupervisor: { useMutation: () => ({ mutate: mutations.createCommercialSupervisor, isPending: false }) }, updateCommercialSupervisor: { useMutation: () => ({ mutate: mutations.updateCommercialSupervisor, isPending: false }) }, createSupplier: { useMutation: mutation }, updateSupplier: { useMutation: () => ({ mutate: mutations.updateSupplier, isPending: false }) }, createType: { useMutation: mutation }, updateType: { useMutation: mutation }, createFinancialCategory: { useMutation: () => ({ mutate: mutations.createFinancialCategory, isPending: false }) }, updateFinancialCategory: { useMutation: () => ({ mutate: mutations.updateFinancialCategory, isPending: false }) }, createSupplierOffering: { useMutation: mutation }, updateSupplierOffering: { useMutation: () => ({ mutate: mutations.updateSupplierOffering, isPending: false }) }, setSupplierCoverage: { useMutation: mutation }, setRegistryActive: { useMutation: () => ({ mutate: mutations.setRegistryActive, isPending: false }) },
+      createProvider: { useMutation: () => ({ mutate: mutations.createProvider, isPending: false }) }, updateProvider: { useMutation: mutation }, createRegional: { useMutation: mutation }, updateRegional: { useMutation: mutation }, createCity: { useMutation: mutation }, updateCity: { useMutation: mutation }, createPartner: { useMutation: mutation }, updatePartner: { useMutation: () => ({ mutate: mutations.updatePartner, isPending: false }) }, createCommercialSupervisor: { useMutation: () => ({ mutate: mutations.createCommercialSupervisor, isPending: false }) }, updateCommercialSupervisor: { useMutation: () => ({ mutate: mutations.updateCommercialSupervisor, isPending: false }) }, createSupplier: { useMutation: mutation }, updateSupplier: { useMutation: () => ({ mutate: mutations.updateSupplier, isPending: false }) }, uploadRegistryContract: { useMutation: mutation }, createType: { useMutation: mutation }, updateType: { useMutation: mutation }, createFinancialCategory: { useMutation: () => ({ mutate: mutations.createFinancialCategory, isPending: false }) }, updateFinancialCategory: { useMutation: () => ({ mutate: mutations.updateFinancialCategory, isPending: false }) }, createSupplierOffering: { useMutation: mutation }, updateSupplierOffering: { useMutation: () => ({ mutate: mutations.updateSupplierOffering, isPending: false }) }, setSupplierCoverage: { useMutation: mutation }, setRegistryActive: { useMutation: () => ({ mutate: mutations.setRegistryActive, isPending: false }) },
     },
   };
 });
@@ -40,34 +40,16 @@ describe("centro de cadastros operacionais", () => {
     expect(screen.getByLabelText("Preço unitário (R$)")).toBeInTheDocument();
   });
 
-  it("permite cadastrar empresas e categorias financeiras e alterar o status dos registros", () => {
+  it("mantém o acesso de Empresas na página dedicada e administra categorias financeiras no centro operacional", () => {
     render(<OperationalRegistriesPanel />);
 
-    fireEvent.click(screen.getByRole("button", { name: /empresas/i }));
-    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Sempre Internet" } });
-    fireEvent.click(screen.getByRole("button", { name: "Cadastrar" }));
-    expect(mutations.createProvider).toHaveBeenCalledWith({ name: "Sempre Internet" });
-    fireEvent.click(screen.getByRole("button", { name: "Inativar" }));
-    expect(mutations.setRegistryActive).toHaveBeenLastCalledWith({ kind: "provider", id: 1, active: false });
-
-    fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
+    expect(screen.getByText("Ver empresas")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /categorias financeiras/i }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Mídia de rua" } });
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar" }));
     expect(mutations.createFinancialCategory).toHaveBeenCalledWith({ name: "Mídia de rua" });
     fireEvent.click(screen.getByRole("button", { name: "Inativar" }));
     expect(mutations.setRegistryActive).toHaveBeenLastCalledWith({ kind: "financial_category", id: 7, active: false });
-  });
-
-  it("exibe a cobertura territorial da empresa ao editar seu cadastro", () => {
-    render(<OperationalRegistriesPanel />);
-
-    fireEvent.click(screen.getByRole("button", { name: /empresas/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-
-    expect(screen.getByText("Cobertura territorial da empresa")).toBeInTheDocument();
-    expect(screen.getByText("Central")).toBeInTheDocument();
-    expect(screen.getByText("Belo Horizonte")).toBeInTheDocument();
   });
 
   it("edita o fornecedor selecionado e atualiza a categoria financeira existente", () => {
@@ -95,7 +77,7 @@ describe("centro de cadastros operacionais", () => {
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Parceiro Atualizado" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar edição" }));
-    expect(mutations.updatePartner).toHaveBeenCalledWith({ id: 9, name: "Parceiro Atualizado", email: "parceiro@bh.com", phone: "31999999999" });
+    expect(mutations.updatePartner).toHaveBeenCalledWith(expect.objectContaining({ id: 9, name: "Parceiro Atualizado", email: "parceiro@bh.com", phone: "31999999999" }));
     fireEvent.click(screen.getByRole("button", { name: "Inativar" }));
     expect(mutations.setRegistryActive).toHaveBeenLastCalledWith({ kind: "partner", id: 9, active: false });
   });
@@ -113,7 +95,6 @@ describe("centro de cadastros operacionais", () => {
   });
 
   it.each([
-    ["Empresas", "Cluster MG"],
     ["Regionais", "Central"],
     ["Cidades", "Belo Horizonte"],
     ["Parceiros", "Parceiro BH"],

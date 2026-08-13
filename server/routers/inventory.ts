@@ -6,6 +6,7 @@ import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
+import { storagePut } from "../storage";
 
 type Movement = { movementType: "entry" | "exit" | "adjustment"; quantity: string };
 
@@ -40,6 +41,11 @@ export const inventoryHistoryInput = z.object({
 });
 
 const stockCategoryValues = ["brinde_relacionamento", "brinde_vip", "material_suporte"] as const;
+const photoMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+
+function safeFileName(name: string) {
+  return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(0, 160) || "foto";
+}
 const inventoryListInput = z.object({
   regionalId: z.number().int().positive().optional(),
   cityId: z.number().int().positive().optional(),
@@ -140,6 +146,19 @@ export const inventoryRouter = router({
     });
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId, entityType: "stock_item", entityId: created.id, action: "create", afterData: created });
     return created;
+  }),
+
+  uploadPhoto: protectedProcedure.input(z.object({ stockItemId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(photoMimeTypes), dataBase64: z.string().min(1).max(4_200_000) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "inventory.update");
+    const database = await requireDatabase();
+    const [item] = await database.select().from(stockItems).where(eq(stockItems.id, input.stockItemId)).limit(1);
+    if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "Item de estoque não encontrado." });
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 3 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A foto do item deve ter até 3 MB." });
+    const stored = await storagePut(`trade/stock/${item.id}/foto-${Date.now()}-${safeFileName(input.originalName)}`, bytes, input.mimeType);
+    const [updated] = await database.update(stockItems).set({ photoStorageKey: stored.key, photoUrl: stored.url, updatedAt: new Date() }).where(eq(stockItems.id, item.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: item.regionalId, entityType: "stock_item", entityId: item.id, action: "upload_photo", beforeData: { photoStorageKey: item.photoStorageKey }, afterData: { photoStorageKey: updated.photoStorageKey } });
+    return updated;
   }),
 
   updateStockItem: protectedProcedure.input(stockItemUpdateInput).mutation(async ({ ctx, input }) => {

@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DashboardLayout from "./DashboardLayout";
 
@@ -13,16 +13,22 @@ vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({ ...authState, isAuthenticated: true }),
 }));
 
-vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: false }) } } } }));
+vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({
+  isSuccess: true,
+  data: authState.user.role === "admin"
+    ? ["dashboard.read", "inventory.read", "finance.read", "media.read", "actions.read", "events.read", "settings.read"]
+    : ["dashboard.read", "inventory.read", "finance.read", "media.read", "actions.read", "events.read"],
+}) } } } }));
 
 describe("DashboardLayout", () => {
-  afterEach(cleanup);
+  afterEach(() => { cleanup(); document.documentElement.classList.remove("dark"); });
 
   it("oculta Cadastros para o perfil visualizador", () => {
     authState.user.role = "viewer";
     render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);
 
     expect(screen.getByText("Estoque")).toBeInTheDocument();
+    expect(screen.getByText("Estoque").closest("button")).toHaveClass("group-data-[collapsible=icon]:mx-auto");
     expect(screen.queryByText("Cadastros")).not.toBeInTheDocument();
   });
 
@@ -34,7 +40,39 @@ describe("DashboardLayout", () => {
     expect(screen.getAllByText("Operação").length).toBeGreaterThan(0);
     expect(screen.getByText("Gestão")).toBeInTheDocument();
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
-    expect(screen.getByText("Ajuda e suporte")).toBeInTheDocument();
+    expect(screen.queryByText("Ajuda e suporte")).not.toBeInTheDocument();
     expect(screen.queryByText("Operações unificadas")).not.toBeInTheDocument();
+  });
+
+  it("mantém os rótulos de grupos no fluxo vertical normal da barra lateral", () => {
+    authState.user.role = "admin";
+    const { container } = render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);
+
+    const headings = container.querySelectorAll('[data-sidebar="group-heading"]');
+    expect(headings).toHaveLength(4);
+    expect(headings[0]).toHaveTextContent("Operação");
+    expect(headings[1]).toHaveTextContent("Gestão");
+    expect(headings[0]).not.toHaveClass("group-data-[collapsible=icon]:-mt-8");
+    expect(headings[0].parentElement).toHaveClass("shrink-0");
+  });
+
+  it("abre o menu de usuário sobre uma superfície semântica no tema escuro", async () => {
+    authState.user.role = "admin";
+    document.documentElement.classList.add("dark");
+    render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Pular tutorial" }));
+    const trigger = screen.getByRole("button", { name: "Abrir menu de usuário: Ana" });
+    trigger.focus();
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveClass("hover:bg-white/[0.12]", "focus-visible:ring-2", "focus-visible:ring-ring");
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
+
+    const helpItem = await screen.findByText("Ajuda e suporte");
+    const menu = helpItem.closest('[role="menu"]');
+    expect(document.documentElement).toHaveClass("dark");
+    expect(menu).toBeInTheDocument();
+    expect(menu).toHaveClass("bg-popover");
+    expect(menu).not.toHaveClass("bg-white");
   });
 });

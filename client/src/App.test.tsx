@@ -26,7 +26,7 @@ describe("rotas protegidas", () => {
   it.each([
     ["/usuarios", "usuarios"],
     ["/administracao-usuarios", "usuarios"],
-    ["/cadastros", "configuracoes"],
+    ["/cadastros", "cadastros"],
     ["/configuracoes", "configuracoes"],
     ["/ajuda", "ajuda"],
   ])("renderiza o módulo protegido %s", (path, module) => {

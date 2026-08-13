@@ -18,12 +18,14 @@ const references = {
 
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ inventory: { list: { invalidate: vi.fn() }, territorialSummary: { invalidate: vi.fn() }, listMovements: { invalidate: vi.fn() } } }),
+  users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["inventory.read", "inventory.create", "inventory.update", "inventory.delete"] }) } },
   inventory: {
     list: { useQuery: listQuery },
     territorialSummary: { useQuery: territorialQuery },
     referenceData: { useQuery: () => ({ data: references, isLoading: false }) },
     listMovements: { useQuery: () => ({ data: undefined, isLoading: false }) },
     createItem: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    uploadPhoto: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     updateStockItem: { useMutation: () => ({ mutate: updateMutation, isPending: false }) },
     registerMovement: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     transfer: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
@@ -68,11 +70,22 @@ describe("estoque territorial", () => {
     expect(workspaceHeader).toHaveClass("flex", "flex-col", "sm:flex-row", "sm:items-end", "sm:justify-between");
   });
 
+  it("mantém filtros e cartões em superfícies semânticas sob o tema escuro", () => {
+    listQuery.mockReturnValue({ data: [], isLoading: false });
+    territorialQuery.mockReturnValue({ data: [], isLoading: false });
+    const { container } = render(<div className="dark"><InventoryWorkspace /></div>);
+
+    expect(container.querySelector(".dark")).toBeInTheDocument();
+    expect(container.querySelectorAll(".bg-card").length).toBeGreaterThan(0);
+    expect(container.querySelector(".bg-white")).toBeNull();
+  });
+
   it("permite editar os dados cadastrais sem alterar o histórico de saldo", () => {
-    listQuery.mockReturnValue({ data: [{ id: 21, sku: "TENDA-01", name: "Tenda 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: "2.00", active: true, regionalName: "Central", cityName: "Belo Horizonte", cityId: 10, balance: 4, movementCount: 3 }], isLoading: false });
+    listQuery.mockReturnValue({ data: [{ id: 21, sku: "TENDA-01", name: "Tenda 3x3", description: "Estrutura dobrável", photoUrl: "/manus-storage/trade/stock/tenda.png", unit: "un", category: "material_suporte", minimumQuantity: "2.00", active: true, regionalName: "Central", cityName: "Belo Horizonte", cityId: 10, balance: 4, movementCount: 3 }], isLoading: false });
     territorialQuery.mockReturnValue({ data: [], isLoading: false });
     render(<InventoryWorkspace />);
 
+    expect(screen.getByRole("button", { name: "Ampliar Foto de Tenda 3x3" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Nome do material"), { target: { value: "Tenda promocional 3x3" } });
     fireEvent.change(screen.getByLabelText("Estoque mínimo"), { target: { value: "3" } });

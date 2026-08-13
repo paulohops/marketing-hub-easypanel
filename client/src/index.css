@@ -60,6 +60,33 @@
   --sidebar: #0d512a; --sidebar-foreground: #ecf8f0; --sidebar-accent: #146a38; --sidebar-accent-foreground: #ffffff; --sidebar-border: #287044; --sidebar-ring: #f46b2a;
 }
 
+.dark .bg-white {
+  background-color: var(--card) !important;
+}
+
+.dark .bg-white\/95 {
+  background-color: var(--card) !important;
+}
+
+.dark .bg-white\/90,
+.dark .bg-white\/80,
+.dark .bg-white\/70,
+.dark .bg-white\/60,
+.dark .bg-white\/50 {
+  background-color: color-mix(in srgb, var(--card) 92%, transparent) !important;
+}
+
+.dark .hover\:bg-white\/95:hover,
+.dark .hover\:bg-white\/90:hover,
+.dark .hover\:bg-white\/80:hover {
+  background-color: var(--secondary) !important;
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: var(--secondary) !important;
+}
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

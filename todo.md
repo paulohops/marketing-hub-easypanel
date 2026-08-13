@@ -128,3 +128,39 @@
 - [x] Expandir a documentação da central de ajuda com fluxos por módulo, permissões, cadastros, suporte e boas práticas.
 - [x] Remover o controle de envio e alteração de foto na página de perfil.
 - [x] Validar os novos fluxos com testes automatizados, acessibilidade e responsividade.
+- [x] Mover Ajuda e suporte para o menu do usuário e retirar o atalho do rodapé da barra lateral.
+- [x] Mover Cadastros operacionais para Gestão e manter Configurações como área administrativa separada.
+- [x] Corrigir a sobreposição dos rótulos de grupos e links na barra lateral expandida.
+- [x] Corrigir tokens e superfícies do modo escuro que ainda exibem fundo branco.
+- [x] Padronizar criação e edição em modais, substituindo formulários expandidos dentro das páginas.
+- [x] Mover os formulários de criação de ações e eventos para popups com rolagem e descrição acessível.
+- [x] Mover o formulário de criação de nota fiscal para popup com rolagem e descrição acessível.
+- [x] Mover os fluxos de criação e edição de itens de estoque para popups com rolagem e descrição acessível.
+- [x] Substituir o atalho Nova ação da visão geral por Ver ajuda e suporte e apresentar contadores de mídias, ações e eventos realizados.
+- [x] Corrigir o alinhamento dos ícones quando a barra lateral estiver recolhida.
+- [x] Corrigir a revogação efetiva de permissões individuais, garantindo que a interface e os routers bloqueiem imediatamente o módulo removido.
+- [x] Auditar todas as ocorrências de superfícies claras e substituir por tokens compatíveis com o modo escuro, incluindo variantes translúcidas.
+- [x] Adicionar validação verificável do modo escuro nas páginas e componentes com superfícies claras.
+- [x] Remover o formulário legado em linha de campanhas de mídia e manter exclusivamente o fluxo em Dialog acessível.
+- [x] Adicionar cobertura verificável para os modais remanescentes de criação e edição nas páginas principais.
+- [x] Auditar os workspaces e componentes restantes que possuem formulários e converter qualquer criação ou edição ainda em linha para Dialog acessível.
+- [x] Converter os formulários legados de criação e feedback em TradeOperationsWorkspace para Dialogs acessíveis, caso a rota histórica permaneça habilitada.
+- [x] Auditar o MediaCampaignLibrary e demais componentes auxiliares para confirmar que formulários internos não aparecem expandidos nas rotas ativas.
+- [x] Inspecionar individualmente Empresas, Perfil, Ajuda e Trello para registrar quais formulários são contextuais e converter qualquer criação ou edição ainda em linha.
+- [x] Adicionar evidência automatizada específica para os diálogos de criação e edição que permanecerem nessas páginas.
+- [x] Executar auditoria verificável das telas com superfícies claras, incluindo Dashboard, Cadastros, Empresas, Trello, Mídias, Financeiro e Estoque.
+- [x] Adicionar testes de renderização de componentes críticos sob o seletor de tema escuro, cobrindo cartão, modal, popover e estados de interação.
+- [x] Registrar evidência dos componentes e estados de superfície corrigidos no modo escuro para concluir a validação visual.
+- [x] Executar uma varredura verificável em todo client/src para superfícies claras restantes e registrar cobertura além das telas prioritárias.
+- [x] Adicionar testes em tema escuro abrindo Dialogs/Modals reais e cobrindo ao menos um Popover/Dropdown com estados hover/active/focus relevantes.
+- [x] Adicionar validação em tema escuro para Indicadores e painéis auxiliares ainda sem evidência explícita.
+- [x] Registrar evidência visual explícita do tema escuro nas telas e componentes corrigidos.
+- [x] Criar uma central exclusiva de notificações com filtros administrativos para todos os usuários e territórios.
+- [x] Criar tutorial guiado em modal na primeira entrada, com opção de pular e de não exibir novamente.
+- [x] Padronizar a visualização de imagens em cartão lateral com ampliação em modal e opção de download.
+- [x] Criar Gestão → Trello para hospedar um quadro configurável em iframe.
+- [x] Ampliar fornecedores e parceiros com cidade, modalidade, forma e recorrência de pagamento, contrato e envio seguro de arquivos.
+- [x] Criar páginas em cartões para domínios de cadastro, começando por Empresas com logo, dados completos e relações integradas.
+- [x] Permitir adicionar foto aos itens de estoque e visualizá-la em modal com download.
+- [x] Permitir importar dados de cadastros por planilha na área de Configurações, com validação antes da gravação.
+- [x] Permitir exportar relatórios completos por período na área de Relatórios.

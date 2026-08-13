@@ -79,8 +79,16 @@ export const providers = pgTable("providers", {
   phone: varchar("phone", { length: 32 }),
   email: varchar("email", { length: 320 }),
   address: text("address"),
+  logoStorageKey: varchar("logoStorageKey", { length: 512 }),
+  logoUrl: text("logoUrl"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const appSettings = pgTable("app_settings", {
+  key: varchar("key", { length: 120 }).primaryKey(),
+  value: text("value").notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -144,14 +152,22 @@ export const stores = pgTable("stores", {
 
 export const partners = pgTable("partners", {
   id: serial("id").primaryKey(),
+  cityId: integer("cityId").references(() => cities.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 160 }).notNull(),
   legalName: varchar("legalName", { length: 220 }),
   document: varchar("document", { length: 32 }).unique(),
   contactName: varchar("contactName", { length: 160 }),
   phone: varchar("phone", { length: 32 }),
   email: varchar("email", { length: 320 }),
+  partnershipType: partnershipTypeEnum("partnershipType"),
+  paymentMethod: varchar("paymentMethod", { length: 80 }),
+  paymentRecurrence: varchar("paymentRecurrence", { length: 80 }),
+  hasContract: boolean("hasContract").default(false).notNull(),
+  contractStorageKey: varchar("contractStorageKey", { length: 512 }),
+  contractUrl: text("contractUrl"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const mediaTypes = pgTable("media_types", {
@@ -190,15 +206,21 @@ export const financialCategories = pgTable("financial_categories", {
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
   providerId: integer("providerId").references(() => providers.id, { onDelete: "restrict" }),
+  cityId: integer("cityId").references(() => cities.id, { onDelete: "restrict" }),
   displayName: varchar("displayName", { length: 180 }).notNull(),
   legalName: varchar("legalName", { length: 220 }),
   document: varchar("document", { length: 32 }).unique(),
   contactName: varchar("contactName", { length: 160 }),
   phone: varchar("phone", { length: 32 }),
   email: varchar("email", { length: 320 }),
+  partnershipType: partnershipTypeEnum("partnershipType"),
   paymentMethod: varchar("paymentMethod", { length: 80 }),
+  paymentRecurrence: varchar("paymentRecurrence", { length: 80 }),
   pixKey: varchar("pixKey", { length: 220 }),
   paymentDay: integer("paymentDay"),
+  hasContract: boolean("hasContract").default(false).notNull(),
+  contractStorageKey: varchar("contractStorageKey", { length: 512 }),
+  contractUrl: text("contractUrl"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
@@ -242,6 +264,8 @@ export const stockItems = pgTable("stock_items", {
   sku: varchar("sku", { length: 64 }).notNull(),
   name: varchar("name", { length: 180 }).notNull(),
   description: text("description"),
+  photoStorageKey: varchar("photoStorageKey", { length: 512 }),
+  photoUrl: text("photoUrl"),
   unit: varchar("unit", { length: 24 }).default("un").notNull(),
   category: stockCategoryEnum("category").default("material_suporte").notNull(),
   minimumQuantity: numeric("minimumQuantity", { precision: 12, scale: 2 }).default("0.00").notNull(),

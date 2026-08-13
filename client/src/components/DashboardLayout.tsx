@@ -14,7 +14,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -24,14 +23,16 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useTheme } from "@/contexts/ThemeContext";
-import { hasModulePermission } from "@/lib/permissions";
-import { trpc } from "@/lib/trpc";
+import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import {
   BarChart3,
+  BellRing,
   Boxes,
+  Building2,
   CalendarDays,
   ChevronDown,
   CircleHelp,
+  Database,
   Landmark,
   LayoutDashboard,
   LogOut,
@@ -40,10 +41,12 @@ import {
   Moon,
   Settings2,
   Sun,
+  Trello,
   UserRound,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
+import OnboardingTutorial from "./OnboardingTutorial";
 
 type NavItem = {
   label: string;
@@ -73,6 +76,10 @@ const navigationGroups: NavGroup[] = [
     items: [
       { label: "Estoque", path: "/estoque", icon: Boxes, permission: "inventory.read" },
       { label: "Financeiro", path: "/financeiro", icon: Landmark, permission: "finance.read" },
+      { label: "Cadastros", path: "/cadastros", icon: Database, permission: "settings.read" },
+      { label: "Empresas", path: "/empresas", icon: Building2, permission: "settings.read" },
+      { label: "Trello", path: "/trello", icon: Trello, permission: "settings.read" },
+      { label: "Notificações", path: "/notificacoes", icon: BellRing, permission: "dashboard.read" },
     ],
   },
   {
@@ -82,8 +89,7 @@ const navigationGroups: NavGroup[] = [
   {
     label: "Configurações",
     items: [
-      { label: "Meu perfil", path: "/perfil", icon: UserRound, permission: "dashboard.read" },
-      { label: "Cadastros", path: "/cadastros", icon: Settings2, permission: "settings.read" },
+      { label: "Configurações", path: "/configuracoes", icon: Settings2, permission: "settings.read" },
     ],
   },
 ];
@@ -100,12 +106,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { loading, user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
-  const effectivePermissions = trpc.users.effectivePermissions.useQuery(undefined, { enabled: Boolean(user) });
+  const { can: canNavigate } = useEffectivePermissions();
 
   if (loading) return <DashboardLayoutSkeleton />;
   if (!user) return null;
 
-  const canNavigate = (permission: string) => user.role === "admin" || (effectivePermissions.isSuccess ? effectivePermissions.data.includes(permission) : hasModulePermission(user.role, permission));
   const allowedGroups = navigationGroups
     .map(group => ({ ...group, items: group.items.filter(item => canNavigate(item.permission)) }))
     .filter(group => group.items.length > 0);
@@ -114,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const renderItem = (item: NavItem) => {
     const active = location === item.path;
     return <SidebarMenuItem key={item.path}>
-      <SidebarMenuButton isActive={active} tooltip={item.label} onClick={() => setLocation(item.path)} className="h-10 rounded-lg px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-sidebar-primary data-[active=true]:font-bold data-[active=true]:text-white">
+      <SidebarMenuButton isActive={active} tooltip={item.label} onClick={() => setLocation(item.path)} className="h-10 rounded-lg px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-sidebar-primary data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto">
         <item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />
         <span>{item.label}</span>
       </SidebarMenuButton>
@@ -123,9 +128,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return <SidebarProvider defaultOpen>
     <Sidebar collapsible="icon" className="border-r border-white/20 bg-primary text-sidebar-foreground">
-      <SidebarHeader className="flex-row items-center gap-2 px-3 pb-3 pt-5">
-        <button onClick={() => setLocation("/")} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring">
-          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
+      <SidebarHeader className="flex-row items-center gap-2 px-3 pb-3 pt-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+        <button onClick={() => setLocation("/")} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden">
+          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-sidebar-accent p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
             <img src="/manus-storage/cluster-mg-logo_947e1614.png" alt="Cluster MG" className="h-full w-full object-contain" />
           </span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
@@ -133,35 +138,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="block text-[10px] font-bold tracking-[0.18em] text-sidebar-foreground">CLUSTER MG</span>
           </span>
         </button>
-        <SidebarTrigger aria-label="Recolher ou expandir menu" className="h-8 w-8 shrink-0 rounded-lg text-sidebar-foreground hover:bg-white/[0.12] hover:text-white" />
+        <SidebarTrigger aria-label="Recolher ou expandir menu" className="h-8 w-8 shrink-0 rounded-lg text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:mx-auto" />
       </SidebarHeader>
 
-      <SidebarContent className="px-2 pb-4 pt-2">
-        {canNavigate(overviewItem.permission) && <SidebarMenu className="mb-2 gap-1">{renderItem(overviewItem)}</SidebarMenu>}
-        {allowedGroups.map(group => <SidebarGroup key={group.label} className="mt-1 p-0 pb-3">
-          <SidebarGroupLabel className="!h-auto !translate-y-0 !opacity-100 mb-1 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/80 group-data-[collapsible=icon]:hidden">{group.label}</SidebarGroupLabel>
+      <SidebarContent className="px-2 pb-4 pt-2 group-data-[collapsible=icon]:px-1">
+        {canNavigate(overviewItem.permission) && <SidebarMenu className="mb-2 shrink-0 gap-1">{renderItem(overviewItem)}</SidebarMenu>}
+        {allowedGroups.map(group => <SidebarGroup key={group.label} className="mt-1 shrink-0 p-0 pb-3">
+          <div data-sidebar="group-heading" className="mb-1 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/80 group-data-[collapsible=icon]:hidden">{group.label}</div>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">{group.items.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>)}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-white/20 p-3">
+      <SidebarFooter className="border-t border-white/20 p-3 group-data-[collapsible=icon]:px-1">
         <SidebarMenu className="mb-2 gap-1">
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} onClick={toggleTheme} className="h-10 rounded-lg px-3 text-sidebar-foreground hover:bg-white/[0.12] hover:text-white">
+            <SidebarMenuButton tooltip={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} onClick={toggleTheme} className="h-10 rounded-lg px-3 text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}<span>{theme === "dark" ? "Tema claro" : "Tema escuro"}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Ajuda e suporte" onClick={() => setLocation("/ajuda")} className="h-10 rounded-lg px-3 text-sidebar-foreground hover:bg-white/[0.12] hover:text-white">
-              <CircleHelp className="h-4 w-4" /><span>Ajuda e suporte</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/[0.12] focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:justify-center">
+            <button aria-label={`Abrir menu de usuário: ${profileName}`} className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/[0.12] focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
               <Avatar className="h-8 w-8 border border-white/30 bg-sidebar-accent"><AvatarImage src={user.avatarUrl ?? undefined} alt={`Perfil de ${profileName}`} /><AvatarFallback className="bg-sidebar-accent text-xs font-semibold text-accent">{initials}</AvatarFallback></Avatar>
               <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden"><span className="block truncate text-xs font-semibold text-white">{profileName}</span><span className="mt-0.5 block truncate text-[11px] text-sidebar-foreground">{roleNames[user.role] ?? "Usuário"}</span></span>
               <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
@@ -179,6 +179,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
-    <SidebarInset className="min-w-0 bg-background"><div className="min-h-screen px-4 py-5 sm:px-7 sm:py-7">{children}</div></SidebarInset>
+    <SidebarInset className="min-w-0 bg-background"><div className="min-h-screen px-4 py-5 sm:px-7 sm:py-7">{children}</div><OnboardingTutorial /></SidebarInset>
   </SidebarProvider>;
 }

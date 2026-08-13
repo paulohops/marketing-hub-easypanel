@@ -19,12 +19,16 @@ function Router() {
     <Route path="/acoes">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
-    <Route path="/cadastros">{() => <ProtectedModule module="configuracoes" />}</Route>
+    <Route path="/cadastros">{() => <ProtectedModule module="cadastros" />}</Route>
+    <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
+    <Route path="/trello">{() => <ProtectedModule module="trello" />}</Route>
+    <Route path="/importar-dados">{() => <ProtectedModule module="importacao" />}</Route>
     <Route path="/configuracoes">{() => <ProtectedModule module="configuracoes" />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
     <Route path="/administracao-usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
     <Route path="/ajuda">{() => <ProtectedModule module="ajuda" />}</Route>
+    <Route path="/notificacoes">{() => <ProtectedModule module="notificacoes" />}</Route>
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />
   </Switch>;

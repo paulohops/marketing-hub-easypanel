@@ -15,6 +15,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Building2,
   CalendarDays,
+  FileText,
   Handshake,
   Loader2,
   MapPinned,
@@ -26,9 +27,11 @@ import {
   Radio,
   Settings2,
   Store,
+  Upload,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 type Panel =
   | "provider"
@@ -137,7 +140,21 @@ function toStringValue(value: unknown) {
   return value == null ? "" : String(value);
 }
 
+async function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo selecionado."));
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      const [, dataBase64] = result.split(",", 2);
+      dataBase64 ? resolve(dataBase64) : reject(new Error("Arquivo inválido."));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function OperationalRegistriesPanel() {
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const overview = trpc.settings.overview.useQuery();
   const coverage = trpc.settings.supplierCoverage.useQuery();
@@ -159,6 +176,11 @@ export default function OperationalRegistriesPanel() {
   const [locationNotes, setLocationNotes] = useState("");
   const [description, setDescription] = useState("");
   const [document, setDocument] = useState("");
+  const [registryCityId, setRegistryCityId] = useState("");
+  const [partnershipType, setPartnershipType] = useState<"paid" | "barter" | "mixed">("paid");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentRecurrence, setPaymentRecurrence] = useState("");
+  const [hasContract, setHasContract] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
@@ -226,6 +248,13 @@ export default function OperationalRegistriesPanel() {
       toast.success("Fornecedor atualizado.");
       setEditingSupplierId(null);
       reset();
+      refresh();
+    },
+    onError: error => toast.error(error.message),
+  });
+  const uploadRegistryContract = trpc.settings.uploadRegistryContract.useMutation({
+    onSuccess: () => {
+      toast.success("Contrato enviado com segurança.");
       refresh();
     },
     onError: error => toast.error(error.message),
@@ -331,6 +360,11 @@ export default function OperationalRegistriesPanel() {
     setLocationNotes("");
     setDescription("");
     setDocument("");
+    setRegistryCityId("");
+    setPartnershipType("paid");
+    setPaymentMethod("");
+    setPaymentRecurrence("");
+    setHasContract(false);
   };
   const toggle = (
     id: number,
@@ -355,6 +389,7 @@ export default function OperationalRegistriesPanel() {
     updateCommercialSupervisor.isPending ||
     createSupplier.isPending ||
     updateSupplier.isPending ||
+    uploadRegistryContract.isPending ||
     createType.isPending ||
     updateType.isPending ||
     createFinancialCategory.isPending ||
@@ -473,6 +508,11 @@ export default function OperationalRegistriesPanel() {
       setName(item.name);
       setEmail(item.email ?? "");
       setPhone(item.phone ?? "");
+      setRegistryCityId(item.cityId ? String(item.cityId) : "");
+      setPartnershipType(item.partnershipType ?? "paid");
+      setPaymentMethod(item.paymentMethod ?? "");
+      setPaymentRecurrence(item.paymentRecurrence ?? "");
+      setHasContract(item.hasContract);
       return;
     }
     if (panel === "supervisor") {
@@ -554,11 +594,21 @@ export default function OperationalRegistriesPanel() {
             name,
             email: email || undefined,
             phone: phone || undefined,
+            cityId: registryCityId ? Number(registryCityId) : null,
+            partnershipType,
+            paymentMethod: paymentMethod || undefined,
+            paymentRecurrence: paymentRecurrence || undefined,
+            hasContract,
           })
         : createPartner.mutate({
             name,
             email: email || undefined,
             phone: phone || undefined,
+            cityId: registryCityId ? Number(registryCityId) : null,
+            partnershipType,
+            paymentMethod: paymentMethod || undefined,
+            paymentRecurrence: paymentRecurrence || undefined,
+            hasContract,
           });
     if (panel === "supervisor")
       return editingId
@@ -603,6 +653,11 @@ export default function OperationalRegistriesPanel() {
     setEmail(selectedSupplier.email ?? "");
     setPhone(selectedSupplier.phone ?? "");
     setProviderId(selectedSupplier.providerId ? String(selectedSupplier.providerId) : "");
+    setRegistryCityId(selectedSupplier.cityId ? String(selectedSupplier.cityId) : "");
+    setPartnershipType(selectedSupplier.partnershipType ?? "paid");
+    setPaymentMethod(selectedSupplier.paymentMethod ?? "");
+    setPaymentRecurrence(selectedSupplier.paymentRecurrence ?? "");
+    setHasContract(selectedSupplier.hasContract);
   };
   const saveSupplier = () => {
     const payload = {
@@ -611,6 +666,11 @@ export default function OperationalRegistriesPanel() {
       email,
       phone,
       providerId: providerId ? Number(providerId) : null,
+      cityId: registryCityId ? Number(registryCityId) : null,
+      partnershipType,
+      paymentMethod: paymentMethod || undefined,
+      paymentRecurrence: paymentRecurrence || undefined,
+      hasContract,
     };
     return editingSupplierId
       ? updateSupplier.mutate({ id: editingSupplierId, ...payload })
@@ -681,6 +741,10 @@ export default function OperationalRegistriesPanel() {
               key={card.key}
               type="button"
               onClick={() => {
+                if (card.key === "provider") {
+                  setLocation("/empresas");
+                  return;
+                }
                 reset();
                 setPanel(card.key);
               }}
@@ -694,7 +758,7 @@ export default function OperationalRegistriesPanel() {
                 {card.description}
               </p>
               <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">
-                Configurar <Plus className="ml-1 h-3.5 w-3.5" />
+                {card.key === "provider" ? "Ver empresas" : "Configurar"} <Plus className="ml-1 h-3.5 w-3.5" />
               </span>
             </button>
           );
@@ -739,6 +803,16 @@ export default function OperationalRegistriesPanel() {
               setPhone={setPhone}
               providerId={providerId}
               setProviderId={setProviderId}
+              registryCityId={registryCityId}
+              setRegistryCityId={setRegistryCityId}
+              partnershipType={partnershipType}
+              setPartnershipType={setPartnershipType}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+              paymentRecurrence={paymentRecurrence}
+              setPaymentRecurrence={setPaymentRecurrence}
+              hasContract={hasContract}
+              setHasContract={setHasContract}
               cityIds={cityIds}
               serviceIds={serviceIds}
               mediaIds={mediaIds}
@@ -762,6 +836,21 @@ export default function OperationalRegistriesPanel() {
                   active: !selectedSupplier.active,
                 })
               }
+              onUploadContract={async file => {
+                if (!selectedSupplier) return;
+                try {
+                  const dataBase64 = await fileToBase64(file);
+                  uploadRegistryContract.mutate({
+                    entityType: "supplier",
+                    entityId: selectedSupplier.id,
+                    originalName: file.name,
+                    mimeType: file.type as "application/pdf" | "image/jpeg" | "image/png" | "image/webp",
+                    dataBase64,
+                  });
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Não foi possível preparar o contrato.");
+                }
+              }}
               onSaveCoverage={() =>
                 selectedSupplierId &&
                 setCoverage.mutate({
@@ -835,6 +924,33 @@ export default function OperationalRegistriesPanel() {
                 setDescription={setDescription}
                 providers={overview.data?.providers ?? []}
                 regionals={overview.data?.regionals ?? []}
+                cities={overview.data?.cities ?? []}
+                registryCityId={registryCityId}
+                setRegistryCityId={setRegistryCityId}
+                partnershipType={partnershipType}
+                setPartnershipType={setPartnershipType}
+                paymentMethod={paymentMethod}
+                setPaymentMethod={setPaymentMethod}
+                paymentRecurrence={paymentRecurrence}
+                setPaymentRecurrence={setPaymentRecurrence}
+                hasContract={hasContract}
+                setHasContract={setHasContract}
+                editingId={editingId}
+                onUploadContract={async file => {
+                  if (!editingId || panel !== "partner") return;
+                  try {
+                    const dataBase64 = await fileToBase64(file);
+                    uploadRegistryContract.mutate({
+                      entityType: "partner",
+                      entityId: editingId,
+                      originalName: file.name,
+                      mimeType: file.type as "application/pdf" | "image/jpeg" | "image/png" | "image/webp",
+                      dataBase64,
+                    });
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Não foi possível preparar o contrato.");
+                  }
+                }}
               />
               {panel === "provider" && editingId ? (
                 <ProviderTerritory
@@ -924,6 +1040,19 @@ function RegistryForm(props: {
   setDescription: (v: string) => void;
   providers: Array<{ id: number; name: string; active: boolean }>;
   regionals: Array<{ id: number; name: string; active: boolean }>;
+  cities: Array<{ id: number; name: string; state: string; active: boolean }>;
+  registryCityId: string;
+  setRegistryCityId: (v: string) => void;
+  partnershipType: "paid" | "barter" | "mixed";
+  setPartnershipType: (v: "paid" | "barter" | "mixed") => void;
+  paymentMethod: string;
+  setPaymentMethod: (v: string) => void;
+  paymentRecurrence: string;
+  setPaymentRecurrence: (v: string) => void;
+  hasContract: boolean;
+  setHasContract: (v: boolean) => void;
+  editingId: number | null;
+  onUploadContract: (file: File) => void;
 }) {
   const city = props.panel === "city";
   const provider = props.panel === "provider";
@@ -1045,6 +1174,17 @@ function RegistryForm(props: {
       ) : null}
       {props.panel === "partner" ? (
         <>
+          <SelectField
+            id="partner-city"
+            label="Cidade-base"
+            value={props.registryCityId}
+            onChange={props.setRegistryCityId}
+            optional
+            options={props.cities.filter(item => item.active).map(item => ({
+              value: String(item.id),
+              label: `${item.name} · ${item.state}`,
+            }))}
+          />
           <Field
             label="E-mail"
             id="registry-email"
@@ -1058,6 +1198,24 @@ function RegistryForm(props: {
             value={props.phone}
             setValue={props.setPhone}
           />
+          <SelectField
+            id="partner-partnership-type"
+            label="Modalidade"
+            value={props.partnershipType}
+            onChange={value => props.setPartnershipType(value as "paid" | "barter" | "mixed")}
+            options={[
+              { value: "paid", label: "Pago" },
+              { value: "barter", label: "Permuta" },
+              { value: "mixed", label: "Misto" },
+            ]}
+          />
+          <Field label="Forma de pagamento" id="partner-payment-method" value={props.paymentMethod} setValue={props.setPaymentMethod} />
+          <Field label="Recorrência do pagamento" id="partner-payment-recurrence" value={props.paymentRecurrence} setValue={props.setPaymentRecurrence} />
+          <label className="flex min-h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground sm:col-span-2">
+            <input type="checkbox" checked={props.hasContract} onChange={event => props.setHasContract(event.target.checked)} className="h-4 w-4 accent-primary" />
+            Possuímos contrato com este parceiro
+          </label>
+          {props.editingId ? <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground sm:col-span-2"><Upload className="h-4 w-4 text-primary" />Enviar contrato (PDF ou imagem)<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" onChange={event => { const file = event.target.files?.[0]; if (file) props.onUploadContract(file); event.currentTarget.value = ""; }} /></label> : <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">Salve o parceiro para anexar o arquivo do contrato.</p>}
         </>
       ) : null}
       {props.panel === "supervisor" ? (
@@ -1116,7 +1274,7 @@ function SupplierPanel(props: {
   selectedSupplierId: string;
   setSelectedSupplierId: (v: string) => void;
   selectedSupplier:
-    | { id: number; displayName: string; active: boolean; document?: string | null; email?: string | null; phone?: string | null; providerId?: number | null }
+    | { id: number; displayName: string; active: boolean; document?: string | null; email?: string | null; phone?: string | null; providerId?: number | null; cityId?: number | null; partnershipType?: "paid" | "barter" | "mixed" | null; paymentMethod?: string | null; paymentRecurrence?: string | null; hasContract: boolean; contractUrl?: string | null }
     | undefined;
   name: string;
   setName: (v: string) => void;
@@ -1128,6 +1286,16 @@ function SupplierPanel(props: {
   setPhone: (v: string) => void;
   providerId: string;
   setProviderId: (v: string) => void;
+  registryCityId: string;
+  setRegistryCityId: (v: string) => void;
+  partnershipType: "paid" | "barter" | "mixed";
+  setPartnershipType: (v: "paid" | "barter" | "mixed") => void;
+  paymentMethod: string;
+  setPaymentMethod: (v: string) => void;
+  paymentRecurrence: string;
+  setPaymentRecurrence: (v: string) => void;
+  hasContract: boolean;
+  setHasContract: (v: boolean) => void;
   cityIds: number[];
   serviceIds: number[];
   mediaIds: number[];
@@ -1139,6 +1307,7 @@ function SupplierPanel(props: {
   onBeginSupplierEdit: () => void;
   onCancelSupplierEdit: () => void;
   onToggleSupplier: () => void;
+  onUploadContract: (file: File) => void;
   onSaveCoverage: () => void;
   offerName: string;
   setOfferName: (v: string) => void;
@@ -1197,6 +1366,27 @@ function SupplierPanel(props: {
               .filter(item => item.active)
               .map(item => ({ value: String(item.id), label: item.name }))}
           />
+          <SelectField
+            id="supplier-city"
+            label="Cidade-base"
+            value={props.registryCityId}
+            onChange={props.setRegistryCityId}
+            optional
+            options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))}
+          />
+          <SelectField
+            id="supplier-partnership-type"
+            label="Modalidade"
+            value={props.partnershipType}
+            onChange={value => props.setPartnershipType(value as "paid" | "barter" | "mixed")}
+            options={[{ value: "paid", label: "Pago" }, { value: "barter", label: "Permuta" }, { value: "mixed", label: "Misto" }]}
+          />
+          <Field label="Forma de pagamento" id="supplier-payment-method" value={props.paymentMethod} setValue={props.setPaymentMethod} />
+          <Field label="Recorrência do pagamento" id="supplier-payment-recurrence" value={props.paymentRecurrence} setValue={props.setPaymentRecurrence} />
+          <label className="flex min-h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground sm:col-span-2">
+            <input type="checkbox" checked={props.hasContract} onChange={event => props.setHasContract(event.target.checked)} className="h-4 w-4 accent-primary" />
+            Possuímos contrato com este fornecedor
+          </label>
         </div>
         <Button
           type="button"
@@ -1237,6 +1427,15 @@ function SupplierPanel(props: {
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/30 p-3">
               <div><p className="text-sm font-semibold text-foreground">{props.selectedSupplier.displayName}</p><p className="text-xs text-muted-foreground">Atualize os dados cadastrais, a cobertura, as capacidades e os preços.</p></div>
               <div className="flex items-center gap-2"><StatusBadge active={props.selectedSupplier.active} /><Button type="button" size="sm" variant="outline" onClick={props.onBeginSupplierEdit}><Pencil className="mr-1 h-3.5 w-3.5" />Editar</Button><Button type="button" size="sm" variant="outline" disabled={props.saving} onClick={props.onToggleSupplier}>{props.selectedSupplier.active ? "Inativar" : "Ativar"}</Button></div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /><div><p className="text-sm font-medium text-foreground">Contrato</p><p className="text-xs text-muted-foreground">Envie PDF, JPG, PNG ou WEBP de até 5 MB.</p></div></div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {props.selectedSupplier.contractUrl ? <a href={props.selectedSupplier.contractUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary underline-offset-4 hover:underline">Abrir contrato</a> : <span className="text-xs text-muted-foreground">Nenhum arquivo enviado</span>}
+                  <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground hover:bg-accent"><Upload className="mr-1.5 h-3.5 w-3.5" />Enviar<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" onChange={event => { const file = event.target.files?.[0]; if (file) props.onUploadContract(file); event.currentTarget.value = ""; }} /></label>
+                </div>
+              </div>
             </div>
             <RegistryChecks
               title="Cidades atendidas"

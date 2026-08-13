@@ -12,10 +12,10 @@ export default function NotFound() {
 
   return (
     <div className="cluster-grid min-h-screen w-full flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg mx-4 overflow-hidden border-border bg-white/95 shadow-[0_20px_50px_rgba(14,114,59,0.12)] backdrop-blur-sm">
+      <Card className="mx-4 w-full max-w-lg overflow-hidden border-border bg-card shadow-[0_20px_50px_rgba(14,114,59,0.12)] backdrop-blur-sm">
         <CardContent className="pt-8 pb-8 text-center">
           <div className="mb-6 flex items-center justify-center gap-2">
-            <img src="/manus-storage/cluster-mg-logo_947e1614.png" alt="Cluster MG" className="h-8 w-8 rounded-lg bg-white object-contain p-0.5" />
+            <img src="/manus-storage/cluster-mg-logo_947e1614.png" alt="Cluster MG" className="h-8 w-8 rounded-lg bg-background object-contain p-0.5" />
             <span className="font-display text-sm font-extrabold tracking-tight text-foreground">TRADE HUB <span className="text-primary">— CLUSTER MG</span></span>
           </div>
           <div className="flex justify-center mb-6">
