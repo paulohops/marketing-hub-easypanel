@@ -9,7 +9,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 
 const entityTypes = ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media"] as const;
-const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
+export const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav"] as const;
 
 export function permissionForEntity(entityType: (typeof entityTypes)[number], write: boolean) {
   const mode = write ? "write" : "read";

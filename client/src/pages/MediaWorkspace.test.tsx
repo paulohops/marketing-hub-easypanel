@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const listQuery = vi.hoisted(() => vi.fn());
 const detailQuery = vi.hoisted(() => vi.fn());
 const createCampaignMutation = vi.hoisted(() => vi.fn());
+const createConfiguredCampaignMutation = vi.hoisted(() => vi.fn());
 const renewCampaignMutation = vi.hoisted(() => vi.fn());
 const saveDebriefMutation = vi.hoisted(() => vi.fn());
 
@@ -11,11 +12,12 @@ const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read", "media.write", "media.create", "media.update", "media.delete"] }) } },
   media: {
-    referenceData: { useQuery: () => ({ data: { suppliers: [], cities: [], regionals: [], mediaTypes: [], serviceTypes: [] }, isLoading: false }) },
+    referenceData: { useQuery: () => ({ data: { suppliers: [], cities: [], regionals: [], mediaTypes: [], serviceTypes: [], supplierMediaTypes: [], supplierServiceTypes: [], supplierOfferings: [] }, isLoading: false }) },
     list: { useQuery: listQuery },
     pointDetails: { useQuery: detailQuery },
     createPoint: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     createCampaign: { useMutation: () => ({ mutate: createCampaignMutation, isPending: false }) },
+    createConfiguredCampaign: { useMutation: () => ({ mutate: createConfiguredCampaignMutation, isPending: false }) },
     renewCampaign: { useMutation: () => ({ mutate: renewCampaignMutation, isPending: false }) },
     saveDebrief: { useMutation: () => ({ mutate: saveDebriefMutation, isPending: false }) },
   },
@@ -82,6 +84,6 @@ describe("detalhe de mídias", () => {
     fireEvent.change(modal.getByLabelText("Investimento previsto"), { target: { value: "2450.50" } });
     fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
 
-    expect(createCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined });
+    expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, materialFormat: undefined, materialQuantity: undefined, deadlineDays: undefined, deliveryInstructions: undefined }, cityDistributions: [] });
   });
 });

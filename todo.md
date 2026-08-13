@@ -189,3 +189,11 @@
 - [x] Permitir exclusão segura dos cadastros operacionais quando não houver dependências relacionadas.
 - [x] Criar cadastro de pontos de ação e vinculá-los ao planejamento e análise de ações.
 - [x] Tornar debriefing e nota disponíveis de forma consistente em ações, eventos e mídias.
+- [x] Reorganizar Cadastros em uma lista única, removendo Empresas do menu lateral e direcionando cada tipo de cadastro para sua tela própria.
+- [x] Criar páginas de detalhe por empresa, regional, cidade e demais cadastros, com edição contextual e exclusão segura quando permitida.
+- [x] Corrigir o vínculo individual de Trello por pessoa, validando a exibição do quadro configurado no perfil.
+- [x] Adicionar atalhos de WhatsApp para pessoas e contatos que possuam telefone válido, usando URL segura wa.me.
+- [x] Corrigir a seleção de operações no Financeiro para listar ações, eventos e mídias elegíveis.
+- [x] Reestruturar mídias externas para selecionar fornecedor, serviço configurado e campos específicos por modalidade, incluindo áudio para carro de som e distribuição territorial para panfletagem.
+- [x] Ampliar a configuração e o acompanhamento de mídias convencionais com parâmetros de serviço, valores, prazos, materiais e evidências específicos.
+- [x] Permitir cadastrar a verba financeira anual por categoria, com estimativa mensal e acompanhamento do realizado.

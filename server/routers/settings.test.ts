@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCnpj, normalizeSpreadsheetKey, normalizeTrelloUrl, uniqueIds } from "./settings";
+import { getTrelloEmbedUrl, normalizeCnpj, normalizeSpreadsheetKey, normalizeTrelloUrl, uniqueIds } from "./settings";
 
 describe("uniqueIds", () => {
   it("remove vínculos repetidos antes da persistência N:N", () => {
@@ -20,6 +20,12 @@ describe("normalizeTrelloUrl", () => {
 
   it("rejeita URLs externas para impedir a incorporação arbitrária", () => {
     expect(() => normalizeTrelloUrl("https://example.com/quadro")).toThrow("A URL deve pertencer ao Trello.");
+  });
+});
+
+describe("getTrelloEmbedUrl", () => {
+  it("acrescenta a instrução de incorporação preservando parâmetros existentes", () => {
+    expect(getTrelloEmbedUrl("https://trello.com/b/abC123/quadro-comercial?view=board")).toBe("https://trello.com/b/abC123/quadro-comercial?view=board&embed=1");
   });
 });
 

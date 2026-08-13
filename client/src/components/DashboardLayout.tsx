@@ -85,7 +85,6 @@ const navigationGroups: NavGroup[] = [
       { label: "Estoque", path: "/estoque", icon: Boxes, permission: "inventory.read" },
       { label: "Financeiro", path: "/financeiro", icon: Landmark, permission: "finance.read" },
       { label: "Cadastros", path: "/cadastros", icon: Database, permission: "settings.read" },
-      { label: "Empresas", path: "/empresas", icon: Building2, permission: "settings.read" },
     ],
   },
   {

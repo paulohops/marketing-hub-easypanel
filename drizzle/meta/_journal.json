@@ -120,6 +120,20 @@
       "when": 1786591247453,
       "tag": "0016_chubby_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786623924277,
+      "tag": "0017_curious_leo",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1786624337420,
+      "tag": "0018_skinny_quasar",
+      "breakpoints": true
     }
   ]
 }

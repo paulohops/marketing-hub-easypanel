@@ -4,6 +4,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -378,7 +379,8 @@ export const monthlyBudgets = pgTable("monthly_budgets", {
 
 export const operationCosts = pgTable("operation_costs", {
   id: serial("id").primaryKey(),
-  operationId: integer("operationId").notNull().unique().references(() => tradeOperations.id, { onDelete: "cascade" }),
+  operationType: operationTypeEnum("operationType").default("trade_operation").notNull(),
+  operationId: integer("operationId").notNull(),
   budgetType: budgetTypeEnum("budgetType").notNull(),
   investmentBase: numeric("investmentBase", { precision: 14, scale: 2 }).default("0.00").notNull(),
   permitCost: numeric("permitCost", { precision: 14, scale: 2 }).default("0.00").notNull(),
@@ -391,7 +393,7 @@ export const operationCosts = pgTable("operation_costs", {
   createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "restrict" }),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
-});
+}, table => [uniqueIndex("operation_costs_type_operation_uq").on(table.operationType, table.operationId)]);
 
 export const mediaPoints = pgTable("media_points", {
   id: serial("id").primaryKey(),
@@ -419,6 +421,16 @@ export const mediaCampaigns = pgTable("media_campaigns", {
   estimatedCost: numeric("estimatedCost", { precision: 14, scale: 2 }).default("0.00").notNull(),
   notes: text("notes"),
   campaignDetails: text("campaignDetails"),
+  campaignConfig: jsonb("campaignConfig").$type<{
+    dailyRate?: number;
+    circulationDays?: number;
+    dailyRoute?: string;
+    audioBrief?: string;
+    materialFormat?: string;
+    materialQuantity?: number;
+    deadlineDays?: number;
+    deliveryInstructions?: string;
+  }>().default({}).notNull(),
   rescheduleReason: text("rescheduleReason"),
   rescheduledFromCampaignId: integer("rescheduledFromCampaignId").references((): AnyPgColumn => mediaCampaigns.id, { onDelete: "set null" }),
   rating: integer("rating"),
@@ -430,7 +442,15 @@ export const mediaCampaigns = pgTable("media_campaigns", {
   uniqueIndex("media_campaigns_one_active_per_point_uq")
     .on(table.mediaPointId)
     .where(sql`"status" = 'active'`),
-]);
+	]);
+
+export const mediaCampaignCityDistributions = pgTable("media_campaign_city_distributions", {
+  id: serial("id").primaryKey(),
+  mediaCampaignId: integer("mediaCampaignId").notNull().references(() => mediaCampaigns.id, { onDelete: "cascade" }),
+  cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
+  quantity: integer("quantity").notNull(),
+  notes: text("notes"),
+}, table => [uniqueIndex("media_campaign_city_distributions_uq").on(table.mediaCampaignId, table.cityId)]);
 
 export const actions = pgTable("actions", {
   id: serial("id").primaryKey(),

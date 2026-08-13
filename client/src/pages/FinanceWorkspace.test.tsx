@@ -3,10 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mutation = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
 const trpcStub = vi.hoisted(() => ({
-  useUtils: () => ({ finance: { listInvoices: { invalidate: vi.fn() } }, budgets: { listBudgets: { invalidate: vi.fn() }, summary: { invalidate: vi.fn() }, listCosts: { invalidate: vi.fn() } } }),
+  useUtils: () => ({ finance: { listInvoices: { invalidate: vi.fn() } }, budgets: { annualSummary: { invalidate: vi.fn() }, listBudgets: { invalidate: vi.fn() }, summary: { invalidate: vi.fn() }, listCosts: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["finance.read", "finance.create", "finance.update", "finance.delete"] }) } },
   budgets: {
-    summary: { useQuery: () => ({ data: [], isLoading: false }) }, listBudgets: { useQuery: () => ({ data: [] }) }, listCosts: { useQuery: () => ({ data: [], isLoading: false }) }, operationOptions: { useQuery: () => ({ data: [] }) }, saveBudget: { useMutation: mutation }, upsertCost: { useMutation: mutation }, reviewCost: { useMutation: mutation },
+    annualSummary: { useQuery: () => ({ data: [], isLoading: false }) }, summary: { useQuery: () => ({ data: [], isLoading: false }) }, listBudgets: { useQuery: () => ({ data: [] }) }, listCosts: { useQuery: () => ({ data: [], isLoading: false }) }, operationOptions: { useQuery: () => ({ data: [] }) }, saveAnnualBudget: { useMutation: mutation }, saveBudget: { useMutation: mutation }, upsertCost: { useMutation: mutation }, reviewCost: { useMutation: mutation },
   },
   finance: {
     listInvoices: { useQuery: () => ({ data: [], isLoading: false }) }, referenceData: { useQuery: () => ({ data: [{ id: 2, displayName: "Fornecedor Alfa" }] }) }, operationOptions: { useQuery: () => ({ data: [{ id: 9, type: "action", name: "Ação Centro", label: "Ação · Ação Centro" }, { id: 17, type: "media_campaign", name: "Campanha Norte", label: "Mídia · Campanha Norte" }] }) }, operationForecasts: { useQuery: () => ({ data: [{ id: 9, type: "action", label: "Ação · Ação Centro", startsAt: new Date("2026-09-10T12:00:00Z"), estimatedCost: "1500.00", suppliers: [{ id: 2, name: "Fornecedor Alfa" }] }, { id: 17, type: "media_campaign", label: "Mídia · Campanha Norte", startsAt: new Date("2026-09-12T12:00:00Z"), estimatedCost: "2450.50", suppliers: [{ id: 2, name: "Fornecedor Alfa" }] }], isLoading: false }) }, createInvoice: { useMutation: mutation }, registerPayment: { useMutation: mutation },

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -175,11 +176,12 @@ async function fileToBase64(file: File) {
 }
 
 export default function OperationalRegistriesPanel() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const overview = trpc.settings.overview.useQuery();
   const coverage = trpc.settings.supplierCoverage.useQuery();
   const [panel, setPanel] = useState<Panel | null>(null);
+  const handledCreateIntent = useRef<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -403,6 +405,15 @@ export default function OperationalRegistriesPanel() {
     setHasContract(false);
     setSupervisorStoreIds([]);
   };
+  useEffect(() => {
+    const requested = new URLSearchParams(location.split("?")[1] ?? "").get("novo");
+    const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "categorias-financeiras": "financial_category" };
+    const target = requested ? panelBySlug[requested] : undefined;
+    if (!target || handledCreateIntent.current === requested) return;
+    handledCreateIntent.current = requested;
+    reset();
+    setPanel(target);
+  }, [location]);
   const toggle = (
     id: number,
     values: number[],
@@ -778,16 +789,12 @@ export default function OperationalRegistriesPanel() {
               key={card.key}
               type="button"
               onClick={() => {
-                if (card.key === "provider") {
-                  setLocation("/empresas");
-                  return;
-                }
                 if (card.key === "action_point") {
                   setLocation("/pontos-de-acao");
                   return;
                 }
-                reset();
-                setPanel(card.key);
+                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", financial_category: "categorias-financeiras" };
+                setLocation(`/cadastros/${paths[card.key] ?? ""}`);
               }}
               className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -799,7 +806,7 @@ export default function OperationalRegistriesPanel() {
                 {card.description}
               </p>
               <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">
-                {card.key === "provider" ? "Ver empresas" : "Configurar"} <Plus className="ml-1 h-3.5 w-3.5" />
+                Ver cadastros <Plus className="ml-1 h-3.5 w-3.5" />
               </span>
             </button>
           );

@@ -39,6 +39,13 @@ export function normalizeTrelloUrl(value: string) {
   return parsed.toString();
 }
 
+export function getTrelloEmbedUrl(value: string) {
+  if (!value) return "";
+  const parsed = new URL(value);
+  parsed.searchParams.set("embed", "1");
+  return parsed.toString();
+}
+
 export function normalizeSpreadsheetKey(value: string) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR");
 }
@@ -407,7 +414,8 @@ export const settingsRouter = router({
     ]);
     const personalBoard = personalBoardRows[0];
     const setting = settingRows[0];
-    return { url: personalBoard?.boardUrl ?? setting?.value ?? "", source: personalBoard ? "personal" as const : setting ? "shared" as const : "none" as const };
+    const url = personalBoard?.boardUrl ?? setting?.value ?? "";
+    return { url, embedUrl: getTrelloEmbedUrl(url), source: personalBoard ? "personal" as const : setting ? "shared" as const : "none" as const };
   }),
 
   updateTrelloConfiguration: protectedProcedure.input(z.object({ url: z.string().trim().max(2048) })).mutation(async ({ ctx, input }) => {

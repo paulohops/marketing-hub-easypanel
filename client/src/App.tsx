@@ -20,6 +20,8 @@ function Router() {
     <Route path="/acoes">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
+    <Route path="/cadastros/:entity/:id">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
+    <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros">{() => <ProtectedModule module="cadastros" />}</Route>
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/trello">{() => <ProtectedModule module="trello" />}</Route>

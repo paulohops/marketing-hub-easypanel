@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { permissionForEntity, safeName } from "./documents";
+import { allowedMimeTypes, permissionForEntity, safeName } from "./documents";
 
 describe("documentos operacionais", () => {
   it("aplica a permissão do módulo proprietário a cada entidade", () => {
@@ -14,5 +14,10 @@ describe("documentos operacionais", () => {
   it("normaliza nomes de arquivo sem preservar caracteres inseguros", () => {
     expect(safeName("Nota fiscal / Março 2026.pdf")).toBe("Nota_fiscal_Marco_2026.pdf");
     expect(safeName("////")).toBe("arquivo");
+  });
+
+  it("permite anexar áudios de campanha em formatos controlados", () => {
+    expect(allowedMimeTypes).toEqual(expect.arrayContaining(["audio/mpeg", "audio/wav", "audio/x-wav"]));
+    expect(allowedMimeTypes).not.toContain("audio/ogg");
   });
 });

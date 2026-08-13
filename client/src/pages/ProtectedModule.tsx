@@ -22,6 +22,7 @@ import HelpWorkspace from "./HelpWorkspace";
 import OperationalRegistriesWorkspace from "./OperationalRegistriesWorkspace";
 import NotificationsWorkspace from "./NotificationsWorkspace";
 import CompaniesWorkspace from "./CompaniesWorkspace";
+import RegistryEntityWorkspace from "./RegistryEntityWorkspace";
 import TrelloWorkspace from "./TrelloWorkspace";
 import DataImportWorkspace from "./DataImportWorkspace";
 import TradeEvidencePanel from "@/components/TradeEvidencePanel";
@@ -41,6 +42,7 @@ const definitions = {
   indicadores: { permission: "dashboard.read", eyebrow: "Business intelligence", title: "Indicadores", description: "Acompanhe indicadores de fornecedores, mídias, ações e eventos para tomada de decisão.", icon: BarChart3, resources: [{ title: "Performance", description: "Indicadores comparativos por fornecedor." }, { title: "Investimento", description: "Leitura de custos e pagamentos por operação." }, { title: "Mapa analítico", description: "Cobertura e resultados por localidade." }], accent: "var(--primary)" },
   configuracoes: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Cadastros", description: "Gerencie cadastros operacionais, usuários, segurança e a governança que abastece cada módulo.", icon: Settings2, resources: [{ title: "Segurança", description: "Papéis, permissões e rastreabilidade." }, { title: "Usuários", description: "Acessos e administração da equipe." }, { title: "Cadastros operacionais", description: "Empresas, territórios, fornecedores, serviços, mídias e parâmetros financeiros." }], accent: "var(--primary)" },
   cadastros: { permission: "settings.read", eyebrow: "Gestão operacional", title: "Cadastros operacionais", description: "Organize os cadastros mestres que sustentam a operação do Trade HUB.", icon: Settings2, resources: [], accent: "var(--primary)" },
+  "cadastro-entidade": { permission: "settings.read", eyebrow: "Gestão operacional", title: "Cadastro operacional", description: "Consulte e mantenha as informações detalhadas do cadastro selecionado.", icon: Settings2, resources: [], accent: "var(--primary)" },
   empresas: { permission: "settings.read", eyebrow: "Gestão operacional", title: "Empresas", description: "Consulte empresas, dados de faturamento e relações territoriais.", icon: Building2, resources: [], accent: "var(--primary)" },
   trello: { permission: "settings.read", eyebrow: "Gestão integrada", title: "Trello", description: "Acesse o quadro integrado de gestão da equipe.", icon: Flag, resources: [], accent: "var(--primary)" },
   importacao: { permission: "settings.write", eyebrow: "Administração do sistema", title: "Importar cadastros", description: "Valide e importe dados estruturados por planilha.", icon: Settings2, resources: [], accent: "var(--primary)" },
@@ -69,6 +71,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "operacoes") return <DashboardLayout><div className="cluster-workspace"><TradeOperationsWorkspace /></div></DashboardLayout>;
   if (module === "configuracoes") return <DashboardLayout><div className="cluster-workspace"><SettingsWorkspace /></div></DashboardLayout>;
   if (module === "cadastros") return <DashboardLayout><div className="cluster-workspace"><OperationalRegistriesWorkspace /></div></DashboardLayout>;
+  if (module === "cadastro-entidade") return <DashboardLayout><div className="cluster-workspace"><RegistryEntityWorkspace /></div></DashboardLayout>;
   if (module === "empresas") return <DashboardLayout><div className="cluster-workspace"><CompaniesWorkspace /></div></DashboardLayout>;
   if (module === "trello") return <DashboardLayout><div className="cluster-workspace"><TrelloWorkspace /></div></DashboardLayout>;
   if (module === "importacao") return <DashboardLayout><div className="cluster-workspace"><DataImportWorkspace /></div></DashboardLayout>;
