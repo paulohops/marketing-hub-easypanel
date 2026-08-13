@@ -1,19 +1,19 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { actions, documents, events, invoices, mediaCampaigns, regionals, stockItems, tradeOperations } from "../../drizzle/schema";
+import { actions, documents, events, invoices, mediaCampaigns, regionals, stockItems, supplierContracts, tradeOperations } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 
-const entityTypes = ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media"] as const;
+const entityTypes = ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media", "supplier_contract"] as const;
 export const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav"] as const;
 
 export function permissionForEntity(entityType: (typeof entityTypes)[number], write: boolean) {
   const mode = write ? "write" : "read";
-  if (entityType === "invoice") return `finance.${mode}`;
+  if (entityType === "invoice" || entityType === "supplier_contract") return `finance.${mode}`;
   if (entityType === "stock") return `inventory.${mode}`;
   if (entityType === "action") return `actions.${mode}`;
   if (entityType === "event") return `events.${mode}`;
@@ -45,6 +45,10 @@ export const documentsRouter = router({
     if (input.entityType === "invoice") {
       const [invoice] = await database.select({ id: invoices.id }).from(invoices).where(eq(invoices.id, input.entityId));
       if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Nota fiscal não encontrada." });
+    }
+    if (input.entityType === "supplier_contract") {
+      const [contract] = await database.select({ id: supplierContracts.id }).from(supplierContracts).where(eq(supplierContracts.id, input.entityId));
+      if (!contract) throw new TRPCError({ code: "NOT_FOUND", message: "Contrato de fornecedor não encontrado." });
     }
     if (input.entityType === "stock") {
       const [item] = await database.select({ id: stockItems.id }).from(stockItems).where(eq(stockItems.id, input.entityId));

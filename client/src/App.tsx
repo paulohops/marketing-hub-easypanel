@@ -26,6 +26,7 @@ function Router() {
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/trello">{() => <ProtectedModule module="trello" />}</Route>
     <Route path="/importar-dados">{() => <ProtectedModule module="importacao" />}</Route>
+    <Route path="/exportar-relatorios">{() => <ProtectedModule module="exportacao" />}</Route>
     <Route path="/configuracoes">{() => <ProtectedModule module="configuracoes" />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <ProtectedModule module="usuarios" />}</Route>

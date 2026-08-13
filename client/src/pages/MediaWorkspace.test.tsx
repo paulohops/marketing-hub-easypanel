@@ -46,7 +46,7 @@ describe("detalhe de mídias", () => {
   });
 
   it("abre fornecedor, histórico e evidências ao selecionar um ponto", () => {
-    listQuery.mockReturnValue({ data: [{ id: 7, name: "Frontlight Centro", supplierName: "Mídia MG", mediaTypeName: "Outdoor", cityName: "Belo Horizonte", regionalName: "Central", regionalId: 3, address: "Av. Afonso Pena", coverImageUrl: "https://example.com/capa.jpg", activeCampaign: { id: 13, name: "Campanha Primavera", endsOn: "2026-10-31" } }], isLoading: false });
+    listQuery.mockReturnValue({ data: [{ id: 7, name: "Frontlight Centro", supplierName: "Mídia MG", mediaTypeName: "Outdoor", cityName: "Belo Horizonte", regionalName: "Central", regionalId: 3, address: "Av. Afonso Pena", coverImageUrl: "https://example.com/capa.jpg", activeCampaign: { id: 13, name: "Campanha Primavera", startsOn: "2026-09-01", endsOn: "2026-10-31", status: "active", partnershipType: "paid", finance: { estimatedAmount: 1200, paidAmount: 0, remainingAmount: 1200 } } }], isLoading: false });
     detailQuery.mockReturnValue({ data: { id: 7, name: "Frontlight Centro", supplierName: "Mídia MG", cityName: "Belo Horizonte", regionalName: "Central", regionalId: 3, mediaTypeName: "Outdoor", serviceTypeName: "Exibição", address: "Av. Afonso Pena", history: [{ id: 1, action: "create", scope: "point", occurredAt: new Date("2026-08-12T12:00:00Z") }], campaigns: [{ id: 13, name: "Campanha Primavera", startsOn: "2026-09-01", endsOn: "2026-10-31", estimatedCost: "1200.00", status: "active", notes: "Circuito principal", evidences: [{ id: 5, url: "https://example.com/foto.jpg", originalName: "foto-instalacao.jpg" }] }] }, isLoading: false });
 
     render(<MediaWorkspace />);
@@ -58,7 +58,7 @@ describe("detalhe de mídias", () => {
     expect(screen.getByText("Histórico")).toBeInTheDocument();
     expect(screen.getByText("Registro criado")).toBeInTheDocument();
     expect(screen.getByText("foto-instalacao.jpg")).toBeInTheDocument();
-    expect(screen.getByText(/R\$\s?1\.200,00/)).toBeInTheDocument();
+    expect(screen.getAllByText(/R\$\s?1\.200,00/).length).toBeGreaterThan(0);
     expect(detailQuery).toHaveBeenLastCalledWith({ mediaPointId: 7 }, { enabled: true });
   });
 

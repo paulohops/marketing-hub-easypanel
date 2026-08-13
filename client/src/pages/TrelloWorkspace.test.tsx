@@ -4,11 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const updateConfiguration = vi.hoisted(() => vi.fn());
 const trelloConfiguration = vi.hoisted(() => ({ url: "" }));
 const trpcStub = vi.hoisted(() => ({
-  useUtils: () => ({ settings: { getTrelloConfiguration: { invalidate: vi.fn() } } }),
+  useUtils: () => ({ settings: { getTrelloConfiguration: { invalidate: vi.fn() } }, trello: { currentBoard: { invalidate: vi.fn() } } }),
   settings: {
     getTrelloConfiguration: { useQuery: () => ({ data: trelloConfiguration, isLoading: false }) },
     updateTrelloConfiguration: { useMutation: () => ({ mutate: updateConfiguration, isPending: false }) },
   },
+  trello: { currentBoard: { useQuery: () => ({ data: { status: "missing", boardUrl: null, source: null }, isLoading: false }) } },
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));

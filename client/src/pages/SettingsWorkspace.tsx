@@ -18,7 +18,7 @@ const administrativeAreas = [
   { title: "Usuários e permissões", description: "Gerencie cargos, acessos por módulo e responsabilidades operacionais de cada pessoa usuária.", href: "/usuarios", icon: UsersRound, action: "Administrar usuários" },
   { title: "Equipes", description: "Visualize o organograma, defina gestores diretos e acompanhe colaboradores por responsável.", href: "/equipes", icon: Network, action: "Organizar equipes" },
   { title: "Importar cadastros", description: "Baixe um modelo, valide Empresas, Regionais, Cidades e Lojas e grave os registros em lote com segurança.", href: "/importar-dados", icon: FileSpreadsheet, action: "Importar planilha" },
-  { title: "Exportar relatórios", description: "Defina o período e baixe os dados de mídias, ações, eventos, financeiro e estoques para análise externa.", href: "/indicadores", icon: Download, action: "Abrir exportações" },
+  { title: "Exportar relatórios", description: "Defina o período e baixe os dados de mídias, ações, eventos e financeiro para análise externa.", href: "/exportar-relatorios", icon: Download, action: "Abrir exportações" },
 ];
 
 export default function SettingsWorkspace() {

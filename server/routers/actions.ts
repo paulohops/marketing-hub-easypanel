@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionDebriefs, actionPoints, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, auditLogs, cities, commercialSupervisors, documents, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
+import { actionDebriefs, actionPoints, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, auditLogs, cities, commercialSupervisors, documents, invoices, payments, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -76,7 +76,7 @@ export const actionsRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
-    const [rows, teamRows, stockRows, supplierRows, serviceRows, historyRows, imageRows] = await Promise.all([
+    const [rows, teamRows, stockRows, supplierRows, serviceRows, historyRows, imageRows, invoiceRows, paymentRows] = await Promise.all([
       database.select({ action: actions, cityName: cities.name, actionTypeName: actionTypes.name, debrief: actionDebriefs, supervisorName: commercialSupervisors.name, actionPointName: actionPoints.name }).from(actions).innerJoin(cities, eq(actions.cityId, cities.id)).innerJoin(actionTypes, eq(actions.actionTypeId, actionTypes.id)).leftJoin(actionDebriefs, eq(actionDebriefs.actionId, actions.id)).leftJoin(commercialSupervisors, eq(actions.commercialSupervisorId, commercialSupervisors.id)).leftJoin(actionPoints, eq(actions.actionPointId, actionPoints.id)).orderBy(asc(actions.scheduledFor)),
       database.select({ actionId: actionTeamMembers.actionId, userId: users.id, name: users.name, jobTitle: users.jobTitle }).from(actionTeamMembers).innerJoin(users, eq(actionTeamMembers.userId, users.id)),
       database.select({ actionId: actionStockItems.actionId, stockItemId: stockItems.id, name: stockItems.name, unit: stockItems.unit, plannedQuantity: actionStockItems.plannedQuantity }).from(actionStockItems).innerJoin(stockItems, eq(actionStockItems.stockItemId, stockItems.id)),
@@ -84,8 +84,15 @@ export const actionsRouter = router({
       database.select({ actionId: actionServices.actionId, serviceTypeId: serviceTypes.id, name: serviceTypes.name }).from(actionServices).innerJoin(serviceTypes, eq(actionServices.serviceTypeId, serviceTypes.id)),
       database.select({ actionId: auditLogs.entityId, auditAction: auditLogs.action, occurredAt: auditLogs.occurredAt, actorName: users.name }).from(auditLogs).leftJoin(users, eq(auditLogs.actorUserId, users.id)).where(eq(auditLogs.entityType, "action")).orderBy(asc(auditLogs.occurredAt)),
       database.select({ actionId: documents.entityId, url: documents.url, createdAt: documents.createdAt }).from(documents).where(and(eq(documents.entityType, "action"), inArray(documents.mimeType, ["image/jpeg", "image/png", "image/webp"]))).orderBy(asc(documents.createdAt)),
+      database.select({ id: invoices.id, operationId: invoices.operationId, amount: invoices.amount, status: invoices.status }).from(invoices).where(eq(invoices.operationType, "action")),
+      database.select({ invoiceId: payments.invoiceId, amount: payments.amount }).from(payments),
     ]);
-    return rows.map(row => ({ ...row, coverImageUrl: imageRows.find(image => image.actionId === row.action.id)?.url ?? null, teamMembers: teamRows.filter(member => member.actionId === row.action.id), stockItems: stockRows.filter(item => item.actionId === row.action.id), suppliers: supplierRows.filter(supplier => supplier.actionId === row.action.id), services: serviceRows.filter(service => service.actionId === row.action.id), history: historyRows.filter(item => item.actionId === row.action.id) }));
+    return rows.map(row => {
+      const linkedInvoices = invoiceRows.filter(invoice => invoice.operationId === row.action.id && invoice.status !== "cancelled");
+      const paidAmount = linkedInvoices.reduce((total, invoice) => total + paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((subtotal, payment) => subtotal + Number(payment.amount), 0), 0);
+      const estimatedAmount = Number(row.action.estimatedCost);
+      return { ...row, coverImageUrl: imageRows.find(image => image.actionId === row.action.id)?.url ?? null, finance: { estimatedAmount, invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount }, teamMembers: teamRows.filter(member => member.actionId === row.action.id), stockItems: stockRows.filter(item => item.actionId === row.action.id), suppliers: supplierRows.filter(supplier => supplier.actionId === row.action.id), services: serviceRows.filter(service => service.actionId === row.action.id), history: historyRows.filter(item => item.actionId === row.action.id) };
+    });
   }),
   create: protectedProcedure.input(z.object({
     cityId: z.number().int().positive(), actionTypeId: z.number().int().positive(), actionPointId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), scheduledFor: z.coerce.date(), endsAt: z.coerce.date().nullable(), objective: z.string().trim().min(3).max(2000), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),

@@ -169,14 +169,39 @@ export const settingsRouter = router({
     return { supplierId: input.supplierId, cityIds, serviceTypeIds, mediaTypeIds };
   }),
 
-  createStore: protectedProcedure.input(z.object({ cityId: z.number().int().positive(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).toUpperCase(), address: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+  createStore: protectedProcedure.input(z.object({ cityId: z.number().int().positive(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).toUpperCase(), address: z.string().trim().max(1000).optional(), referencePoint: z.string().trim().max(240).optional(), zipCode: z.string().trim().max(16).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), openingHours: z.string().trim().max(1000).optional(), latitude: z.number().min(-90).max(90).nullable().optional(), longitude: z.number().min(-180).max(180).nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const [existing] = await database.select({ id: stores.id }).from(stores).where(sql`${stores.code} = ${input.code} OR (${stores.cityId} = ${input.cityId} AND lower(${stores.name}) = lower(${input.name}))`).limit(1);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já existe uma loja com este código ou nome na cidade selecionada." });
-    const [created] = await database.insert(stores).values({ ...input, address: input.address || null }).returning();
+    const [created] = await database.insert(stores).values({ ...input, address: input.address || null, referencePoint: input.referencePoint || null, zipCode: input.zipCode || null, phone: input.phone || null, email: input.email || null, openingHours: input.openingHours || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "store", entityId: created.id, action: "create", afterData: created });
     return created;
+  }),
+
+  updateStore: protectedProcedure.input(z.object({ id: z.number().int().positive(), cityId: z.number().int().positive(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).toUpperCase(), address: z.string().trim().max(1000).optional(), referencePoint: z.string().trim().max(240).optional(), zipCode: z.string().trim().max(16).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), openingHours: z.string().trim().max(1000).optional(), latitude: z.number().min(-90).max(90).nullable().optional(), longitude: z.number().min(-180).max(180).nullable().optional(), active: z.boolean().optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(stores).where(eq(stores.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Loja não encontrada." });
+    const duplicate = await database.select({ id: stores.id }).from(stores).where(sql`${stores.code} = ${input.code} OR (${stores.cityId} = ${input.cityId} AND lower(${stores.name}) = lower(${input.name}))`);
+    if (duplicate.some(row => row.id !== input.id)) throw new TRPCError({ code: "CONFLICT", message: "Já existe outra loja com este código ou nome na cidade selecionada." });
+    const [updated] = await database.update(stores).set({ cityId: input.cityId, name: input.name, code: input.code, address: input.address || null, referencePoint: input.referencePoint || null, zipCode: input.zipCode || null, phone: input.phone || null, email: input.email || null, openingHours: input.openingHours || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, active: input.active ?? before.active, updatedAt: new Date() }).where(eq(stores.id, input.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "store", entityId: input.id, action: "update", beforeData: before, afterData: updated });
+    return updated;
+  }),
+
+  uploadStorePhoto: protectedProcedure.input(z.object({ storeId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(imageMimeTypes), dataBase64: z.string().min(1).max(7_000_000) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [store] = await database.select().from(stores).where(eq(stores.id, input.storeId)).limit(1);
+    if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Loja não encontrada." });
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 5 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A imagem da loja deve ter até 5 MB." });
+    const stored = await storagePut(`trade/stores/${input.storeId}/${Date.now()}-${safeContractName(input.originalName)}`, bytes, input.mimeType);
+    const [updated] = await database.update(stores).set({ photoStorageKey: stored.key, photoUrl: stored.url, updatedAt: new Date() }).where(eq(stores.id, input.storeId)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "store", entityId: input.storeId, action: "upload_photo", beforeData: { photoStorageKey: store.photoStorageKey }, afterData: { photoStorageKey: updated.photoStorageKey } });
+    return updated;
   }),
 
   createPartner: protectedProcedure.input(z.object({ cityId: z.number().int().positive().nullable().optional(), name: z.string().trim().min(2).max(160), email: z.string().trim().email().max(320).optional(), phone: z.string().trim().max(32).optional(), partnershipType: z.enum(paymentKinds).optional(), paymentMethod: z.string().trim().max(80).optional(), paymentRecurrence: z.string().trim().max(80).optional(), hasContract: z.boolean().optional() })).mutation(async ({ ctx, input }) => {

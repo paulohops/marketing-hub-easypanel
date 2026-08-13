@@ -212,3 +212,13 @@
 - [x] Garantir retorno claro em todas as telas de lista e detalhe.
 - [x] Corrigir a exclusão segura de Empresas e demais cadastros, bloqueando dependências com mensagem orientativa em vez de erro técnico do banco.
 - [x] Validar fluxos novos com testes automatizados de interface e integração, revisão visual desktop e mobile e suíte completa.
+- [x] Avaliar e implementar integração autenticada do Trello para exibir o quadro no sistema quando viável, com alternativa segura para contas sem acesso à API.
+- [x] Adicionar filtros por regional e cidade às listas de Ações, Eventos, Mídias, Mídias externas e Cadastros aplicáveis.
+- [x] Completar o cadastro e a ficha de Lojas com imagem, endereço, ponto de referência, horário de funcionamento, status, vínculos territoriais e supervisores específicos.
+- [x] Exibir em Ações, Eventos e Mídias os valores previsto, realizado e saldo, vinculados aos lançamentos financeiros correspondentes.
+- [x] Corrigir definitivamente o carregamento e a seleção de tipos de evento em todos os formulários e fichas relacionadas.
+- [x] Corrigir a exportação de relatórios por período em Configurações e adicionar validação automatizada do download gerado.
+- [x] Auditar todos os controles acionáveis das rotas ativas, corrigindo ações sem resposta, rotas inválidas e estados de carregamento.
+- [x] Criar gestão contratual completa de fornecedores com ordem de compra guarda-chuva, contrato, código, nomes para nota fiscal, vigência, recorrência, dia de pagamento e status.
+- [x] Integrar contratos de fornecedores ao Financeiro para gerar e acompanhar obrigações, pagamentos, boletos, notas fiscais e documentos associados.
+- [x] Criar testes e revisão visual para lojas, filtros territoriais, Trello, financeiro operacional, exportação e contratos de fornecedores.

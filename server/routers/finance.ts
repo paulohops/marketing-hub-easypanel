@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionSuppliers, actions, documents, eventSuppliers, events, invoices, mediaCampaigns, mediaPoints, payments, suppliers } from "../../drizzle/schema";
+import { actionSuppliers, actions, documents, eventSuppliers, events, invoices, mediaCampaigns, mediaPoints, payments, supplierContracts, suppliers } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -20,6 +20,23 @@ export const invoiceListFiltersInput = z.object({
   supplierId: z.number().int().positive().optional(),
   operationType: z.enum(["media_campaign", "action", "event", "other"]).optional(),
   operationId: z.number().int().positive().optional(),
+});
+
+const supplierContractInput = z.object({
+  supplierId: z.number().int().positive(),
+  purchaseOrderCode: z.string().trim().max(96).optional(),
+  contractType: z.string().trim().min(2).max(120),
+  contractCode: z.string().trim().max(120).optional(),
+  billingNames: z.array(z.string().trim().min(1).max(180)).max(12).default([]),
+  startsOn: z.string().date(),
+  endsOn: z.string().date().optional(),
+  termMonths: z.number().int().positive().max(240).optional(),
+  recurrence: z.string().trim().min(2).max(80),
+  paymentDay: z.number().int().min(1).max(31).optional(),
+  expectedAmount: z.number().min(0).max(10_000_000),
+  paymentMethod: z.string().trim().max(80).optional(),
+  status: z.enum(["draft", "active", "expired", "terminated"]).default("draft"),
+  notes: z.string().trim().max(3000).optional(),
 });
 
 export function deriveInvoiceStatus(status: string, dueDate: string, today = new Date().toISOString().slice(0, 10)) {
@@ -57,6 +74,34 @@ export const financeRouter = router({
   operationOptions: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "finance.read");
     return operationCatalog(await requireDatabase());
+  }),
+
+  listSupplierContracts: protectedProcedure.input(z.object({ supplierId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.read");
+    const database = await requireDatabase();
+    const [contracts, invoiceRows, paymentRows, documentRows] = await Promise.all([
+      database.select({ contract: supplierContracts, supplierName: suppliers.displayName }).from(supplierContracts).innerJoin(suppliers, eq(supplierContracts.supplierId, suppliers.id)).where(input?.supplierId ? eq(supplierContracts.supplierId, input.supplierId) : undefined).orderBy(asc(supplierContracts.startsOn)),
+      database.select().from(invoices),
+      database.select().from(payments),
+      database.select().from(documents).where(eq(documents.entityType, "supplier_contract")),
+    ]);
+    return contracts.map(({ contract, supplierName }) => {
+      const relatedInvoices = invoiceRows.filter(invoice => invoice.supplierContractId === contract.id);
+      const paidAmount = relatedInvoices.reduce((sum, invoice) => sum + paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((subtotal, payment) => subtotal + Number(payment.amount), 0), 0);
+      const billedAmount = relatedInvoices.reduce((sum, invoice) => sum + Number(invoice.amount), 0);
+      return { ...contract, supplierName, billedAmount, paidAmount, outstandingAmount: Math.max(0, billedAmount - paidAmount), invoices: relatedInvoices, attachedDocuments: documentRows.filter(document => document.entityId === contract.id) };
+    });
+  }),
+
+  createSupplierContract: protectedProcedure.input(supplierContractInput).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.write");
+    const database = await requireDatabase();
+    const [supplier] = await database.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.id, input.supplierId));
+    if (!supplier) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." });
+    if (input.endsOn && input.endsOn < input.startsOn) throw new TRPCError({ code: "BAD_REQUEST", message: "A vigência final não pode ser anterior ao início do contrato." });
+    const [created] = await database.insert(supplierContracts).values({ ...input, purchaseOrderCode: input.purchaseOrderCode || null, contractCode: input.contractCode || null, endsOn: input.endsOn || null, termMonths: input.termMonths || null, paymentDay: input.paymentDay || null, expectedAmount: input.expectedAmount.toFixed(2), paymentMethod: input.paymentMethod || null, notes: input.notes || null }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_contract", entityId: created.id, action: "create", afterData: created });
+    return created;
   }),
 
   operationForecasts: protectedProcedure.query(async ({ ctx }) => {
@@ -108,7 +153,7 @@ export const financeRouter = router({
     return input?.status ? result.filter(invoice => invoice.status === input.status) : result;
   }),
 
-  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
     if (input.operationType === null && input.operationId !== null) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione o tipo da operação vinculada." });
@@ -117,6 +162,10 @@ export const financeRouter = router({
     if (input.operationId && input.operationType) {
       const operations = await operationCatalog(database);
       if (!operations.some(row => row.type === input.operationType && row.id === input.operationId)) throw new TRPCError({ code: "NOT_FOUND", message: "A operação selecionada não foi encontrada." });
+    }
+    if (input.supplierContractId) {
+      const [contract] = await database.select().from(supplierContracts).where(eq(supplierContracts.id, input.supplierContractId));
+      if (!contract || contract.supplierId !== input.supplierId) throw new TRPCError({ code: "BAD_REQUEST", message: "O contrato informado não pertence ao fornecedor da nota fiscal." });
     }
     const [created] = await database.insert(invoices).values({ ...input, amount: input.amount.toFixed(2), notes: input.notes || null }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "invoice", entityId: created.id, action: "create", afterData: created });

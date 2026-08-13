@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionPoints, cities, commercialSupervisors, events, eventServices, eventStockItems, eventSuppliers, eventTeamMembers, eventTypes, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
+import { actionPoints, cities, commercialSupervisors, events, eventServices, eventStockItems, eventSuppliers, eventTeamMembers, eventTypes, invoices, payments, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -68,12 +68,19 @@ export const eventsRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "events.read");
     const database = await requireDatabase();
-    const [rows, teamRows, stockRows] = await Promise.all([
+    const [rows, teamRows, stockRows, invoiceRows, paymentRows] = await Promise.all([
       database.select({ event: events, cityName: cities.name, eventTypeName: eventTypes.name, supervisorName: commercialSupervisors.name }).from(events).innerJoin(cities, eq(events.cityId, cities.id)).innerJoin(eventTypes, eq(events.eventTypeId, eventTypes.id)).leftJoin(commercialSupervisors, eq(events.commercialSupervisorId, commercialSupervisors.id)).orderBy(asc(events.startsAt)),
       database.select({ eventId: eventTeamMembers.eventId, userId: users.id, name: users.name, jobTitle: users.jobTitle }).from(eventTeamMembers).innerJoin(users, eq(eventTeamMembers.userId, users.id)),
       database.select({ eventId: eventStockItems.eventId, stockItemId: stockItems.id, name: stockItems.name, unit: stockItems.unit, plannedQuantity: eventStockItems.plannedQuantity }).from(eventStockItems).innerJoin(stockItems, eq(eventStockItems.stockItemId, stockItems.id)),
+      database.select({ id: invoices.id, operationId: invoices.operationId, amount: invoices.amount, status: invoices.status }).from(invoices).where(eq(invoices.operationType, "event")),
+      database.select({ invoiceId: payments.invoiceId, amount: payments.amount }).from(payments),
     ]);
-    return rows.map(row => ({ ...row, teamMembers: teamRows.filter(member => member.eventId === row.event.id), stockItems: stockRows.filter(item => item.eventId === row.event.id) }));
+    return rows.map(row => {
+      const linkedInvoices = invoiceRows.filter(invoice => invoice.operationId === row.event.id && invoice.status !== "cancelled");
+      const paidAmount = linkedInvoices.reduce((total, invoice) => total + paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((subtotal, payment) => subtotal + Number(payment.amount), 0), 0);
+      const estimatedAmount = Number(row.event.estimatedCost);
+      return { ...row, finance: { estimatedAmount, invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount }, teamMembers: teamRows.filter(member => member.eventId === row.event.id), stockItems: stockRows.filter(item => item.eventId === row.event.id) };
+    });
   }),
   create: protectedProcedure.input(z.object({
     cityId: z.number().int().positive(), eventTypeId: z.number().int().positive(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), startsAt: z.coerce.date(), endsAt: z.coerce.date().nullable(), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999), partnershipReason: z.string().trim().max(2000).optional(), preEventNotes: z.string().trim().max(3000).optional(), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),

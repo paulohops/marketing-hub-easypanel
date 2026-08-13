@@ -26,10 +26,11 @@ export const tradeOperationStatusEnum = pgEnum("trade_operation_status", ["plann
 export const budgetTypeEnum = pgEnum("budget_type", ["trade_events", "branding_b2c"]);
 export const operationCostStatusEnum = pgEnum("operation_cost_status", ["draft", "pending_approval", "approved", "rejected"]);
 export const supplierOfferingKindEnum = pgEnum("supplier_offering_kind", ["service", "media", "action", "event", "other"]);
+export const supplierContractStatusEnum = pgEnum("supplier_contract_status", ["draft", "active", "expired", "terminated"]);
 export const mediaPointStatusEnum = pgEnum("media_point_status", ["active", "inactive", "maintenance"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["open", "partially_paid", "paid", "overdue", "cancelled"]);
 export const operationTypeEnum = pgEnum("financial_operation_type", ["media_campaign", "action", "event", "trade_operation", "other"]);
-export const documentEntityEnum = pgEnum("document_entity_type", ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media"]);
+export const documentEntityEnum = pgEnum("document_entity_type", ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media", "supplier_contract"]);
 export const notificationCategoryEnum = pgEnum("notification_category", ["campaign_expiry", "payment_due", "action_pending", "stock_minimum"]);
 export const partnershipTypeEnum = pgEnum("partnership_type", ["paid", "barter", "mixed"]);
 export const mediaChannelKindEnum = pgEnum("media_channel_kind", ["standard", "external"]);
@@ -167,8 +168,18 @@ export const stores = pgTable("stores", {
   name: varchar("name", { length: 160 }).notNull(),
   code: varchar("code", { length: 32 }).notNull().unique(),
   address: text("address"),
+  referencePoint: varchar("referencePoint", { length: 240 }),
+  zipCode: varchar("zipCode", { length: 16 }),
+  phone: varchar("phone", { length: 32 }),
+  email: varchar("email", { length: 320 }),
+  openingHours: text("openingHours"),
+  latitude: numeric("latitude", { precision: 10, scale: 7 }),
+  longitude: numeric("longitude", { precision: 10, scale: 7 }),
+  photoStorageKey: varchar("photoStorageKey", { length: 512 }),
+  photoUrl: text("photoUrl"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const commercialSupervisorStores = pgTable("commercial_supervisor_stores", {
@@ -296,6 +307,26 @@ export const supplierOfferings = pgTable("supplier_offerings", {
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 }, table => [uniqueIndex("supplier_offerings_supplier_kind_name_uq").on(table.supplierId, table.kind, table.name)]);
+
+export const supplierContracts = pgTable("supplier_contracts", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "restrict" }),
+  purchaseOrderCode: varchar("purchaseOrderCode", { length: 96 }),
+  contractType: varchar("contractType", { length: 120 }).notNull(),
+  contractCode: varchar("contractCode", { length: 120 }),
+  billingNames: jsonb("billingNames").$type<string[]>().default([]).notNull(),
+  startsOn: date("startsOn").notNull(),
+  endsOn: date("endsOn"),
+  termMonths: integer("termMonths"),
+  recurrence: varchar("recurrence", { length: 80 }).notNull(),
+  paymentDay: integer("paymentDay"),
+  expectedAmount: numeric("expectedAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  paymentMethod: varchar("paymentMethod", { length: 80 }),
+  status: supplierContractStatusEnum("status").default("draft").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+}, table => [uniqueIndex("supplier_contracts_supplier_code_uq").on(table.supplierId, table.contractCode)]);
 
 export const stockItems = pgTable("stock_items", {
   id: serial("id").primaryKey(),
@@ -561,6 +592,7 @@ export const eventStockItems = pgTable("event_stock_items", {
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "restrict" }),
+  supplierContractId: integer("supplierContractId").references(() => supplierContracts.id, { onDelete: "restrict" }),
   invoiceNumber: varchar("invoiceNumber", { length: 80 }).notNull(),
   issueDate: date("issueDate").notNull(),
   dueDate: date("dueDate").notNull(),

@@ -7,7 +7,7 @@ const saveActionDebrief = vi.hoisted(() => vi.fn());
 const savePostEvent = vi.hoisted(() => vi.fn());
 const actionListQuery = vi.hoisted(() => vi.fn());
 const eventListQuery = vi.hoisted(() => vi.fn());
-const references = { cities: [{ id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [] };
+const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [] };
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ actions: { list: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
@@ -54,7 +54,7 @@ describe("formulários operacionais ampliados", () => {
     render(<ActionsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "Nova ação" }));
     fireEvent.change(screen.getByLabelText("Nome da ação"), { target: { value: "Blitz Centro" } });
-    fireEvent.change(screen.getByLabelText("Cidade"), { target: { value: "1" } });
+    fireEvent.change(screen.getAllByLabelText("Cidade")[1], { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("Tipo de ação"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Supervisor"), { target: { value: "6" } });
     fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2026-08-14T09:00" } });
@@ -69,6 +69,17 @@ describe("formulários operacionais ampliados", () => {
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Planejar ação" }));
     expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, commercialSupervisorId: 6, partnershipType: "mixed", estimatedCost: 1250.5, supplierIds: [4], serviceTypeIds: [5], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
+  });
+
+  it("oferece filtro por regional e cidade e explicita o financeiro de uma ação", () => {
+    actionListQuery.mockReturnValue({ data: [{ action: { id: 25, cityId: 1, name: "Blitz Financeira", status: "planned", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "800", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null, finance: { estimatedAmount: 800, paidAmount: 250, remainingAmount: 550 } }], isLoading: false });
+    render(<ActionsWorkspace />);
+
+    expect(screen.getByLabelText("Regional")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cidade")).toBeInTheDocument();
+    expect(screen.getByText(/Previsto: R\$\s?800,00/)).toBeInTheDocument();
+    expect(screen.getByText(/Pago: R\$\s?250,00/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo: R\$\s?550,00/)).toBeInTheDocument();
   });
 
   it("envia custos, parceria, vínculos e recursos ao planejar um evento", () => {
