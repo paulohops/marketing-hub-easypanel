@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   date,
   integer,
@@ -16,7 +17,7 @@ import {
 export const userRoles = ["user", "admin", "regional_manager", "operator", "viewer"] as const;
 export const userRoleEnum = pgEnum("user_role", userRoles);
 export const movementTypeEnum = pgEnum("stock_movement_type", ["entry", "exit", "adjustment"]);
-export const campaignStatusEnum = pgEnum("campaign_status", ["active", "completed", "cancelled"]);
+export const campaignStatusEnum = pgEnum("campaign_status", ["scheduled", "active", "completed", "cancelled"]);
 export const operationStatusEnum = pgEnum("operation_status", ["planned", "in_progress", "completed", "cancelled"]);
 export const stockCategoryEnum = pgEnum("stock_category", ["brinde_relacionamento", "brinde_vip", "material_suporte"]);
 export const tradeOperationTypeEnum = pgEnum("trade_operation_type", ["trade_action", "media", "event"]);
@@ -30,6 +31,7 @@ export const operationTypeEnum = pgEnum("financial_operation_type", ["media_camp
 export const documentEntityEnum = pgEnum("document_entity_type", ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media"]);
 export const notificationCategoryEnum = pgEnum("notification_category", ["campaign_expiry", "payment_due", "action_pending", "stock_minimum"]);
 export const partnershipTypeEnum = pgEnum("partnership_type", ["paid", "barter", "mixed"]);
+export const mediaChannelKindEnum = pgEnum("media_channel_kind", ["standard", "external"]);
 export const permissionModuleEnum = pgEnum("permission_module", ["dashboard", "settings", "inventory", "finance", "media", "actions", "events", "operations", "documents", "map", "notifications"]);
 export const permissionActionEnum = pgEnum("permission_action", ["read", "create", "update", "delete"]);
 
@@ -89,6 +91,15 @@ export const providers = pgTable("providers", {
 export const appSettings = pgTable("app_settings", {
   key: varchar("key", { length: 120 }).primaryKey(),
   value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const userTrelloBoards = pgTable("user_trello_boards", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  boardUrl: text("boardUrl").notNull(),
+  assignedByUserId: integer("assignedByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -361,6 +372,7 @@ export const mediaPoints = pgTable("media_points", {
   mediaTypeId: integer("mediaTypeId").notNull().references(() => mediaTypes.id, { onDelete: "restrict" }),
   serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
+  channelKind: mediaChannelKindEnum("channelKind").default("standard").notNull(),
   address: text("address"),
   latitude: numeric("latitude", { precision: 10, scale: 7 }),
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
@@ -373,10 +385,14 @@ export const mediaCampaigns = pgTable("media_campaigns", {
   mediaPointId: integer("mediaPointId").notNull().references(() => mediaPoints.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
   status: campaignStatusEnum("status").default("active").notNull(),
+  partnershipType: partnershipTypeEnum("partnershipType").default("paid").notNull(),
   startsOn: date("startsOn").notNull(),
   endsOn: date("endsOn").notNull(),
   estimatedCost: numeric("estimatedCost", { precision: 14, scale: 2 }).default("0.00").notNull(),
   notes: text("notes"),
+  campaignDetails: text("campaignDetails"),
+  rescheduleReason: text("rescheduleReason"),
+  rescheduledFromCampaignId: integer("rescheduledFromCampaignId").references((): AnyPgColumn => mediaCampaigns.id, { onDelete: "set null" }),
   rating: integer("rating"),
   resultAchieved: boolean("resultAchieved"),
   feedback: text("feedback"),

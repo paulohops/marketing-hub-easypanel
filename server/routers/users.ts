@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { rolePermissions, userCities, userPermissions, userRegionals, userRoles, users } from "../../drizzle/schema";
+import { cities, rolePermissions, userCities, userPermissions, userRegionals, userRoles, users, userTrelloBoards } from "../../drizzle/schema";
 import { effectivePermissionKeys, permissionActions, permissionModules } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -49,6 +49,22 @@ async function findUserOrFail(database: Awaited<ReturnType<typeof requireDatabas
   const [user] = await database.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
   return user;
+}
+
+function normalizeTrelloBoardUrl(value: string) {
+  let parsed: URL;
+  try { parsed = new URL(value); } catch { throw new TRPCError({ code: "BAD_REQUEST", message: "Informe uma URL válida do Trello." }); }
+  if (!["trello.com", "www.trello.com"].includes(parsed.hostname)) throw new TRPCError({ code: "BAD_REQUEST", message: "O quadro deve usar uma URL do Trello." });
+  return parsed.toString();
+}
+
+async function resolveTerritoryAssignments(database: Awaited<ReturnType<typeof requireDatabase>>, regionalIds: number[], cityIds: number[]) {
+  const uniqueCityIds = Array.from(new Set(cityIds));
+  const cityRows = uniqueCityIds.length
+    ? await database.select({ id: cities.id, regionalId: cities.regionalId }).from(cities).where(inArray(cities.id, uniqueCityIds))
+    : [];
+  if (cityRows.length !== uniqueCityIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Uma ou mais cidades selecionadas não existem mais." });
+  return { cityIds: uniqueCityIds, regionalIds: Array.from(new Set([...regionalIds, ...cityRows.map(city => city.regionalId)])) };
 }
 
 async function replaceUserRegionals(database: Awaited<ReturnType<typeof requireDatabase>>, userId: number, regionalIds: number[]) {
@@ -133,12 +149,13 @@ export const usersRouter = router({
   adminDetail: adminProcedure.input(z.object({ userId: z.number().int().positive() })).query(async ({ input }) => {
     const database = await requireDatabase();
     const user = await findUserOrFail(database, input.userId);
-    const [permissions, regionalAssignments, cityAssignments] = await Promise.all([
+    const [permissions, regionalAssignments, cityAssignments, trelloAssignment] = await Promise.all([
       database.select().from(userPermissions).where(eq(userPermissions.userId, input.userId)),
       database.select().from(userRegionals).where(eq(userRegionals.userId, input.userId)),
       database.select().from(userCities).where(eq(userCities.userId, input.userId)),
+      database.select().from(userTrelloBoards).where(eq(userTrelloBoards.userId, input.userId)).limit(1),
     ]);
-    return { user: redactUser(user), permissions, regionalIds: regionalAssignments.map(row => row.regionalId), cityIds: cityAssignments.map(row => row.cityId) };
+    return { user: redactUser(user), permissions, regionalIds: regionalAssignments.map(row => row.regionalId), cityIds: cityAssignments.map(row => row.cityId), trelloBoardUrl: trelloAssignment[0]?.boardUrl ?? null };
   }),
 
   adminPermissions: adminProcedure.query(async () => {
@@ -154,8 +171,9 @@ export const usersRouter = router({
     const passwordHash = await hashLocalPassword(input.password);
     const now = new Date();
     const [created] = await database.insert(users).values({ openId: `local_${randomUUID()}`, name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, loginMethod: "local", passwordHash, passwordUpdatedAt: now, isActive: true, lastSignedIn: now, updatedAt: now }).returning();
-    const regionalIds = await replaceUserRegionals(database, created.id, input.regionalIds ?? []);
-    const cityIds = await replaceUserCities(database, created.id, input.cityIds ?? []);
+    const territory = await resolveTerritoryAssignments(database, input.regionalIds ?? [], input.cityIds ?? []);
+    const regionalIds = await replaceUserRegionals(database, created.id, territory.regionalIds);
+    const cityIds = await replaceUserCities(database, created.id, territory.cityIds);
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: created.id, action: "create_local_user", afterData: { ...redactUser(created), regionalIds, cityIds } });
     return redactUser(created);
   }),
@@ -168,10 +186,28 @@ export const usersRouter = router({
     const [sameEmail] = await database.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${email} AND ${users.id} <> ${input.userId}`).limit(1);
     if (sameEmail) throw new TRPCError({ code: "CONFLICT", message: "Já existe outra conta com este e-mail." });
     const [updated] = await database.update(users).set({ name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
-    const regionalIds = input.regionalIds === undefined ? undefined : await replaceUserRegionals(database, input.userId, input.regionalIds);
-    const cityIds = input.cityIds === undefined ? undefined : await replaceUserCities(database, input.userId, input.cityIds);
+    const existingRegionals = input.regionalIds === undefined ? await database.select().from(userRegionals).where(eq(userRegionals.userId, input.userId)) : [];
+    const existingCities = input.cityIds === undefined ? await database.select().from(userCities).where(eq(userCities.userId, input.userId)) : [];
+    const territory = await resolveTerritoryAssignments(database, input.regionalIds ?? existingRegionals.map(row => row.regionalId), input.cityIds ?? existingCities.map(row => row.cityId));
+    const regionalIds = await replaceUserRegionals(database, input.userId, territory.regionalIds);
+    const cityIds = await replaceUserCities(database, input.userId, territory.cityIds);
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: "update_user", beforeData: redactUser(before), afterData: { ...redactUser(updated), regionalIds, cityIds } });
     return redactUser(updated);
+  }),
+
+  setTrelloBoard: adminProcedure.input(z.object({ userId: z.number().int().positive(), boardUrl: z.string().trim().url().max(2000).nullable() })).mutation(async ({ ctx, input }) => {
+    const database = await requireDatabase();
+    await findUserOrFail(database, input.userId);
+    const existing = await database.select().from(userTrelloBoards).where(eq(userTrelloBoards.userId, input.userId)).limit(1);
+    if (!input.boardUrl) {
+      if (existing[0]) await database.delete(userTrelloBoards).where(eq(userTrelloBoards.userId, input.userId));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_trello_board", entityId: input.userId, action: "remove", beforeData: existing[0] ?? null, afterData: null });
+      return { boardUrl: null };
+    }
+    const boardUrl = normalizeTrelloBoardUrl(input.boardUrl);
+    const [assignment] = await database.insert(userTrelloBoards).values({ userId: input.userId, boardUrl, assignedByUserId: ctx.user.id, updatedAt: new Date() }).onConflictDoUpdate({ target: userTrelloBoards.userId, set: { boardUrl, assignedByUserId: ctx.user.id, updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_trello_board", entityId: input.userId, action: "assign", beforeData: existing[0] ?? null, afterData: assignment });
+    return { boardUrl: assignment.boardUrl };
   }),
 
   setUserActive: adminProcedure.input(z.object({ userId: z.number().int().positive(), isActive: z.boolean() })).mutation(async ({ ctx, input }) => {

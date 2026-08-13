@@ -11,13 +11,15 @@ describe("configurações administrativas", () => {
     expect(digitsOnly("12.345.678/0001-95")).toBe("12345678000195");
   });
 
-  it("apresenta administração, segurança e governança em área separada", () => {
+  it("concentra administração, importação e exportação em uma área objetiva", () => {
     render(<SettingsWorkspace />);
 
     expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { name: "Usuários e permissões" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("heading", { name: "Segurança de acesso" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("heading", { name: "Auditoria e governança" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Importar cadastros" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Exportar relatórios" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Segurança de acesso" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Auditoria e governança" })).not.toBeInTheDocument();
   });
 
   it("orienta que os cadastros operacionais ficam disponíveis em Gestão", () => {

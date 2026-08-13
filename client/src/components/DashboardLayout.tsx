@@ -39,11 +39,13 @@ import {
   MapPinned,
   Megaphone,
   Moon,
+  RadioTower,
   Settings2,
   Sun,
   Trello,
   UserRound,
 } from "lucide-react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import OnboardingTutorial from "./OnboardingTutorial";
@@ -61,6 +63,10 @@ type NavGroup = {
 };
 
 const overviewItem: NavItem = { label: "Visão geral", path: "/", icon: LayoutDashboard, permission: "dashboard.read" };
+const quickAccessItems: NavItem[] = [
+  { label: "Notificações", path: "/notificacoes", icon: BellRing, permission: "dashboard.read" },
+  { label: "Trello", path: "/trello", icon: Trello, permission: "settings.read" },
+];
 
 const navigationGroups: NavGroup[] = [
   {
@@ -68,6 +74,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { label: "Ações", path: "/acoes", icon: CalendarDays, permission: "actions.read" },
       { label: "Mídias", path: "/midias", icon: Megaphone, permission: "media.read" },
+      { label: "Mídias externas", path: "/midias-externas", icon: RadioTower, permission: "media.read" },
       { label: "Eventos", path: "/eventos", icon: MapPinned, permission: "events.read" },
     ],
   },
@@ -78,8 +85,6 @@ const navigationGroups: NavGroup[] = [
       { label: "Financeiro", path: "/financeiro", icon: Landmark, permission: "finance.read" },
       { label: "Cadastros", path: "/cadastros", icon: Database, permission: "settings.read" },
       { label: "Empresas", path: "/empresas", icon: Building2, permission: "settings.read" },
-      { label: "Trello", path: "/trello", icon: Trello, permission: "settings.read" },
-      { label: "Notificações", path: "/notificacoes", icon: BellRing, permission: "dashboard.read" },
     ],
   },
   {
@@ -106,6 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { loading, user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(() => !document.cookie.includes("sidebar_state=false"));
   const { can: canNavigate } = useEffectivePermissions();
 
   if (loading) return <DashboardLayoutSkeleton />;
@@ -126,7 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarMenuItem>;
   };
 
-  return <SidebarProvider defaultOpen>
+  return <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
     <Sidebar collapsible="icon" className="border-r border-white/20 bg-primary text-sidebar-foreground">
       <SidebarHeader className="flex-row items-center gap-2 px-3 pb-3 pt-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <button onClick={() => setLocation("/")} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden">
@@ -142,7 +148,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </SidebarHeader>
 
       <SidebarContent className="px-2 pb-4 pt-2 group-data-[collapsible=icon]:px-1">
-        {canNavigate(overviewItem.permission) && <SidebarMenu className="mb-2 shrink-0 gap-1">{renderItem(overviewItem)}</SidebarMenu>}
+        <SidebarMenu className="mb-2 shrink-0 gap-1">
+          {canNavigate(overviewItem.permission) && renderItem(overviewItem)}
+          {quickAccessItems.filter(item => canNavigate(item.permission)).map(renderItem)}
+        </SidebarMenu>
         {allowedGroups.map(group => <SidebarGroup key={group.label} className="mt-1 shrink-0 p-0 pb-3">
           <div data-sidebar="group-heading" className="mb-1 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/80 group-data-[collapsible=icon]:hidden">{group.label}</div>
           <SidebarGroupContent>

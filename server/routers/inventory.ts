@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { cities, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
+import { cities, notifications, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -183,7 +183,7 @@ export const inventoryRouter = router({
   registerMovement: protectedProcedure.input(z.object({ stockItemId: z.number().int().positive(), movementType: z.enum(["entry", "exit", "adjustment"]), quantity: z.number().positive().max(1_000_000), unitCost: z.number().nonnegative().max(10_000_000).optional(), occurredAt: z.coerce.date(), reference: z.string().trim().max(120).optional(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "inventory.write");
     const database = await requireDatabase();
-    const { item, created } = await database.transaction(async transaction => {
+    const { item, created, balance } = await database.transaction(async transaction => {
       const [stockItem] = await transaction.select().from(stockItems).where(eq(stockItems.id, input.stockItemId));
       if (!stockItem) throw new TRPCError({ code: "NOT_FOUND", message: "Item de estoque não encontrado." });
       await transaction.insert(stockBalances).values({ stockItemId: stockItem.id, quantity: "0.00" }).onConflictDoNothing();
@@ -191,9 +191,14 @@ export const inventoryRouter = router({
       const [balance] = await transaction.update(stockBalances).set({ quantity: sql`${stockBalances.quantity} + ${delta.toFixed(2)}`, updatedAt: new Date() }).where(and(eq(stockBalances.stockItemId, stockItem.id), sql`${stockBalances.quantity} + ${delta.toFixed(2)} >= 0`)).returning();
       if (!balance) throw new TRPCError({ code: "BAD_REQUEST", message: "A saída informada deixaria o estoque negativo." });
       const [movement] = await transaction.insert(stockMovements).values({ ...input, quantity: input.quantity.toFixed(2), unitCost: input.unitCost?.toFixed(2), reference: input.reference || null, notes: input.notes || null, performedByUserId: ctx.user.id }).returning();
-      return { item: stockItem, created: movement };
+      return { item: stockItem, created: movement, balance: Number(balance.quantity) };
     });
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: item.regionalId, entityType: "stock_movement", entityId: created.id, action: "create", afterData: created });
+    const minimum = Number(item.minimumQuantity);
+    if (minimum > 0 && balance <= minimum) {
+      const existingAlert = await database.select({ id: notifications.id }).from(notifications).where(and(eq(notifications.category, "stock_minimum"), eq(notifications.entityType, "stock_item"), eq(notifications.entityId, item.id), isNull(notifications.readAt))).limit(1);
+      if (!existingAlert[0]) await database.insert(notifications).values({ regionalId: item.regionalId, cityId: item.cityId, category: "stock_minimum", title: `Estoque baixo: ${item.name}`, message: `O saldo de ${balance.toLocaleString("pt-BR")} ${item.unit} atingiu o mínimo configurado de ${minimum.toLocaleString("pt-BR")} ${item.unit}.`, entityType: "stock_item", entityId: item.id });
+    }
     return created;
   }),
 

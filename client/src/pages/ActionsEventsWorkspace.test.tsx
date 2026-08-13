@@ -76,8 +76,8 @@ describe("formulários operacionais ampliados", () => {
     render(<EventsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "Novo evento" }));
     fireEvent.change(screen.getByLabelText("Nome do evento"), { target: { value: "Feira Minas" } });
-    fireEvent.change(screen.getByLabelText("Cidade"), { target: { value: "1" } });
-    fireEvent.change(screen.getByLabelText("Tipo"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Cidade e regional"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Tipo de evento"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("Supervisor comercial"), { target: { value: "6" } });
     fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2026-08-20T10:00" } });
     fireEvent.change(screen.getByLabelText("Modalidade"), { target: { value: "barter" } });
@@ -104,7 +104,7 @@ describe("formulários operacionais ampliados", () => {
     eventListQuery.mockReturnValue({ data: [{ event: { id: 22, name: "Feira", status: "planned", partnershipType: "paid", startsAt: new Date("2026-08-20T10:00:00Z"), endsAt: null, estimatedCost: "0", partnershipReason: null, preEventNotes: null, rating: null, worthRenewing: null }, cityName: "Belo Horizonte", eventTypeName: "Feira", supervisorName: null, teamMembers: [], stockItems: [] }], isLoading: false });
     render(<EventsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "Pós-evento" }));
-    fireEvent.click(screen.getByLabelText("Vale renovar a parceria"));
+    fireEvent.click(screen.getByLabelText("Vale renovar"));
     fireEvent.click(screen.getByRole("button", { name: "Salvar avaliação" }));
     expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, worthRenewing: false, resultAchieved: true }));
   });

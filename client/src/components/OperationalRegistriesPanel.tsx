@@ -46,42 +46,49 @@ type Panel =
   | "event"
   | "financial_category";
 type Row = { id: number; name: string; active: boolean; detail?: string };
+type RegistryGroup = "Lojas e localidade" | "Parceiros" | "Operação";
 
 const cards: Array<{
   key: Panel;
   title: string;
   description: string;
   icon: typeof Building2;
+  group: RegistryGroup;
 }> = [
   {
     key: "provider",
     title: "Empresas",
     description: "Faturamento, CNPJ, contatos e vínculo territorial.",
     icon: Building2,
+    group: "Lojas e localidade",
   },
   {
     key: "regional",
     title: "Regionais",
     description: "Estrutura territorial, código e empresa responsável.",
     icon: MapPinned,
+    group: "Lojas e localidade",
   },
   {
     key: "city",
     title: "Cidades",
     description: "UF, endereço, CEP e coordenadas de localização.",
     icon: Store,
+    group: "Lojas e localidade",
   },
   {
     key: "supplier",
     title: "Fornecedores e preços",
     description: "Cobertura, ofertas, preços e capacidades contratáveis.",
     icon: Handshake,
+    group: "Parceiros",
   },
   {
     key: "partner",
     title: "Parceiros",
     description: "Parceiros comerciais e institucionais ativos.",
     icon: Handshake,
+    group: "Parceiros",
   },
   {
     key: "supervisor",
@@ -89,36 +96,42 @@ const cards: Array<{
     description:
       "Pessoas disponíveis para liderar ações e eventos no território.",
     icon: Store,
+    group: "Parceiros",
   },
   {
     key: "action",
     title: "Tipos de ação",
     description: "Categorias configuráveis para ações de trade.",
     icon: Megaphone,
+    group: "Operação",
   },
   {
     key: "event",
     title: "Tipos de evento",
     description: "Categorias configuráveis para a agenda de eventos.",
     icon: CalendarDays,
+    group: "Operação",
   },
   {
     key: "media",
     title: "Tipos de mídia",
     description: "Canais e formatos de mídia usados no território.",
     icon: Radio,
+    group: "Operação",
   },
   {
     key: "service",
     title: "Serviços",
     description: "Serviços contratáveis de fornecedores e parceiros.",
     icon: Wrench,
+    group: "Operação",
   },
   {
     key: "financial_category",
     title: "Categorias financeiras",
     description: "Classificações de planejamento e controle de verba.",
     icon: ReceiptText,
+    group: "Operação",
   },
 ];
 
@@ -733,8 +746,11 @@ export default function OperationalRegistriesPanel() {
           Centro configurável
         </Badge>
       </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.map(card => {
+      <div className="mt-6 space-y-8">
+        {(["Lojas e localidade", "Parceiros", "Operação"] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
+          <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.filter(card => card.group === group).map(card => {
           const Icon = card.icon;
           return (
             <button
@@ -762,7 +778,8 @@ export default function OperationalRegistriesPanel() {
               </span>
             </button>
           );
-        })}
+        })}</div>
+        </section>)}
       </div>
       <Dialog
         open={panel !== null}

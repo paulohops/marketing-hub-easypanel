@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionDebriefs, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, cities, commercialSupervisors, serviceTypes, stockItems, suppliers, users } from "../../drizzle/schema";
+import { actionDebriefs, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, cities, commercialSupervisors, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -39,6 +39,17 @@ async function ensureActionReferences(database: any, input: { cityId: number; ac
     const rows = await database.select({ id: check.column }).from(check.table).where(and(inArray(check.column, ids), eq(check.activeColumn, true)));
     if (rows.length !== ids.length) throw new TRPCError({ code: "BAD_REQUEST", message: `Vínculo de ${check.label} inexistente ou indisponível.` });
   }));
+  const [selectedCity] = await database.select({ id: cities.id, regionalId: cities.regionalId }).from(cities).where(eq(cities.id, input.cityId));
+  const supplierIds = Array.from(new Set(input.supplierIds));
+  if (supplierIds.length) {
+    const coverage = await database.select({ supplierId: supplierCities.supplierId }).from(supplierCities).where(and(eq(supplierCities.cityId, input.cityId), inArray(supplierCities.supplierId, supplierIds)));
+    if (new Set(coverage.map((row: { supplierId: number }) => row.supplierId)).size !== supplierIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Há fornecedor selecionado sem cobertura para a cidade da ação." });
+  }
+  const stockIds = Array.from(new Set(input.stockAllocations.map(allocation => allocation.stockItemId)));
+  if (stockIds.length && selectedCity) {
+    const allocatedStock = await database.select({ id: stockItems.id, regionalId: stockItems.regionalId, cityId: stockItems.cityId }).from(stockItems).where(inArray(stockItems.id, stockIds));
+    if (allocatedStock.some((item: { regionalId: number; cityId: number | null }) => item.regionalId !== selectedCity.regionalId || (item.cityId !== null && item.cityId !== input.cityId))) throw new TRPCError({ code: "BAD_REQUEST", message: "Os itens de estoque devem pertencer à regional e à cidade selecionadas para a ação." });
+  }
 }
 
 export const actionsRouter = router({
@@ -46,7 +57,7 @@ export const actionsRouter = router({
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
     const [cityRows, typeRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows] = await Promise.all([
-      database.select().from(cities).where(eq(cities.active, true)).orderBy(asc(cities.name)),
+      database.select({ city: cities, regionalName: regionals.name }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(regionals.name), asc(cities.name)),
       database.select().from(actionTypes).where(eq(actionTypes.active, true)).orderBy(asc(actionTypes.name)),
       database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName)),
       database.select().from(serviceTypes).where(eq(serviceTypes.active, true)).orderBy(asc(serviceTypes.name)),

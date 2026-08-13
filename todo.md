@@ -164,3 +164,16 @@
 - [x] Permitir adicionar foto aos itens de estoque e visualizá-la em modal com download.
 - [x] Permitir importar dados de cadastros por planilha na área de Configurações, com validação antes da gravação.
 - [x] Permitir exportar relatórios completos por período na área de Relatórios.
+- [x] Auditar e corrigir os relacionamentos entre empresas, territórios, usuários, fornecedores, operações e financeiro.
+- [x] Aumentar e padronizar a largura responsiva dos popups, garantindo campos e textos organizados.
+- [x] Adicionar agendamento e reagendamento de mídias com detalhes de nova campanha, histórico e prevenção de vencimentos involuntários.
+- [x] Corrigir a seleção e persistência de cidade em ações e eventos.
+- [x] Reordenar a navegação para Notificações abaixo da Visão geral e Trello abaixo de Notificações, preservando o estado recolhido ao navegar.
+- [x] Permitir que gestores configurem quadros Trello específicos e vinculados a cada funcionário.
+- [x] Transformar Cadastros em uma central organizada por Lojas e localidade, Parceiros e Operação, com páginas internas próprias por domínio.
+- [x] Mover importação de cadastros e exportação de relatórios para Configurações e remover cartões administrativos de baixo valor percebido.
+- [x] Garantir alertas de estoque abaixo do mínimo nas notificações e no painel operacional.
+- [x] Redesenhar a Visão geral como painel de acompanhamento com próximos eventos, ações, mídias, estoque e financeiro, removendo os atalhos redundantes de módulos.
+- [x] Reformular Mídias como lista operacional robusta com filtros, tipo, modalidade de contratação, situação, detalhe e histórico.
+- [x] Criar o módulo de mídias externas para carros de som, panfletagem e outras ativações externas.
+- [x] Aplicar revisão de UI/UX inspirada nas referências fornecidas, com listas densas, leitura rápida e identidade Cluster MG.

@@ -31,7 +31,7 @@ describe("workspace Trello", () => {
   it("permite à administração configurar o quadro e informa quando não há integração", async () => {
     render(<TrelloWorkspace />);
     expect(screen.getByText("Nenhum quadro conectado")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Conectar quadro" }));
+    fireEvent.click(screen.getByRole("button", { name: "Conectar quadro padrão" }));
     await waitFor(() => expect(screen.getByLabelText("URL do quadro")).toHaveValue(""));
     fireEvent.change(screen.getByLabelText("URL do quadro"), { target: { value: "https://trello.com/b/abc123/comercial" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));

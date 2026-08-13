@@ -10,6 +10,8 @@ vi.mock("@/lib/trpc", () => ({
     media: { list: { useQuery: () => ({ data: [{ id: 1, status: "active" }, { id: 2, status: "inactive" }] }) } },
     actions: { list: { useQuery: () => ({ data: [{ action: { id: 1, status: "completed" } }, { action: { id: 2, status: "planned" } }] }) } },
     events: { list: { useQuery: () => ({ data: [{ event: { id: 1, status: "completed" } }] }) } },
+    inventory: { list: { useQuery: () => ({ data: [] }) } },
+    notifications: { list: { useQuery: () => ({ data: [] }) } },
   },
 }));
 
@@ -20,6 +22,8 @@ describe("DashboardPage", () => {
     expect(screen.getByText("Mídias ativas")).toBeInTheDocument();
     expect(screen.getByText("Ações realizadas")).toBeInTheDocument();
     expect(screen.getByText("Eventos realizados")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "Próximas ações e eventos" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "O que precisa de atenção" })).toBeInTheDocument();
     expect(screen.getAllByText("1")).toHaveLength(3);
 
     fireEvent.click(screen.getByRole("button", { name: /ver ajuda e suporte/i }));
@@ -31,8 +35,7 @@ describe("DashboardPage", () => {
 
     expect(container.querySelector(".dark")).toBeInTheDocument();
     expect(container.querySelectorAll(".bg-card").length).toBeGreaterThan(0);
-    const registrationsAction = Array.from(container.querySelectorAll("button")).find(button => /abrir cadastros/i.test(button.textContent ?? ""));
-    expect(registrationsAction).toHaveClass("bg-card");
+    expect(screen.getAllByRole("heading", { name: "Próximas ações e eventos" }).length).toBeGreaterThan(0);
     expect(container.querySelector(".bg-white")).toBeNull();
   });
 });

@@ -73,7 +73,7 @@ describe("centro de cadastros operacionais", () => {
   it("edita e inativa parceiros preservando o cadastro no centro operacional", () => {
     render(<OperationalRegistriesPanel />);
 
-    fireEvent.click(screen.getByText("Parceiros").closest("button") as HTMLButtonElement);
+    fireEvent.click(screen.getByRole("button", { name: /^Parceiros/ }));
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Parceiro Atualizado" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar edição" }));
@@ -106,7 +106,7 @@ describe("centro de cadastros operacionais", () => {
     ["Categorias financeiras", "Trade e Eventos"],
   ])("expõe edição e status para %s", (cardTitle) => {
     render(<OperationalRegistriesPanel />);
-    fireEvent.click(screen.getByText(cardTitle).closest("button") as HTMLButtonElement);
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${cardTitle}`) }));
     expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Inativar" })).toBeInTheDocument();
   });

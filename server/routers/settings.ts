@@ -1,7 +1,7 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionTypes, appSettings, cities, commercialSupervisors, eventTypes, financialCategories, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers } from "../../drizzle/schema";
+import { actionTypes, appSettings, cities, commercialSupervisors, eventTypes, financialCategories, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -334,8 +334,13 @@ export const settingsRouter = router({
   getTrelloConfiguration: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [setting] = await database.select().from(appSettings).where(eq(appSettings.key, "trello_board_url")).limit(1);
-    return { url: setting?.value ?? "" };
+    const [personalBoardRows, settingRows] = await Promise.all([
+      database.select().from(userTrelloBoards).where(eq(userTrelloBoards.userId, ctx.user.id)).limit(1),
+      database.select().from(appSettings).where(eq(appSettings.key, "trello_board_url")).limit(1),
+    ]);
+    const personalBoard = personalBoardRows[0];
+    const setting = settingRows[0];
+    return { url: personalBoard?.boardUrl ?? setting?.value ?? "", source: personalBoard ? "personal" as const : setting ? "shared" as const : "none" as const };
   }),
 
   updateTrelloConfiguration: protectedProcedure.input(z.object({ url: z.string().trim().max(2048) })).mutation(async ({ ctx, input }) => {

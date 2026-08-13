@@ -4,16 +4,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const listQuery = vi.hoisted(() => vi.fn());
 const detailQuery = vi.hoisted(() => vi.fn());
 const createCampaignMutation = vi.hoisted(() => vi.fn());
+const renewCampaignMutation = vi.hoisted(() => vi.fn());
 
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() } } }),
-  users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read", "media.create", "media.update", "media.delete"] }) } },
+  users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read", "media.write", "media.create", "media.update", "media.delete"] }) } },
   media: {
-    referenceData: { useQuery: () => ({ data: { suppliers: [], cities: [], mediaTypes: [], serviceTypes: [] }, isLoading: false }) },
+    referenceData: { useQuery: () => ({ data: { suppliers: [], cities: [], regionals: [], mediaTypes: [], serviceTypes: [] }, isLoading: false }) },
     list: { useQuery: listQuery },
     pointDetails: { useQuery: detailQuery },
     createPoint: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     createCampaign: { useMutation: () => ({ mutate: createCampaignMutation, isPending: false }) },
+    renewCampaign: { useMutation: () => ({ mutate: renewCampaignMutation, isPending: false }) },
   },
 }));
 
@@ -32,7 +34,7 @@ describe("detalhe de mídias", () => {
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
 
     render(<MediaWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Novo ponto" }));
+    fireEvent.click(screen.getByRole("button", { name: "Novo ponto de mídia" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Novo ponto de mídia" })).toBeInTheDocument();
@@ -46,12 +48,12 @@ describe("detalhe de mídias", () => {
     render(<MediaWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "Detalhes" }));
 
-    expect(screen.getByText("Detalhe do ponto de mídia")).toBeInTheDocument();
-    expect(screen.getByText("Fornecedor e cobertura")).toBeInTheDocument();
-    expect(screen.getByText("Histórico de alterações")).toBeInTheDocument();
-    expect(screen.getByText("Ponto de mídia cadastrado")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Frontlight Centro" })).toBeInTheDocument();
+    expect(screen.getByText("Cobertura e fornecedor")).toBeInTheDocument();
+    expect(screen.getByText("Histórico")).toBeInTheDocument();
+    expect(screen.getByText("Registro criado")).toBeInTheDocument();
     expect(screen.getByText("foto-instalacao.jpg")).toBeInTheDocument();
-    expect(screen.getByText(/Investimento previsto:/)).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s?1\.200,00/)).toBeInTheDocument();
     expect(detailQuery).toHaveBeenLastCalledWith({ mediaPointId: 7 }, { enabled: true });
   });
 
@@ -73,11 +75,11 @@ describe("detalhe de mídias", () => {
     fireEvent.click(screen.getByRole("button", { name: "Nova campanha" }));
     const modal = within(screen.getByRole("dialog"));
     fireEvent.change(modal.getByLabelText("Nome da campanha"), { target: { value: "Campanha Verão" } });
-    fireEvent.change(modal.getByLabelText("Início da campanha"), { target: { value: "2026-09-01" } });
-    fireEvent.change(modal.getByLabelText("Fim da campanha"), { target: { value: "2026-09-30" } });
-    fireEvent.change(modal.getByLabelText("Investimento previsto da campanha"), { target: { value: "2450.50" } });
-    fireEvent.click(modal.getByRole("button", { name: "Confirmar campanha" }));
+    fireEvent.change(modal.getByLabelText("Início"), { target: { value: "2026-09-01" } });
+    fireEvent.change(modal.getByLabelText("Término"), { target: { value: "2026-09-30" } });
+    fireEvent.change(modal.getByLabelText("Investimento previsto"), { target: { value: "2450.50" } });
+    fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
 
-    expect(createCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", estimatedCost: 2450.5, notes: undefined });
+    expect(createCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined });
   });
 });
