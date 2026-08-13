@@ -28,6 +28,8 @@ function Router() {
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
     <Route path="/administracao-usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
+    <Route path="/equipes">{() => <ProtectedModule module="equipes" />}</Route>
+    <Route path="/pontos-de-acao">{() => <ProtectedModule module="pontos-de-acao" />}</Route>
     <Route path="/ajuda">{() => <ProtectedModule module="ajuda" />}</Route>
     <Route path="/notificacoes">{() => <ProtectedModule module="notificacoes" />}</Route>
     <Route path="/404" component={NotFound} />

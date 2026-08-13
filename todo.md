@@ -177,3 +177,15 @@
 - [x] Reformular Mídias como lista operacional robusta com filtros, tipo, modalidade de contratação, situação, detalhe e histórico.
 - [x] Criar o módulo de mídias externas para carros de som, panfletagem e outras ativações externas.
 - [x] Aplicar revisão de UI/UX inspirada nas referências fornecidas, com listas densas, leitura rápida e identidade Cluster MG.
+- [x] Analisar a matriz da Sempre Internet, identificar dados de teste e importar com segurança as informações operacionais aproveitáveis.
+- [x] Associar supervisores comerciais a múltiplas lojas e expor essa cobertura nos cadastros e fluxos operacionais.
+- [x] Restaurar o envio e a edição de foto em Meu perfil, com exibição contain e opção de recorte para imagens não quadradas.
+- [x] Criar Configurações → Equipes com organograma de usuários, supervisores e colaboradores e edição administrativa contextual.
+- [x] Exibir fotos de perfil de usuário em Usuários e permissões e manter logotipos e fotos em modo contain sem cortes involuntários.
+- [x] Revalidar o RBAC, incluir o papel Membro de equipe e permitir desativar módulos por usuário, removendo-os também do menu.
+- [x] Mover o acesso a Usuários e permissões do menu do perfil para Configurações, respeitando permissões granulares de configuração.
+- [x] Criar detalhe de empresa com visão relacional de regionais, cidades, lojas, fornecedores e contadores de operações.
+- [x] Exibir contadores relacionais de ações, eventos e mídias em empresas, regionais e cidades.
+- [x] Permitir exclusão segura dos cadastros operacionais quando não houver dependências relacionadas.
+- [x] Criar cadastro de pontos de ação e vinculá-los ao planejamento e análise de ações.
+- [ ] Tornar debriefing e nota disponíveis de forma consistente em ações, eventos e mídias.

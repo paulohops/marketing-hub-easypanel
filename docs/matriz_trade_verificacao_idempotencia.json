@@ -1,0 +1,43 @@
+{
+  "mode": "import",
+  "source": "/home/ubuntu/upload/MatrizdeTrade-SMP2026.xlsx",
+  "territories": [
+    {
+      "regional": "Central Mineira",
+      "cities": 21
+    },
+    {
+      "regional": "Metropolitana 1",
+      "cities": 13
+    },
+    {
+      "regional": "Metropolitana 2",
+      "cities": 11
+    },
+    {
+      "regional": "Metropolitana 3",
+      "cities": 15
+    },
+    {
+      "regional": "Oeste de Minas",
+      "cities": 18
+    },
+    {
+      "regional": "Centro-Oeste",
+      "cities": 13
+    },
+    {
+      "regional": "Sul de Minas",
+      "cities": 21
+    }
+  ],
+  "supplierRows": 205,
+  "providersCreated": 0,
+  "regionalsCreated": 0,
+  "citiesCreated": 0,
+  "servicesCreated": 0,
+  "suppliersCreated": 0,
+  "supplierCityLinks": 0,
+  "supplierServiceLinks": 0,
+  "testCandidates": []
+}

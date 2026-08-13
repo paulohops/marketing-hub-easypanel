@@ -32,6 +32,7 @@ const trpcStub = vi.hoisted(() => ({
     updateRolePermission: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     updateUserPermission: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     clearUserPermission: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    setUserModuleEnabled: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     setTrelloBoard: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
   settings: {

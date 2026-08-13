@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { cities, rolePermissions, userCities, userPermissions, userRegionals, userRoles, users, userTrelloBoards } from "../../drizzle/schema";
+import { cities, rolePermissions, userCities, userModuleSettings, userPermissions, userRegionals, userRoles, users, userTrelloBoards } from "../../drizzle/schema";
 import { effectivePermissionKeys, permissionActions, permissionModules } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -17,12 +17,14 @@ export const profileInput = z.object({
 export const roleInput = z.enum(userRoles);
 export const permissionInput = z.object({ role: roleInput, module: z.enum(permissionModules), action: z.enum(permissionActions), allowed: z.boolean() });
 export const userPermissionInput = z.object({ userId: z.number().int().positive(), module: z.enum(permissionModules), action: z.enum(permissionActions), allowed: z.boolean() });
+export const userModuleInput = z.object({ userId: z.number().int().positive(), module: z.enum(permissionModules), enabled: z.boolean() });
 const avatarMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 const adminUserFields = z.object({
   name: z.string().trim().min(2, "Informe o nome.").max(160),
   email: z.string().trim().email("Informe um e-mail válido.").max(320),
   phone: z.string().trim().max(32).optional().or(z.literal("")),
   jobTitle: z.string().trim().max(120).optional().or(z.literal("")),
+  managerUserId: z.number().int().positive().nullable().optional(),
   role: roleInput,
   regionalIds: z.array(z.number().int().positive()).max(100).optional(),
   cityIds: z.array(z.number().int().positive()).max(300).optional(),
@@ -49,6 +51,15 @@ async function findUserOrFail(database: Awaited<ReturnType<typeof requireDatabas
   const [user] = await database.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
   return user;
+}
+
+async function resolveManager(database: Awaited<ReturnType<typeof requireDatabase>>, userId: number, managerUserId: number | null | undefined) {
+  if (managerUserId === undefined) return undefined;
+  if (managerUserId === null) return null;
+  if (managerUserId === userId) throw new TRPCError({ code: "BAD_REQUEST", message: "Uma pessoa não pode ser supervisora de si mesma." });
+  const manager = await findUserOrFail(database, managerUserId);
+  if (!manager.isActive) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione uma pessoa ativa para a supervisão da equipe." });
+  return manager.id;
 }
 
 function normalizeTrelloBoardUrl(value: string) {
@@ -93,6 +104,7 @@ export const usersRouter = router({
     phone: ctx.user.phone,
     avatarUrl: ctx.user.avatarUrl,
     jobTitle: ctx.user.jobTitle,
+    managerUserId: ctx.user.managerUserId,
     role: ctx.user.role,
     loginMethod: ctx.user.loginMethod,
     hasLocalPassword: Boolean(ctx.user.passwordHash),
@@ -149,18 +161,24 @@ export const usersRouter = router({
   adminDetail: adminProcedure.input(z.object({ userId: z.number().int().positive() })).query(async ({ input }) => {
     const database = await requireDatabase();
     const user = await findUserOrFail(database, input.userId);
-    const [permissions, regionalAssignments, cityAssignments, trelloAssignment] = await Promise.all([
+    const [permissions, moduleSettings, regionalAssignments, cityAssignments, trelloAssignment] = await Promise.all([
       database.select().from(userPermissions).where(eq(userPermissions.userId, input.userId)),
+      database.select().from(userModuleSettings).where(eq(userModuleSettings.userId, input.userId)),
       database.select().from(userRegionals).where(eq(userRegionals.userId, input.userId)),
       database.select().from(userCities).where(eq(userCities.userId, input.userId)),
       database.select().from(userTrelloBoards).where(eq(userTrelloBoards.userId, input.userId)).limit(1),
     ]);
-    return { user: redactUser(user), permissions, regionalIds: regionalAssignments.map(row => row.regionalId), cityIds: cityAssignments.map(row => row.cityId), trelloBoardUrl: trelloAssignment[0]?.boardUrl ?? null };
+    return { user: redactUser(user), permissions, moduleSettings, regionalIds: regionalAssignments.map(row => row.regionalId), cityIds: cityAssignments.map(row => row.cityId), trelloBoardUrl: trelloAssignment[0]?.boardUrl ?? null };
   }),
 
   adminPermissions: adminProcedure.query(async () => {
     const database = await requireDatabase();
     return database.select().from(rolePermissions).orderBy(asc(rolePermissions.role), asc(rolePermissions.module), asc(rolePermissions.action));
+  }),
+
+  adminModuleSettings: adminProcedure.query(async () => {
+    const database = await requireDatabase();
+    return database.select().from(userModuleSettings).orderBy(asc(userModuleSettings.userId), asc(userModuleSettings.module));
   }),
 
   createLocalUser: adminProcedure.input(createLocalUserInput).mutation(async ({ ctx, input }) => {
@@ -171,6 +189,8 @@ export const usersRouter = router({
     const passwordHash = await hashLocalPassword(input.password);
     const now = new Date();
     const [created] = await database.insert(users).values({ openId: `local_${randomUUID()}`, name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, loginMethod: "local", passwordHash, passwordUpdatedAt: now, isActive: true, lastSignedIn: now, updatedAt: now }).returning();
+    const managerUserId = await resolveManager(database, created.id, input.managerUserId);
+    if (managerUserId !== undefined) await database.update(users).set({ managerUserId, updatedAt: now }).where(eq(users.id, created.id));
     const territory = await resolveTerritoryAssignments(database, input.regionalIds ?? [], input.cityIds ?? []);
     const regionalIds = await replaceUserRegionals(database, created.id, territory.regionalIds);
     const cityIds = await replaceUserCities(database, created.id, territory.cityIds);
@@ -185,7 +205,8 @@ export const usersRouter = router({
     const email = input.email.toLowerCase();
     const [sameEmail] = await database.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${email} AND ${users.id} <> ${input.userId}`).limit(1);
     if (sameEmail) throw new TRPCError({ code: "CONFLICT", message: "Já existe outra conta com este e-mail." });
-    const [updated] = await database.update(users).set({ name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
+    const managerUserId = await resolveManager(database, input.userId, input.managerUserId);
+    const [updated] = await database.update(users).set({ name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, ...(managerUserId === undefined ? {} : { managerUserId }), updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
     const existingRegionals = input.regionalIds === undefined ? await database.select().from(userRegionals).where(eq(userRegionals.userId, input.userId)) : [];
     const existingCities = input.cityIds === undefined ? await database.select().from(userCities).where(eq(userCities.userId, input.userId)) : [];
     const territory = await resolveTerritoryAssignments(database, input.regionalIds ?? existingRegionals.map(row => row.regionalId), input.cityIds ?? existingCities.map(row => row.cityId));
@@ -216,6 +237,15 @@ export const usersRouter = router({
     const before = await findUserOrFail(database, input.userId);
     const [updated] = await database.update(users).set({ isActive: input.isActive, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: input.isActive ? "activate_user" : "deactivate_user", beforeData: { isActive: before.isActive }, afterData: { isActive: updated.isActive } });
+    return redactUser(updated);
+  }),
+
+  setUserManager: adminProcedure.input(z.object({ userId: z.number().int().positive(), managerUserId: z.number().int().positive().nullable() })).mutation(async ({ ctx, input }) => {
+    const database = await requireDatabase();
+    const before = await findUserOrFail(database, input.userId);
+    const managerUserId = await resolveManager(database, input.userId, input.managerUserId);
+    const [updated] = await database.update(users).set({ managerUserId: managerUserId ?? null, updatedAt: new Date() }).where(eq(users.id, input.userId)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: updated.id, action: "set_manager", beforeData: { managerUserId: before.managerUserId }, afterData: { managerUserId: updated.managerUserId } });
     return redactUser(updated);
   }),
 
@@ -263,5 +293,15 @@ export const usersRouter = router({
     await database.delete(userPermissions).where(eq(userPermissions.id, before.id));
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_permission", entityId: before.id, action: "clear_user_permission", beforeData: before, afterData: null });
     return { success: true } as const;
+  }),
+
+  setUserModuleEnabled: adminProcedure.input(userModuleInput).mutation(async ({ ctx, input }) => {
+    if (input.userId === ctx.user.id && !input.enabled) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é permitido ocultar um módulo da sua própria conta administrativa." });
+    const database = await requireDatabase();
+    await findUserOrFail(database, input.userId);
+    const [before] = await database.select().from(userModuleSettings).where(sql`${userModuleSettings.userId} = ${input.userId} AND ${userModuleSettings.module} = ${input.module}`).limit(1);
+    const [updated] = await database.insert(userModuleSettings).values({ ...input, updatedAt: new Date() }).onConflictDoUpdate({ target: [userModuleSettings.userId, userModuleSettings.module], set: { enabled: input.enabled, updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_module_setting", entityId: updated.id, action: input.enabled ? "enable_module" : "disable_module", beforeData: before ?? null, afterData: updated });
+    return updated;
   }),
 });

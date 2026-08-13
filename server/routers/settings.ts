@@ -1,7 +1,7 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionTypes, appSettings, cities, commercialSupervisors, eventTypes, financialCategories, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
+import { actionPoints, actions, actionTypes, appSettings, cities, commercialSupervisorStores, commercialSupervisors, events, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -54,7 +54,7 @@ export const settingsRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, financialCategoryRows, supplierOfferingRows, supervisorRows] = await Promise.all([
+    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows] = await Promise.all([
       database.select().from(providers).orderBy(asc(providers.name)),
       database.select().from(regionals).orderBy(asc(regionals.name)),
       database.select().from(cities).orderBy(asc(cities.name)),
@@ -68,8 +68,14 @@ export const settingsRouter = router({
       database.select().from(financialCategories).orderBy(asc(financialCategories.name)),
       database.select().from(supplierOfferings).orderBy(asc(supplierOfferings.name)),
       database.select().from(commercialSupervisors).orderBy(asc(commercialSupervisors.name)),
+      database.select().from(actionPoints).orderBy(asc(actionPoints.name)),
+      database.select().from(commercialSupervisorStores),
+      database.select({ cityId: actions.cityId }).from(actions),
+      database.select({ cityId: events.cityId }).from(events),
+      database.select({ id: mediaPoints.id, cityId: mediaPoints.cityId }).from(mediaPoints),
+      database.select({ mediaPointId: mediaCampaigns.mediaPointId }).from(mediaCampaigns),
     ]);
-    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows };
+    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows } };
   }),
 
   createProvider: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), address: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
@@ -225,6 +231,48 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [created] = await database.insert(commercialSupervisors).values({ ...input, email: input.email || null, phone: input.phone || null }).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "commercial_supervisor", entityId: created.id, action: "create", afterData: created }); return created;
   }),
 
+  setCommercialSupervisorStores: protectedProcedure.input(z.object({ commercialSupervisorId: z.number().int().positive(), storeIds: z.array(z.number().int().positive()).max(300) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const storeIds = uniqueIds(input.storeIds);
+    const [supervisor] = await database.select({ id: commercialSupervisors.id }).from(commercialSupervisors).where(eq(commercialSupervisors.id, input.commercialSupervisorId)).limit(1);
+    if (!supervisor) throw new TRPCError({ code: "NOT_FOUND", message: "Supervisor comercial não encontrado." });
+    if (storeIds.length) {
+      const existingStores = await database.select({ id: stores.id }).from(stores).where(inArray(stores.id, storeIds));
+      if (existingStores.length !== storeIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Uma ou mais lojas selecionadas não existem." });
+    }
+    await database.transaction(async transaction => {
+      await transaction.delete(commercialSupervisorStores).where(eq(commercialSupervisorStores.commercialSupervisorId, input.commercialSupervisorId));
+      if (storeIds.length) await transaction.insert(commercialSupervisorStores).values(storeIds.map(storeId => ({ commercialSupervisorId: input.commercialSupervisorId, storeId })));
+    });
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "commercial_supervisor", entityId: input.commercialSupervisorId, action: "set_stores", afterData: { storeIds } });
+    return { commercialSupervisorId: input.commercialSupervisorId, storeIds };
+  }),
+
+  createActionPoint: protectedProcedure.input(z.object({ cityId: z.number().int().positive(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable().optional(), longitude: z.number().min(-180).max(180).nullable().optional(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [city] = await database.select({ id: cities.id }).from(cities).where(eq(cities.id, input.cityId)).limit(1);
+    if (!city) throw new TRPCError({ code: "BAD_REQUEST", message: "A cidade selecionada não existe." });
+    const [existing] = await database.select({ id: actionPoints.id }).from(actionPoints).where(sql`${actionPoints.cityId} = ${input.cityId} AND lower(${actionPoints.name}) = lower(${input.name})`).limit(1);
+    if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já existe um ponto de ação com este nome nessa cidade." });
+    const [created] = await database.insert(actionPoints).values({ cityId: input.cityId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, notes: input.notes || null }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "action_point", entityId: created.id, action: "create", afterData: { ...created, cityId: input.cityId } });
+    return created;
+  }),
+
+  updateActionPoint: protectedProcedure.input(z.object({ id: z.number().int().positive(), cityId: z.number().int().positive(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable().optional(), longitude: z.number().min(-180).max(180).nullable().optional(), notes: z.string().trim().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(actionPoints).where(eq(actionPoints.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Ponto de ação não encontrado." });
+    const [city] = await database.select({ id: cities.id }).from(cities).where(eq(cities.id, input.cityId)).limit(1);
+    if (!city) throw new TRPCError({ code: "BAD_REQUEST", message: "A cidade selecionada não existe." });
+    const [updated] = await database.update(actionPoints).set({ cityId: input.cityId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, notes: input.notes || null, updatedAt: new Date() }).where(eq(actionPoints.id, input.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "action_point", entityId: input.id, action: "update", beforeData: before, afterData: { ...updated, cityId: input.cityId } });
+    return updated;
+  }),
+
   updateSupplier: protectedProcedure.input(z.object({ id: z.number().int().positive(), providerId: z.number().int().positive().nullable(), cityId: z.number().int().positive().nullable().optional(), displayName: z.string().trim().min(2).max(180), legalName: z.string().trim().max(220).optional(), document: z.string().trim().min(14).max(32), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().min(8).max(32), email: z.string().trim().email().max(320), partnershipType: z.enum(paymentKinds).optional(), paymentMethod: z.string().trim().max(80).optional(), paymentRecurrence: z.string().trim().max(80).optional(), hasContract: z.boolean().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(suppliers).where(eq(suppliers.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." }); const document = normalizeCnpj(input.document); if (document.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ com 14 dígitos." }); const [sameName, sameDocument] = await Promise.all([database.select({ id: suppliers.id }).from(suppliers).where(sql`lower(${suppliers.displayName}) = lower(${input.displayName})`), database.select({ id: suppliers.id }).from(suppliers).where(sql`regexp_replace(coalesce(${suppliers.document}, ''), '[^0-9]', '', 'g') = ${document}`)]); if (sameName.some(row => row.id !== input.id)) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor com este nome de exibição." }); if (sameDocument.some(row => row.id !== input.id)) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor cadastrado com este CNPJ." }); const [updated] = await database.update(suppliers).set({ ...input, cityId: input.cityId ?? null, document, legalName: input.legalName || null, contactName: input.contactName || null, partnershipType: input.partnershipType ?? null, paymentMethod: input.paymentMethod || null, paymentRecurrence: input.paymentRecurrence || null, hasContract: input.hasContract ?? before.hasContract, updatedAt: new Date() }).where(eq(suppliers.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
@@ -279,6 +327,25 @@ export const settingsRouter = router({
       case "supplier_offering": await database.update(supplierOfferings).set({ active: input.active, updatedAt: now }).where(eq(supplierOfferings.id, input.id)); break;
     }
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: input.kind, entityId: input.id, action: input.active ? "activate" : "deactivate", afterData: { active: input.active } });
+    return { success: true } as const;
+  }),
+
+  deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "supplier", "partner", "supervisor", "service", "media", "action", "event", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const tables = { provider: providers, regional: regionals, city: cities, supplier: suppliers, partner: partners, supervisor: commercialSupervisors, service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, financial_category: financialCategories, supplier_offering: supplierOfferings } as const;
+    const table = tables[input.kind];
+    const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
+    try {
+      await database.delete(table).where(eq(table.id, input.id));
+    } catch (error) {
+      const postgresCode = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code) : "";
+      const details = error instanceof Error ? error.message.toLowerCase() : "";
+      if (postgresCode === "23503" || details.includes("foreign key")) throw new TRPCError({ code: "CONFLICT", message: "Este cadastro possui vínculos operacionais e não pode ser excluído. Inative-o para preservar o histórico." });
+      throw error;
+    }
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: input.kind, entityId: input.id, action: "delete", beforeData: before });
     return { success: true } as const;
   }),
 

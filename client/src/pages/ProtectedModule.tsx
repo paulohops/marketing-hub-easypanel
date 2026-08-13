@@ -15,6 +15,8 @@ import EventsWorkspace from "./EventsWorkspace";
 import IndicatorsWorkspace from "./IndicatorsWorkspace";
 import ProfileWorkspace from "./ProfileWorkspace";
 import UserAdministrationWorkspace from "./UserAdministrationWorkspace";
+import TeamsWorkspace from "./TeamsWorkspace";
+import ActionPointsWorkspace from "./ActionPointsWorkspace";
 import TradeOperationsWorkspace from "./TradeOperationsWorkspace";
 import HelpWorkspace from "./HelpWorkspace";
 import OperationalRegistriesWorkspace from "./OperationalRegistriesWorkspace";
@@ -26,7 +28,7 @@ import TradeEvidencePanel from "@/components/TradeEvidencePanel";
 import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
 import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
-import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, Flag, Landmark, MapPinned, Megaphone, Settings2, ShieldCheck, UserRound } from "lucide-react";
+import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, Flag, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound } from "lucide-react";
 
 const definitions = {
   estoque: { permission: "inventory.read", eyebrow: "Operação e materiais", title: "Estoque de materiais", description: "Controle entradas, saídas, saldo, transferências e histórico de materiais por regional e cidade.", icon: Boxes, resources: [{ title: "Catálogo de materiais", description: "Itens, SKU, categoria, unidade e estoque mínimo." }, { title: "Movimentações", description: "Entradas, saídas, ajustes e responsáveis." }, { title: "Saldo por território", description: "Visão consolidada por regional e cidade." }], accent: "var(--primary)" },
@@ -44,6 +46,8 @@ const definitions = {
   importacao: { permission: "settings.write", eyebrow: "Administração do sistema", title: "Importar cadastros", description: "Valide e importe dados estruturados por planilha.", icon: Settings2, resources: [], accent: "var(--primary)" },
   perfil: { permission: "dashboard.read", eyebrow: "Conta e segurança", title: "Meu perfil", description: "Mantenha seus dados pessoais atualizados.", icon: UserRound, resources: [], accent: "var(--primary)" },
   usuarios: { permission: "settings.read", eyebrow: "Acesso administrativo", title: "Usuários e permissões", description: "Gerencie papéis e acessos operacionais.", icon: ShieldCheck, resources: [], accent: "var(--primary)" },
+  equipes: { permission: "settings.read", eyebrow: "Acesso administrativo", title: "Equipes", description: "Visualize e gerencie a hierarquia da equipe.", icon: Network, resources: [], accent: "var(--primary)" },
+  "pontos-de-acao": { permission: "settings.read", eyebrow: "Cadastros operacionais", title: "Pontos de ação", description: "Gerencie locais recorrentes para ações de trade.", icon: MapPinned, resources: [], accent: "var(--primary)" },
   ajuda: { permission: "dashboard.read", eyebrow: "Central de conhecimento", title: "Ajuda e suporte", description: "Consulte os fluxos do sistema e envie solicitações de suporte.", icon: CircleHelp, resources: [], accent: "var(--primary)" },
   notificacoes: { permission: "dashboard.read", eyebrow: "Acompanhamento operacional", title: "Notificações", description: "Acompanhe alertas direcionados a pessoas, regionais e cidades.", icon: BellRing, resources: [], accent: "var(--primary)" },
 } as const;
@@ -76,6 +80,8 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "indicadores") return <DashboardLayout><div className="cluster-workspace"><IndicatorsWorkspace /></div></DashboardLayout>;
   if (module === "perfil") return <DashboardLayout><div className="cluster-workspace"><ProfileWorkspace /></div></DashboardLayout>;
   if (module === "usuarios") return <DashboardLayout><div className="cluster-workspace"><UserAdministrationWorkspace /></div></DashboardLayout>;
+  if (module === "equipes") return <DashboardLayout><div className="cluster-workspace"><TeamsWorkspace /></div></DashboardLayout>;
+  if (module === "pontos-de-acao") return <DashboardLayout><div className="cluster-workspace"><ActionPointsWorkspace /></div></DashboardLayout>;
   if (module === "ajuda") return <DashboardLayout><div className="cluster-workspace"><HelpWorkspace /></div></DashboardLayout>;
   if (module === "notificacoes") return <DashboardLayout><div className="cluster-workspace"><NotificationsWorkspace /></div></DashboardLayout>;
   return <DashboardLayout><ModulePage {...definition} /></DashboardLayout>;

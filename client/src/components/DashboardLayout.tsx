@@ -40,6 +40,7 @@ import {
   Megaphone,
   Moon,
   RadioTower,
+  Network,
   Settings2,
   Sun,
   Trello,
@@ -95,6 +96,7 @@ const navigationGroups: NavGroup[] = [
     label: "Configurações",
     items: [
       { label: "Configurações", path: "/configuracoes", icon: Settings2, permission: "settings.read" },
+      { label: "Equipes", path: "/equipes", icon: Network, permission: "settings.read" },
     ],
   },
 ];
@@ -103,6 +105,7 @@ const roleNames: Record<string, string> = {
   admin: "Administrador",
   regional_manager: "Gestor regional",
   operator: "Operador",
+  team_member: "Membro de equipe",
   viewer: "Visualizador",
   user: "Visualizador",
 };
@@ -180,7 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DropdownMenuLabel className="px-2 py-2 font-normal"><p className="text-sm font-semibold">{profileName}</p><p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">{user.email}</p></DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2" onClick={() => setLocation("/perfil")}><UserRound className="h-4 w-4" /> Meu perfil</DropdownMenuItem>
-            {user.role === "admin" && <DropdownMenuItem className="gap-2" onClick={() => setLocation("/usuarios")}><Settings2 className="h-4 w-4" /> Usuários e permissões</DropdownMenuItem>}
+            {user.role === "admin" && <DropdownMenuItem className="gap-2" onClick={() => setLocation("/configuracoes")}><Settings2 className="h-4 w-4" /> Configurações</DropdownMenuItem>}
             <DropdownMenuItem className="gap-2" onClick={() => setLocation("/ajuda")}><CircleHelp className="h-4 w-4" /> Ajuda e suporte</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={logout}><LogOut className="h-4 w-4" /> Sair da plataforma</DropdownMenuItem>

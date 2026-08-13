@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-const mutations = vi.hoisted(() => ({ createProvider: vi.fn(), createCommercialSupervisor: vi.fn(), createFinancialCategory: vi.fn(), updateFinancialCategory: vi.fn(), updatePartner: vi.fn(), updateCommercialSupervisor: vi.fn(), updateSupplier: vi.fn(), updateSupplierOffering: vi.fn(), setRegistryActive: vi.fn() }));
+const mutations = vi.hoisted(() => ({ createProvider: vi.fn(), createCommercialSupervisor: vi.fn(), createFinancialCategory: vi.fn(), updateFinancialCategory: vi.fn(), updatePartner: vi.fn(), updateCommercialSupervisor: vi.fn(), updateSupplier: vi.fn(), updateSupplierOffering: vi.fn(), setRegistryActive: vi.fn(), setCommercialSupervisorStores: vi.fn(), deleteRegistry: vi.fn() }));
 const trpcStub = vi.hoisted(() => {
   const mutation = () => ({ mutate: vi.fn(), isPending: false });
-  const overviewData = { providers: [{ id: 1, name: "Cluster MG", active: true }], regionals: [{ id: 2, name: "Central", code: "MG-C", active: true, providerId: 1 }], cities: [{ id: 3, name: "Belo Horizonte", state: "MG", active: true, regionalId: 2 }], suppliers: [{ id: 4, displayName: "Fornecedor BH", active: true, document: "00.000.000/0001-00", email: "contato@fornecedor.com", phone: null, providerId: 1 }], partners: [{ id: 9, name: "Parceiro BH", email: "parceiro@bh.com", phone: "31999999999", active: true }], commercialSupervisors: [{ id: 8, name: "João Supervisor", email: "joao@cluster.com", phone: null, active: true }], serviceTypes: [{ id: 5, name: "Locução", active: true }], mediaTypes: [{ id: 6, name: "Rádio", active: true }], actionTypes: [{ id: 10, name: "Blitz", active: true }], eventTypes: [{ id: 11, name: "Feira", active: true }], financialCategories: [{ id: 7, name: "Trade e Eventos", description: "Verba principal", active: true }], supplierOfferings: [] };
+  const overviewData = { providers: [{ id: 1, name: "Cluster MG", active: true }], regionals: [{ id: 2, name: "Central", code: "MG-C", active: true, providerId: 1 }], cities: [{ id: 3, name: "Belo Horizonte", state: "MG", active: true, regionalId: 2 }], stores: [{ id: 12, name: "Loja Centro", cityId: 3, active: true }], commercialSupervisorStores: [{ commercialSupervisorId: 8, storeId: 12 }], suppliers: [{ id: 4, displayName: "Fornecedor BH", active: true, document: "00.000.000/0001-00", email: "contato@fornecedor.com", phone: null, providerId: 1 }], partners: [{ id: 9, name: "Parceiro BH", email: "parceiro@bh.com", phone: "31999999999", active: true }], commercialSupervisors: [{ id: 8, name: "João Supervisor", email: "joao@cluster.com", phone: null, active: true }], serviceTypes: [{ id: 5, name: "Locução", active: true }], mediaTypes: [{ id: 6, name: "Rádio", active: true }], actionTypes: [{ id: 10, name: "Blitz", active: true }], eventTypes: [{ id: 11, name: "Feira", active: true }], financialCategories: [{ id: 7, name: "Trade e Eventos", description: "Verba principal", active: true }], supplierOfferings: [] };
   const coverageData = { citiesBySupplier: [], servicesBySupplier: [], mediaBySupplier: [] };
   return {
     useUtils: () => ({ settings: { overview: { invalidate: vi.fn() }, supplierCoverage: { invalidate: vi.fn() } } }),
     settings: {
       overview: { useQuery: () => ({ isLoading: false, data: overviewData }) },
       supplierCoverage: { useQuery: () => ({ isLoading: false, data: coverageData }) },
-      createProvider: { useMutation: () => ({ mutate: mutations.createProvider, isPending: false }) }, updateProvider: { useMutation: mutation }, createRegional: { useMutation: mutation }, updateRegional: { useMutation: mutation }, createCity: { useMutation: mutation }, updateCity: { useMutation: mutation }, createPartner: { useMutation: mutation }, updatePartner: { useMutation: () => ({ mutate: mutations.updatePartner, isPending: false }) }, createCommercialSupervisor: { useMutation: () => ({ mutate: mutations.createCommercialSupervisor, isPending: false }) }, updateCommercialSupervisor: { useMutation: () => ({ mutate: mutations.updateCommercialSupervisor, isPending: false }) }, createSupplier: { useMutation: mutation }, updateSupplier: { useMutation: () => ({ mutate: mutations.updateSupplier, isPending: false }) }, uploadRegistryContract: { useMutation: mutation }, createType: { useMutation: mutation }, updateType: { useMutation: mutation }, createFinancialCategory: { useMutation: () => ({ mutate: mutations.createFinancialCategory, isPending: false }) }, updateFinancialCategory: { useMutation: () => ({ mutate: mutations.updateFinancialCategory, isPending: false }) }, createSupplierOffering: { useMutation: mutation }, updateSupplierOffering: { useMutation: () => ({ mutate: mutations.updateSupplierOffering, isPending: false }) }, setSupplierCoverage: { useMutation: mutation }, setRegistryActive: { useMutation: () => ({ mutate: mutations.setRegistryActive, isPending: false }) },
+      createProvider: { useMutation: () => ({ mutate: mutations.createProvider, isPending: false }) }, updateProvider: { useMutation: mutation }, createRegional: { useMutation: mutation }, updateRegional: { useMutation: mutation }, createCity: { useMutation: mutation }, updateCity: { useMutation: mutation }, createPartner: { useMutation: mutation }, updatePartner: { useMutation: () => ({ mutate: mutations.updatePartner, isPending: false }) }, createCommercialSupervisor: { useMutation: () => ({ mutate: mutations.createCommercialSupervisor, isPending: false }) }, updateCommercialSupervisor: { useMutation: () => ({ mutate: mutations.updateCommercialSupervisor, isPending: false }) }, setCommercialSupervisorStores: { useMutation: () => ({ mutate: mutations.setCommercialSupervisorStores, isPending: false }) }, createSupplier: { useMutation: mutation }, updateSupplier: { useMutation: () => ({ mutate: mutations.updateSupplier, isPending: false }) }, uploadRegistryContract: { useMutation: mutation }, createType: { useMutation: mutation }, updateType: { useMutation: mutation }, createFinancialCategory: { useMutation: () => ({ mutate: mutations.createFinancialCategory, isPending: false }) }, updateFinancialCategory: { useMutation: () => ({ mutate: mutations.updateFinancialCategory, isPending: false }) }, createSupplierOffering: { useMutation: mutation }, updateSupplierOffering: { useMutation: () => ({ mutate: mutations.updateSupplierOffering, isPending: false }) }, setSupplierCoverage: { useMutation: mutation }, setRegistryActive: { useMutation: () => ({ mutate: mutations.setRegistryActive, isPending: false }) }, deleteRegistry: { useMutation: () => ({ mutate: mutations.deleteRegistry, isPending: false }) },
     },
   };
 });
@@ -82,14 +82,28 @@ describe("centro de cadastros operacionais", () => {
     expect(mutations.setRegistryActive).toHaveBeenLastCalledWith({ kind: "partner", id: 9, active: false });
   });
 
+  it("confirma a exclusão segura antes de solicitar a remoção de um cadastro", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<OperationalRegistriesPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: /categorias financeiras/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir" }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(mutations.deleteRegistry).toHaveBeenCalledWith({ kind: "financial_category", id: 7 });
+    confirmSpy.mockRestore();
+  });
+
   it("edita e inativa supervisores comerciais preservando o cadastro no centro operacional", () => {
     render(<OperationalRegistriesPanel />);
 
     fireEvent.click(screen.getByText("Supervisores comerciais").closest("button") as HTMLButtonElement);
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "João Atualizado" } });
+    expect(screen.getByLabelText("Loja Centro · Belo Horizonte/MG")).toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "Salvar edição" }));
     expect(mutations.updateCommercialSupervisor).toHaveBeenCalledWith({ id: 8, name: "João Atualizado", email: "joao@cluster.com", phone: undefined });
+    expect(mutations.setCommercialSupervisorStores).toHaveBeenCalledWith({ commercialSupervisorId: 8, storeIds: [12] });
     fireEvent.click(screen.getByRole("button", { name: "Inativar" }));
     expect(mutations.setRegistryActive).toHaveBeenLastCalledWith({ kind: "supervisor", id: 8, active: false });
   });

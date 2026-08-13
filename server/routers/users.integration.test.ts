@@ -86,6 +86,18 @@ describe("usersRouter via tRPC", () => {
     await expect(viewerCaller.users.adminList()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("lista as preferências de módulos somente para administrador", async () => {
+    const settings = [{ id: 4, userId: 2, module: "finance", enabled: false, createdAt: new Date() }];
+    getDbMock.mockResolvedValue({
+      select: vi.fn(() => ({ from: vi.fn(() => ({ orderBy: vi.fn(() => settings) })) })),
+    });
+    const adminCaller = appRouter.createCaller(createContext());
+    await expect(adminCaller.users.adminModuleSettings()).resolves.toEqual(settings);
+
+    const viewerCaller = appRouter.createCaller(createContext({ role: "viewer" }));
+    await expect(viewerCaller.users.adminModuleSettings()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("altera o papel de outro usuário e impede a autoalteração administrativa", async () => {
     const database = profileDatabase(
       { id: 2, name: "Operadora MG", phone: null, role: "viewer" },

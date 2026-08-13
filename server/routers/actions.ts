@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionDebriefs, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, cities, commercialSupervisors, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
+import { actionDebriefs, actionPoints, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, cities, commercialSupervisors, regionals, serviceTypes, stockItems, supplierCities, suppliers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -23,7 +23,7 @@ export function normalizeStockAllocations(allocations: Array<{ stockItemId: numb
   return Array.from(new Map(allocations.map(allocation => [allocation.stockItemId, allocation])).values());
 }
 
-async function ensureActionReferences(database: any, input: { cityId: number; actionTypeId: number; commercialSupervisorId: number | null; supplierIds: number[]; serviceTypeIds: number[]; teamMemberIds: number[]; stockAllocations: Array<{ stockItemId: number }> }) {
+async function ensureActionReferences(database: any, input: { cityId: number; actionTypeId: number; actionPointId: number | null; commercialSupervisorId: number | null; supplierIds: number[]; serviceTypeIds: number[]; teamMemberIds: number[]; stockAllocations: Array<{ stockItemId: number }> }) {
   const checks = [
     { ids: [input.cityId], table: cities, column: cities.id, activeColumn: cities.active, label: "cidade" },
     { ids: [input.actionTypeId], table: actionTypes, column: actionTypes.id, activeColumn: actionTypes.active, label: "tipo de ação" },
@@ -40,6 +40,10 @@ async function ensureActionReferences(database: any, input: { cityId: number; ac
     if (rows.length !== ids.length) throw new TRPCError({ code: "BAD_REQUEST", message: `Vínculo de ${check.label} inexistente ou indisponível.` });
   }));
   const [selectedCity] = await database.select({ id: cities.id, regionalId: cities.regionalId }).from(cities).where(eq(cities.id, input.cityId));
+  if (input.actionPointId) {
+    const [point] = await database.select({ id: actionPoints.id, cityId: actionPoints.cityId }).from(actionPoints).where(eq(actionPoints.id, input.actionPointId));
+    if (!point || point.cityId !== input.cityId) throw new TRPCError({ code: "BAD_REQUEST", message: "O ponto de ação deve pertencer à cidade selecionada." });
+  }
   const supplierIds = Array.from(new Set(input.supplierIds));
   if (supplierIds.length) {
     const coverage = await database.select({ supplierId: supplierCities.supplierId }).from(supplierCities).where(and(eq(supplierCities.cityId, input.cityId), inArray(supplierCities.supplierId, supplierIds)));
@@ -56,7 +60,7 @@ export const actionsRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
-    const [cityRows, typeRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows] = await Promise.all([
+    const [cityRows, typeRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows, actionPointRows] = await Promise.all([
       database.select({ city: cities, regionalName: regionals.name }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(regionals.name), asc(cities.name)),
       database.select().from(actionTypes).where(eq(actionTypes.active, true)).orderBy(asc(actionTypes.name)),
       database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName)),
@@ -64,8 +68,9 @@ export const actionsRouter = router({
       database.select().from(commercialSupervisors).where(eq(commercialSupervisors.active, true)).orderBy(asc(commercialSupervisors.name)),
       database.select({ id: users.id, name: users.name, email: users.email, jobTitle: users.jobTitle }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)),
       database.select({ id: stockItems.id, name: stockItems.name, sku: stockItems.sku, unit: stockItems.unit, cityId: stockItems.cityId }).from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)),
+      database.select().from(actionPoints).orderBy(asc(actionPoints.name)),
     ]);
-    return { cities: cityRows, actionTypes: typeRows, suppliers: supplierRows, serviceTypes: serviceRows, supervisors: supervisorRows, teamUsers: teamRows, stockItems: stockRows };
+    return { cities: cityRows, actionTypes: typeRows, suppliers: supplierRows, serviceTypes: serviceRows, supervisors: supervisorRows, teamUsers: teamRows, stockItems: stockRows, actionPoints: actionPointRows };
   }),
   list: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "actions.read");
@@ -78,7 +83,7 @@ export const actionsRouter = router({
     return rows.map(row => ({ ...row, teamMembers: teamRows.filter(member => member.actionId === row.action.id), stockItems: stockRows.filter(item => item.actionId === row.action.id) }));
   }),
   create: protectedProcedure.input(z.object({
-    cityId: z.number().int().positive(), actionTypeId: z.number().int().positive(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), scheduledFor: z.coerce.date(), endsAt: z.coerce.date().nullable(), objective: z.string().trim().min(3).max(2000), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),
+    cityId: z.number().int().positive(), actionTypeId: z.number().int().positive(), actionPointId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), scheduledFor: z.coerce.date(), endsAt: z.coerce.date().nullable(), objective: z.string().trim().min(3).max(2000), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),
   })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "actions.write");
     if (!validActionRange(input.scheduledFor, input.endsAt)) throw new TRPCError({ code: "BAD_REQUEST", message: "O término da ação deve ser posterior ao início." });
@@ -86,7 +91,7 @@ export const actionsRouter = router({
     await ensureActionReferences(database, input);
     const stockAllocations = normalizeStockAllocations(input.stockAllocations);
     const created = await database.transaction(async transaction => {
-      const [action] = await transaction.insert(actions).values({ cityId: input.cityId, actionTypeId: input.actionTypeId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, scheduledFor: input.scheduledFor, endsAt: input.endsAt, objective: input.objective, commercialSupervisorId: input.commercialSupervisorId, partnershipType: input.partnershipType, estimatedCost: input.estimatedCost.toFixed(2) }).returning();
+      const [action] = await transaction.insert(actions).values({ cityId: input.cityId, actionTypeId: input.actionTypeId, actionPointId: input.actionPointId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, scheduledFor: input.scheduledFor, endsAt: input.endsAt, objective: input.objective, commercialSupervisorId: input.commercialSupervisorId, partnershipType: input.partnershipType, estimatedCost: input.estimatedCost.toFixed(2) }).returning();
       if (input.supplierIds.length) await transaction.insert(actionSuppliers).values(Array.from(new Set(input.supplierIds)).map(supplierId => ({ actionId: action.id, supplierId })));
       if (input.serviceTypeIds.length) await transaction.insert(actionServices).values(Array.from(new Set(input.serviceTypeIds)).map(serviceTypeId => ({ actionId: action.id, serviceTypeId })));
       if (input.teamMemberIds.length) await transaction.insert(actionTeamMembers).values(Array.from(new Set(input.teamMemberIds)).map(userId => ({ actionId: action.id, userId })));

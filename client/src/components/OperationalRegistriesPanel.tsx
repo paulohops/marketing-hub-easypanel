@@ -44,7 +44,8 @@ type Panel =
   | "media"
   | "action"
   | "event"
-  | "financial_category";
+  | "financial_category"
+  | "action_point";
 type Row = { id: number; name: string; active: boolean; detail?: string };
 type RegistryGroup = "Lojas e localidade" | "Parceiros" | "Operação";
 
@@ -103,6 +104,13 @@ const cards: Array<{
     title: "Tipos de ação",
     description: "Categorias configuráveis para ações de trade.",
     icon: Megaphone,
+    group: "Operação",
+  },
+  {
+    key: "action_point",
+    title: "Pontos de ação",
+    description: "Locais recorrentes para planejar, comparar e avaliar ações de trade.",
+    icon: MapPinned,
     group: "Operação",
   },
   {
@@ -198,6 +206,7 @@ export default function OperationalRegistriesPanel() {
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [mediaIds, setMediaIds] = useState<number[]>([]);
+  const [supervisorStoreIds, setSupervisorStoreIds] = useState<number[]>([]);
   const [offerName, setOfferName] = useState("");
   const [offerKind, setOfferKind] = useState<
     "service" | "media" | "action" | "event" | "other"
@@ -294,6 +303,13 @@ export default function OperationalRegistriesPanel() {
     trpc.settings.updateCommercialSupervisor.useMutation(
       feedback("Supervisor comercial atualizado.")
     );
+  const setCommercialSupervisorStores = trpc.settings.setCommercialSupervisorStores.useMutation({
+    onSuccess: () => {
+      toast.success("Lojas supervisionadas atualizadas.");
+      refresh();
+    },
+    onError: error => toast.error(error.message),
+  });
   const createOffering = trpc.settings.createSupplierOffering.useMutation({
     onSuccess: () => {
       toast.success("Oferta e preço cadastrados.");
@@ -325,6 +341,13 @@ export default function OperationalRegistriesPanel() {
   const setActive = trpc.settings.setRegistryActive.useMutation({
     onSuccess: () => {
       toast.success("Status atualizado.");
+      refresh();
+    },
+    onError: error => toast.error(error.message),
+  });
+  const deleteRegistry = trpc.settings.deleteRegistry.useMutation({
+    onSuccess: () => {
+      toast.success("Cadastro excluído com segurança.");
       refresh();
     },
     onError: error => toast.error(error.message),
@@ -378,6 +401,7 @@ export default function OperationalRegistriesPanel() {
     setPaymentMethod("");
     setPaymentRecurrence("");
     setHasContract(false);
+    setSupervisorStoreIds([]);
   };
   const toggle = (
     id: number,
@@ -400,6 +424,7 @@ export default function OperationalRegistriesPanel() {
     updatePartner.isPending ||
     createCommercialSupervisor.isPending ||
     updateCommercialSupervisor.isPending ||
+    setCommercialSupervisorStores.isPending ||
     createSupplier.isPending ||
     updateSupplier.isPending ||
     uploadRegistryContract.isPending ||
@@ -409,7 +434,8 @@ export default function OperationalRegistriesPanel() {
     updateFinancialCategory.isPending ||
     createOffering.isPending ||
     updateOffering.isPending ||
-    setCoverage.isPending;
+    setCoverage.isPending ||
+    deleteRegistry.isPending;
   const rows = (): Row[] => {
     const data = overview.data;
     if (!data || !panel) return [];
@@ -534,6 +560,7 @@ export default function OperationalRegistriesPanel() {
       setName(item.name);
       setEmail(item.email ?? "");
       setPhone(item.phone ?? "");
+      setSupervisorStoreIds((data.commercialSupervisorStores ?? []).filter(link => link.commercialSupervisorId === id).map(link => link.storeId));
       return;
     }
     if (panel === "financial_category") {
@@ -623,20 +650,14 @@ export default function OperationalRegistriesPanel() {
             paymentRecurrence: paymentRecurrence || undefined,
             hasContract,
           });
-    if (panel === "supervisor")
-      return editingId
-        ? updateCommercialSupervisor.mutate({
-            id: editingId,
-            name,
-            email: email || undefined,
-            phone: phone || undefined,
-          })
-        : createCommercialSupervisor.mutate({
-            userId: null,
-            name,
-            email: email || undefined,
-            phone: phone || undefined,
-          });
+    if (panel === "supervisor") {
+      const payload = { name, email: email || undefined, phone: phone || undefined };
+      if (editingId) {
+        updateCommercialSupervisor.mutate({ id: editingId, ...payload });
+        return setCommercialSupervisorStores.mutate({ commercialSupervisorId: editingId, storeIds: supervisorStoreIds });
+      }
+      return createCommercialSupervisor.mutate({ userId: null, ...payload }, { onSuccess: item => setCommercialSupervisorStores.mutate({ commercialSupervisorId: item.id, storeIds: supervisorStoreIds }) });
+    }
     if (panel === "financial_category")
       return editingId
         ? updateFinancialCategory.mutate({
@@ -759,6 +780,10 @@ export default function OperationalRegistriesPanel() {
               onClick={() => {
                 if (card.key === "provider") {
                   setLocation("/empresas");
+                  return;
+                }
+                if (card.key === "action_point") {
+                  setLocation("/pontos-de-acao");
                   return;
                 }
                 reset();
@@ -942,6 +967,9 @@ export default function OperationalRegistriesPanel() {
                 providers={overview.data?.providers ?? []}
                 regionals={overview.data?.regionals ?? []}
                 cities={overview.data?.cities ?? []}
+                stores={overview.data?.stores ?? []}
+                supervisorStoreIds={supervisorStoreIds}
+                onToggleSupervisorStore={id => toggle(id, supervisorStoreIds, setSupervisorStoreIds)}
                 registryCityId={registryCityId}
                 setRegistryCityId={setRegistryCityId}
                 partnershipType={partnershipType}
@@ -1008,11 +1036,15 @@ export default function OperationalRegistriesPanel() {
                 onEdit={startEdit}
                 onToggle={(id, active) =>
                   setActive.mutate({
-                    kind: panel ?? "provider",
+                    kind: (panel ?? "provider") as Exclude<Panel, "action_point">,
                     id,
                     active: !active,
                   })
                 }
+                onDelete={id => {
+                  const kind = (panel ?? "provider") as Exclude<Panel, "action_point">;
+                  if (window.confirm("Excluir este cadastro? A exclusão só será concluída se não houver vínculos operacionais.")) deleteRegistry.mutate({ kind, id });
+                }}
                 pending={setActive.isPending}
               />
             </>
@@ -1058,6 +1090,9 @@ function RegistryForm(props: {
   providers: Array<{ id: number; name: string; active: boolean }>;
   regionals: Array<{ id: number; name: string; active: boolean }>;
   cities: Array<{ id: number; name: string; state: string; active: boolean }>;
+  stores: Array<{ id: number; name: string; cityId: number; active: boolean }>;
+  supervisorStoreIds: number[];
+  onToggleSupervisorStore: (id: number) => void;
   registryCityId: string;
   setRegistryCityId: (v: string) => void;
   partnershipType: "paid" | "barter" | "mixed";
@@ -1239,6 +1274,16 @@ function RegistryForm(props: {
         <>
           <Field label="E-mail" id="registry-email" value={props.email} setValue={props.setEmail} type="email" />
           <Field label="Telefone" id="registry-phone" value={props.phone} setValue={props.setPhone} />
+          <section className="rounded-xl border border-border bg-secondary/20 p-3 sm:col-span-2">
+            <p className="text-sm font-semibold text-foreground">Lojas supervisionadas</p>
+            <p className="mt-1 text-xs text-muted-foreground">Selecione todas as lojas sob responsabilidade deste supervisor.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {props.stores.filter(store => store.active).length ? props.stores.filter(store => store.active).map(store => {
+                const city = props.cities.find(item => item.id === store.cityId);
+                return <label key={store.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"><input type="checkbox" checked={props.supervisorStoreIds.includes(store.id)} onChange={() => props.onToggleSupervisorStore(store.id)} className="h-4 w-4 accent-primary" /><span>{store.name}{city ? ` · ${city.name}/${city.state}` : ""}</span></label>;
+              }) : <p className="text-sm text-muted-foreground">Nenhuma loja ativa cadastrada.</p>}
+            </div>
+          </section>
         </>
       ) : null}
       {props.panel === "financial_category" ? (
@@ -1573,11 +1618,13 @@ function RegistryList({
   rows,
   onEdit,
   onToggle,
+  onDelete,
   pending,
 }: {
   rows: Row[];
   onEdit: (id: number) => void;
   onToggle: (id: number, active: boolean) => void;
+  onDelete: (id: number) => void;
   pending: boolean;
 }) {
   return (
@@ -1621,6 +1668,16 @@ function RegistryList({
                   onClick={() => onToggle(row.id, row.active)}
                 >
                   {row.active ? "Inativar" : "Ativar"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 border-destructive/30 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={pending}
+                  onClick={() => onDelete(row.id)}
+                >
+                  Excluir
                 </Button>
               </div>
             </div>

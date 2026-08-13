@@ -14,7 +14,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const userRoles = ["user", "admin", "regional_manager", "operator", "viewer"] as const;
+export const userRoles = ["user", "team_member", "admin", "regional_manager", "operator", "viewer"] as const;
 export const userRoleEnum = pgEnum("user_role", userRoles);
 export const movementTypeEnum = pgEnum("stock_movement_type", ["entry", "exit", "adjustment"]);
 export const campaignStatusEnum = pgEnum("campaign_status", ["scheduled", "active", "completed", "cancelled"]);
@@ -45,6 +45,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatarUrl"),
   loginMethod: varchar("loginMethod", { length: 64 }),
   jobTitle: varchar("jobTitle", { length: 120 }),
+  managerUserId: integer("managerUserId").references((): AnyPgColumn => users.id, { onDelete: "set null" }),
   passwordHash: varchar("passwordHash", { length: 255 }),
   passwordUpdatedAt: timestamp("passwordUpdatedAt", { withTimezone: true }),
   isActive: boolean("isActive").default(true).notNull(),
@@ -71,6 +72,14 @@ export const userPermissions = pgTable("user_permissions", {
   allowed: boolean("allowed").notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 }, table => [uniqueIndex("user_permissions_user_module_action_uq").on(table.userId, table.module, table.action)]);
+
+export const userModuleSettings = pgTable("user_module_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  module: permissionModuleEnum("module").notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+}, table => [uniqueIndex("user_module_settings_user_module_uq").on(table.userId, table.module)]);
 
 export const providers = pgTable("providers", {
   id: serial("id").primaryKey(),
@@ -160,6 +169,25 @@ export const stores = pgTable("stores", {
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const commercialSupervisorStores = pgTable("commercial_supervisor_stores", {
+  id: serial("id").primaryKey(),
+  commercialSupervisorId: integer("commercialSupervisorId").notNull().references(() => commercialSupervisors.id, { onDelete: "cascade" }),
+  storeId: integer("storeId").notNull().references(() => stores.id, { onDelete: "restrict" }),
+}, table => [uniqueIndex("commercial_supervisor_stores_uq").on(table.commercialSupervisorId, table.storeId)]);
+
+export const actionPoints = pgTable("action_points", {
+  id: serial("id").primaryKey(),
+  cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
+  name: varchar("name", { length: 180 }).notNull(),
+  address: text("address"),
+  latitude: numeric("latitude", { precision: 10, scale: 7 }),
+  longitude: numeric("longitude", { precision: 10, scale: 7 }),
+  notes: text("notes"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+}, table => [uniqueIndex("action_points_city_name_uq").on(table.cityId, table.name)]);
 
 export const partners = pgTable("partners", {
   id: serial("id").primaryKey(),
@@ -410,6 +438,7 @@ export const actions = pgTable("actions", {
   actionTypeId: integer("actionTypeId").notNull().references(() => actionTypes.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
   address: text("address"),
+  actionPointId: integer("actionPointId").references(() => actionPoints.id, { onDelete: "set null" }),
   latitude: numeric("latitude", { precision: 10, scale: 7 }),
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
   scheduledFor: timestamp("scheduledFor", { withTimezone: true }).notNull(),

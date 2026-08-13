@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import type { User } from "../drizzle/schema";
-import { rolePermissions as rolePermissionRows, userPermissions as userPermissionRows } from "../drizzle/schema";
+import { rolePermissions as rolePermissionRows, userModuleSettings as userModuleSettingRows, userPermissions as userPermissionRows } from "../drizzle/schema";
 import { getDb } from "./db";
 
-export type TradeRole = "user" | "admin" | "regional_manager" | "operator" | "viewer";
+export type TradeRole = "user" | "team_member" | "admin" | "regional_manager" | "operator" | "viewer";
 export type PermissionModule = "dashboard" | "settings" | "inventory" | "finance" | "media" | "actions" | "events" | "operations" | "documents" | "map" | "notifications";
 export type PermissionAction = "read" | "create" | "update" | "delete";
 
@@ -13,6 +13,7 @@ export const permissionActions: PermissionAction[] = ["read", "create", "update"
 
 const legacyRolePermissions: Record<TradeRole, readonly string[]> = {
   user: ["dashboard.read", "inventory.read", "finance.read", "media.read", "actions.read", "events.read"],
+  team_member: ["dashboard.read", "inventory.read", "media.read", "actions.read", "events.read", "notifications.read"],
   admin: ["*"],
   regional_manager: ["dashboard.read", "settings.read", "settings.write", "inventory.read", "inventory.write", "finance.read", "finance.write", "media.read", "media.write", "actions.read", "actions.write", "events.read", "events.write", "operations.read", "operations.create", "operations.update", "documents.write"],
   operator: ["dashboard.read", "inventory.read", "inventory.write", "media.read", "media.write", "actions.read", "actions.write", "events.read", "events.write", "operations.read", "operations.create", "operations.update", "documents.write"],
@@ -39,13 +40,16 @@ export async function effectivePermissionKeys(user: Pick<User, "id" | "role" | "
   }
   const database = await getDb();
   if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
-  const [roleEntries, userEntries] = await Promise.all([
+  const [roleEntries, userEntries, moduleSettings] = await Promise.all([
     user.role === "admin"
       ? Promise.resolve(permissionModules.flatMap(module => permissionActions.map(action => ({ module, action, allowed: true }))))
       : database.select({ module: rolePermissionRows.module, action: rolePermissionRows.action, allowed: rolePermissionRows.allowed }).from(rolePermissionRows).where(eq(rolePermissionRows.role, user.role)),
     database.select({ module: userPermissionRows.module, action: userPermissionRows.action, allowed: userPermissionRows.allowed }).from(userPermissionRows).where(eq(userPermissionRows.userId, user.id)),
+    database.select({ module: userModuleSettingRows.module, enabled: userModuleSettingRows.enabled }).from(userModuleSettingRows).where(eq(userModuleSettingRows.userId, user.id)),
   ]);
   return permissionModules.flatMap(module => permissionActions.flatMap(action => {
+    const isModuleEnabled = moduleSettings.find(entry => entry.module === module)?.enabled ?? true;
+    if (!isModuleEnabled) return [];
     const override = userEntries.find(entry => entry.module === module && entry.action === action);
     const rolePermission = roleEntries.find(entry => entry.module === module && entry.action === action);
     const inherited = rolePermission?.allowed ?? hasLegacyPermission(user.role as TradeRole, `${module}.${action}`);
