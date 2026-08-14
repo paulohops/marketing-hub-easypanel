@@ -289,3 +289,8 @@
 - [x] Corrigir a distribuição horizontal da lista de Campanhas, aproximando status, período, operações e nota sem desperdício de espaço.
 - [x] Reorganizar o debriefing de Campanhas com grade responsiva, nota legível e campos textuais proporcionais.
 - [x] Validar a correção visual de lista e debriefing com testes, tipagem e revisão visual.
+- [x] Corrigir a identidade Marketing HUB na barra lateral, evitando a quebra do nome em telas amplas e estreitas.
+- [x] Reorganizar a lista de Campanhas para que o atalho de Ações e os demais vínculos operacionais preservem largura, alinhamento e clique em todas as larguras.
+- [x] Posicionar o botão de Filtros ao lado de Nova campanha e preservar sua navegação por teclado.
+- [x] Simplificar o debriefing para nota, história da campanha e avaliação/aprendizados, ampliando os campos descritivos.
+- [x] Validar a responsividade da barra lateral e dos ajustes de Campanhas em desktop, tablet e celular.

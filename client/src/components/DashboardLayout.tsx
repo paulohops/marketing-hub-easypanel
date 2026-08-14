@@ -136,14 +136,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
     <Sidebar collapsible="icon" className="border-r border-white/20 bg-primary text-sidebar-foreground">
-      <SidebarHeader className="flex-row items-center gap-2 px-3 pb-3 pt-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
-        <button onClick={() => setLocation("/")} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden">
-          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-sidebar-accent p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
+      <SidebarHeader className="flex-row items-center gap-1 px-3 pb-3 pt-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+        <button onClick={() => setLocation("/")} className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden">
+          <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-sidebar-accent p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
             <img src="/manus-storage/cluster-mg-logo_947e1614.png" alt="Cluster MG" className="h-full w-full object-contain" />
           </span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="block font-display text-[1.05rem] font-extrabold tracking-tight">MARKETING HUB</span>
-            <span className="block text-[10px] font-bold tracking-[0.18em] text-sidebar-foreground">CLUSTER MG</span>
+            <span className="block whitespace-nowrap font-display text-[0.9rem] font-extrabold leading-tight tracking-tight">MARKETING HUB</span>
+            <span className="block whitespace-nowrap text-[9px] font-bold tracking-[0.14em] text-sidebar-foreground">CLUSTER MG</span>
           </span>
         </button>
         <SidebarTrigger aria-label="Recolher ou expandir menu" className="h-8 w-8 shrink-0 rounded-lg text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:mx-auto" />
