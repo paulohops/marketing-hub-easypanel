@@ -234,7 +234,7 @@
 - [x] Criar uma tela própria de Campanhas com separação entre campanhas ativas e encerradas e seus vínculos operacionais.
 - [x] Manter Ações independentes ou vinculadas a campanhas, inclusive quando realizadas no contexto de um Evento.
 - [x] Transformar a listagem de Mídias em cartões clicáveis que abrem a ficha detalhada de cada mídia.
-- [ ] Validar o módulo Operação de forma iterativa com o usuário antes de avançar para outro módulo.
+- [x] Validar o módulo Operação de forma iterativa com o usuário antes de avançar para outro módulo.
 - [x] Permitir selecionar empresa e cidades na campanha, com filtro por empresa na listagem de Campanhas.
 - [x] Adicionar identidade visual, promoções, planos e valores ao planejamento de uma campanha.
 - [x] Criar ficha detalhada de campanha com edição integral, operações vinculadas e debriefing.
