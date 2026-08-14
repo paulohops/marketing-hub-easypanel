@@ -13,6 +13,7 @@ const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
 const planInput = z.object({
   name: z.string().trim().min(2).max(160),
+  speed: z.string().trim().max(96).optional(),
   description: z.string().trim().max(1_000).optional(),
   price: z.coerce.number().min(0).max(99_999_999),
   unit: z.string().trim().min(1).max(48).optional(),
@@ -119,7 +120,7 @@ async function replaceCampaignStructure(database: MutationDatabase, campaignId: 
     const [createdPromotion] = await database.insert(campaignPromotions).values({ campaignId, name: promotion.name, description: promotion.description || null, active: promotion.active, sortOrder: promotionIndex }).returning();
     const promotionCityIds = uniqueIds(promotion.cityIds);
     if (promotionCityIds.length) await database.insert(campaignPromotionCities).values(promotionCityIds.map(cityId => ({ campaignPromotionId: createdPromotion.id, cityId })));
-    if (promotion.plans.length) await database.insert(campaignPromotionPlans).values(promotion.plans.map((plan, planIndex) => ({ campaignPromotionId: createdPromotion.id, name: plan.name, description: plan.description || null, price: String(plan.price), unit: plan.unit || "unidade", active: plan.active, sortOrder: planIndex })));
+    if (promotion.plans.length) await database.insert(campaignPromotionPlans).values(promotion.plans.map((plan, planIndex) => ({ campaignPromotionId: createdPromotion.id, name: plan.name, speed: plan.speed || null, description: plan.description || null, price: String(plan.price), unit: plan.unit || "mês", active: plan.active, sortOrder: planIndex })));
   }
 }
 
@@ -128,7 +129,7 @@ async function replaceTemplateStructure(database: MutationDatabase, templateId: 
   for (let promotionIndex = 0; promotionIndex < promotions.length; promotionIndex += 1) {
     const promotion = promotions[promotionIndex];
     const [createdPromotion] = await database.insert(campaignTemplatePromotions).values({ campaignTemplateId: templateId, name: promotion.name, description: promotion.description || null, active: promotion.active, sortOrder: promotionIndex }).returning();
-    if (promotion.plans.length) await database.insert(campaignTemplatePromotionPlans).values(promotion.plans.map((plan, planIndex) => ({ campaignTemplatePromotionId: createdPromotion.id, name: plan.name, description: plan.description || null, price: String(plan.price), unit: plan.unit || "unidade", active: plan.active, sortOrder: planIndex })));
+    if (promotion.plans.length) await database.insert(campaignTemplatePromotionPlans).values(promotion.plans.map((plan, planIndex) => ({ campaignTemplatePromotionId: createdPromotion.id, name: plan.name, speed: plan.speed || null, description: plan.description || null, price: String(plan.price), unit: plan.unit || "mês", active: plan.active, sortOrder: planIndex })));
   }
 }
 
@@ -161,7 +162,7 @@ export const campaignsRouter = router({
       input?.providerId ? campaignQuery.where(eq(tradeCampaigns.providerId, input.providerId)).orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)) : campaignQuery.orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)),
       database.select({ tradeCampaignId: actions.tradeCampaignId, id: actions.id, name: actions.name, status: actions.status }).from(actions),
       database.select({ tradeCampaignId: events.tradeCampaignId, id: events.id, name: events.name, status: events.status }).from(events),
-      database.select({ tradeCampaignId: mediaCampaigns.tradeCampaignId, id: mediaCampaigns.id, name: mediaCampaigns.name, status: mediaCampaigns.status }).from(mediaCampaigns),
+      database.select({ tradeCampaignId: mediaCampaigns.tradeCampaignId, id: mediaCampaigns.id, name: mediaCampaigns.name, status: mediaCampaigns.status, startsOn: mediaCampaigns.startsOn, endsOn: mediaCampaigns.endsOn, partnershipType: mediaCampaigns.partnershipType, estimatedCost: mediaCampaigns.estimatedCost, mediaPointId: mediaCampaigns.mediaPointId, notes: mediaCampaigns.notes, campaignDetails: mediaCampaigns.campaignDetails }).from(mediaCampaigns),
       database.select({ campaignId: campaignCities.campaignId, id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId }).from(campaignCities).innerJoin(cities, eq(campaignCities.cityId, cities.id)).orderBy(asc(cities.name)),
       database.select({ campaignId: campaignRegionals.campaignId, id: regionals.id, name: regionals.name, providerId: regionals.providerId }).from(campaignRegionals).innerJoin(regionals, eq(campaignRegionals.regionalId, regionals.id)).orderBy(asc(regionals.name)),
       database.select({ id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(cities.name)),

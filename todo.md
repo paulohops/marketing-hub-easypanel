@@ -265,3 +265,9 @@
 - [x] Exibir cobertura territorial integral como “Todas as cidades” e corrigir o espaçamento da identidade visual com múltiplas cidades.
 - [x] Identificar visualmente a empresa de cada Campanha, com Sempre Internet em laranja e OnNet Telecom em verde.
 - [x] Validar os refinamentos de Campanhas com testes, tipagem, acessibilidade e revisão visual.
+- [x] Corrigir o rótulo de quantidade de promoções e exibir todos os planos de cada promoção com nome, velocidade, valor mensal e detalhes.
+- [x] Transformar a listagem de Campanhas em formato de lista preservando filtros, status e acesso à página individual.
+- [x] Equalizar a altura e o alinhamento dos blocos de Segmentação e vigência e de Identidade visual.
+- [x] Reestruturar o debriefing da Campanha com Nota geral, história da campanha, avaliação e aprendizados.
+- [x] Exibir a Mídia atual vinculada à Campanha e abrir seus detalhes em diálogo contextual.
+- [x] Validar os refinamentos de apresentação com testes, tipagem e revisão visual.

@@ -54,12 +54,12 @@ describe("campaigns router", () => {
       startsAt: new Date("2026-08-20T09:00:00Z"),
       endsAt: new Date("2026-08-31T22:00:00Z"),
       status: "scheduled",
-      promotions: [{ name: "Internet em dobro", description: "Oferta para novos clientes", active: true, plans: [{ name: "300 Mega", price: 99.9, unit: "mês", active: true }] }],
+      promotions: [{ name: "Internet em dobro", description: "Oferta para novos clientes", active: true, plans: [{ name: "300 Mega", speed: "300 Mbps", price: 99.9, unit: "mês", active: true }] }],
     })).resolves.toMatchObject({ id: 77, name: "Volta às aulas" });
 
     expect(cityValues).toHaveBeenCalledWith([{ campaignId: 77, cityId: 4 }, { campaignId: 77, cityId: 7 }]);
     expect(promotionValues).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 77, name: "Internet em dobro", sortOrder: 0 }));
-    expect(planValues).toHaveBeenCalledWith([{ campaignPromotionId: 88, name: "300 Mega", description: null, price: "99.9", unit: "mês", active: true, sortOrder: 0 }]);
+    expect(planValues).toHaveBeenCalledWith([{ campaignPromotionId: 88, name: "300 Mega", speed: "300 Mbps", description: null, price: "99.9", unit: "mês", active: true, sortOrder: 0 }]);
     expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "trade_campaign", entityId: 77, action: "create" }));
   });
 
@@ -131,11 +131,11 @@ describe("campaigns router", () => {
       defaultStatus: "scheduled",
       defaultDurationDays: 30,
       active: true,
-      promotions: [{ name: "Fibra em dobro", active: true, plans: [{ name: "500 Mega", price: 109.9, unit: "mês", active: true }] }],
+      promotions: [{ name: "Fibra em dobro", active: true, plans: [{ name: "500 Mega", speed: "500 Mbps", price: 109.9, unit: "mês", active: true }] }],
     })).resolves.toMatchObject({ id: 42, name: "Lançamento regional" });
 
     expect(promotionValues).toHaveBeenCalledWith(expect.objectContaining({ campaignTemplateId: 42, name: "Fibra em dobro", sortOrder: 0 }));
-    expect(planValues).toHaveBeenCalledWith([{ campaignTemplatePromotionId: 43, name: "500 Mega", description: null, price: "109.9", unit: "mês", active: true, sortOrder: 0 }]);
+    expect(planValues).toHaveBeenCalledWith([{ campaignTemplatePromotionId: 43, name: "500 Mega", speed: "500 Mbps", description: null, price: "109.9", unit: "mês", active: true, sortOrder: 0 }]);
     expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "campaign_template", entityId: 42, action: "create" }));
   });
 });
