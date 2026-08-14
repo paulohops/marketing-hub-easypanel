@@ -874,46 +874,58 @@ function Detail({
                 completedAt: new Date(),
               });
             }}
-            className="mt-3 grid gap-3 md:grid-cols-[180px_1fr_1fr_auto] md:items-end"
+            className="mt-3 space-y-4"
           >
-            <div className="grid gap-1.5">
-              <Label htmlFor="campaign-debrief-rating">Nota geral</Label>
-              <Input
-                id="campaign-debrief-rating"
-                type="number"
-                min="1"
-                max="5"
-                step="1"
-                value={rating}
-                onChange={event =>
-                  setRating(
-                    Math.min(5, Math.max(1, Number(event.target.value) || 1))
-                  )
-                }
-                className={ratingDefinitions[rating]?.className}
-              />
-              <p className="text-xs text-muted-foreground">
-                {ratingDefinitions[rating]?.label}
+            <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-border bg-muted/25 px-3 py-2.5">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="campaign-debrief-rating">Nota geral</Label>
+                  <Input
+                    id="campaign-debrief-rating"
+                    type="number"
+                    min="1"
+                    max="5"
+                    step="1"
+                    value={rating}
+                    onChange={event =>
+                      setRating(
+                        Math.min(5, Math.max(1, Number(event.target.value) || 1))
+                      )
+                    }
+                    className={`w-20 font-semibold tabular-nums ${ratingDefinitions[rating]?.className ?? ""}`}
+                  />
+                </div>
+                <Badge
+                  variant="outline"
+                  className={`mb-0.5 ${ratingDefinitions[rating]?.className ?? ""}`}
+                >
+                  {rating}/5 · {ratingDefinitions[rating]?.label}
+                </Badge>
+              </div>
+              <p className="max-w-xl text-xs text-muted-foreground">
+                Use a escala de 1 a 5 para registrar a percepção geral da campanha.
               </p>
             </div>
-            <div className="grid gap-1.5">
-              <Label>História da campanha</Label>
-              <Input
-                value={result}
-                onChange={event => setResult(event.target.value)}
-                placeholder="História da campanha"
-              />
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+              <div className="grid gap-1.5">
+                <Label>História da campanha</Label>
+                <Input
+                  value={result}
+                  onChange={event => setResult(event.target.value)}
+                  placeholder="História da campanha"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Avaliação e aprendizados</Label>
+                <Textarea
+                  value={notes}
+                  onChange={event => setNotes(event.target.value)}
+                  placeholder="Avaliação e aprendizados"
+                  className="min-h-10"
+                />
+              </div>
+              {canWrite && <Button type="submit">Salvar debriefing</Button>}
             </div>
-            <div className="grid gap-1.5">
-              <Label>Avaliação e aprendizados</Label>
-              <Textarea
-                value={notes}
-                onChange={event => setNotes(event.target.value)}
-                placeholder="Avaliação e aprendizados"
-                className="min-h-10"
-              />
-            </div>
-            {canWrite && <Button type="submit">Salvar debriefing</Button>}
           </form>
         </section>
       </div>
@@ -1328,9 +1340,9 @@ export default function CampaignsWorkspace() {
             <button
               key={item.id}
               onClick={() => setLocation(`/campanhas/${item.id}`)}
-              className="grid min-h-[142px] grid-cols-[72px_minmax(0,1fr)] gap-x-4 gap-y-3 border-b border-border px-5 py-6 text-left transition last:border-b-0 hover:bg-muted/40 lg:grid-cols-[72px_minmax(180px,1.25fr)_minmax(170px,.8fr)_minmax(190px,.9fr)] lg:items-center xl:grid-cols-[72px_minmax(180px,1.25fr)_minmax(150px,.8fr)_minmax(170px,.85fr)_minmax(205px,.9fr)_auto]"
+              className="grid min-h-[132px] grid-cols-[80px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-5 py-5 text-left transition last:border-b-0 hover:bg-muted/40 xl:grid-cols-[80px_minmax(210px,1.2fr)_minmax(165px,.82fr)_minmax(190px,.9fr)_minmax(210px,1fr)]"
             >
-              <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-sm font-bold text-primary xl:row-span-1">
+              <div className="row-span-2 grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-sm font-bold text-primary xl:row-span-1">
                 {item.logoUrl || item.providerLogoUrl ? (
                   <img src={item.logoUrl ?? item.providerLogoUrl} alt="" className="h-full w-full object-cover object-center" />
                 ) : (
@@ -1341,17 +1353,24 @@ export default function CampaignsWorkspace() {
                 <h2 className="truncate font-semibold text-foreground">{item.name}</h2>
                 <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{item.objective || "Objetivo ainda não informado."}</p>
               </div>
-              <div className="min-w-0 space-y-2">
+              <div className="col-span-2 min-w-0 space-y-2 xl:col-span-1">
                 <div className="flex flex-wrap items-center gap-2"><CompanyBadge name={item.providerName} /><StatusBadge status={item.status} /></div>
                 <div className="flex flex-wrap items-center gap-2">{item.campaignTypeName && <Badge variant="outline">{item.campaignTypeName}</Badge>}{item.campaignSectorName && <Badge variant="outline">{item.campaignSectorName}</Badge>}</div>
               </div>
-              <div className="min-w-0 rounded-xl bg-muted/45 px-3 py-2.5">
+              <div className="col-span-2 min-w-0 rounded-xl bg-muted/45 px-3 py-2.5 xl:col-span-1">
                 <p className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{compactDate(item.startsAt)} — {compactDate(item.endsAt)}</p>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{item.hasExplicitCities ? `${item.cities.length} cidades` : "Todas as cidades"}</p>
               </div>
-              <div className="col-span-2 grid grid-cols-3 gap-1.5 text-center text-xs font-medium text-primary lg:col-span-3 xl:col-span-1"><span className="rounded-lg bg-primary/8 px-2 py-2">{item.actions.length} ações</span><span className="rounded-lg bg-primary/8 px-2 py-2">{item.media.length} mídias</span><span className="rounded-lg bg-primary/8 px-2 py-2">{item.events.length} eventos</span></div>
-              <div className="hidden justify-end xl:flex">{item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-xs text-muted-foreground">Sem nota</span>}</div>
-              <div className="flex items-center justify-end lg:col-start-4 xl:hidden">{item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-xs text-muted-foreground">Sem nota</span>}</div>
+              <div className="col-span-2 flex min-w-0 items-center gap-2 xl:col-span-1">
+                <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 text-center text-xs font-medium text-primary">
+                  <span className="rounded-lg bg-primary/8 px-1.5 py-2">{item.actions.length} ações</span>
+                  <span className="rounded-lg bg-primary/8 px-1.5 py-2">{item.media.length} mídias</span>
+                  <span className="rounded-lg bg-primary/8 px-1.5 py-2">{item.events.length} eventos</span>
+                </div>
+                <div className="grid h-10 w-10 shrink-0 place-items-center">
+                  {item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-center text-[11px] leading-tight text-muted-foreground">Sem<br />nota</span>}
+                </div>
+              </div>
             </button>
           ))}
           {!visible.length && (

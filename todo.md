@@ -286,3 +286,6 @@
 - [x] Renomear a aplicação para Marketing HUB em toda a interface visível.
 - [x] Implementar renovação de Campanha com seleção de novo período de vigência e histórico auditável.
 - [x] Validar os ajustes de lista, renovação e vínculos operacionais com testes, tipagem e revisão visual.
+- [x] Corrigir a distribuição horizontal da lista de Campanhas, aproximando status, período, operações e nota sem desperdício de espaço.
+- [x] Reorganizar o debriefing de Campanhas com grade responsiva, nota legível e campos textuais proporcionais.
+- [x] Validar a correção visual de lista e debriefing com testes, tipagem e revisão visual.
