@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLocation, useRoute } from "wouter";
 
 type StockAllocation = { stockItemId: number; quantity: string };
 type ServiceAllocation = { serviceTypeId: number; estimatedAmount: string };
@@ -65,6 +66,8 @@ const toDateField = (value: Date | string | null | undefined) =>
   value ? new Date(value).toISOString().slice(0, 16) : "";
 
 export default function ActionsWorkspace() {
+  const [, setLocation] = useLocation();
+  const [isDetailRoute, routeParams] = useRoute("/acoes/:actionId");
   const { can } = useEffectivePermissions();
   const canWrite = can("actions.write");
   const utils = trpc.useUtils();
@@ -75,7 +78,7 @@ export default function ActionsWorkspace() {
   const [campaignOpen, setCampaignOpen] = useState(false);
   const [campaignForm, setCampaignForm] = useState({ name: "", objective: "", regionalId: "", startsAt: "", endsAt: "", status: "scheduled" as "scheduled" | "active" | "completed" | "cancelled" });
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selectedId = isDetailRoute && routeParams?.actionId ? Number(routeParams.actionId) : null;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [regionalFilter, setRegionalFilter] = useState("all");
@@ -365,7 +368,7 @@ export default function ActionsWorkspace() {
         <ActionDetail
           row={selected}
           canWrite={canWrite}
-          onBack={() => setSelectedId(null)}
+          onBack={() => setLocation("/acoes")}
           onEdit={() => openEdit(selected)}
           onStatus={next =>
             changeStatus.mutate({ actionId: selected.action.id, status: next })
@@ -708,7 +711,7 @@ export default function ActionsWorkspace() {
               <button
                 key={row.action.id}
                 type="button"
-                onClick={() => setSelectedId(row.action.id)}
+                onClick={() => setLocation(`/acoes/${row.action.id}`)}
                 className="flex w-full flex-col gap-3 px-5 py-4 text-left transition hover:bg-muted/50 lg:flex-row lg:items-center lg:justify-between"
               >
                 <div className="min-w-0">
@@ -724,11 +727,10 @@ export default function ActionsWorkspace() {
                     </Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {row.actionTypeName} · {row.cityName} ·{" "}
-                    {new Date(row.action.scheduledFor).toLocaleString("pt-BR")}
+                    {row.actionTypeName} · {row.cityName} · Início: {new Date(row.action.scheduledFor).toLocaleString("pt-BR")}
                   </p>
                   <p className="mt-2 line-clamp-1 text-xs text-foreground">
-                    {row.action.objective}
+                    Objetivo: {row.action.objective}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-muted-foreground lg:max-w-80">
@@ -1154,9 +1156,9 @@ function ActionDetail({
           <DetailSection title="Histórico da ação">
             {row.history?.length ? (
               <div className="space-y-3">
-                {row.history.map((entry: any) => (
+                {row.history.map((entry: any, index: number) => (
                   <div
-                    key={entry.id}
+                    key={entry.id ?? `${entry.auditAction}-${entry.occurredAt}-${index}`}
                     className="border-l-2 border-primary/30 pl-3"
                   >
                     <p className="text-sm font-medium text-foreground">

@@ -8,9 +8,10 @@ import EvidenceUpload from "@/components/EvidenceUpload";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { trpc } from "@/lib/trpc";
-import { Building2, CalendarClock, ChevronRight, ExternalLink, FileImage, History, MapPin, Megaphone, Plus, RadioTower, RefreshCw, RotateCcw, SlidersHorizontal, Truck } from "lucide-react";
+import { ArrowLeft, Building2, CalendarClock, ChevronRight, ExternalLink, FileImage, History, MapPin, Megaphone, Plus, RadioTower, RefreshCw, RotateCcw, SlidersHorizontal, Truck } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLocation, useRoute } from "wouter";
 
 type ChannelKind = "standard" | "external";
 type PartnershipType = "paid" | "barter" | "mixed";
@@ -24,7 +25,23 @@ function SelectField({ label, children, ...props }: React.ComponentProps<"select
   return <label className="block space-y-1.5"><span className="text-sm font-medium text-foreground">{label}</span><select {...props} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20">{children}</select></label>;
 }
 
+function MediaDetailPage({ mediaPointId }: { mediaPointId: number }) {
+  const [, setLocation] = useLocation();
+  const { can } = useEffectivePermissions();
+  const canWrite = can("media.write");
+  const detail = trpc.media.pointDetails.useQuery({ mediaPointId });
+  const point = detail.data;
+  return <main className="mx-auto max-w-6xl space-y-5">
+    <Button type="button" variant="outline" onClick={() => setLocation("/midias")} className="border-border"><ArrowLeft className="mr-1.5 h-4 w-4" />Voltar para mídias</Button>
+    <header className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Ficha operacional de mídia</p><h1 className="mt-1 font-display text-3xl font-semibold text-foreground">{point?.name ?? "Detalhes da mídia"}</h1><p className="mt-2 text-sm text-muted-foreground">Fornecedor, cobertura, ciclos, histórico e evidências do ponto selecionado.</p></header>
+    {detail.isLoading ? <div className="grid h-48 place-items-center rounded-2xl border border-border bg-card text-sm text-muted-foreground">Carregando detalhes...</div> : point ? <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]"><aside className="space-y-4"><article className="rounded-xl bg-secondary p-4"><div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Building2 className="h-4 w-4 text-primary" />Cobertura e fornecedor</div><dl className="mt-4 space-y-3 text-sm"><div><dt className="text-xs text-muted-foreground">Fornecedor</dt><dd className="font-medium text-foreground">{point.supplierName}</dd></div><div><dt className="text-xs text-muted-foreground">Território</dt><dd className="font-medium text-foreground">{point.cityName} · {point.regionalName}</dd></div><div><dt className="text-xs text-muted-foreground">Tipo de mídia</dt><dd className="font-medium text-foreground">{point.mediaTypeName}{point.serviceTypeName ? ` · ${point.serviceTypeName}` : ""}</dd></div><div><dt className="text-xs text-muted-foreground">Localização</dt><dd className="font-medium text-foreground">{point.address || "Não informada"}</dd></div></dl></article><article className="rounded-xl border border-border bg-card p-4"><div className="flex items-center gap-2 text-sm font-semibold text-foreground"><History className="h-4 w-4 text-primary" />Histórico</div><div className="mt-3 space-y-3">{point.history.length ? point.history.map(entry => <div key={`${entry.scope}-${entry.id}`} className="border-l-2 border-primary/30 pl-3"><p className="text-xs font-medium text-foreground">{entry.action === "schedule" ? "Campanha agendada" : entry.action === "reschedule" ? "Campanha reagendada" : entry.action === "create" ? "Registro criado" : "Atualização registrada"}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{new Date(entry.occurredAt).toLocaleString("pt-BR")}</p></div>) : <p className="text-xs text-muted-foreground">Ainda não há alterações registradas.</p>}</div></article></aside><section className="overflow-hidden rounded-xl border border-border bg-card"><div className="border-b border-border px-4 py-3"><p className="text-sm font-semibold text-foreground">Ciclos e comprovações</p><p className="mt-0.5 text-xs text-muted-foreground">Toda programação e alteração permanece no histórico deste ponto.</p></div><div className="divide-y divide-border">{point.campaigns.length ? point.campaigns.map(campaign => <article key={campaign.id} className="p-4"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-foreground">{campaign.name}</p><Badge className="border-0 bg-secondary text-[10px] text-foreground">{campaignStatusLabel[campaign.status] ?? campaign.status}</Badge><Badge className="border-0 bg-primary/10 text-[10px] text-primary">{partnershipLabel[campaign.partnershipType as PartnershipType]}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{new Date(`${campaign.startsOn}T12:00:00`).toLocaleDateString("pt-BR")} até {new Date(`${campaign.endsOn}T12:00:00`).toLocaleDateString("pt-BR")} · {Number(campaign.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>{campaign.campaignDetails && <p className="mt-2 text-xs leading-5 text-muted-foreground">{campaign.campaignDetails}</p>}{campaign.notes && <p className="mt-1 text-xs leading-5 text-muted-foreground">{campaign.notes}</p>}<div className="mt-3 flex flex-wrap gap-2">{campaign.evidences.map(evidence => <a key={evidence.id} href={evidence.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-[11px] font-medium text-foreground hover:bg-primary/10"><ExternalLink className="h-3 w-3" />{evidence.originalName}</a>)}</div><div className="mt-3"><EvidenceUpload entityType="media_campaign" entityId={campaign.id} regionalId={point.regionalId} canWrite={canWrite} /></div></article>) : <p className="p-5 text-sm text-muted-foreground">Nenhuma campanha registrada para este ponto.</p>}</div></section></div> : <div className="rounded-2xl border border-border bg-card p-8 text-sm text-muted-foreground">Esta mídia não foi encontrada ou você não possui acesso a ela.</div>}
+  </main>;
+}
+
 export default function MediaWorkspace({ initialChannel }: { initialChannel?: ChannelKind }) {
+  const [, setLocation] = useLocation();
+  const [isDetailRoute, routeParams] = useRoute("/midias/:mediaPointId");
+  const routeMediaPointId = isDetailRoute && routeParams?.mediaPointId ? Number(routeParams.mediaPointId) : null;
   const { can } = useEffectivePermissions();
   const canWrite = can("media.write");
   const utils = trpc.useUtils();
@@ -37,7 +54,8 @@ export default function MediaWorkspace({ initialChannel }: { initialChannel?: Ch
   const [campaignPointId, setCampaignPointId] = useState<number | null>(null);
   const [rescheduleCampaignId, setRescheduleCampaignId] = useState<number | null>(null);
   const [debriefCampaignId, setDebriefCampaignId] = useState<number | null>(null);
-  const [detailPointId, setDetailPointId] = useState<number | null>(null);
+  const detailPointId = null;
+  const setDetailPointId = (id: number | null) => { if (id) setLocation(`/midias/${id}`); };
   const [pointForm, setPointForm] = useState(emptyPoint);
   const [campaignForm, setCampaignForm] = useState(emptyCampaign);
   const [cityDistributions, setCityDistributions] = useState<Array<{ cityId: string; quantity: string; notes: string }>>([]);
@@ -66,6 +84,8 @@ export default function MediaWorkspace({ initialChannel }: { initialChannel?: Ch
   const availableServiceTypes = (references.data?.serviceTypes ?? []).filter(type => !selectedSupplierId || (references.data?.supplierServiceTypes ?? []).some(link => link.supplierId === selectedSupplierId && link.serviceTypeId === type.id));
   const availableMediaTypes = (references.data?.mediaTypes ?? []).filter(type => !selectedSupplierId || (references.data?.supplierMediaTypes ?? []).some(link => link.supplierId === selectedSupplierId && link.mediaTypeId === type.id));
   const addDistribution = () => { if (!distributionDraft.cityId || !distributionDraft.quantity) return; setCityDistributions(current => [...current, distributionDraft]); setDistributionDraft({ cityId: "", quantity: "", notes: "" }); };
+
+  if (routeMediaPointId) return <MediaDetailPage mediaPointId={routeMediaPointId} />;
 
   return <div className="mx-auto max-w-[1480px] space-y-6">
     <header className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between"><div className="flex gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary text-white shadow-sm"><RadioTower className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Operação de mídia</p><h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-foreground">{initialChannel === "external" ? "Mídias externas" : "Mídias e campanhas"}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{initialChannel === "external" ? "Controle carros de som, panfletagem e outras ativações externas com contratação, vigência, agenda, comprovações e histórico." : "Controle mídia tradicional e externa, contratação, vigência, agenda, comprovações e histórico por ponto de cobertura."}</p></div></div>{canWrite && <Button onClick={() => { setPointForm({ ...emptyPoint, channelKind: initialChannel ?? "standard" }); setShowPointForm(true); }} className="h-10 rounded-xl bg-primary px-4 text-xs font-semibold hover:bg-primary/90"><Plus className="mr-1.5 h-4 w-4" />Novo ponto de mídia</Button>}</header>

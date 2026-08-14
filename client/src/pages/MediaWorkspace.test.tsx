@@ -31,7 +31,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import MediaWorkspace from "./MediaWorkspace";
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); window.history.replaceState({}, "", "/midias"); window.dispatchEvent(new PopStateEvent("popstate")); });
 
 describe("detalhe de mídias", () => {
   it("abre a criação de ponto em modal, sem expandir o formulário na cobertura", () => {
@@ -60,7 +60,7 @@ describe("detalhe de mídias", () => {
     expect(screen.getByText("Registro criado")).toBeInTheDocument();
     expect(screen.getByText("foto-instalacao.jpg")).toBeInTheDocument();
     expect(screen.getAllByText(/R\$\s?1\.200,00/).length).toBeGreaterThan(0);
-    expect(detailQuery).toHaveBeenLastCalledWith({ mediaPointId: 7 }, { enabled: true });
+    expect(detailQuery).toHaveBeenLastCalledWith({ mediaPointId: 7 });
   });
 
   it("mantém cobertura e pontos em superfícies semânticas sob o tema escuro", () => {

@@ -83,6 +83,29 @@ describe("campaigns router", () => {
     expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "trade_campaign", entityId: 77, action: "save_debrief" }));
   });
 
+  it("persiste somente cidades pertencentes à segmentação da campanha em uma promoção", async () => {
+    const promotion = { id: 88, campaignId: 77 };
+    const promotionWhere = vi.fn(() => ({ limit: vi.fn(() => [promotion]) }));
+    const eligibleCitiesWhere = vi.fn(() => [{ cityId: 4 }, { cityId: 7 }]);
+    const promotionCitiesValues = vi.fn();
+    const transaction = {
+      delete: vi.fn(() => ({ where: vi.fn() })),
+      insert: vi.fn(() => ({ values: promotionCitiesValues })),
+    };
+    getDbMock.mockResolvedValue({
+      select: vi.fn()
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: promotionWhere })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: eligibleCitiesWhere })) }),
+      transaction: vi.fn(async callback => callback(transaction)),
+    });
+    const caller = appRouter.createCaller(context());
+
+    await expect(caller.campaigns.savePromotionCities({ promotionId: 88, cityIds: [4, 7, 4] })).resolves.toEqual({ success: true, cityIds: [4, 7] });
+
+    expect(promotionCitiesValues).toHaveBeenCalledWith([{ campaignPromotionId: 88, cityId: 4 }, { campaignPromotionId: 88, cityId: 7 }]);
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "campaign_promotion", entityId: 88, action: "update_cities", afterData: { cityIds: [4, 7] } }));
+  });
+
   it("persiste um modelo reutilizável com sua estrutura de promoções e planos", async () => {
     const templateValues = vi.fn(() => ({ returning: vi.fn(() => [{ id: 42, name: "Lançamento regional" }]) }));
     const promotionValues = vi.fn(() => ({ returning: vi.fn(() => [{ id: 43, name: "Fibra em dobro" }]) }));

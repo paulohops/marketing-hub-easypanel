@@ -403,6 +403,12 @@ export const campaignPromotions = pgTable("campaign_promotions", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const campaignPromotionCities = pgTable("campaign_promotion_cities", {
+  id: serial("id").primaryKey(),
+  campaignPromotionId: integer("campaignPromotionId").notNull().references(() => campaignPromotions.id, { onDelete: "cascade" }),
+  cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
+}, table => [uniqueIndex("campaign_promotion_cities_promotion_city_uq").on(table.campaignPromotionId, table.cityId)]);
+
 export const campaignPromotionPlans = pgTable("campaign_promotion_plans", {
   id: serial("id").primaryKey(),
   campaignPromotionId: integer("campaignPromotionId").notNull().references(() => campaignPromotions.id, { onDelete: "cascade" }),

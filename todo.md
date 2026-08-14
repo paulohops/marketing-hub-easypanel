@@ -245,3 +245,8 @@
 - [x] Implementar o envio seguro de identidade visual e o debriefing consolidado de Campanhas.
 - [x] Criar a jornada de Cadastros → Modelos de Campanha, incluindo aplicação de modelo durante a criação da Campanha.
 - [x] Cobrir a evolução de Campanhas com testes de router e interface, validação de tipos e revisão visual.
+- [x] Transformar a ficha de Campanha em página dedicada com retorno explícito e navegação preservada.
+- [x] Criar páginas dedicadas e clicáveis para fichas de Ações, Eventos e Mídias, todas com botão de voltar.
+- [x] Enriquecer os cartões operacionais, iniciando por Ações com data de início e objetivo visíveis.
+- [x] Permitir vincular cidades específicas a cada promoção, com persistência, edição e visualização em diálogo próprio.
+- [x] Validar as novas rotas operacionais, o diálogo de promoções e a acessibilidade com testes e revisão visual.

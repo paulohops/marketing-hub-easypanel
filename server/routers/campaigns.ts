@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actions, campaignCities, campaignPromotionPlans, campaignPromotions, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, cities, events, mediaCampaigns, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
+import { actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, cities, events, mediaCampaigns, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -22,6 +22,7 @@ const promotionInput = z.object({
   name: z.string().trim().min(2).max(180),
   description: z.string().trim().max(2_000).optional(),
   active: z.boolean().default(true),
+  cityIds: z.array(z.number().int().positive()).max(200).default([]),
   plans: z.array(planInput).max(24).default([]),
 });
 
@@ -88,6 +89,11 @@ async function validateContext(database: Awaited<ReturnType<typeof requireDataba
     const [template] = await database.select({ id: campaignTemplates.id }).from(campaignTemplates).where(and(eq(campaignTemplates.id, input.campaignTemplateId), eq(campaignTemplates.active, true))).limit(1);
     if (!template) throw new TRPCError({ code: "BAD_REQUEST", message: "Modelo de campanha inexistente ou inativo." });
   }
+  const campaignCityIds = new Set(uniqueIds(input.cityIds));
+  for (const promotion of input.promotions) {
+    const promotionCityIds = uniqueIds(promotion.cityIds);
+    if (promotionCityIds.some(cityId => !campaignCityIds.has(cityId))) throw new TRPCError({ code: "BAD_REQUEST", message: "As cidades de uma promoção precisam estar entre as cidades atendidas pela campanha." });
+  }
 }
 
 type MutationDatabase = Pick<Awaited<ReturnType<typeof requireDatabase>>, "delete" | "insert">;
@@ -100,6 +106,8 @@ async function replaceCampaignStructure(database: MutationDatabase, campaignId: 
   for (let promotionIndex = 0; promotionIndex < promotions.length; promotionIndex += 1) {
     const promotion = promotions[promotionIndex];
     const [createdPromotion] = await database.insert(campaignPromotions).values({ campaignId, name: promotion.name, description: promotion.description || null, active: promotion.active, sortOrder: promotionIndex }).returning();
+    const promotionCityIds = uniqueIds(promotion.cityIds);
+    if (promotionCityIds.length) await database.insert(campaignPromotionCities).values(promotionCityIds.map(cityId => ({ campaignPromotionId: createdPromotion.id, cityId })));
     if (promotion.plans.length) await database.insert(campaignPromotionPlans).values(promotion.plans.map((plan, planIndex) => ({ campaignPromotionId: createdPromotion.id, name: plan.name, description: plan.description || null, price: String(plan.price), unit: plan.unit || "unidade", active: plan.active, sortOrder: planIndex })));
   }
 }
@@ -138,13 +146,14 @@ export const campaignsRouter = router({
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
     const campaignQuery = database.select({ campaign: tradeCampaigns, regionalName: regionals.name, providerName: providers.name, providerLogoUrl: providers.logoUrl, templateName: campaignTemplates.name }).from(tradeCampaigns).leftJoin(regionals, eq(tradeCampaigns.regionalId, regionals.id)).leftJoin(providers, eq(tradeCampaigns.providerId, providers.id)).leftJoin(campaignTemplates, eq(tradeCampaigns.campaignTemplateId, campaignTemplates.id));
-    const [campaignRows, actionRows, eventRows, mediaRows, cityRows, promotionRows, planRows] = await Promise.all([
+    const [campaignRows, actionRows, eventRows, mediaRows, cityRows, promotionRows, promotionCityRows, planRows] = await Promise.all([
       input?.providerId ? campaignQuery.where(eq(tradeCampaigns.providerId, input.providerId)).orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)) : campaignQuery.orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)),
       database.select({ tradeCampaignId: actions.tradeCampaignId, id: actions.id, name: actions.name, status: actions.status }).from(actions),
       database.select({ tradeCampaignId: events.tradeCampaignId, id: events.id, name: events.name, status: events.status }).from(events),
       database.select({ tradeCampaignId: mediaCampaigns.tradeCampaignId, id: mediaCampaigns.id, name: mediaCampaigns.name, status: mediaCampaigns.status }).from(mediaCampaigns),
       database.select({ campaignId: campaignCities.campaignId, id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId }).from(campaignCities).innerJoin(cities, eq(campaignCities.cityId, cities.id)).orderBy(asc(cities.name)),
       database.select().from(campaignPromotions).orderBy(asc(campaignPromotions.sortOrder), asc(campaignPromotions.name)),
+      database.select({ campaignPromotionId: campaignPromotionCities.campaignPromotionId, id: cities.id, name: cities.name, state: cities.state }).from(campaignPromotionCities).innerJoin(cities, eq(campaignPromotionCities.cityId, cities.id)).orderBy(asc(cities.name)),
       database.select().from(campaignPromotionPlans).orderBy(asc(campaignPromotionPlans.sortOrder), asc(campaignPromotionPlans.name)),
     ]);
     return campaignRows.map(row => ({
@@ -154,7 +163,7 @@ export const campaignsRouter = router({
       providerLogoUrl: row.providerLogoUrl,
       templateName: row.templateName,
       cities: cityRows.filter(city => city.campaignId === row.campaign.id),
-      promotions: promotionRows.filter(promotion => promotion.campaignId === row.campaign.id).map(promotion => ({ ...promotion, plans: planRows.filter(plan => plan.campaignPromotionId === promotion.id) })),
+      promotions: promotionRows.filter(promotion => promotion.campaignId === row.campaign.id).map(promotion => ({ ...promotion, cities: promotionCityRows.filter(city => city.campaignPromotionId === promotion.id), plans: planRows.filter(plan => plan.campaignPromotionId === promotion.id) })),
       actions: actionRows.filter(action => action.tradeCampaignId === row.campaign.id),
       events: eventRows.filter(event => event.tradeCampaignId === row.campaign.id),
       media: mediaRows.filter(media => media.tradeCampaignId === row.campaign.id),
@@ -212,6 +221,24 @@ export const campaignsRouter = router({
     const [updated] = await database.update(tradeCampaigns).set({ debriefRating: input.rating, debriefNotes: input.notes || null, debriefResult: input.result || null, debriefAt: input.completedAt, updatedAt: new Date() }).where(eq(tradeCampaigns.id, input.campaignId)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: before.regionalId ?? undefined, entityType: "trade_campaign", entityId: before.id, action: "save_debrief", beforeData: { debriefRating: before.debriefRating, debriefAt: before.debriefAt }, afterData: { debriefRating: updated.debriefRating, debriefAt: updated.debriefAt } });
     return updated;
+  }),
+
+  savePromotionCities: protectedProcedure.input(z.object({ promotionId: z.number().int().positive(), cityIds: z.array(z.number().int().positive()).max(200).default([]) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "actions.write");
+    const database = await requireDatabase();
+    const [promotion] = await database.select({ id: campaignPromotions.id, campaignId: campaignPromotions.campaignId }).from(campaignPromotions).where(eq(campaignPromotions.id, input.promotionId)).limit(1);
+    if (!promotion) throw new TRPCError({ code: "NOT_FOUND", message: "Promoção não encontrada." });
+    const cityIds = uniqueIds(input.cityIds);
+    if (cityIds.length) {
+      const eligibleCities = await database.select({ cityId: campaignCities.cityId }).from(campaignCities).where(and(eq(campaignCities.campaignId, promotion.campaignId), inArray(campaignCities.cityId, cityIds)));
+      if (eligibleCities.length !== cityIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "As cidades escolhidas precisam fazer parte da segmentação da campanha." });
+    }
+    await database.transaction(async transaction => {
+      await transaction.delete(campaignPromotionCities).where(eq(campaignPromotionCities.campaignPromotionId, promotion.id));
+      if (cityIds.length) await transaction.insert(campaignPromotionCities).values(cityIds.map(cityId => ({ campaignPromotionId: promotion.id, cityId })));
+    });
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "campaign_promotion", entityId: promotion.id, action: "update_cities", afterData: { cityIds } });
+    return { success: true, cityIds };
   }),
 
   listTemplates: protectedProcedure.query(async ({ ctx }) => {
