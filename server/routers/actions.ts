@@ -136,9 +136,13 @@ export const actionsRouter = router({
     return rows.map(row => {
       const linkedInvoices = invoiceRows.filter(invoice => invoice.operationId === row.action.id && invoice.status !== "cancelled");
       const paidAmount = linkedInvoices.reduce((total, invoice) => total + paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((subtotal, payment) => subtotal + Number(payment.amount), 0), 0);
-      const linkedServices = serviceRows.filter(service => service.actionId === row.action.id);
+      const linkedSuppliers = supplierRows.filter(supplier => supplier.actionId === row.action.id);
+      const linkedServices = serviceRows.filter(service => service.actionId === row.action.id).map(service => {
+        if (service.supplierName || linkedSuppliers.length !== 1) return service;
+        return { ...service, supplierId: linkedSuppliers[0].supplierId, supplierName: linkedSuppliers[0].name };
+      });
       const estimatedAmount = Number(row.action.estimatedCost);
-      return { ...row, coverImageUrl: row.action.coverImageUrl ?? imageRows.find(image => image.actionId === row.action.id)?.url ?? null, finance: { estimatedAmount, invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount }, teamMembers: teamRows.filter(member => member.actionId === row.action.id), stockItems: stockRows.filter(item => item.actionId === row.action.id), suppliers: supplierRows.filter(supplier => supplier.actionId === row.action.id), services: linkedServices, history: historyRows.filter(item => item.actionId === row.action.id) };
+      return { ...row, coverImageUrl: row.action.coverImageUrl ?? imageRows.find(image => image.actionId === row.action.id)?.url ?? null, finance: { estimatedAmount, invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount }, teamMembers: teamRows.filter(member => member.actionId === row.action.id), stockItems: stockRows.filter(item => item.actionId === row.action.id), suppliers: linkedSuppliers, services: linkedServices, history: historyRows.filter(item => item.actionId === row.action.id) };
     });
   }),
   create: protectedProcedure.input(z.object({

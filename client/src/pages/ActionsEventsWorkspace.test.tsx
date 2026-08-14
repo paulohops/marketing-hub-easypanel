@@ -5,13 +5,14 @@ const createAction = vi.hoisted(() => vi.fn());
 const createEvent = vi.hoisted(() => vi.fn());
 const saveActionDebrief = vi.hoisted(() => vi.fn());
 const savePostEvent = vi.hoisted(() => vi.fn());
+const updateExecutionStatus = vi.hoisted(() => vi.fn());
 const actionListQuery = vi.hoisted(() => vi.fn());
 const eventListQuery = vi.hoisted(() => vi.fn());
 const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 5 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supplierOfferings: [{ id: 9, supplierId: 4, supplierName: "Fornecedor MG", name: "Promotoria", unit: "dia", unitPrice: "400" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [], campaigns: [] };
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ actions: { list: { invalidate: vi.fn() }, referenceData: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } }, campaigns: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
-  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadCover: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadStatusEvidence: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
+  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadCover: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadStatusEvidence: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: updateExecutionStatus, isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
   events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) } },
   campaigns: { create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
 }));
@@ -19,7 +20,7 @@ const trpcStub = vi.hoisted(() => ({
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: { role: "admin" } }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("@/components/EvidenceUpload", () => ({ default: () => <div>Evidências</div> }));
+vi.mock("@/components/EvidenceUpload", () => ({ default: ({ variant }: { variant?: string }) => <div data-testid="evidence-upload" data-variant={variant}>Evidências</div> }));
 
 import ActionsWorkspace from "./ActionsWorkspace";
 import EventsWorkspace from "./EventsWorkspace";
@@ -106,17 +107,25 @@ describe("formulários operacionais ampliados", () => {
   });
 
   it("abre a ficha da ação antes de registrar o debriefing", () => {
-    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, campaignName: "Volta às aulas", campaignLogoUrl: "https://cdn.example.com/campanha.png", teamMembers: [], stockItems: [], debrief: null }], isLoading: false });
+    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste", address: "Avenida Afonso Pena, 100" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", actionPointName: "Farmácia Nacional · Loja 17", supervisorName: null, campaignName: "Volta às aulas", campaignLogoUrl: "https://cdn.example.com/campanha.png", teamMembers: [], services: [{ serviceTypeId: 5, name: "Panfletagem", supplierName: "Fornecedor MG", estimatedAmount: "100" }], stockItems: [{ stockItemId: 8, name: "Tenda", sku: "TEN-01", plannedQuantity: "9.00" }], debrief: null }], isLoading: false });
     render(<ActionsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: /Blitz.*Teste/ }));
     expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
     expect(screen.getByText("Contexto comercial")).toBeInTheDocument();
     expect(screen.getByText("Objetivo da ação")).toBeInTheDocument();
     expect(screen.getByText("Teste")).toHaveClass("text-lg", "sm:text-xl");
-    expect(screen.getByText("Volta às aulas")).toHaveClass("text-sm");
+    expect(screen.getByText("Volta às aulas")).toHaveClass("text-xs");
     expect(screen.getByAltText("Identidade visual da campanha Volta às aulas")).toHaveClass("object-cover");
+    expect(screen.getByText("Farmácia Nacional · Loja 17").tagName).toBe("STRONG");
+    expect(screen.getByText("Avenida Afonso Pena, 100")).toBeInTheDocument();
+    expect(screen.getByText("Fornecedor: Fornecedor MG")).toBeInTheDocument();
+    expect(screen.getByText("9")).toBeInTheDocument();
     expect(screen.getByText("Fotos, vídeos e evidências")).toBeInTheDocument();
+    expect(screen.getByTestId("evidence-upload")).toHaveAttribute("data-variant", "gallery");
     expect(screen.queryByText("Total de itens e serviços")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), { target: { value: "planned" } });
+    expect(updateExecutionStatus).toHaveBeenCalledWith({ actionId: 21, status: "planned" });
+    expect(screen.queryByText("Confirmar alteração de status")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Vale repetir"));
     fireEvent.click(screen.getByRole("button", { name: "Salvar debriefing" }));
     expect(saveActionDebrief).toHaveBeenCalledWith(expect.objectContaining({ actionId: 21, worthRepeating: false, resultAchieved: true }));

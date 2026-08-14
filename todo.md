@@ -343,3 +343,11 @@
 
 - [x] Dar maior destaque visual ao objetivo da Ação e reduzir a hierarquia do nome da campanha no Contexto comercial.
 - [x] Validar a nova hierarquia visual da ficha de Ação.
+
+- [x] Manter a fonte do objetivo em tamanho legível, ampliar sua área e posicionar a campanha menor ao lado da modalidade.
+- [x] Corrigir a resolução do fornecedor associado em cada serviço da ficha de Ação.
+- [x] Exibir exclusivamente a quantidade dos recursos de estoque, sem duplicar ou concatenar valores indevidos.
+- [x] Transformar fotos, vídeos e evidências em galeria de miniaturas quadradas, com download somente após abrir o item.
+- [x] Corrigir a área vazia no diálogo de reagendamento e simplificar a atualização direta dos status planejada, em execução e concluída.
+- [x] Melhorar o resumo de localização com nome do local em negrito, endereço separado e período em bloco próprio.
+- [x] Cobrir e validar os refinamentos de ficha, evidências, status e planejamento de Ações.

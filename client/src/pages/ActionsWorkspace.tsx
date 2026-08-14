@@ -463,6 +463,10 @@ export default function ActionsWorkspace() {
           onBack={() => setLocation("/acoes")}
           onEdit={() => openEdit(selected)}
           onStatus={next => {
+            if (["planned", "in_progress", "completed"].includes(next)) {
+              changeStatus.mutate({ actionId: selected.action.id, status: next as "planned" | "in_progress" | "completed" });
+              return;
+            }
             setStatusChange({ status: next, reason: "", evidenceUrls: [] });
             setStatusChangeOpen(true);
           }}
@@ -513,7 +517,7 @@ export default function ActionsWorkspace() {
           </DialogContent>
         </Dialog>
         <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-1.25rem)] max-w-2xl overflow-y-auto">
+          <DialogContent className="max-h-[90vh] w-[min(42rem,calc(100vw-1.25rem))] max-w-none overflow-y-auto p-5 sm:max-w-none sm:p-6 lg:max-w-none">
             <DialogHeader>
               <DialogTitle>Reagendar ação</DialogTitle>
               <DialogDescription>
@@ -522,7 +526,7 @@ export default function ActionsWorkspace() {
               </DialogDescription>
             </DialogHeader>
             <form
-              className="grid gap-4"
+              className="grid w-full min-w-0 gap-4"
               onSubmit={event => {
                 event.preventDefault();
                 rescheduleAction.mutate({
@@ -536,7 +540,7 @@ export default function ActionsWorkspace() {
                 });
               }}
             >
-              <label className="grid gap-1.5 text-sm font-medium">
+              <label className="grid w-full gap-1.5 text-sm font-medium">
                 Novo início
                 <Input
                   required
@@ -550,7 +554,7 @@ export default function ActionsWorkspace() {
                   }
                 />
               </label>
-              <label className="grid gap-1.5 text-sm font-medium">
+              <label className="grid w-full gap-1.5 text-sm font-medium">
                 Novo término
                 <Input
                   type="datetime-local"
@@ -560,7 +564,7 @@ export default function ActionsWorkspace() {
                   }
                 />
               </label>
-              <label className="grid gap-1.5 text-sm font-medium">
+              <label className="grid w-full gap-1.5 text-sm font-medium">
                 Motivo do reagendamento
                 <Textarea required minLength={3} value={reschedule.reason} onChange={event => setReschedule(current => ({ ...current, reason: event.target.value }))} placeholder="Explique o motivo da nova data." />
               </label>
@@ -885,14 +889,16 @@ function ActionDetail({
               <DetailValue
                 icon={<MapPin className="h-4 w-4" />}
                 label="Localização"
+                className="sm:col-span-2"
                 value={
                   row.actionPointName
-                    ? `${row.actionPointName}${row.action.address ? ` · ${row.action.address}` : ""}`
+                    ? <><strong className="block font-semibold text-foreground">{row.actionPointName}</strong>{row.action.address ? <span className="mt-1 block text-muted-foreground">{row.action.address}</span> : null}</>
                     : row.action.address || "Não informada"
                 }
               />
               <DetailValue
                 label="Período"
+                className="sm:col-span-2"
                 value={`${new Date(row.action.scheduledFor).toLocaleString("pt-BR")}${row.action.endsAt ? ` até ${new Date(row.action.endsAt).toLocaleString("pt-BR")}` : ""}`}
               />
               <DetailValue
@@ -916,19 +922,21 @@ function ActionDetail({
         </section>
         <section className="min-w-0 rounded-xl border border-border bg-card p-4">
           <DetailSection title="Contexto comercial">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
-              <div className="rounded-xl border border-primary/15 bg-primary/5 p-4 sm:col-span-2">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(11rem,.7fr)]">
+              <div className="flex min-h-40 flex-col justify-center rounded-xl border border-primary/15 bg-primary/5 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">Objetivo da ação</p>
                 <p className="mt-2 break-words text-lg font-semibold leading-snug text-foreground sm:text-xl">{row.action.objective || "Objetivo ainda não informado."}</p>
               </div>
-              <div className="relative min-h-28 overflow-hidden rounded-xl border border-border bg-muted/60 sm:col-span-2">
-                {row.campaignLogoUrl ? <img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="absolute inset-0 h-full w-full object-cover" /> : null}
-                <div className={`absolute inset-0 ${row.campaignLogoUrl ? "bg-gradient-to-r from-black/70 via-black/40 to-black/10" : "bg-primary/5"}`} />
-                <div className={`relative flex min-h-28 items-end p-3 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
-                  <div className="min-w-0">
-                    <p className={`text-[11px] font-medium uppercase tracking-wide ${row.campaignLogoUrl ? "text-white/75" : "text-muted-foreground"}`}>Campanha</p>
-                    <p className="mt-0.5 break-words text-sm font-medium">{row.campaignName || "Ação sem campanha vinculada"}</p>
+              <div className="grid content-start gap-3">
+                <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
+                <div className="relative min-h-20 overflow-hidden rounded-xl border border-border bg-muted/60">
+                  {row.campaignLogoUrl ? <img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="absolute inset-0 h-full w-full object-cover" /> : null}
+                  <div className={`absolute inset-0 ${row.campaignLogoUrl ? "bg-gradient-to-r from-black/75 via-black/45 to-black/15" : "bg-primary/5"}`} />
+                  <div className={`relative flex min-h-20 items-end p-3 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
+                    <div className="min-w-0">
+                      <p className={`text-[10px] font-medium uppercase tracking-wide ${row.campaignLogoUrl ? "text-white/75" : "text-muted-foreground"}`}>Campanha</p>
+                      <p className="mt-0.5 break-words text-xs font-medium leading-snug">{row.campaignName || "Ação sem campanha vinculada"}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -936,8 +944,8 @@ function ActionDetail({
           </DetailSection>
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Responsáveis e fornecedores"><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><UsersRound className="h-4 w-4" /> Responsáveis do trade</p>{row.teamMembers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.teamMembers.map((member: any) => <div key={member.userId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-contain" /> : (member.name || "U").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{member.name || `Usuário #${member.userId}`}</p><p className="truncate text-xs text-muted-foreground">{member.jobTitle || "Colaborador"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum responsável definido.</p>}</div><DetailValue label="Fornecedores envolvidos" value={row.suppliers?.length ? row.suppliers.map((supplier: any) => supplier.name).join(", ") : "Não informados"} /></div></DetailSection></section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Serviços"><div className="space-y-2">{row.services?.length ? row.services.map((service: any) => <div key={service.serviceTypeId} className="grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium text-foreground">{service.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{service.supplierName || "Fornecedor não vinculado"}{service.offeringName ? ` · ${service.offeringName}` : ""}{service.unit ? ` · ${service.unit}` : ""}</p></div><strong className="text-sm tabular-nums text-primary">{Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum serviço planejado.</p>}</div>{row.services?.length ? <div className="mt-3 flex justify-end border-t border-border pt-3"><span className="text-sm font-semibold text-foreground">Total dos serviços: <strong className="text-primary">{Number((row.services ?? []).reduce((total: number, service: any) => total + Number(service.estimatedAmount ?? 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span></div> : null}</DetailSection></section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: any) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.sku || "Sem SKU"} · {item.unit}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{item.plannedQuantity} {item.unit}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Serviços"><div className="space-y-2">{row.services?.length ? row.services.map((service: any) => <div key={service.serviceTypeId} className="grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium text-foreground">{service.name}</p><p className="mt-0.5 text-xs text-muted-foreground">Fornecedor: {service.supplierName || "não definido"}{service.offeringName ? ` · ${service.offeringName}` : ""}{service.unit ? ` · ${service.unit}` : ""}</p></div><strong className="text-sm tabular-nums text-primary">{Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum serviço planejado.</p>}</div>{row.services?.length ? <div className="mt-3 flex justify-end border-t border-border pt-3"><span className="text-sm font-semibold text-foreground">Total dos serviços: <strong className="text-primary">{Number((row.services ?? []).reduce((total: number, service: any) => total + Number(service.estimatedAmount ?? 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span></div> : null}</DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: any) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.sku || "Sem SKU"}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(Number(item.plannedQuantity || 0))}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
         <section className="rounded-xl border border-border bg-card p-4">
           <DetailSection title="Debriefing e resultado">
             <form onSubmit={event => { event.preventDefault(); onSaveDebrief(); }} className="space-y-3">
@@ -954,7 +962,7 @@ function ActionDetail({
         </section>
         <section className="rounded-xl border border-border bg-card p-4">
           <DetailSection title="Fotos, vídeos e evidências">
-            <EvidenceUpload entityType="action" entityId={row.action.id} regionalId={regionalId} canWrite={canWrite} variant="side" />
+            <EvidenceUpload entityType="action" entityId={row.action.id} regionalId={regionalId} canWrite={canWrite} variant="gallery" />
           </DetailSection>
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
@@ -1016,18 +1024,20 @@ function DetailValue({
   label,
   value,
   icon,
+  className,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   icon?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-xl bg-muted/60 p-3">
+    <div className={`rounded-xl bg-muted/60 p-3 ${className ?? ""}`}>
       <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
         {icon}
         {label}
       </p>
-      <p className="mt-1 text-sm text-foreground">{value}</p>
+      <div className="mt-1 text-sm text-foreground">{value}</div>
     </div>
   );
 }
