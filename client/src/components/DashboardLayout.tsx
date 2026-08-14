@@ -95,7 +95,6 @@ const navigationGroups: NavGroup[] = [
     label: "Configurações",
     items: [
       { label: "Configurações", path: "/configuracoes", icon: Settings2, permission: "settings.read" },
-      { label: "Equipes", path: "/equipes", icon: Network, permission: "settings.read" },
     ],
   },
 ];

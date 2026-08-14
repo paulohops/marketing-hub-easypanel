@@ -1357,10 +1357,10 @@ export default function CampaignsWorkspace() {
                 <p className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{compactDate(item.startsAt)} — {compactDate(item.endsAt)}</p>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{item.hasExplicitCities ? `${item.cities.length} cidades` : "Todas as cidades"}</p>
               </div>
-              <div className="col-span-2 grid min-w-0 grid-cols-3 gap-1.5 text-center text-xs font-medium text-primary md:col-span-2 xl:col-span-1">
-                <span className="rounded-lg bg-primary/8 px-1.5 py-2.5 whitespace-nowrap">{item.actions.length} ações</span>
-                <span className="rounded-lg bg-primary/8 px-1.5 py-2.5 whitespace-nowrap">{item.media.length} mídias</span>
-                <span className="rounded-lg bg-primary/8 px-1.5 py-2.5 whitespace-nowrap">{item.events.length} eventos</span>
+              <div className="col-span-2 grid min-w-0 grid-cols-3 gap-1.5 text-center text-primary md:col-span-2 xl:col-span-1">
+                <span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-base font-semibold leading-none tabular-nums">{item.actions.length}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">ações</small></span>
+                <span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-base font-semibold leading-none tabular-nums">{item.media.length}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">mídias</small></span>
+                <span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-base font-semibold leading-none tabular-nums">{item.events.length}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">eventos</small></span>
               </div>
               <div className="col-span-2 flex min-h-8 items-center md:col-span-2 xl:col-span-1 xl:justify-center">
                 {item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-[11px] text-muted-foreground">Sem nota</span>}

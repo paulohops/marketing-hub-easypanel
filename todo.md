@@ -294,3 +294,6 @@
 - [x] Posicionar o botão de Filtros ao lado de Nova campanha e preservar sua navegação por teclado.
 - [x] Simplificar o debriefing para nota, história da campanha e avaliação/aprendizados, ampliando os campos descritivos.
 - [x] Validar a responsividade da barra lateral e dos ajustes de Campanhas em desktop, tablet e celular.
+- [x] Empilhar os indicadores operacionais da lista de Campanhas, exibindo número acima de Ações, Mídias e Eventos para preservar a data em uma linha.
+- [x] Mover o módulo de Equipes para dentro de Configurações, preservando rota, permissões e acesso administrativo.
+- [x] Validar a lista compacta e a nova localização de Equipes com testes, tipagem e revisão visual.
