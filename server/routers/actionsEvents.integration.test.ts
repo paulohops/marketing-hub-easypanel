@@ -61,9 +61,9 @@ describe("actions and events routers via tRPC", () => {
     await expect(caller.actions.create({ tradeCampaignId: null, cityId: 1, actionTypeId: 2, actionPointId: null, name: "Blitz Centro", address: "Praça Sete", latitude: null, longitude: null, scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: new Date("2026-08-14T12:00:00Z"), objective: "Gerar experimentação", commercialSupervisorId: 6, partnershipType: "mixed", estimatedCost: 1250.5, supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, estimatedAmount: 500 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] })).resolves.toEqual({ id: 91 });
 
     expect(transaction.insert).toHaveBeenCalledTimes(5);
-    expect(values.entityValues).toHaveBeenCalledWith(expect.objectContaining({ eventId: null, commercialSupervisorId: 6, partnershipType: "mixed", estimatedCost: "1250.50" }));
+    expect(values.entityValues).toHaveBeenCalledWith(expect.objectContaining({ eventId: null, commercialSupervisorId: 6, partnershipType: "mixed", estimatedCost: "500.00" }));
     expect(values.supplierValues).toHaveBeenCalledWith([{ actionId: 91, supplierId: 4 }]);
-    expect(values.serviceValues).toHaveBeenCalledWith([{ actionId: 91, serviceTypeId: 5, estimatedAmount: "500.00" }]);
+    expect(values.serviceValues).toHaveBeenCalledWith([{ actionId: 91, serviceTypeId: 5, supplierOfferingId: null, estimatedAmount: "500.00" }]);
     expect(values.teamValues).toHaveBeenCalledWith([{ actionId: 91, userId: 7 }]);
     expect(values.stockValues).toHaveBeenCalledWith([{ actionId: 91, stockItemId: 8, plannedQuantity: "2.00" }]);
     expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "action", entityId: 91, action: "create" }));

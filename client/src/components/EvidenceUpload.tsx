@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
-import ImageViewer from "@/components/ImageViewer";
 import { trpc } from "@/lib/trpc";
-import { FileText, Loader2, Paperclip } from "lucide-react";
+import { Download, FileText, Loader2, Paperclip, Video, Volume2 } from "lucide-react";
 import { ChangeEvent, useRef } from "react";
 import { toast } from "sonner";
 
@@ -16,7 +15,7 @@ function fileToBase64(file: File) {
   });
 }
 
-export default function EvidenceUpload({ entityType, entityId, regionalId, canWrite = false }: { entityType: EntityType; entityId: number; regionalId?: number | null; canWrite?: boolean }) {
+export default function EvidenceUpload({ entityType, entityId, regionalId, canWrite = false, variant = "default" }: { entityType: EntityType; entityId: number; regionalId?: number | null; canWrite?: boolean; variant?: "default" | "side" }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
   const documents = trpc.documents.listForEntity.useQuery({ entityType, entityId });
@@ -25,9 +24,19 @@ export default function EvidenceUpload({ entityType, entityId, regionalId, canWr
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    if (!["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav"].includes(file.type)) { toast.error("Envie PDF, JPG, PNG, WEBP, MP3 ou WAV."); return; }
+    if (!["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav", "video/mp4", "video/webm"].includes(file.type)) { toast.error("Envie PDF, imagem, MP3, WAV, MP4 ou WEBM."); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("O arquivo deve ter no máximo 5 MB."); return; }
-    try { upload.mutate({ entityType, entityId, regionalId: regionalId ?? null, originalName: file.name, mimeType: file.type as "application/pdf" | "image/jpeg" | "image/png" | "image/webp" | "audio/mpeg" | "audio/wav" | "audio/x-wav", dataBase64: await fileToBase64(file) }); } catch (error) { toast.error(error instanceof Error ? error.message : "Falha ao preparar o arquivo."); }
+    try { upload.mutate({ entityType, entityId, regionalId: regionalId ?? null, originalName: file.name, mimeType: file.type as "application/pdf" | "image/jpeg" | "image/png" | "image/webp" | "audio/mpeg" | "audio/wav" | "audio/x-wav" | "video/mp4" | "video/webm", dataBase64: await fileToBase64(file) }); } catch (error) { toast.error(error instanceof Error ? error.message : "Falha ao preparar o arquivo."); }
   };
-  return <div className="mt-3 rounded-xl border border-border bg-secondary px-3 py-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-[11px] font-semibold text-foreground">Evidências, comprovantes e áudios</p><p className="mt-0.5 text-[10px] text-muted-foreground">PDF, imagem, MP3 ou WAV de até 5 MB.</p></div>{canWrite && <><input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/x-wav" onChange={handleFile} className="hidden" /><Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={upload.isPending} className="h-7 rounded-md border-border px-2 text-[10px] text-foreground">{upload.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Paperclip className="mr-1 h-3 w-3" />} Anexar</Button></>}</div>{documents.data?.length ? <div className="mt-2 flex flex-wrap gap-2">{documents.data.map(document => document.mimeType.startsWith("image/") ? <div key={document.id} className="flex max-w-[220px] items-center gap-2 rounded-lg border border-border bg-card p-1.5"><ImageViewer src={document.url} alt={document.originalName} title={document.originalName} className="h-12 w-12" emptyLabel="Imagem indisponível" /><span className="truncate text-[10px] font-medium text-foreground">{document.originalName}</span></div> : <a key={document.id} href={document.url} target="_blank" rel="noreferrer" className="inline-flex max-w-[220px] items-center gap-1 rounded-md bg-card px-2 py-1.5 text-[10px] text-foreground hover:bg-primary/10"><FileText className="h-3 w-3 shrink-0" /><span className="truncate">{document.originalName}</span></a>)}</div> : <p className="mt-1 text-[10px] text-foreground">Nenhum arquivo anexado.</p>}</div>;
+  const download = (url: string, filename: string) => {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+  const compact = variant === "side";
+  return <div className={`mt-3 rounded-xl border border-border bg-secondary ${compact ? "p-3" : "px-3 py-2.5"}`}><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-[11px] font-semibold text-foreground">Evidências, comprovantes e mídias</p><p className="mt-0.5 text-[10px] text-muted-foreground">PDF, imagens, áudio e vídeo de até 5 MB.</p></div>{canWrite && <><input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/x-wav,video/mp4,video/webm" onChange={handleFile} className="hidden" /><Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={upload.isPending} className="h-7 rounded-md border-border px-2 text-[10px] text-foreground">{upload.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Paperclip className="mr-1 h-3 w-3" />} Anexar</Button></>}</div>{documents.data?.length ? <div className={`mt-3 ${compact ? "grid gap-3" : "flex flex-wrap gap-2"}`}>{documents.data.map(document => <article key={document.id} className={`overflow-hidden rounded-lg border border-border bg-card ${compact ? "" : "max-w-[220px]"}`}>{document.mimeType.startsWith("image/") ? <img src={document.url} alt={document.originalName} className={`w-full bg-muted object-contain ${compact ? "max-h-44" : "h-28"}`} /> : document.mimeType.startsWith("video/") ? <video controls preload="metadata" className={`w-full bg-black/90 ${compact ? "max-h-44" : "h-28"}`}><source src={document.url} type={document.mimeType} /></video> : document.mimeType.startsWith("audio/") ? <div className="p-3"><p className="mb-2 flex items-center gap-1 text-xs font-medium text-foreground"><Volume2 className="h-3.5 w-3.5" /> Áudio</p><audio controls className="w-full"><source src={document.url} type={document.mimeType} /></audio></div> : document.mimeType === "application/pdf" && compact ? <iframe title={document.originalName} src={document.url} className="h-44 w-full bg-background" /> : <div className="flex items-center gap-2 p-3 text-xs font-medium text-foreground"><FileText className="h-4 w-4 text-primary" /> Documento anexado</div>}<div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1.5"><span className="min-w-0 truncate text-[10px] font-medium text-foreground">{document.mimeType.startsWith("video/") ? <Video className="mr-1 inline h-3 w-3" /> : null}{document.originalName}</span><Button type="button" variant="ghost" size="sm" onClick={() => download(document.url, document.originalName)} className="h-7 shrink-0 px-2 text-[10px]"><Download className="mr-1 h-3 w-3" /> Baixar</Button></div></article>)}</div> : <p className="mt-2 text-[10px] text-foreground">Nenhum arquivo anexado.</p>}</div>;
 }

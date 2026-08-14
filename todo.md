@@ -309,3 +309,13 @@
 - [x] Reorganizar a lista de Ações com a hierarquia visual, filtros recolhíveis, indicadores e responsividade do módulo de Campanhas.
 - [x] Reestruturar a ficha individual de Ação com o padrão visual, seções e hierarquia do detalhe de Campanhas.
 - [x] Validar e cobrir os refinamentos visuais e responsivos de Ações com testes, tipagem e revisão de interface.
+
+- [x] Separar Serviços e Recursos de estoque na ficha de Ação, exibindo itens, quantidades, fornecedor e valores detalhados.
+- [x] Calcular o valor previsto da Ação pela soma dos serviços, preenchendo valores configurados pelo fornecedor e permitindo ajuste por desconto.
+- [x] Remover os valores financeiros agregados da seção Financeiro e controle da ficha de Ação.
+- [x] Exibir foto e cargo dos responsáveis da Ação.
+- [x] Tornar o debriefing de Ações editável na ficha, com salvamento explícito no mesmo padrão de Campanhas.
+- [x] Reorganizar fotos, vídeos e documentos em um painel lateral com visualização interna e download direto de imagens.
+- [x] Padronizar os status de Ações ao módulo de Campanhas, com alteração direta e acessível na ficha.
+- [x] Remover o atalho Nova campanha da lista de Ações, mostrar a descrição completa e usar a soma dos serviços nos valores exibidos.
+- [x] Cobrir e validar os novos fluxos de Ações com testes, tipagem, dados persistidos e revisão responsiva.

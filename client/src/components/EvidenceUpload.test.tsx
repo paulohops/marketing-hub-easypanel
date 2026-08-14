@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const trpcStub = vi.hoisted(() => ({
@@ -18,14 +18,11 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 import EvidenceUpload from "./EvidenceUpload";
 
 describe("EvidenceUpload", () => {
-  it("apresenta fotos em cartão ampliável e mantém documentos como links", () => {
-    render(<EvidenceUpload entityType="action" entityId={12} />);
+  it("mostra as mídias no sistema e oferece download direto para cada arquivo", () => {
+    render(<EvidenceUpload entityType="action" entityId={12} variant="side" />);
 
-    expect(screen.getByRole("button", { name: "Ampliar ativacao.jpg" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "nota.pdf" })).toHaveAttribute("href", "/manus-storage/evidencias/nota.pdf");
-
-    fireEvent.click(screen.getByRole("button", { name: "Ampliar ativacao.jpg" }));
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Baixar imagem" })).toHaveAttribute("href", "/manus-storage/evidencias/ativacao.jpg");
+    expect(screen.getByRole("img", { name: "ativacao.jpg" })).toHaveAttribute("src", "/manus-storage/evidencias/ativacao.jpg");
+    expect(screen.getByTitle("nota.pdf")).toHaveAttribute("src", "/manus-storage/evidencias/nota.pdf");
+    expect(screen.getAllByRole("button", { name: "Baixar" })).toHaveLength(2);
   });
 });

@@ -3,8 +3,8 @@ import { canUpdateActionStatus, normalizeStockAllocations, validActionRange } fr
 import { normalizeEventStockAllocations, validEventRange } from "./events";
 
 describe("regras de operação", () => {
-  it("impede mudança de status após ação finalizada", () => {
-    expect(canUpdateActionStatus("completed", "in_progress")).toBe(false);
+  it("permite corrigir o status de uma ação diretamente na ficha", () => {
+    expect(canUpdateActionStatus("completed", "in_progress")).toBe(true);
     expect(canUpdateActionStatus("planned", "in_progress")).toBe(true);
   });
 

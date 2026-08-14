@@ -26,12 +26,12 @@ import {
   Star,
   UsersRound,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
 
 type StockAllocation = { stockItemId: number; quantity: string };
-type ServiceAllocation = { serviceTypeId: number; estimatedAmount: string };
+type ServiceAllocation = { serviceTypeId: number; supplierOfferingId: number | null; estimatedAmount: string };
 const statusLabel: Record<string, string> = {
   planned: "Planejada",
   in_progress: "Em execução",
@@ -78,7 +78,6 @@ const blankForm = () => ({
   address: "",
   commercialSupervisorId: "",
   partnershipType: "paid" as const,
-  estimatedCost: "0",
   supplierIds: [] as number[],
   serviceTypeIds: [] as number[],
   serviceAllocations: [] as ServiceAllocation[],
@@ -98,8 +97,6 @@ export default function ActionsWorkspace() {
   const actionList = trpc.actions.list.useQuery();
   const [form, setForm] = useState(blankForm);
   const [formOpen, setFormOpen] = useState(false);
-  const [campaignOpen, setCampaignOpen] = useState(false);
-  const [campaignForm, setCampaignForm] = useState({ name: "", objective: "", regionalId: "", startsAt: "", endsAt: "", status: "scheduled" as "scheduled" | "active" | "completed" | "cancelled" });
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
   const selectedId = isDetailRoute && routeParams?.actionId ? Number(routeParams.actionId) : null;
   const [search, setSearch] = useState("");
@@ -107,7 +104,6 @@ export default function ActionsWorkspace() {
   const [regionalFilter, setRegionalFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [debriefOpen, setDebriefOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [debrief, setDebrief] = useState({
     rating: "5",
@@ -225,16 +221,6 @@ export default function ActionsWorkspace() {
     },
     onError: error => toast.error(error.message),
   });
-  const createCampaign = trpc.campaigns.create.useMutation({
-    onSuccess: () => {
-      utils.actions.referenceData.invalidate();
-      utils.campaigns.list.invalidate();
-      setCampaignOpen(false);
-      setCampaignForm({ name: "", objective: "", regionalId: "", startsAt: "", endsAt: "", status: "scheduled" });
-      toast.success("Campanha criada. Agora você pode vincular ações, eventos e mídias.");
-    },
-    onError: error => toast.error(error.message),
-  });
   const changeStatus = trpc.actions.updateExecutionStatus.useMutation({
     onSuccess: () => {
       utils.actions.list.invalidate();
@@ -245,7 +231,6 @@ export default function ActionsWorkspace() {
   const saveDebrief = trpc.actions.saveDebrief.useMutation({
     onSuccess: () => {
       utils.actions.list.invalidate();
-      setDebriefOpen(false);
       toast.success("Debriefing salvo.");
     },
     onError: error => toast.error(error.message),
@@ -278,6 +263,23 @@ export default function ActionsWorkspace() {
   const selected = (actionList.data ?? []).find(
     (row: any) => row.action.id === selectedId
   ) as any;
+  useEffect(() => {
+    if (!selected) return;
+    const prior = selected.debrief;
+    setDebrief({
+      rating: String(prior?.rating ?? 5),
+      notes: prior?.notes ?? "",
+      positives: prior?.positives ?? "",
+      negatives: prior?.negatives ?? "",
+      resultAchieved: prior?.resultAchieved ?? true,
+      resultSummary: prior?.resultSummary ?? "",
+      leadCount: String(prior?.leadCount ?? 0),
+      saleCount: String(prior?.saleCount ?? 0),
+      renewalCount: String(prior?.renewalCount ?? 0),
+      worthRepeating: prior?.worthRepeating ?? true,
+      completedAt: toDateField(prior?.completedAt ?? new Date()),
+    });
+  }, [selectedId]);
   const activeFilterCount = [search, status !== "all", regionalFilter !== "all", cityFilter !== "all"].filter(Boolean).length;
   const statusCounts = (actionList.data ?? []).reduce((counts: Record<string, number>, row: any) => {
     counts[row.action.status] = (counts[row.action.status] ?? 0) + 1;
@@ -308,10 +310,9 @@ export default function ActionsWorkspace() {
       address: row.action.address ?? "",
       commercialSupervisorId: row.action.commercialSupervisorId ? String(row.action.commercialSupervisorId) : "",
       partnershipType: row.action.partnershipType,
-      estimatedCost: String(row.action.estimatedCost ?? "0"),
       supplierIds: (row.suppliers ?? []).map((item: any) => item.id ?? item.supplierId),
       serviceTypeIds: (row.services ?? []).map((item: any) => item.id ?? item.serviceTypeId),
-      serviceAllocations: (row.services ?? []).map((item: any) => ({ serviceTypeId: item.id ?? item.serviceTypeId, estimatedAmount: String(item.estimatedAmount ?? "0") })),
+      serviceAllocations: (row.services ?? []).map((item: any) => ({ serviceTypeId: item.id ?? item.serviceTypeId, supplierOfferingId: item.supplierOfferingId ?? null, estimatedAmount: String(item.estimatedAmount ?? "0") })),
       teamMemberIds: (row.teamMembers ?? []).map((item: any) => item.userId),
       stockAllocations: (row.stockItems ?? []).map((item: any) => ({ stockItemId: item.stockItemId, quantity: String(item.plannedQuantity ?? 0) })),
     });
@@ -348,6 +349,20 @@ export default function ActionsWorkspace() {
           ) ?? { stockItemId, quantity: "1" }
       ),
     }));
+  const matchingOffering = (serviceTypeId: number, supplierIds: number[]) => {
+    const serviceName = (references.data?.serviceTypes ?? []).find((service: any) => service.id === serviceTypeId)?.name?.toLocaleLowerCase("pt-BR") ?? "";
+    return (references.data?.supplierOfferings ?? []).find((offering: any) => supplierIds.includes(offering.supplierId) && offering.name?.toLocaleLowerCase("pt-BR").includes(serviceName));
+  };
+  const setSuppliers = (supplierIds: number[]) =>
+    setForm(current => ({
+      ...current,
+      supplierIds,
+      serviceAllocations: current.serviceAllocations.map(allocation => {
+        const selectedOffering = (references.data?.supplierOfferings ?? []).find((offering: any) => offering.id === allocation.supplierOfferingId && supplierIds.includes(offering.supplierId));
+        const fallbackOffering = selectedOffering ?? matchingOffering(allocation.serviceTypeId, supplierIds);
+        return selectedOffering ? allocation : { ...allocation, supplierOfferingId: fallbackOffering?.id ?? null, estimatedAmount: fallbackOffering ? String(fallbackOffering.unitPrice ?? 0) : allocation.estimatedAmount };
+      }),
+    }));
   const setServices = (ids: number[]) =>
     setForm(current => ({
       ...current,
@@ -356,7 +371,7 @@ export default function ActionsWorkspace() {
         serviceTypeId =>
           current.serviceAllocations.find(
             item => item.serviceTypeId === serviceTypeId
-          ) ?? { serviceTypeId, estimatedAmount: "0" }
+          ) ?? (() => { const offering = matchingOffering(serviceTypeId, current.supplierIds); return { serviceTypeId, supplierOfferingId: offering?.id ?? null, estimatedAmount: String(offering?.unitPrice ?? 0) }; })()
       ),
     }));
   const submit = (event: FormEvent) => {
@@ -378,11 +393,11 @@ export default function ActionsWorkspace() {
         ? Number(form.commercialSupervisorId)
         : null,
       partnershipType: form.partnershipType,
-      estimatedCost: Number(form.estimatedCost),
       supplierIds: form.supplierIds,
       serviceTypeIds: form.serviceTypeIds,
       serviceAllocations: form.serviceAllocations.map(item => ({
         serviceTypeId: item.serviceTypeId,
+        supplierOfferingId: item.supplierOfferingId,
         estimatedAmount: Number(item.estimatedAmount || 0),
       })),
       teamMemberIds: form.teamMemberIds,
@@ -408,23 +423,10 @@ export default function ActionsWorkspace() {
           onStatus={next =>
             changeStatus.mutate({ actionId: selected.action.id, status: next })
           }
-          onDebrief={() => {
-            const prior = selected.debrief;
-            setDebrief({
-              rating: String(prior?.rating ?? 5),
-              notes: prior?.notes ?? "",
-              positives: prior?.positives ?? "",
-              negatives: prior?.negatives ?? "",
-              resultAchieved: prior?.resultAchieved ?? true,
-              resultSummary: prior?.resultSummary ?? "",
-              leadCount: String(prior?.leadCount ?? 0),
-              saleCount: String(prior?.saleCount ?? 0),
-              renewalCount: String(prior?.renewalCount ?? 0),
-              worthRepeating: prior?.worthRepeating ?? true,
-              completedAt: toDateField(prior?.completedAt ?? new Date()),
-            });
-            setDebriefOpen(true);
-          }}
+          debrief={debrief}
+          onDebriefChange={setDebrief}
+          onSaveDebrief={() => saveDebrief.mutate({ actionId: selected.action.id, rating: Number(debrief.rating), notes: debrief.notes || undefined, positives: debrief.positives || undefined, negatives: debrief.negatives || undefined, resultAchieved: debrief.resultAchieved, resultSummary: debrief.resultSummary || undefined, leadCount: Number(debrief.leadCount || 0), saleCount: Number(debrief.saleCount || 0), renewalCount: Number(debrief.renewalCount || 0), worthRepeating: debrief.worthRepeating, completedAt: new Date(debrief.completedAt) })}
+          debriefPending={saveDebrief.isPending}
           onReschedule={() => {
             setReschedule({
               scheduledFor: toDateField(selected.action.scheduledFor),
@@ -446,147 +448,12 @@ export default function ActionsWorkspace() {
           setCity={setCity}
           setPoint={setPoint}
           setStock={setStock}
+          setSuppliers={setSuppliers}
           setServices={setServices}
           submit={submit}
           pending={updateDetails.isPending}
           isEditing
         />
-        <Dialog open={debriefOpen} onOpenChange={setDebriefOpen}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Debriefing da ação</DialogTitle>
-              <DialogDescription>
-                Registre o resultado, os aprendizados e a recomendação para
-                próximas iniciativas.
-              </DialogDescription>
-            </DialogHeader>
-            <form
-              onSubmit={event => {
-                event.preventDefault();
-                saveDebrief.mutate({
-                  actionId: selected.action.id,
-                  rating: Number(debrief.rating),
-                  notes: debrief.notes || undefined,
-                  positives: debrief.positives || undefined,
-                  negatives: debrief.negatives || undefined,
-                  resultAchieved: debrief.resultAchieved,
-                  resultSummary: debrief.resultSummary || undefined,
-                  leadCount: Number(debrief.leadCount || 0),
-                  saleCount: Number(debrief.saleCount || 0),
-                  renewalCount: Number(debrief.renewalCount || 0),
-                  worthRepeating: debrief.worthRepeating,
-                  completedAt: new Date(debrief.completedAt),
-                });
-              }}
-              className="grid gap-4 md:grid-cols-2"
-            >
-              <label className="grid gap-1.5 text-sm font-medium">
-                Nota
-                <select
-                  value={debrief.rating}
-                  onChange={event =>
-                    setDebrief({ ...debrief, rating: event.target.value })
-                  }
-                  className="control"
-                >
-                  {[5, 4, 3, 2, 1].map(value => (
-                    <option key={value} value={value}>
-                      {value} estrelas
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-1.5 text-sm font-medium">
-                Concluída em
-                <Input
-                  type="datetime-local"
-                  required
-                  value={debrief.completedAt}
-                  onChange={event =>
-                    setDebrief({ ...debrief, completedAt: event.target.value })
-                  }
-                />
-              </label>
-              <Textarea
-                className="md:col-span-2"
-                placeholder="Síntese e aprendizados"
-                value={debrief.notes}
-                onChange={event =>
-                  setDebrief({ ...debrief, notes: event.target.value })
-                }
-              />
-              <Textarea
-                className="md:col-span-2"
-                placeholder="Resultado alcançado e impacto percebido"
-                value={debrief.resultSummary}
-                onChange={event =>
-                  setDebrief({ ...debrief, resultSummary: event.target.value })
-                }
-              />
-              <label className="grid gap-1.5 text-sm font-medium">
-                Leads gerados
-                <Input type="number" min="0" value={debrief.leadCount} onChange={event => setDebrief({ ...debrief, leadCount: event.target.value })} />
-              </label>
-              <label className="grid gap-1.5 text-sm font-medium">
-                Vendas realizadas
-                <Input type="number" min="0" value={debrief.saleCount} onChange={event => setDebrief({ ...debrief, saleCount: event.target.value })} />
-              </label>
-              <label className="grid gap-1.5 text-sm font-medium">
-                Renovações
-                <Input type="number" min="0" value={debrief.renewalCount} onChange={event => setDebrief({ ...debrief, renewalCount: event.target.value })} />
-              </label>
-              <Textarea
-                placeholder="Pontos positivos"
-                value={debrief.positives}
-                onChange={event =>
-                  setDebrief({ ...debrief, positives: event.target.value })
-                }
-              />
-              <Textarea
-                placeholder="Pontos a melhorar"
-                value={debrief.negatives}
-                onChange={event =>
-                  setDebrief({ ...debrief, negatives: event.target.value })
-                }
-              />
-              <label className="flex gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={debrief.resultAchieved}
-                  onChange={event =>
-                    setDebrief({
-                      ...debrief,
-                      resultAchieved: event.target.checked,
-                    })
-                  }
-                />
-                Objetivo atingido
-              </label>
-              <label className="flex gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={debrief.worthRepeating}
-                  onChange={event =>
-                    setDebrief({
-                      ...debrief,
-                      worthRepeating: event.target.checked,
-                    })
-                  }
-                />
-                Vale repetir
-              </label>
-              <div className="flex justify-end md:col-span-2">
-                <Button
-                  type="submit"
-                  className="bg-primary"
-                  disabled={saveDebrief.isPending}
-                >
-                  Salvar debriefing
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
         <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
           <DialogContent className="max-w-xl">
             <DialogHeader>
@@ -663,32 +530,12 @@ export default function ActionsWorkspace() {
             Filtros{activeFilterCount ? ` (${activeFilterCount})` : ""}
           </Button>
           {canWrite && <>
-            <Button variant="outline" onClick={() => setCampaignOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Nova campanha
-            </Button>
             <Button onClick={openForm} className="bg-primary">
               <Plus className="mr-2 h-4 w-4" /> Nova ação
             </Button>
           </>}
         </div>
       </header>
-      <Dialog open={campaignOpen} onOpenChange={setCampaignOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Nova campanha de trade</DialogTitle>
-            <DialogDescription>Organize ações, eventos e mídias correlatas em um único planejamento.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={event => { event.preventDefault(); createCampaign.mutate({ name: campaignForm.name, objective: campaignForm.objective || undefined, regionalId: campaignForm.regionalId ? Number(campaignForm.regionalId) : null, startsAt: campaignForm.startsAt ? new Date(campaignForm.startsAt) : null, endsAt: campaignForm.endsAt ? new Date(campaignForm.endsAt) : null, status: campaignForm.status }); }} className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Nome da campanha<Input required value={campaignForm.name} onChange={event => setCampaignForm(current => ({ ...current, name: event.target.value }))} placeholder="Ex.: Expansão Primavera" /></label>
-            <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Objetivo<Textarea value={campaignForm.objective} onChange={event => setCampaignForm(current => ({ ...current, objective: event.target.value }))} placeholder="Objetivo comercial e público prioritário" /></label>
-            <label className="grid gap-1.5 text-sm font-medium">Regional<select className="control" value={campaignForm.regionalId} onChange={event => setCampaignForm(current => ({ ...current, regionalId: event.target.value }))}><option value="">Todas as regionais</option>{regionalOptions.map(regional => <option key={regional.id} value={regional.id}>{regional.name}</option>)}</select></label>
-            <label className="grid gap-1.5 text-sm font-medium">Situação<select className="control" value={campaignForm.status} onChange={event => setCampaignForm(current => ({ ...current, status: event.target.value as typeof campaignForm.status }))}><option value="scheduled">Planejada</option><option value="active">Ativa</option><option value="completed">Concluída</option><option value="cancelled">Cancelada</option></select></label>
-            <label className="grid gap-1.5 text-sm font-medium">Início<Input type="date" value={campaignForm.startsAt} onChange={event => setCampaignForm(current => ({ ...current, startsAt: event.target.value }))} /></label>
-            <label className="grid gap-1.5 text-sm font-medium">Término<Input type="date" value={campaignForm.endsAt} onChange={event => setCampaignForm(current => ({ ...current, endsAt: event.target.value }))} /></label>
-            <div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => setCampaignOpen(false)}>Cancelar</Button><Button type="submit" className="bg-primary" disabled={createCampaign.isPending}>{createCampaign.isPending ? "Salvando…" : "Criar campanha"}</Button></div>
-          </form>
-        </DialogContent>
-      </Dialog>
       {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
         {activeFilterCount > 0 && <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button></div>}
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -726,14 +573,14 @@ export default function ActionsWorkspace() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="truncate font-semibold text-foreground">{row.action.name}</h2>
-                  <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{row.action.objective || "Objetivo ainda não informado."}</p>
+                  <p className="mt-1 whitespace-normal break-words text-sm leading-5 text-muted-foreground">{row.action.objective || "Objetivo ainda não informado."}</p>
                 </div>
                 <div className="col-span-2 min-w-0 space-y-2 lg:col-span-1">
                   <div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className={actionStatusClass[row.action.status]}>{statusLabel[row.action.status]}</Badge><Badge variant="outline">{partnershipLabel[row.action.partnershipType]}</Badge></div>
                   <div className="flex flex-wrap gap-2"><Badge variant="secondary">{row.actionTypeName || "Tipo não informado"}</Badge><Badge variant="outline">{row.cityName || "Cidade não informada"}</Badge></div>
                 </div>
                 <div className="col-span-2 min-w-0 rounded-xl bg-muted/45 px-3 py-2.5 lg:col-span-1"><p className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{compactDate(row.action.scheduledFor)} — {compactDate(row.action.endsAt)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{row.supervisorName || "Supervisor não definido"}</p></div>
-                <div className="col-span-2 grid min-w-0 grid-cols-3 gap-1.5 text-center text-primary lg:col-span-2 xl:col-span-1"><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.finance?.estimatedAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">previsto</small></span><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.finance?.paidAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">pago</small></span><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.finance?.remainingAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">saldo</small></span></div>
+                <div className="col-span-2 min-w-0 text-primary lg:col-span-2 xl:col-span-1"><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-2 py-1.5 text-center"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.action.estimatedCost ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">total dos serviços</small></span></div>
                 <div className="col-span-2 flex min-h-8 items-center lg:col-span-2 xl:col-span-1 xl:justify-center">{row.debrief?.rating ? <Badge variant="outline" className={`min-w-9 justify-center font-bold tabular-nums ${actionRatingClass[Number(row.debrief.rating)] ?? ""}`} title={`Nota ${row.debrief.rating}/5`}>{row.debrief.rating}</Badge> : <span className="text-[11px] text-muted-foreground">Sem nota</span>}</div>
               </button>
             ))}
@@ -757,123 +604,11 @@ export default function ActionsWorkspace() {
         setCity={setCity}
         setPoint={setPoint}
         setStock={setStock}
+        setSuppliers={setSuppliers}
         setServices={setServices}
         submit={submit}
         pending={create.isPending}
       />
-      <Dialog open={debriefOpen} onOpenChange={setDebriefOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Debriefing da ação</DialogTitle>
-            <DialogDescription>
-              Registre o resultado, os aprendizados e a recomendação para
-              próximas iniciativas.
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={event => {
-              event.preventDefault();
-              if (selectedId)
-                saveDebrief.mutate({
-                  actionId: selectedId,
-                  rating: Number(debrief.rating),
-                  notes: debrief.notes || undefined,
-                  positives: debrief.positives || undefined,
-                  negatives: debrief.negatives || undefined,
-                  resultAchieved: debrief.resultAchieved,
-                  worthRepeating: debrief.worthRepeating,
-                  completedAt: new Date(debrief.completedAt),
-                });
-            }}
-            className="grid gap-4 md:grid-cols-2"
-          >
-            <label className="grid gap-1.5 text-sm font-medium">
-              Nota
-              <select
-                value={debrief.rating}
-                onChange={event =>
-                  setDebrief({ ...debrief, rating: event.target.value })
-                }
-                className="control"
-              >
-                {[5, 4, 3, 2, 1].map(value => (
-                  <option key={value} value={value}>
-                    {value} estrela{value > 1 ? "s" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Concluída em
-              <Input
-                type="datetime-local"
-                required
-                value={debrief.completedAt}
-                onChange={event =>
-                  setDebrief({ ...debrief, completedAt: event.target.value })
-                }
-              />
-            </label>
-            <Textarea
-              className="md:col-span-2"
-              placeholder="Síntese e aprendizados"
-              value={debrief.notes}
-              onChange={event =>
-                setDebrief({ ...debrief, notes: event.target.value })
-              }
-            />
-            <Textarea
-              placeholder="Pontos positivos"
-              value={debrief.positives}
-              onChange={event =>
-                setDebrief({ ...debrief, positives: event.target.value })
-              }
-            />
-            <Textarea
-              placeholder="Pontos a melhorar"
-              value={debrief.negatives}
-              onChange={event =>
-                setDebrief({ ...debrief, negatives: event.target.value })
-              }
-            />
-            <label className="flex gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={debrief.resultAchieved}
-                onChange={event =>
-                  setDebrief({
-                    ...debrief,
-                    resultAchieved: event.target.checked,
-                  })
-                }
-              />
-              Objetivo atingido
-            </label>
-            <label className="flex gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={debrief.worthRepeating}
-                onChange={event =>
-                  setDebrief({
-                    ...debrief,
-                    worthRepeating: event.target.checked,
-                  })
-                }
-              />
-              Vale repetir
-            </label>
-            <div className="flex justify-end md:col-span-2">
-              <Button
-                type="submit"
-                className="bg-primary"
-                disabled={saveDebrief.isPending}
-              >
-                Salvar debriefing
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
       <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
@@ -943,15 +678,21 @@ function ActionDetail({
   onBack,
   onEdit,
   onStatus,
-  onDebrief,
+  debrief,
+  onDebriefChange,
+  onSaveDebrief,
+  debriefPending,
   onReschedule,
 }: {
   row: any;
   canWrite: boolean;
   onBack: () => void;
   onEdit: () => void;
-  onStatus: (status: "in_progress" | "completed" | "cancelled") => void;
-  onDebrief: () => void;
+  onStatus: (status: "planned" | "in_progress" | "completed" | "cancelled") => void;
+  debrief: any;
+  onDebriefChange: (next: any) => void;
+  onSaveDebrief: () => void;
+  debriefPending: boolean;
   onReschedule: () => void;
 }) {
   const regionalId = null;
@@ -988,20 +729,12 @@ function ActionDetail({
             <Button variant="outline" onClick={onReschedule}>
                 Reagendar
             </Button>
-            {row.action.status === "planned" && (
-              <Button onClick={() => onStatus("in_progress")} className="bg-primary">
-                  Iniciar
-              </Button>
-            )}
-            {row.action.status === "in_progress" && (
-              <Button onClick={() => onStatus("completed")} className="bg-primary">
-                  Concluir
-              </Button>
-            )}
-            <Button variant="outline" onClick={onDebrief}>
-              <ClipboardCheck className="mr-2 h-4 w-4" />
-              {row.debrief ? "Revisar debrief" : "Registrar debrief"}
-            </Button>
+            <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 text-xs font-medium text-muted-foreground">
+              Status
+              <select value={row.action.status} onChange={event => onStatus(event.target.value as "planned" | "in_progress" | "completed" | "cancelled")} className="h-8 bg-transparent text-sm font-medium text-foreground outline-none">
+                <option value="planned">Planejada</option><option value="in_progress">Em execução</option><option value="completed">Concluída</option><option value="cancelled">Cancelada</option>
+              </select>
+            </label>
           </div>
         )}
       </header>
@@ -1042,98 +775,33 @@ function ActionDetail({
           </DetailSection>
         </section>
         <section className="min-w-0 rounded-xl border border-border bg-card p-4">
-          <DetailSection title="Financeiro e controle">
+          <DetailSection title="Contexto comercial">
             <div className="grid gap-3 sm:grid-cols-2">
-              <DetailValue label="Custo previsto" value={Number(row.finance?.estimatedAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
-              <DetailValue label="Valor gasto" value={Number(row.finance?.paidAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
-              <DetailValue label="Diferença" value={Number(row.finance?.remainingAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
               <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
+              <DetailValue label="Campanha" value={row.campaignName || "Ação sem campanha vinculada"} />
             </div>
           </DetailSection>
         </section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
-          <DetailSection title="Equipe, fornecedores e recursos">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <DetailValue
-                icon={<UsersRound className="h-4 w-4" />}
-                label="Responsáveis"
-                value={
-                  row.teamMembers.length
-                    ? row.teamMembers
-                        .map(
-                          (member: any) =>
-                            member.name || `Usuário #${member.userId}`
-                        )
-                        .join(", ")
-                    : "Não informados"
-                }
-              />
-              <DetailValue
-                label="Fornecedores envolvidos"
-                value={
-                  row.suppliers?.length
-                    ? row.suppliers
-                        .map((supplier: any) => supplier.name)
-                        .join(", ")
-                    : "Não informados"
-                }
-              />
-              <DetailValue
-                label="Serviços"
-                value={
-                  row.services?.length
-                    ? row.services
-                        .map((service: any) => `${service.name}: ${Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
-                        .join(", ")
-                    : "Não informados"
-                }
-              />
-              <DetailValue
-                icon={<PackageCheck className="h-4 w-4" />}
-                label="Recursos de estoque"
-                value={
-                  row.stockItems.length
-                    ? row.stockItems
-                        .map(
-                          (item: any) =>
-                            `${item.name}: ${item.plannedQuantity} ${item.unit}`
-                        )
-                        .join(" · ")
-                    : "Não informados"
-                }
-              />
-            </div>
-          </DetailSection>
-        </section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Responsáveis e fornecedores"><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><UsersRound className="h-4 w-4" /> Responsáveis do trade</p>{row.teamMembers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.teamMembers.map((member: any) => <div key={member.userId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-contain" /> : (member.name || "U").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{member.name || `Usuário #${member.userId}`}</p><p className="truncate text-xs text-muted-foreground">{member.jobTitle || "Colaborador"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum responsável definido.</p>}</div><DetailValue label="Fornecedores envolvidos" value={row.suppliers?.length ? row.suppliers.map((supplier: any) => supplier.name).join(", ") : "Não informados"} /></div></DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Serviços"><div className="space-y-2">{row.services?.length ? row.services.map((service: any) => <div key={service.serviceTypeId} className="grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium text-foreground">{service.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{service.supplierName || "Fornecedor não vinculado"}{service.offeringName ? ` · ${service.offeringName}` : ""}{service.unit ? ` · ${service.unit}` : ""}</p></div><strong className="text-sm tabular-nums text-primary">{Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum serviço planejado.</p>}</div>{row.services?.length ? <div className="mt-3 flex justify-end border-t border-border pt-3"><span className="text-sm font-semibold text-foreground">Total dos serviços: <strong className="text-primary">{Number((row.services ?? []).reduce((total: number, service: any) => total + Number(service.estimatedAmount ?? 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span></div> : null}</DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: any) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.sku || "Sem SKU"} · {item.unit}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{item.plannedQuantity} {item.unit}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4">
           <DetailSection title="Debriefing e resultado">
-            {row.debrief ? (
-              <div className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)]">
-                  <div className="grid min-h-28 content-start gap-2 rounded-xl border border-border bg-muted/25 p-3">
-                    <p className="text-sm font-medium">Nota geral</p>
-                    <strong className="text-2xl font-semibold tabular-nums text-foreground">{row.debrief.rating}</strong>
-                    <Badge variant="outline" className={`w-fit ${actionRatingClass[Number(row.debrief.rating)] ?? ""}`}>{row.debrief.rating}/5 · {actionRatingLabel[Number(row.debrief.rating)] ?? "Avaliação"}</Badge>
-                  </div>
-                  <div className="rounded-xl border border-border p-3"><p className="text-sm font-medium text-foreground">História da ação</p><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{row.debrief.resultSummary || "Sem história registrada."}</p></div>
-                  <div className="rounded-xl border border-border p-3"><p className="text-sm font-medium text-foreground">Avaliação e aprendizados</p><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{row.debrief.notes || "Sem avaliação registrada."}</p></div>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <DetailValue label="Leads" value={String(row.debrief.leadCount ?? 0)} />
-                  <DetailValue label="Vendas" value={String(row.debrief.saleCount ?? 0)} />
-                  <DetailValue label="Renovações" value={String(row.debrief.renewalCount ?? 0)} />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {row.debrief.worthRepeating
-                    ? "Recomendado repetir a iniciativa."
-                    : "Revisar antes de repetir a iniciativa."}
-                </p>
+            <form onSubmit={event => { event.preventDefault(); onSaveDebrief(); }} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-[126px_minmax(0,1fr)]">
+                <div className="grid content-start gap-2 rounded-xl border border-border bg-muted/25 p-3"><p className="text-xs font-semibold text-muted-foreground">Nota geral</p><strong className="text-2xl font-semibold tabular-nums text-foreground">{debrief.rating}</strong><Badge variant="outline" className={`w-fit text-[10px] ${actionRatingClass[Number(debrief.rating)] ?? ""}`}>{debrief.rating}/5 · {actionRatingLabel[Number(debrief.rating)] ?? "Avaliação"}</Badge><select aria-label="Nota geral" value={debrief.rating} onChange={event => onDebriefChange({ ...debrief, rating: event.target.value })} className="control h-8 text-xs">{[5, 4, 3, 2, 1].map(value => <option key={value} value={value}>{value} · {actionRatingLabel[value]}</option>)}</select></div>
+                <div className="grid gap-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">História e resultado da ação<Textarea className="min-h-24" value={debrief.resultSummary} onChange={event => onDebriefChange({ ...debrief, resultSummary: event.target.value })} placeholder="Contexto, resultado alcançado e impacto percebido" /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Avaliação e aprendizados<Textarea className="min-h-24" value={debrief.notes} onChange={event => onDebriefChange({ ...debrief, notes: event.target.value })} placeholder="O que funcionou e o que deve ser aprimorado" /></label></div>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                O debriefing ainda não foi registrado.
-              </p>
-            )}
+              <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Leads<Input type="number" min="0" value={debrief.leadCount} onChange={event => onDebriefChange({ ...debrief, leadCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Vendas<Input type="number" min="0" value={debrief.saleCount} onChange={event => onDebriefChange({ ...debrief, saleCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Renovações<Input type="number" min="0" value={debrief.renewalCount} onChange={event => onDebriefChange({ ...debrief, renewalCount: event.target.value })} /></label></div>
+              <div className="grid gap-2 sm:grid-cols-2"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Pontos positivos<Textarea value={debrief.positives} onChange={event => onDebriefChange({ ...debrief, positives: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Pontos a melhorar<Textarea value={debrief.negatives} onChange={event => onDebriefChange({ ...debrief, negatives: event.target.value })} /></label></div>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs"><label className="flex items-center gap-2"><input type="checkbox" checked={debrief.resultAchieved} onChange={event => onDebriefChange({ ...debrief, resultAchieved: event.target.checked })} /> Objetivo atingido</label><label className="flex items-center gap-2"><input type="checkbox" checked={debrief.worthRepeating} onChange={event => onDebriefChange({ ...debrief, worthRepeating: event.target.checked })} /> Vale repetir</label><label className="ml-auto grid gap-1 text-xs font-semibold text-muted-foreground">Concluída em<Input type="datetime-local" required value={debrief.completedAt} onChange={event => onDebriefChange({ ...debrief, completedAt: event.target.value })} /></label></div>
+              {canWrite && <Button type="submit" className="w-full bg-primary" disabled={debriefPending}>Salvar debriefing</Button>}
+            </form>
+          </DetailSection>
+        </section>
+        <section className="rounded-xl border border-border bg-card p-4">
+          <DetailSection title="Fotos, vídeos e evidências">
+            <EvidenceUpload entityType="action" entityId={row.action.id} regionalId={regionalId} canWrite={canWrite} variant="side" />
           </DetailSection>
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
@@ -1161,16 +829,6 @@ function ActionDetail({
                 Ainda não há movimentações registradas.
               </p>
             )}
-          </DetailSection>
-        </section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
-          <DetailSection title="Fotos, vídeos e evidências">
-            <EvidenceUpload
-              entityType="action"
-              entityId={row.action.id}
-              regionalId={regionalId}
-              canWrite={canWrite}
-            />
           </DetailSection>
         </section>
       </div>
@@ -1223,6 +881,7 @@ function ActionForm({
   setCity,
   setPoint,
   setStock,
+  setSuppliers,
   setServices,
   submit,
   pending,
@@ -1327,19 +986,6 @@ function ActionForm({
               <option value="mixed">Misto</option>
             </select>
           </label>
-          <label className="grid gap-1.5 text-sm font-medium">
-            Custo previsto
-            <Input
-              required
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.estimatedCost}
-              onChange={event =>
-                setForm({ ...form, estimatedCost: event.target.value })
-              }
-            />
-          </label>
           <div className="md:col-span-2">
             <SearchableMultiSelect
               id="action-point"
@@ -1388,7 +1034,7 @@ function ActionForm({
             label="Fornecedores envolvidos"
             options={supplierOptions}
             values={form.supplierIds}
-            onChange={ids => setForm({ ...form, supplierIds: ids })}
+            onChange={setSuppliers}
             disabled={!form.cityId}
             emptyMessage="Nenhum fornecedor atende esta cidade."
           />
@@ -1415,13 +1061,15 @@ function ActionForm({
           />
           {form.serviceAllocations.length > 0 && (
             <div className="rounded-xl border border-border bg-muted/50 p-4 md:col-span-4">
-              <p className="text-sm font-semibold">Valores previstos por serviço</p>
+              <div className="flex flex-wrap items-baseline justify-between gap-2"><p className="text-sm font-semibold">Serviços e valores previstos</p><p className="text-xs text-muted-foreground">O valor de referência é trazido da oferta do fornecedor e pode ser ajustado para descontos.</p></div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {form.serviceAllocations.map((allocation: ServiceAllocation) => {
                   const service = (references?.serviceTypes ?? []).find((item: any) => item.id === allocation.serviceTypeId);
-                  return <label key={allocation.serviceTypeId} className="grid gap-1 text-xs font-medium text-muted-foreground"><span>{service?.name ?? "Serviço"}</span><Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label>;
+                  const offerings = (references?.supplierOfferings ?? []).filter((offering: any) => form.supplierIds.includes(offering.supplierId));
+                  return <div key={allocation.serviceTypeId} className="grid gap-2 rounded-lg border border-border bg-background p-3"><p className="text-sm font-medium text-foreground">{service?.name ?? "Serviço"}</p><label className="grid gap-1 text-xs font-medium text-muted-foreground">Oferta do fornecedor<select className="control h-9" value={allocation.supplierOfferingId ?? ""} onChange={event => { const offering = offerings.find((item: any) => item.id === Number(event.target.value)); setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, supplierOfferingId: offering?.id ?? null, estimatedAmount: offering ? String(offering.unitPrice ?? 0) : current.estimatedAmount } : current) }); }}><option value="">Selecionar oferta</option>{offerings.map((offering: any) => <option key={offering.id} value={offering.id}>{offering.supplierName ? `${offering.supplierName} · ` : ""}{offering.name}{offering.unit ? ` (${offering.unit})` : ""}</option>)}</select></label><label className="grid gap-1 text-xs font-medium text-muted-foreground">Valor aplicado<Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label></div>;
                 })}
               </div>
+              <div className="mt-3 flex justify-end border-t border-border pt-3 text-sm font-semibold text-foreground">Total previsto: <strong className="ml-1 text-primary">{form.serviceAllocations.reduce((total: number, item: ServiceAllocation) => total + Number(item.estimatedAmount || 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>
             </div>
           )}
           {form.stockAllocations.length > 0 && (

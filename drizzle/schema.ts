@@ -634,6 +634,7 @@ export const actionServices = pgTable("action_services", {
   id: serial("id").primaryKey(),
   actionId: integer("actionId").notNull().references(() => actions.id, { onDelete: "cascade" }),
   serviceTypeId: integer("serviceTypeId").notNull().references(() => serviceTypes.id, { onDelete: "restrict" }),
+  supplierOfferingId: integer("supplierOfferingId").references(() => supplierOfferings.id, { onDelete: "set null" }),
   estimatedAmount: numeric("estimatedAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
 }, table => [uniqueIndex("action_services_uq").on(table.actionId, table.serviceTypeId)]);
 
