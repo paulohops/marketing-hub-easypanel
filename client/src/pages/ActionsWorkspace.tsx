@@ -44,6 +44,7 @@ const partnershipLabel: Record<string, string> = {
 const blankForm = () => ({
   name: "",
   tradeCampaignId: "",
+  eventId: "",
   cityId: "",
   actionTypeId: "",
   actionPointId: "",
@@ -259,6 +260,7 @@ export default function ActionsWorkspace() {
     setForm({
       name: row.action.name,
       tradeCampaignId: row.action.tradeCampaignId ? String(row.action.tradeCampaignId) : "",
+      eventId: row.action.eventId ? String(row.action.eventId) : "",
       cityId: String(row.action.cityId),
       actionTypeId: String(row.action.actionTypeId),
       actionPointId: row.action.actionPointId ? String(row.action.actionPointId) : "",
@@ -282,6 +284,7 @@ export default function ActionsWorkspace() {
     setForm(current => ({
       ...current,
       cityId,
+      eventId: "",
       actionPointId: "",
       address: "",
       supplierIds: [],
@@ -323,6 +326,7 @@ export default function ActionsWorkspace() {
     const payload = {
       name: form.name,
       tradeCampaignId: form.tradeCampaignId ? Number(form.tradeCampaignId) : null,
+      eventId: form.eventId ? Number(form.eventId) : null,
       cityId: Number(form.cityId),
       actionTypeId: Number(form.actionTypeId),
       actionPointId: form.actionPointId ? Number(form.actionPointId) : null,
@@ -1063,6 +1067,10 @@ function ActionDetail({
                 label="Supervisor"
                 value={row.supervisorName || "Não definido"}
               />
+              <DetailValue
+                label="Evento de contexto"
+                value={row.eventName || "Ação independente de evento"}
+              />
             </div>
           </DetailSection>
           <DetailSection title="Equipe, fornecedores e recursos">
@@ -1263,6 +1271,15 @@ function ActionForm({
             onChange={ids => setForm({ ...form, tradeCampaignId: ids[0] ? String(ids[0]) : "" })}
             maxSelections={1}
             placeholder="Sem campanha vinculada"
+          />
+          <SearchableMultiSelect
+            id="action-event"
+            label="Evento de contexto"
+            options={(Array.isArray(references?.events) ? references.events : []).filter((item: any) => item.status !== "cancelled" && (!form.cityId || item.cityId === Number(form.cityId)) && (!form.tradeCampaignId || !item.tradeCampaignId || item.tradeCampaignId === Number(form.tradeCampaignId))).map((item: any) => ({ id: item.id, label: item.name, description: item.startsAt ? `Evento em ${new Date(item.startsAt).toLocaleDateString("pt-BR")}` : undefined }))}
+            values={form.eventId ? [Number(form.eventId)] : []}
+            onChange={ids => setForm({ ...form, eventId: ids[0] ? String(ids[0]) : "" })}
+            maxSelections={1}
+            placeholder="Ação independente de evento"
           />
           <SearchableMultiSelect
             id="action-city"

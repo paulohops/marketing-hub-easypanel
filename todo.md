@@ -31,7 +31,7 @@
 - [x] Implementar o dashboard analítico e views de desempenho para fornecedores, mídias, ações e eventos.
 - [x] Implementar alertas para vencimento de campanhas, pagamentos pendentes e ações sem execução.
 - [x] Implementar callback agendado, seguro e idempotente para gerar alertas operacionais recorrentes.
-- [ ] Após a publicação, ativar a rotina diária de alertas por meio do agendamento gerenciado.
+- [x] Após a publicação, ativar a rotina diária de alertas por meio do agendamento gerenciado.
 - [x] Implementar trilha de auditoria para mudanças administrativas e operacionais relevantes.
 - [x] Criar testes automatizados para regras de permissão, integridade e fluxos críticos.
 - [x] Validar responsividade, acessibilidade, segurança e qualidade visual antes da entrega.
@@ -232,8 +232,8 @@
 - [x] Criar ficha detalhada de item de estoque com movimentações, responsável e recebedor, iniciando pelo supervisor responsável.
 - [x] Reorganizar a navegação de Operação para destacar Campanhas, Ações, Mídias e Eventos, removendo Mídias externas do menu.
 - [x] Criar uma tela própria de Campanhas com separação entre campanhas ativas e encerradas e seus vínculos operacionais.
-- [ ] Manter Ações independentes ou vinculadas a campanhas, inclusive quando realizadas no contexto de um Evento.
-- [ ] Transformar a listagem de Mídias em cartões clicáveis que abrem a ficha detalhada de cada mídia.
+- [x] Manter Ações independentes ou vinculadas a campanhas, inclusive quando realizadas no contexto de um Evento.
+- [x] Transformar a listagem de Mídias em cartões clicáveis que abrem a ficha detalhada de cada mídia.
 - [ ] Validar o módulo Operação de forma iterativa com o usuário antes de avançar para outro módulo.
 - [x] Permitir selecionar empresa e cidades na campanha, com filtro por empresa na listagem de Campanhas.
 - [x] Adicionar identidade visual, promoções, planos e valores ao planejamento de uma campanha.

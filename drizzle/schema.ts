@@ -577,6 +577,7 @@ export const mediaCampaignCityDistributions = pgTable("media_campaign_city_distr
 export const actions = pgTable("actions", {
   id: serial("id").primaryKey(),
   tradeCampaignId: integer("tradeCampaignId").references(() => tradeCampaigns.id, { onDelete: "set null" }),
+  eventId: integer("eventId").references(() => events.id, { onDelete: "set null" }),
   cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
   actionTypeId: integer("actionTypeId").notNull().references(() => actionTypes.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
