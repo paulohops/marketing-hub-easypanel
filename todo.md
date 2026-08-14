@@ -327,3 +327,11 @@
 - [x] Registrar reagendamento, pausa e cancelamento com motivo obrigatório, evidências e consulta detalhada no histórico da Ação.
 - [x] Elevar para 50 MB o limite de anexos em todo o sistema e corrigir o download direto de arquivos sem abrir a pré-visualização.
 - [x] Cobrir e validar os ajustes de Ações e anexos com testes, tipagem, dados persistidos e revisão responsiva.
+
+- [x] Adicionar filtros de responsável e nota à lista de Ações.
+- [x] Exibir a imagem de capa da campanha selecionada na ficha de Ação.
+- [x] Separar motivos e evidências de reagendamento, pausa e cancelamento em uma pasta própria, distinta do acervo geral.
+- [x] Corrigir a composição do formulário de Ações, incluir botão explícito para subir a foto de capa e preservar a responsividade.
+- [x] Exibir Serviços e valores previstos em lista e restringir a escolha de serviços às ofertas do fornecedor selecionado.
+- [x] Remover o indicador redundante de total de itens e serviços acima do histórico da Ação.
+- [x] Cobrir e validar os refinamentos de filtros, formulário, dependências, capa e histórico de Ações.

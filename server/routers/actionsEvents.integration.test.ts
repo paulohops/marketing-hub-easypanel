@@ -22,7 +22,7 @@ function createContext(): TrpcContext {
   };
 }
 
-function referenceBuilder(rows: Array<Record<string, number | null>> = [{ id: 1, regionalId: 1, cityId: null, supplierId: 4 }]) {
+function referenceBuilder(rows: Array<Record<string, number | null>> = [{ id: 1, regionalId: 1, cityId: null, supplierId: 4, serviceTypeId: 5 }]) {
   return { from: vi.fn(() => ({ where: vi.fn(() => rows) })) };
 }
 

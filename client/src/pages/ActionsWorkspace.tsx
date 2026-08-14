@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   CalendarClock,
   ClipboardCheck,
+  FolderUp,
   ImagePlus,
   MapPin,
   PackageCheck,
@@ -115,6 +116,8 @@ export default function ActionsWorkspace() {
   const [status, setStatus] = useState("all");
   const [regionalFilter, setRegionalFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
+  const [supervisorFilter, setSupervisorFilter] = useState("all");
+  const [ratingFilter, setRatingFilter] = useState("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -286,11 +289,13 @@ export default function ActionsWorkspace() {
                 .regionalId ?? ""
             ) === regionalFilter) &&
           (cityFilter === "all" || String(row.action.cityId) === cityFilter) &&
+          (supervisorFilter === "all" || String(row.action.commercialSupervisorId ?? "") === supervisorFilter) &&
+          (ratingFilter === "all" || String(row.debrief?.rating ?? "") === ratingFilter) &&
           `${row.action.name} ${row.cityName} ${row.actionTypeName}`
             .toLocaleLowerCase("pt-BR")
             .includes(search.toLocaleLowerCase("pt-BR"))
       ),
-    [actionList.data, search, status, regionalFilter, cityFilter, cities]
+    [actionList.data, search, status, regionalFilter, cityFilter, supervisorFilter, ratingFilter, cities]
   );
   const selected = (actionList.data ?? []).find(
     (row: any) => row.action.id === selectedId
@@ -312,7 +317,7 @@ export default function ActionsWorkspace() {
       completedAt: toDateField(prior?.completedAt ?? new Date()),
     });
   }, [selectedId]);
-  const activeFilterCount = [search, status !== "all", regionalFilter !== "all", cityFilter !== "all"].filter(Boolean).length;
+  const activeFilterCount = [search, status !== "all", regionalFilter !== "all", cityFilter !== "all", supervisorFilter !== "all", ratingFilter !== "all"].filter(Boolean).length;
   const statusCounts = (actionList.data ?? []).reduce((counts: Record<string, number>, row: any) => {
     counts[row.action.status] = (counts[row.action.status] ?? 0) + 1;
     return counts;
@@ -322,6 +327,8 @@ export default function ActionsWorkspace() {
     setStatus("all");
     setRegionalFilter("all");
     setCityFilter("all");
+    setSupervisorFilter("all");
+    setRatingFilter("all");
   };
   const openForm = () => {
     setForm(blankForm());
@@ -388,15 +395,15 @@ export default function ActionsWorkspace() {
     return (references.data?.supplierOfferings ?? []).find((offering: any) => supplierIds.includes(offering.supplierId) && offering.name?.toLocaleLowerCase("pt-BR").includes(serviceName));
   };
   const setSuppliers = (supplierIds: number[]) =>
-    setForm(current => ({
-      ...current,
-      supplierIds,
-      serviceAllocations: current.serviceAllocations.map(allocation => {
+    setForm(current => {
+      const allowedServiceIds = new Set((references.data?.supplierServiceTypes ?? []).filter((link: any) => supplierIds.includes(link.supplierId)).map((link: any) => link.serviceTypeId));
+      const retainedAllocations = current.serviceAllocations.filter(allocation => allowedServiceIds.has(allocation.serviceTypeId)).map(allocation => {
         const selectedOffering = (references.data?.supplierOfferings ?? []).find((offering: any) => offering.id === allocation.supplierOfferingId && supplierIds.includes(offering.supplierId));
         const fallbackOffering = selectedOffering ?? matchingOffering(allocation.serviceTypeId, supplierIds);
         return selectedOffering ? allocation : { ...allocation, supplierOfferingId: fallbackOffering?.id ?? null, estimatedAmount: fallbackOffering ? String(fallbackOffering.unitPrice ?? 0) : allocation.estimatedAmount };
-      }),
-    }));
+      });
+      return { ...current, supplierIds, serviceTypeIds: retainedAllocations.map(allocation => allocation.serviceTypeId), serviceAllocations: retainedAllocations };
+    });
   const setServices = (ids: number[]) =>
     setForm(current => ({
       ...current,
@@ -500,7 +507,7 @@ export default function ActionsWorkspace() {
             <DialogHeader><DialogTitle>Confirmar alteração de status</DialogTitle><DialogDescription>Registre o contexto operacional e os arquivos que justificam esta mudança. O registro ficará disponível no histórico da ação.</DialogDescription></DialogHeader>
             <form className="grid gap-4" onSubmit={event => { event.preventDefault(); changeStatus.mutate({ actionId: selected.action.id, status: statusChange.status as "planned" | "in_progress" | "paused" | "completed" | "cancelled", reason: statusChange.reason || undefined, evidenceUrls: statusChange.evidenceUrls }, { onSuccess: () => setStatusChangeOpen(false) }); }}>
               <label className="grid gap-1.5 text-sm font-medium">Motivo {(["paused", "cancelled"] as string[]).includes(statusChange.status) ? "(obrigatório)" : "(opcional)"}<Textarea required={["paused", "cancelled"].includes(statusChange.status)} minLength={["paused", "cancelled"].includes(statusChange.status) ? 3 : undefined} value={statusChange.reason} onChange={event => setStatusChange(current => ({ ...current, reason: event.target.value }))} placeholder="Descreva a razão da alteração de status." /></label>
-              <EvidenceUpload entityType="action" entityId={selected.action.id} regionalId={null} canWrite={canWrite} variant="side" onUploadComplete={url => setStatusChange(current => ({ ...current, evidenceUrls: [...current.evidenceUrls, url] }))} />
+              <StatusEvidenceFolder actionId={selected.action.id} canWrite={canWrite} value={statusChange.evidenceUrls} onChange={(evidenceUrls: string[]) => setStatusChange(current => ({ ...current, evidenceUrls }))} />
               <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setStatusChangeOpen(false)}>Voltar</Button><Button type="submit" className="bg-primary" disabled={changeStatus.isPending}>{changeStatus.isPending ? "Salvando..." : "Confirmar status"}</Button></div>
             </form>
           </DialogContent>
@@ -557,7 +564,7 @@ export default function ActionsWorkspace() {
                 Motivo do reagendamento
                 <Textarea required minLength={3} value={reschedule.reason} onChange={event => setReschedule(current => ({ ...current, reason: event.target.value }))} placeholder="Explique o motivo da nova data." />
               </label>
-              <EvidenceUpload entityType="action" entityId={selected.action.id} regionalId={null} canWrite={canWrite} variant="side" onUploadComplete={url => setReschedule(current => ({ ...current, evidenceUrls: [...current.evidenceUrls, url] }))} />
+              <StatusEvidenceFolder actionId={selected.action.id} canWrite={canWrite} value={reschedule.evidenceUrls} onChange={(evidenceUrls: string[]) => setReschedule(current => ({ ...current, evidenceUrls }))} />
               <div className="flex justify-end">
                 <Button
                   type="submit"
@@ -596,13 +603,15 @@ export default function ActionsWorkspace() {
       </header>
       {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
         {activeFilterCount > 0 && <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button></div>}
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="grid gap-1.5 text-sm font-medium">
             Pesquisa
             <span className="relative min-w-0"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Ação, cidade ou tipo" className="pl-9" /></span>
           </label>
           <SearchableMultiSelect id="action-filter-regional" label="Regional" placeholder="Todas as regionais" maxSelections={1} options={regionalOptions.map(regional => ({ id: Number(regional.id), label: regional.name }))} values={regionalFilter === "all" ? [] : [Number(regionalFilter)]} onChange={values => { setRegionalFilter(values[0] ? String(values[0]) : "all"); setCityFilter("all"); }} />
           <SearchableMultiSelect id="action-filter-city" label="Cidade" placeholder="Todas as cidades" maxSelections={1} options={cityFilterOptions.map(({ city }) => ({ id: city.id, label: city.name }))} values={cityFilter === "all" ? [] : [Number(cityFilter)]} onChange={values => setCityFilter(values[0] ? String(values[0]) : "all")} />
+          <SearchableMultiSelect id="action-filter-supervisor" label="Responsável" placeholder="Todos os responsáveis" maxSelections={1} options={(references.data?.supervisors ?? []).map((supervisor: any) => ({ id: supervisor.id, label: supervisor.name }))} values={supervisorFilter === "all" ? [] : [Number(supervisorFilter)]} onChange={values => setSupervisorFilter(values[0] ? String(values[0]) : "all")} />
+          <SearchableMultiSelect id="action-filter-rating" label="Nota" placeholder="Todas as notas" maxSelections={1} options={[5, 4, 3, 2, 1].map(rating => ({ id: rating, label: `${rating} · ${actionRatingLabel[rating]}` }))} values={ratingFilter === "all" ? [] : [Number(ratingFilter)]} onChange={values => setRatingFilter(values[0] ? String(values[0]) : "all")} />
         </div>
         <div>
           <p className="mb-2 text-xs font-medium text-muted-foreground">Situação da ação</p>
@@ -731,6 +740,53 @@ export default function ActionsWorkspace() {
         </DialogContent>
       </Dialog>
     </main>
+  );
+}
+
+function StatusEvidenceFolder({
+  actionId,
+  canWrite,
+  value,
+  onChange,
+}: {
+  actionId: number;
+  canWrite: boolean;
+  value: string[];
+  onChange: (urls: string[]) => void;
+}) {
+  const uploadEvidence = trpc.actions.uploadStatusEvidence.useMutation({
+    onError: error => toast.error(error.message),
+  });
+  const acceptedTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf", "video/mp4", "video/webm", "audio/mpeg", "audio/wav", "audio/ogg"];
+  const onFileChange = async (file: File | null) => {
+    if (!file) return;
+    if (!acceptedTypes.includes(file.type)) {
+      toast.error("Envie imagem, PDF, vídeo ou áudio em um formato compatível.");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Cada evidência pode ter até 50 MB.");
+      return;
+    }
+    const result = await uploadEvidence.mutateAsync({
+      actionId,
+      originalName: file.name,
+      mimeType: file.type as "image/jpeg" | "image/png" | "image/webp" | "application/pdf" | "video/mp4" | "video/webm" | "audio/mpeg" | "audio/wav" | "audio/ogg",
+      dataBase64: await fileToBase64(file),
+    });
+    onChange([...value, result.url]);
+  };
+  return (
+    <section className="rounded-xl border border-dashed border-primary/35 bg-primary/5 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 gap-2">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><FolderUp className="h-4 w-4" /></div>
+          <div><p className="text-sm font-semibold text-foreground">Pasta de motivo e evidências</p><p className="mt-0.5 text-xs text-muted-foreground">Arquivos exclusivos do histórico; não serão exibidos no acervo geral da ação.</p></div>
+        </div>
+        {canWrite && <Label htmlFor={`action-status-evidence-${actionId}`} className="flex h-9 cursor-pointer items-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition hover:bg-muted">{uploadEvidence.isPending ? "Enviando..." : "Adicionar arquivo"}<Input id={`action-status-evidence-${actionId}`} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4,video/webm,audio/mpeg,audio/wav,audio/ogg" disabled={uploadEvidence.isPending} onChange={event => { void onFileChange(event.target.files?.[0] ?? null); event.currentTarget.value = ""; }} /></Label>}
+      </div>
+      {value.length ? <div className="mt-3 space-y-1.5">{value.map((url, index) => <div key={`${url}-${index}`} className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-background px-2.5 py-2 text-xs"><span className="truncate text-muted-foreground">Arquivo {index + 1}</span>{canWrite && <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive" onClick={() => onChange(value.filter((_, currentIndex) => currentIndex !== index))}>Remover</Button>}</div>)}</div> : null}
+    </section>
   );
 }
 
@@ -863,7 +919,13 @@ function ActionDetail({
           <DetailSection title="Contexto comercial">
             <div className="grid gap-3 sm:grid-cols-2">
               <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
-              <DetailValue label="Campanha" value={row.campaignName || "Ação sem campanha vinculada"} />
+              <div className="rounded-xl bg-muted/60 p-3">
+                <p className="text-xs font-semibold text-muted-foreground">Campanha</p>
+                <div className="mt-2 flex min-w-0 items-center gap-3">
+                  {row.campaignLogoUrl ? <div className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-background"><img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="h-full w-full object-contain" /></div> : null}
+                  <p className="min-w-0 break-words text-sm text-foreground">{row.campaignName || "Ação sem campanha vinculada"}</p>
+                </div>
+              </div>
             </div>
           </DetailSection>
         </section>
@@ -890,10 +952,6 @@ function ActionDetail({
           </DetailSection>
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-            <h2 className="text-base font-semibold text-foreground">Total de itens e serviços</h2>
-            <strong className="text-lg tabular-nums text-primary">{Number(row.finance?.estimatedAmount ?? row.action.estimatedCost ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
-          </div>
           <DetailSection title="Histórico da ação">
             {row.history?.length ? (
               <div className="space-y-3">
@@ -989,6 +1047,9 @@ function ActionForm({
   onCoverChange,
   currentCoverUrl,
 }: any) {
+  const selectedSupplierOfferings = (references?.supplierOfferings ?? []).filter((offering: any) => form.supplierIds.includes(offering.supplierId));
+  const availableServiceTypeIds = new Set((references?.supplierServiceTypes ?? []).filter((link: any) => form.supplierIds.includes(link.supplierId)).map((link: any) => link.serviceTypeId));
+  const serviceOptions = (references?.serviceTypes ?? []).filter((service: any) => availableServiceTypeIds.has(service.id)).map((service: any) => ({ id: service.id, label: service.name }));
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-7xl overflow-y-auto p-4 sm:w-[calc(100vw-2rem)] sm:p-6">
@@ -999,12 +1060,12 @@ function ActionForm({
             passam a mostrar somente opções compatíveis.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-3 sm:col-span-2 lg:col-span-4 sm:flex-row sm:items-center">
+        <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-3 md:col-span-2 sm:flex-row sm:items-center">
             {(coverFile || currentCoverUrl) ? <img src={coverFile ? URL.createObjectURL(coverFile) : currentCoverUrl} alt="Capa da ação" className="h-20 w-full rounded-lg bg-background object-cover sm:w-32" /> : <div className="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-border bg-background text-xs text-muted-foreground sm:w-32">Sem capa</div>}
-            <label className="grid flex-1 gap-1.5 text-sm font-medium">Foto de capa <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => onCoverChange(event.target.files?.[0] ?? null)} /><span className="text-xs font-normal text-muted-foreground">JPEG, PNG ou WEBP. A capa identifica a ação na ficha.</span></label>
+            <div className="grid flex-1 gap-2"><p className="text-sm font-medium text-foreground">Foto de capa</p><Label htmlFor="action-cover-upload" className="flex h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"><ImagePlus className="h-4 w-4" />{coverFile ? "Trocar imagem de capa" : "Subir imagem de capa"}<Input id="action-cover-upload" type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={event => onCoverChange(event.target.files?.[0] ?? null)} /></Label><span className="text-xs text-muted-foreground">JPEG, PNG ou WEBP. A capa identifica a ação na ficha.</span></div>
           </div>
-          <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
+          <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
             Nome da ação
             <Input
               required
@@ -1133,13 +1194,12 @@ function ActionForm({
           />
           <SearchableMultiSelect
             id="action-services"
-            label="Serviços"
-            options={(references?.serviceTypes ?? []).map((item: any) => ({
-              id: item.id,
-              label: item.name,
-            }))}
+            label="Serviços oferecidos"
+            options={serviceOptions}
             values={form.serviceTypeIds}
             onChange={setServices}
+            disabled={!form.supplierIds.length}
+            emptyMessage="Selecione um fornecedor que ofereça serviços para esta ação."
           />
           <SearchableMultiSelect
             id="action-stock"
@@ -1153,20 +1213,19 @@ function ActionForm({
             emptyMessage="Nenhum recurso disponível para esta cidade."
           />
           {form.serviceAllocations.length > 0 && (
-            <div className="rounded-xl border border-border bg-muted/50 p-4 md:col-span-4">
+            <div className="rounded-xl border border-border bg-muted/50 p-4 md:col-span-2">
               <div className="flex flex-wrap items-baseline justify-between gap-2"><p className="text-sm font-semibold">Serviços e valores previstos</p><p className="text-xs text-muted-foreground">O valor de referência é trazido da oferta do fornecedor e pode ser ajustado para descontos.</p></div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-3 space-y-2">
                 {form.serviceAllocations.map((allocation: ServiceAllocation) => {
                   const service = (references?.serviceTypes ?? []).find((item: any) => item.id === allocation.serviceTypeId);
-                  const offerings = (references?.supplierOfferings ?? []).filter((offering: any) => form.supplierIds.includes(offering.supplierId));
-                  return <div key={allocation.serviceTypeId} className="grid gap-2 rounded-lg border border-border bg-background p-3"><p className="text-sm font-medium text-foreground">{service?.name ?? "Serviço"}</p><label className="grid gap-1 text-xs font-medium text-muted-foreground">Oferta do fornecedor<select className="control h-9" value={allocation.supplierOfferingId ?? ""} onChange={event => { const offering = offerings.find((item: any) => item.id === Number(event.target.value)); setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, supplierOfferingId: offering?.id ?? null, estimatedAmount: offering ? String(offering.unitPrice ?? 0) : current.estimatedAmount } : current) }); }}><option value="">Selecionar oferta</option>{offerings.map((offering: any) => <option key={offering.id} value={offering.id}>{offering.supplierName ? `${offering.supplierName} · ` : ""}{offering.name}{offering.unit ? ` (${offering.unit})` : ""}</option>)}</select></label><label className="grid gap-1 text-xs font-medium text-muted-foreground">Valor aplicado<Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label></div>;
+                  return <div key={allocation.serviceTypeId} className="grid gap-3 rounded-lg border border-border bg-background p-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,1.2fr)_150px] sm:items-end"><div className="min-w-0"><p className="text-sm font-medium text-foreground">{service?.name ?? "Serviço"}</p><p className="mt-1 text-xs text-muted-foreground">Fornecedor e valor aplicado à previsão.</p></div><label className="grid gap-1 text-xs font-medium text-muted-foreground">Oferta do fornecedor<select className="control h-9" value={allocation.supplierOfferingId ?? ""} onChange={event => { const offering = selectedSupplierOfferings.find((item: any) => item.id === Number(event.target.value)); setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, supplierOfferingId: offering?.id ?? null, estimatedAmount: offering ? String(offering.unitPrice ?? 0) : current.estimatedAmount } : current) }); }}><option value="">Selecionar oferta</option>{selectedSupplierOfferings.map((offering: any) => <option key={offering.id} value={offering.id}>{offering.name}{offering.unit ? ` (${offering.unit})` : ""}</option>)}</select></label><label className="grid gap-1 text-xs font-medium text-muted-foreground">Valor aplicado<Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label></div>;
                 })}
               </div>
               <div className="mt-3 flex justify-end border-t border-border pt-3 text-sm font-semibold text-foreground">Total previsto: <strong className="ml-1 text-primary">{form.serviceAllocations.reduce((total: number, item: ServiceAllocation) => total + Number(item.estimatedAmount || 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>
             </div>
           )}
           {form.stockAllocations.length > 0 && (
-            <div className="rounded-xl border border-border bg-muted/50 p-4 md:col-span-4">
+            <div className="rounded-xl border border-border bg-muted/50 p-4 md:col-span-2">
               <p className="text-sm font-semibold">
                 Quantidade planejada por recurso
               </p>
@@ -1209,7 +1268,7 @@ function ActionForm({
               </div>
             </div>
           )}
-          <div className="flex justify-end gap-2 md:col-span-4">
+          <div className="flex justify-end gap-2 md:col-span-2">
             <Button
               type="button"
               variant="outline"

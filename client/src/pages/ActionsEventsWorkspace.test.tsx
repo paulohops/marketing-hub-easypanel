@@ -7,11 +7,11 @@ const saveActionDebrief = vi.hoisted(() => vi.fn());
 const savePostEvent = vi.hoisted(() => vi.fn());
 const actionListQuery = vi.hoisted(() => vi.fn());
 const eventListQuery = vi.hoisted(() => vi.fn());
-const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supplierOfferings: [{ id: 9, supplierId: 4, supplierName: "Fornecedor MG", name: "Promotoria", unit: "dia", unitPrice: "400" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [], campaigns: [] };
+const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 5 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supplierOfferings: [{ id: 9, supplierId: 4, supplierName: "Fornecedor MG", name: "Promotoria", unit: "dia", unitPrice: "400" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [], campaigns: [] };
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ actions: { list: { invalidate: vi.fn() }, referenceData: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } }, campaigns: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
-  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadCover: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
+  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadCover: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadStatusEvidence: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
   events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) } },
   campaigns: { create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
 }));
@@ -65,20 +65,22 @@ describe("formulários operacionais ampliados", () => {
     fireEvent.change(screen.getByLabelText("Objetivo"), { target: { value: "Gerar experimentação" } });
     selectMultiple("Responsáveis do trade", "Rafael Lima");
     selectMultiple("Fornecedores envolvidos", "Fornecedor MG");
-    selectMultiple("Serviços", "Promotoria");
+    selectMultiple("Serviços oferecidos", "Promotoria");
     selectMultiple("Recursos de estoque", "Tenda");
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Planejar ação" }));
     expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, commercialSupervisorId: 6, partnershipType: "mixed", supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, supplierOfferingId: 9, estimatedAmount: 400 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
   });
 
-  it("oferece filtros recolhíveis e total de itens e serviços na lista de ações", () => {
+  it("oferece filtros recolhíveis, incluindo responsável e nota, na lista de ações", () => {
     actionListQuery.mockReturnValue({ data: [{ action: { id: 25, cityId: 1, name: "Blitz Financeira", status: "planned", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "800", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null, finance: { estimatedAmount: 800, paidAmount: 250, remainingAmount: 550 } }], isLoading: false });
     render(<ActionsWorkspace />);
 
     fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
     expect(screen.getByLabelText("Regional")).toBeInTheDocument();
     expect(screen.getByLabelText("Cidade")).toBeInTheDocument();
+    expect(screen.getByLabelText("Responsável")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nota")).toBeInTheDocument();
     expect(screen.getByText("Blitz Financeira")).toBeInTheDocument();
     expect(screen.getByText("itens e serviços")).toBeInTheDocument();
     expect(screen.queryByText("saldo")).not.toBeInTheDocument();
@@ -104,12 +106,14 @@ describe("formulários operacionais ampliados", () => {
   });
 
   it("abre a ficha da ação antes de registrar o debriefing", () => {
-    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null }], isLoading: false });
+    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, campaignName: "Volta às aulas", campaignLogoUrl: "https://cdn.example.com/campanha.png", teamMembers: [], stockItems: [], debrief: null }], isLoading: false });
     render(<ActionsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: /Blitz.*Teste/ }));
     expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
     expect(screen.getByText("Contexto comercial")).toBeInTheDocument();
+    expect(screen.getByAltText("Identidade visual da campanha Volta às aulas")).toBeInTheDocument();
     expect(screen.getByText("Fotos, vídeos e evidências")).toBeInTheDocument();
+    expect(screen.queryByText("Total de itens e serviços")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Vale repetir"));
     fireEvent.click(screen.getByRole("button", { name: "Salvar debriefing" }));
     expect(saveActionDebrief).toHaveBeenCalledWith(expect.objectContaining({ actionId: 21, worthRepeating: false, resultAchieved: true }));
