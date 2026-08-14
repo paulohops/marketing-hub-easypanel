@@ -254,6 +254,43 @@ export const financialCategories = pgTable("financial_categories", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const campaignTemplates = pgTable("campaign_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 180 }).notNull().unique(),
+  description: text("description"),
+  objective: text("objective"),
+  defaultStatus: campaignStatusEnum("defaultStatus").default("scheduled").notNull(),
+  defaultDurationDays: integer("defaultDurationDays"),
+  logoStorageKey: varchar("logoStorageKey", { length: 512 }),
+  logoUrl: text("logoUrl"),
+  active: boolean("active").default(true).notNull(),
+  createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const campaignTemplatePromotions = pgTable("campaign_template_promotions", {
+  id: serial("id").primaryKey(),
+  campaignTemplateId: integer("campaignTemplateId").notNull().references(() => campaignTemplates.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 180 }).notNull(),
+  description: text("description"),
+  active: boolean("active").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const campaignTemplatePromotionPlans = pgTable("campaign_template_promotion_plans", {
+  id: serial("id").primaryKey(),
+  campaignTemplatePromotionId: integer("campaignTemplatePromotionId").notNull().references(() => campaignTemplatePromotions.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 160 }).notNull(),
+  description: text("description"),
+  price: numeric("price", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  unit: varchar("unit", { length: 48 }).default("unidade").notNull(),
+  active: boolean("active").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+});
+
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
   providerId: integer("providerId").references(() => providers.id, { onDelete: "restrict" }),
@@ -332,13 +369,49 @@ export const tradeCampaigns = pgTable("trade_campaigns", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 180 }).notNull(),
   objective: text("objective"),
+  providerId: integer("providerId").references(() => providers.id, { onDelete: "set null" }),
   regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "set null" }),
+  campaignTemplateId: integer("campaignTemplateId").references(() => campaignTemplates.id, { onDelete: "set null" }),
+  logoStorageKey: varchar("logoStorageKey", { length: 512 }),
+  logoUrl: text("logoUrl"),
   startsAt: timestamp("startsAt", { withTimezone: true }),
   endsAt: timestamp("endsAt", { withTimezone: true }),
   status: campaignStatusEnum("status").default("scheduled").notNull(),
+  debriefRating: integer("debriefRating"),
+  debriefNotes: text("debriefNotes"),
+  debriefResult: text("debriefResult"),
+  debriefAt: timestamp("debriefAt", { withTimezone: true }),
   createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const campaignCities = pgTable("campaign_cities", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaignId").notNull().references(() => tradeCampaigns.id, { onDelete: "cascade" }),
+  cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
+}, table => [uniqueIndex("campaign_cities_campaign_city_uq").on(table.campaignId, table.cityId)]);
+
+export const campaignPromotions = pgTable("campaign_promotions", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaignId").notNull().references(() => tradeCampaigns.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 180 }).notNull(),
+  description: text("description"),
+  active: boolean("active").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const campaignPromotionPlans = pgTable("campaign_promotion_plans", {
+  id: serial("id").primaryKey(),
+  campaignPromotionId: integer("campaignPromotionId").notNull().references(() => campaignPromotions.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 160 }).notNull(),
+  description: text("description"),
+  price: numeric("price", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  unit: varchar("unit", { length: 48 }).default("unidade").notNull(),
+  active: boolean("active").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
 });
 
 export const stockItems = pgTable("stock_items", {

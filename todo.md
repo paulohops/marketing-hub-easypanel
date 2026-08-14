@@ -230,3 +230,18 @@
 - [x] Padronizar os campos de escolha única em seletores pesquisáveis com uma única opção selecionável.
 - [x] Criar campanhas operacionais que agrupem Ações, Eventos e Mídias externas em diferentes locais.
 - [x] Criar ficha detalhada de item de estoque com movimentações, responsável e recebedor, iniciando pelo supervisor responsável.
+- [x] Reorganizar a navegação de Operação para destacar Campanhas, Ações, Mídias e Eventos, removendo Mídias externas do menu.
+- [x] Criar uma tela própria de Campanhas com separação entre campanhas ativas e encerradas e seus vínculos operacionais.
+- [ ] Manter Ações independentes ou vinculadas a campanhas, inclusive quando realizadas no contexto de um Evento.
+- [ ] Transformar a listagem de Mídias em cartões clicáveis que abrem a ficha detalhada de cada mídia.
+- [ ] Validar o módulo Operação de forma iterativa com o usuário antes de avançar para outro módulo.
+- [x] Permitir selecionar empresa e cidades na campanha, com filtro por empresa na listagem de Campanhas.
+- [x] Adicionar identidade visual, promoções, planos e valores ao planejamento de uma campanha.
+- [x] Criar ficha detalhada de campanha com edição integral, operações vinculadas e debriefing.
+- [x] Adicionar em Cadastros o módulo de Modelos, iniciando pelos modelos reutilizáveis de Campanha.
+- [x] Permitir criar uma campanha a partir de um modelo e editar livremente os dados aplicados.
+- [x] Persistir a segmentação de Campanhas por empresa e múltiplas cidades, com validação territorial e filtro de listagem.
+- [x] Persistir promoções e respectivos planos/valores de Campanha, com edição contextual na ficha detalhada.
+- [x] Implementar o envio seguro de identidade visual e o debriefing consolidado de Campanhas.
+- [x] Criar a jornada de Cadastros → Modelos de Campanha, incluindo aplicação de modelo durante a criação da Campanha.
+- [x] Cobrir a evolução de Campanhas com testes de router e interface, validação de tipos e revisão visual.

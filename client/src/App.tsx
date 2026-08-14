@@ -15,12 +15,13 @@ function Router() {
     <Route path="/estoque">{() => <ProtectedModule module="estoque" />}</Route>
     <Route path="/financeiro">{() => <ProtectedModule module="financeiro" />}</Route>
     <Route path="/operacoes">{() => <ProtectedModule module="operacoes" />}</Route>
+    <Route path="/campanhas">{() => <ProtectedModule module="campanhas" />}</Route>
     <Route path="/midias">{() => <ProtectedModule module="midias" />}</Route>
-    <Route path="/midias-externas">{() => <ProtectedModule module="midias-externas" />}</Route>
     <Route path="/acoes">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
     <Route path="/cadastros/:entity/:id">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
+    <Route path="/cadastros/modelos">{() => <ProtectedModule module="modelos-campanha" />}</Route>
     <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros">{() => <ProtectedModule module="cadastros" />}</Route>
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
