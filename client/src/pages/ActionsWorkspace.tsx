@@ -22,6 +22,7 @@ import {
   PackageCheck,
   Plus,
   Search,
+  SlidersHorizontal,
   Star,
   UsersRound,
 } from "lucide-react";
@@ -42,6 +43,28 @@ const partnershipLabel: Record<string, string> = {
   barter: "Permuta",
   mixed: "Misto",
 };
+const actionStatusClass: Record<string, string> = {
+  planned: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300",
+  in_progress: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+  completed: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
+  cancelled: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300",
+};
+const actionRatingClass: Record<number, string> = {
+  1: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300",
+  2: "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300",
+  3: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
+  4: "border-lime-200 bg-lime-50 text-lime-800 dark:border-lime-900 dark:bg-lime-950/40 dark:text-lime-300",
+  5: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+};
+const actionRatingLabel: Record<number, string> = {
+  1: "Muito ruim",
+  2: "Ruim",
+  3: "Regular",
+  4: "Bom",
+  5: "Excelente",
+};
+const compactDate = (value: Date | string | null | undefined) =>
+  value ? new Date(value).toLocaleDateString("pt-BR") : "—";
 const blankForm = () => ({
   name: "",
   tradeCampaignId: "",
@@ -83,6 +106,7 @@ export default function ActionsWorkspace() {
   const [status, setStatus] = useState("all");
   const [regionalFilter, setRegionalFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [debriefOpen, setDebriefOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [debrief, setDebrief] = useState({
@@ -254,6 +278,17 @@ export default function ActionsWorkspace() {
   const selected = (actionList.data ?? []).find(
     (row: any) => row.action.id === selectedId
   ) as any;
+  const activeFilterCount = [search, status !== "all", regionalFilter !== "all", cityFilter !== "all"].filter(Boolean).length;
+  const statusCounts = (actionList.data ?? []).reduce((counts: Record<string, number>, row: any) => {
+    counts[row.action.status] = (counts[row.action.status] ?? 0) + 1;
+    return counts;
+  }, {});
+  const resetFilters = () => {
+    setSearch("");
+    setStatus("all");
+    setRegionalFilter("all");
+    setCityFilter("all");
+  };
   const openForm = () => {
     setForm(blankForm());
     setEditingActionId(null);
@@ -613,35 +648,29 @@ export default function ActionsWorkspace() {
       </>
     );
   return (
-    <main className="mx-auto max-w-[1480px]">
-      <header className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex gap-4">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
-            <CalendarClock className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-              Ativação de marca
-            </p>
-            <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-foreground">
-              Ações de trade
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Consulte cada iniciativa em uma ficha única com planejamento,
-              execução, evidências, histórico e debriefing.
-            </p>
-          </div>
+    <main className="mx-auto max-w-6xl space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-primary">Operação</p>
+          <h1 className="font-display text-3xl font-bold text-foreground">Ações</h1>
+          <p className="text-sm text-muted-foreground">
+            Planeje, execute e acompanhe ativações de trade em uma ficha única.
+          </p>
         </div>
-        {canWrite && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setCampaignOpen(true)} className="rounded-xl border-primary/30 text-primary">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setFiltersOpen(current => !current)} aria-expanded={filtersOpen}>
+            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            Filtros{activeFilterCount ? ` (${activeFilterCount})` : ""}
+          </Button>
+          {canWrite && <>
+            <Button variant="outline" onClick={() => setCampaignOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova campanha
             </Button>
-            <Button onClick={openForm} className="rounded-xl bg-primary">
+            <Button onClick={openForm} className="bg-primary">
               <Plus className="mr-2 h-4 w-4" /> Nova ação
             </Button>
-          </div>
-        )}
+          </>}
+        </div>
       </header>
       <Dialog open={campaignOpen} onOpenChange={setCampaignOpen}>
         <DialogContent className="max-w-2xl">
@@ -660,96 +689,52 @@ export default function ActionsWorkspace() {
           </form>
         </DialogContent>
       </Dialog>
-      <section className="mt-6 rounded-2xl border border-border bg-card shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-border p-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(12rem,0.8fr)_minmax(12rem,0.8fr)_minmax(12rem,0.8fr)]">
-            <div className="relative min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder="Pesquisar por ação, cidade ou tipo…"
-              className="pl-9"
-            />
-            </div>
-            <SearchableMultiSelect
-              id="action-filter-regional"
-              label="Regional"
-              placeholder="Todas as regionais"
-              maxSelections={1}
-              options={regionalOptions.map(regional => ({ id: Number(regional.id), label: regional.name }))}
-              values={regionalFilter === "all" ? [] : [Number(regionalFilter)]}
-              onChange={values => { setRegionalFilter(values[0] ? String(values[0]) : "all"); setCityFilter("all"); }}
-            />
-            <SearchableMultiSelect
-              id="action-filter-city"
-              label="Cidade"
-              placeholder="Todas as cidades"
-              maxSelections={1}
-              options={cityFilterOptions.map(({ city }) => ({ id: city.id, label: city.name }))}
-              values={cityFilter === "all" ? [] : [Number(cityFilter)]}
-              onChange={values => setCityFilter(values[0] ? String(values[0]) : "all")}
-            />
-            <SearchableMultiSelect
-              id="action-filter-status"
-              label="Situação"
-              placeholder="Todas as situações"
-              maxSelections={1}
-              options={[{ id: 1, label: "Planejadas" }, { id: 2, label: "Em execução" }, { id: 3, label: "Concluídas" }, { id: 4, label: "Canceladas" }]}
-              values={status === "all" ? [] : [{ planned: 1, in_progress: 2, completed: 3, cancelled: 4 }[status] ?? 0]}
-              onChange={values => setStatus(({ 1: "planned", 2: "in_progress", 3: "completed", 4: "cancelled" }[values[0] ?? 0] ?? "all") as typeof status)}
-            />
+      {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+        {activeFilterCount > 0 && <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button></div>}
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <label className="grid gap-1.5 text-sm font-medium">
+            Pesquisa
+            <span className="relative min-w-0"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Ação, cidade ou tipo" className="pl-9" /></span>
+          </label>
+          <SearchableMultiSelect id="action-filter-regional" label="Regional" placeholder="Todas as regionais" maxSelections={1} options={regionalOptions.map(regional => ({ id: Number(regional.id), label: regional.name }))} values={regionalFilter === "all" ? [] : [Number(regionalFilter)]} onChange={values => { setRegionalFilter(values[0] ? String(values[0]) : "all"); setCityFilter("all"); }} />
+          <SearchableMultiSelect id="action-filter-city" label="Cidade" placeholder="Todas as cidades" maxSelections={1} options={cityFilterOptions.map(({ city }) => ({ id: city.id, label: city.name }))} values={cityFilter === "all" ? [] : [Number(cityFilter)]} onChange={values => setCityFilter(values[0] ? String(values[0]) : "all")} />
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Situação da ação</p>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+            <Button type="button" variant={status === "all" ? "default" : "outline"} onClick={() => setStatus("all")} className="justify-between">Todas <span className="rounded bg-background/20 px-1.5 text-xs">{(actionList.data ?? []).length}</span></Button>
+            {(["planned", "in_progress", "completed", "cancelled"] as const).map(value => <Button key={value} type="button" variant="outline" onClick={() => setStatus(value)} className={`justify-between ${status === value ? actionStatusClass[value] : ""}`}><span>{statusLabel[value]}</span><span className="rounded bg-background/20 px-1.5 text-xs">{statusCounts[value] ?? 0}</span></Button>)}
           </div>
         </div>
+      </section>}
+      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         {actionList.isLoading ? (
           <p className="p-10 text-center text-sm text-muted-foreground">
             Carregando ações…
           </p>
         ) : visibleActions.length ? (
-          <div className="divide-y divide-border">
+          <div>
             {visibleActions.map((row: any) => (
               <button
                 key={row.action.id}
                 type="button"
                 onClick={() => setLocation(`/acoes/${row.action.id}`)}
-                className="flex w-full flex-col gap-3 px-5 py-4 text-left transition hover:bg-muted/50 lg:flex-row lg:items-center lg:justify-between"
+                className="grid min-h-[150px] w-full grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.15fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.15fr)_minmax(165px,.76fr)_minmax(180px,.86fr)_minmax(190px,.9fr)_62px] xl:gap-x-3"
               >
+                <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-primary md:h-[76px] md:w-[76px] xl:row-span-1">
+                  <CalendarClock className="h-6 w-6" />
+                </div>
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-foreground">
-                      {row.action.name}
-                    </p>
-                    <Badge variant="outline">
-                      {statusLabel[row.action.status]}
-                    </Badge>
-                    <Badge className="bg-secondary text-secondary-foreground">
-                      {partnershipLabel[row.action.partnershipType]}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {row.actionTypeName} · {row.cityName} · Início: {new Date(row.action.scheduledFor).toLocaleString("pt-BR")}
-                  </p>
-                  <p className="mt-2 line-clamp-1 text-xs text-foreground">
-                    Objetivo: {row.action.objective}
-                  </p>
+                  <h2 className="truncate font-semibold text-foreground">{row.action.name}</h2>
+                  <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{row.action.objective || "Objetivo ainda não informado."}</p>
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-muted-foreground lg:max-w-80">
-                  <span>
-                    Previsto: {Number(row.finance?.estimatedAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                  <span>
-                    Pago: {Number(row.finance?.paidAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                  <span>
-                    Saldo: {Number(row.finance?.remainingAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                  {row.debrief && (
-                    <span className="inline-flex items-center gap-1 text-primary">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      {row.debrief.rating}/5
-                    </span>
-                  )}
+                <div className="col-span-2 min-w-0 space-y-2 lg:col-span-1">
+                  <div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className={actionStatusClass[row.action.status]}>{statusLabel[row.action.status]}</Badge><Badge variant="outline">{partnershipLabel[row.action.partnershipType]}</Badge></div>
+                  <div className="flex flex-wrap gap-2"><Badge variant="secondary">{row.actionTypeName || "Tipo não informado"}</Badge><Badge variant="outline">{row.cityName || "Cidade não informada"}</Badge></div>
                 </div>
+                <div className="col-span-2 min-w-0 rounded-xl bg-muted/45 px-3 py-2.5 lg:col-span-1"><p className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{compactDate(row.action.scheduledFor)} — {compactDate(row.action.endsAt)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{row.supervisorName || "Supervisor não definido"}</p></div>
+                <div className="col-span-2 grid min-w-0 grid-cols-3 gap-1.5 text-center text-primary lg:col-span-2 xl:col-span-1"><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.finance?.estimatedAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">previsto</small></span><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.finance?.paidAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">pago</small></span><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.finance?.remainingAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">saldo</small></span></div>
+                <div className="col-span-2 flex min-h-8 items-center lg:col-span-2 xl:col-span-1 xl:justify-center">{row.debrief?.rating ? <Badge variant="outline" className={`min-w-9 justify-center font-bold tabular-nums ${actionRatingClass[Number(row.debrief.rating)] ?? ""}`} title={`Nota ${row.debrief.rating}/5`}>{row.debrief.rating}</Badge> : <span className="text-[11px] text-muted-foreground">Sem nota</span>}</div>
               </button>
             ))}
           </div>
@@ -976,67 +961,54 @@ function ActionDetail({
     reschedule: "Ação reagendada",
   };
   return (
-    <main className="mx-auto max-w-[1480px]">
-      <Button variant="outline" onClick={onBack} className="mb-5">
+    <main className="mx-auto max-w-6xl space-y-5">
+      <Button variant="outline" onClick={onBack}>
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Voltar à lista
+        Voltar para ações
       </Button>
-      <header className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{statusLabel[row.action.status]}</Badge>
-              <Badge className="bg-secondary text-secondary-foreground">
-                {partnershipLabel[row.action.partnershipType]}
-              </Badge>
-            </div>
-            <h1 className="mt-3 font-display text-3xl font-semibold text-foreground">
-              {row.action.name}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {row.actionTypeName} · {row.cityName} ·{" "}
-              {new Date(row.action.scheduledFor).toLocaleString("pt-BR")}
-            </p>
+      <header className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex min-w-0 gap-4">
+          <div className="grid h-20 w-20 shrink-0 place-items-center rounded-xl border border-border bg-primary/5 text-primary">
+            <CalendarClock className="h-7 w-7" />
           </div>
-          {canWrite && (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={onEdit}>
-                Editar ação
-              </Button>
-              <Button variant="outline" onClick={onReschedule}>
-                Reagendar
-              </Button>
-              {row.action.status === "planned" && (
-                <Button
-                  onClick={() => onStatus("in_progress")}
-                  className="bg-primary"
-                >
-                  Iniciar
-                </Button>
-              )}
-              {row.action.status === "in_progress" && (
-                <Button
-                  onClick={() => onStatus("completed")}
-                  className="bg-primary"
-                >
-                  Concluir
-                </Button>
-              )}
-              <Button variant="outline" onClick={onDebrief}>
-                <ClipboardCheck className="mr-2 h-4 w-4" />
-                {row.debrief ? "Revisar debrief" : "Registrar debrief"}
-              </Button>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className={actionStatusClass[row.action.status]}>{statusLabel[row.action.status]}</Badge>
+              <Badge variant="outline">{partnershipLabel[row.action.partnershipType]}</Badge>
             </div>
-          )}
+            <h1 className="mt-2 break-words font-display text-3xl font-bold text-foreground">{row.action.name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{row.action.objective || "Objetivo ainda não informado."}</p>
+          </div>
         </div>
+        {canWrite && (
+          <div className="flex flex-wrap gap-2 xl:justify-end">
+            <Button variant="outline" onClick={onEdit}>
+                Editar ação
+            </Button>
+            <Button variant="outline" onClick={onReschedule}>
+                Reagendar
+            </Button>
+            {row.action.status === "planned" && (
+              <Button onClick={() => onStatus("in_progress")} className="bg-primary">
+                  Iniciar
+              </Button>
+            )}
+            {row.action.status === "in_progress" && (
+              <Button onClick={() => onStatus("completed")} className="bg-primary">
+                  Concluir
+              </Button>
+            )}
+            <Button variant="outline" onClick={onDebrief}>
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              {row.debrief ? "Revisar debrief" : "Registrar debrief"}
+            </Button>
+          </div>
+        )}
       </header>
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        <section className="space-y-5 lg:col-span-2">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="min-w-0 rounded-xl border border-border bg-card p-4">
           <DetailSection title="Planejamento e local">
-            <p className="text-sm leading-6 text-foreground">
-              {row.action.objective}
-            </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <DetailValue
                 icon={<MapPin className="h-4 w-4" />}
                 label="Localização"
@@ -1051,19 +1023,12 @@ function ActionDetail({
                 value={`${new Date(row.action.scheduledFor).toLocaleString("pt-BR")}${row.action.endsAt ? ` até ${new Date(row.action.endsAt).toLocaleString("pt-BR")}` : ""}`}
               />
               <DetailValue
-                label="Custo previsto"
-                value={Number(row.finance?.estimatedAmount ?? row.action.estimatedCost).toLocaleString(
-                  "pt-BR",
-                  { style: "currency", currency: "BRL" }
-                )}
+                label="Tipo de ação"
+                value={row.actionTypeName || "Não informado"}
               />
               <DetailValue
-                label="Valor gasto"
-                value={Number(row.finance?.paidAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              />
-              <DetailValue
-                label="Diferença"
-                value={Number(row.finance?.remainingAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                label="Cidade"
+                value={row.cityName || "Não informada"}
               />
               <DetailValue
                 label="Supervisor"
@@ -1075,8 +1040,20 @@ function ActionDetail({
               />
             </div>
           </DetailSection>
+        </section>
+        <section className="min-w-0 rounded-xl border border-border bg-card p-4">
+          <DetailSection title="Financeiro e controle">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailValue label="Custo previsto" value={Number(row.finance?.estimatedAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
+              <DetailValue label="Valor gasto" value={Number(row.finance?.paidAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
+              <DetailValue label="Diferença" value={Number(row.finance?.remainingAmount ?? row.action.estimatedCost).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
+              <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
+            </div>
+          </DetailSection>
+        </section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
           <DetailSection title="Equipe, fornecedores e recursos">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <DetailValue
                 icon={<UsersRound className="h-4 w-4" />}
                 label="Responsáveis"
@@ -1127,21 +1104,26 @@ function ActionDetail({
               />
             </div>
           </DetailSection>
+        </section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
           <DetailSection title="Debriefing e resultado">
             {row.debrief ? (
-              <div className="space-y-2 text-sm text-foreground">
-                <p className="inline-flex items-center gap-1 font-semibold text-primary">
-                  <Star className="h-4 w-4 fill-current" />
-                  Nota {row.debrief.rating}/5
-                </p>
-                <p>{row.debrief.notes || "Sem síntese registrada."}</p>
-                {row.debrief.resultSummary && <p>{row.debrief.resultSummary}</p>}
-                <div className="grid gap-2 pt-1 sm:grid-cols-3">
+              <div className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)]">
+                  <div className="grid min-h-28 content-start gap-2 rounded-xl border border-border bg-muted/25 p-3">
+                    <p className="text-sm font-medium">Nota geral</p>
+                    <strong className="text-2xl font-semibold tabular-nums text-foreground">{row.debrief.rating}</strong>
+                    <Badge variant="outline" className={`w-fit ${actionRatingClass[Number(row.debrief.rating)] ?? ""}`}>{row.debrief.rating}/5 · {actionRatingLabel[Number(row.debrief.rating)] ?? "Avaliação"}</Badge>
+                  </div>
+                  <div className="rounded-xl border border-border p-3"><p className="text-sm font-medium text-foreground">História da ação</p><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{row.debrief.resultSummary || "Sem história registrada."}</p></div>
+                  <div className="rounded-xl border border-border p-3"><p className="text-sm font-medium text-foreground">Avaliação e aprendizados</p><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{row.debrief.notes || "Sem avaliação registrada."}</p></div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
                   <DetailValue label="Leads" value={String(row.debrief.leadCount ?? 0)} />
                   <DetailValue label="Vendas" value={String(row.debrief.saleCount ?? 0)} />
                   <DetailValue label="Renovações" value={String(row.debrief.renewalCount ?? 0)} />
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {row.debrief.worthRepeating
                     ? "Recomendado repetir a iniciativa."
                     : "Revisar antes de repetir a iniciativa."}
@@ -1153,6 +1135,8 @@ function ActionDetail({
               </p>
             )}
           </DetailSection>
+        </section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
           <DetailSection title="Histórico da ação">
             {row.history?.length ? (
               <div className="space-y-3">
@@ -1179,7 +1163,7 @@ function ActionDetail({
             )}
           </DetailSection>
         </section>
-        <aside>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
           <DetailSection title="Fotos, vídeos e evidências">
             <EvidenceUpload
               entityType="action"
@@ -1188,7 +1172,7 @@ function ActionDetail({
               canWrite={canWrite}
             />
           </DetailSection>
-        </aside>
+        </section>
       </div>
     </main>
   );
@@ -1201,12 +1185,10 @@ function DetailSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <h2 className="font-display text-lg font-semibold text-foreground">
-        {title}
-      </h2>
-      <div className="mt-4">{children}</div>
-    </section>
+    <div>
+      <h2 className="font-semibold text-foreground">{title}</h2>
+      <div className="mt-3">{children}</div>
+    </div>
   );
 }
 function DetailValue({

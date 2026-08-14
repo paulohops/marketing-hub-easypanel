@@ -305,3 +305,7 @@
 - [x] Exibir foto, nome, tipo, cidade e início nos diálogos de Ações, Mídias e Eventos vinculados à Campanha.
 - [x] Corrigir o colapso responsivo da lista de Campanhas e impedir corte ou quebra irregular de empresa e status.
 - [x] Cobrir os novos detalhes vinculados e a responsividade da lista com testes, tipagem e revisão visual.
+
+- [x] Reorganizar a lista de Ações com a hierarquia visual, filtros recolhíveis, indicadores e responsividade do módulo de Campanhas.
+- [x] Reestruturar a ficha individual de Ação com o padrão visual, seções e hierarquia do detalhe de Campanhas.
+- [x] Validar e cobrir os refinamentos visuais e responsivos de Ações com testes, tipagem e revisão de interface.

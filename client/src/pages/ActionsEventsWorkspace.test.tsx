@@ -73,15 +73,17 @@ describe("formulários operacionais ampliados", () => {
     expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, commercialSupervisorId: 6, partnershipType: "mixed", estimatedCost: 1250.5, supplierIds: [4], serviceTypeIds: [5], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
   });
 
-  it("oferece filtro por regional e cidade e explicita o financeiro de uma ação", () => {
+  it("oferece filtros recolhíveis e indicadores financeiros na lista de ações", () => {
     actionListQuery.mockReturnValue({ data: [{ action: { id: 25, cityId: 1, name: "Blitz Financeira", status: "planned", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "800", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null, finance: { estimatedAmount: 800, paidAmount: 250, remainingAmount: 550 } }], isLoading: false });
     render(<ActionsWorkspace />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
     expect(screen.getByLabelText("Regional")).toBeInTheDocument();
     expect(screen.getByLabelText("Cidade")).toBeInTheDocument();
-    expect(screen.getByText(/Previsto: R\$\s?800,00/)).toBeInTheDocument();
-    expect(screen.getByText(/Pago: R\$\s?250,00/)).toBeInTheDocument();
-    expect(screen.getByText(/Saldo: R\$\s?550,00/)).toBeInTheDocument();
+    expect(screen.getByText("Blitz Financeira")).toBeInTheDocument();
+    expect(screen.getByText("previsto")).toBeInTheDocument();
+    expect(screen.getByText("pago")).toBeInTheDocument();
+    expect(screen.getByText("saldo")).toBeInTheDocument();
   });
 
   it("envia custos, parceria, vínculos e recursos ao planejar um evento", () => {
@@ -106,7 +108,9 @@ describe("formulários operacionais ampliados", () => {
   it("abre a ficha da ação antes de registrar o debriefing", () => {
     actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null }], isLoading: false });
     render(<ActionsWorkspace />);
-    fireEvent.click(screen.getByText("Blitz"));
+    fireEvent.click(screen.getByRole("button", { name: /Blitz.*Teste/ }));
+    expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
+    expect(screen.getByText("Financeiro e controle")).toBeInTheDocument();
     expect(screen.getByText("Fotos, vídeos e evidências")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Registrar debrief" }));
     fireEvent.click(screen.getByLabelText("Vale repetir"));
