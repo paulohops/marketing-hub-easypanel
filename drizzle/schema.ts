@@ -245,6 +245,18 @@ export const eventTypes = pgTable("event_types", {
   active: boolean("active").default(true).notNull(),
 });
 
+export const campaignTypes = pgTable("campaign_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull().unique(),
+  active: boolean("active").default(true).notNull(),
+});
+
+export const campaignSectors = pgTable("campaign_sectors", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull().unique(),
+  active: boolean("active").default(true).notNull(),
+});
+
 export const financialCategories = pgTable("financial_categories", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),
@@ -371,6 +383,8 @@ export const tradeCampaigns = pgTable("trade_campaigns", {
   name: varchar("name", { length: 180 }).notNull(),
   objective: text("objective"),
   providerId: integer("providerId").references(() => providers.id, { onDelete: "set null" }),
+  campaignTypeId: integer("campaignTypeId").references(() => campaignTypes.id, { onDelete: "set null" }),
+  campaignSectorId: integer("campaignSectorId").references(() => campaignSectors.id, { onDelete: "set null" }),
   regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "set null" }),
   campaignTemplateId: integer("campaignTemplateId").references(() => campaignTemplates.id, { onDelete: "set null" }),
   logoStorageKey: varchar("logoStorageKey", { length: 512 }),

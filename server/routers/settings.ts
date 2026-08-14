@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
+import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, campaignSectors, campaignTypes, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -61,7 +61,7 @@ export const settingsRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows] = await Promise.all([
+    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, campaignTypeRows, campaignSectorRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows] = await Promise.all([
       database.select().from(providers).orderBy(asc(providers.name)),
       database.select().from(regionals).orderBy(asc(regionals.name)),
       database.select().from(cities).orderBy(asc(cities.name)),
@@ -72,6 +72,8 @@ export const settingsRouter = router({
       database.select().from(mediaTypes).orderBy(asc(mediaTypes.name)),
       database.select().from(actionTypes).orderBy(asc(actionTypes.name)),
       database.select().from(eventTypes).orderBy(asc(eventTypes.name)),
+      database.select().from(campaignTypes).orderBy(asc(campaignTypes.name)),
+      database.select().from(campaignSectors).orderBy(asc(campaignSectors.name)),
       database.select().from(financialCategories).orderBy(asc(financialCategories.name)),
       database.select().from(supplierOfferings).orderBy(asc(supplierOfferings.name)),
       database.select().from(commercialSupervisors).orderBy(asc(commercialSupervisors.name)),
@@ -84,7 +86,7 @@ export const settingsRouter = router({
       database.select({ actionId: actionSuppliers.actionId, supplierId: actionSuppliers.supplierId }).from(actionSuppliers),
       database.select({ eventId: eventSuppliers.eventId, supplierId: eventSuppliers.supplierId }).from(eventSuppliers),
     ]);
-    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
+    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
   }),
 
   createProvider: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), address: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
@@ -214,10 +216,10 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event"]), name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
+  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
-    const table = { service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes }[input.kind];
+    const table = { service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind];
     const [created] = await database.insert(table).values({ name: input.name }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: created.id, action: "create", afterData: created });
     return created;
@@ -257,8 +259,8 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(cities).where(eq(cities.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cidade não encontrada." }); const [updated] = await database.update(cities).set({ ...input, ibgeCode: input.ibgeCode || null, address: input.address || null, zipCode: input.zipCode || null, latitude: input.latitude?.toFixed(7), longitude: input.longitude?.toFixed(7), locationNotes: input.locationNotes || null, updatedAt: new Date() }).where(eq(cities.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId, entityType: "city", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const table = { service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes }[input.kind]; const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo não encontrado." }); const [updated] = await database.update(table).set({ name: input.name }).where(eq(table.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
+  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const table = { service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind]; const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo não encontrado." }); const [updated] = await database.update(table).set({ name: input.name }).where(eq(table.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
   createCommercialSupervisor: protectedProcedure.input(z.object({ userId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(160), email: z.string().trim().email().max(320).optional(), phone: z.string().trim().max(32).optional() })).mutation(async ({ ctx, input }) => {
@@ -342,7 +344,7 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(supplierOfferings).where(eq(supplierOfferings.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Oferta não encontrada." }); const [updated] = await database.update(supplierOfferings).set({ kind: input.kind, name: input.name, unit: input.unit, unitPrice: input.unitPrice.toFixed(2), notes: input.notes || null, updatedAt: new Date() }).where(eq(supplierOfferings.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_offering", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  setRegistryActive: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "supplier", "partner", "supervisor", "service", "media", "action", "event", "financial_category", "supplier_offering"]), id: z.number().int().positive(), active: z.boolean() })).mutation(async ({ ctx, input }) => {
+  setRegistryActive: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive(), active: z.boolean() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const now = new Date();
@@ -357,6 +359,8 @@ export const settingsRouter = router({
       case "media": await database.update(mediaTypes).set({ active: input.active }).where(eq(mediaTypes.id, input.id)); break;
       case "action": await database.update(actionTypes).set({ active: input.active }).where(eq(actionTypes.id, input.id)); break;
       case "event": await database.update(eventTypes).set({ active: input.active }).where(eq(eventTypes.id, input.id)); break;
+      case "campaign": await database.update(campaignTypes).set({ active: input.active }).where(eq(campaignTypes.id, input.id)); break;
+      case "campaign_sector": await database.update(campaignSectors).set({ active: input.active }).where(eq(campaignSectors.id, input.id)); break;
       case "financial_category": await database.update(financialCategories).set({ active: input.active, updatedAt: now }).where(eq(financialCategories.id, input.id)); break;
       case "supplier_offering": await database.update(supplierOfferings).set({ active: input.active, updatedAt: now }).where(eq(supplierOfferings.id, input.id)); break;
     }
@@ -364,10 +368,10 @@ export const settingsRouter = router({
     return { success: true } as const;
   }),
 
-  deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "supplier", "partner", "supervisor", "service", "media", "action", "event", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+  deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
-    const tables = { provider: providers, regional: regionals, city: cities, supplier: suppliers, partner: partners, supervisor: commercialSupervisors, service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, financial_category: financialCategories, supplier_offering: supplierOfferings } as const;
+    const tables = { provider: providers, regional: regionals, city: cities, supplier: suppliers, partner: partners, supervisor: commercialSupervisors, service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors, financial_category: financialCategories, supplier_offering: supplierOfferings } as const;
     const table = tables[input.kind];
     const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });

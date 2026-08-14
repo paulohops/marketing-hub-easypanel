@@ -271,3 +271,10 @@
 - [x] Reestruturar o debriefing da Campanha com Nota geral, história da campanha, avaliação e aprendizados.
 - [x] Exibir a Mídia atual vinculada à Campanha e abrir seus detalhes em diálogo contextual.
 - [x] Validar os refinamentos de apresentação com testes, tipagem e revisão visual.
+- [x] Criar cadastros configuráveis de tipos de campanha e setores comerciais, com integridade e status ativo/inativo.
+- [x] Vincular tipo de campanha e setor à criação, edição, detalhe e listagem de Campanhas.
+- [x] Adicionar filtros de ano, mês, tipo de campanha e setor à listagem de Campanhas.
+- [x] Ajustar a lista de Campanhas para manter datas, operações e imagens legíveis, com fotos em modo contain.
+- [x] Simplificar os cartões de promoções antes da abertura do diálogo, removendo o valor resumido.
+- [x] Aplicar escala textual e cores semânticas para notas de 1 a 5 em Campanhas.
+- [x] Validar a evolução de classificação e filtros de Campanhas com migração, testes, tipagem e revisão visual.

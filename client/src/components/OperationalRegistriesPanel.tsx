@@ -45,6 +45,8 @@ type Panel =
   | "media"
   | "action"
   | "event"
+  | "campaign"
+  | "campaign_sector"
   | "financial_category"
   | "action_point";
 type Row = { id: number; name: string; active: boolean; detail?: string };
@@ -119,6 +121,20 @@ const cards: Array<{
     title: "Tipos de evento",
     description: "Categorias configuráveis para a agenda de eventos.",
     icon: CalendarDays,
+    group: "Operação",
+  },
+  {
+    key: "campaign",
+    title: "Tipos de campanha",
+    description: "Classificações como Comercial, Fidelização e outras estratégias.",
+    icon: Megaphone,
+    group: "Operação",
+  },
+  {
+    key: "campaign_sector",
+    title: "Setores de campanha",
+    description: "Segmentos atendidos, como B2C, B2B, PME e demais públicos.",
+    icon: Settings2,
     group: "Operação",
   },
   {
@@ -407,7 +423,7 @@ export default function OperationalRegistriesPanel() {
   };
   useEffect(() => {
     const requested = new URLSearchParams(location.split("?")[1] ?? "").get("novo");
-    const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "categorias-financeiras": "financial_category" };
+    const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "tipos-de-campanha": "campaign", "setores-de-campanha": "campaign_sector", "categorias-financeiras": "financial_category" };
     const target = requested ? panelBySlug[requested] : undefined;
     if (!target || handledCreateIntent.current === requested) return;
     handledCreateIntent.current = requested;
@@ -508,7 +524,11 @@ export default function OperationalRegistriesPanel() {
           ? data.mediaTypes
           : panel === "action"
             ? data.actionTypes
-            : data.eventTypes;
+            : panel === "event"
+              ? data.eventTypes
+              : panel === "campaign"
+                ? data.campaignTypes
+                : data.campaignSectors;
     return types.map(item => ({
       id: item.id,
       name: item.name,
@@ -585,7 +605,9 @@ export default function OperationalRegistriesPanel() {
       panel === "action" ||
       panel === "event" ||
       panel === "media" ||
-      panel === "service"
+      panel === "service" ||
+      panel === "campaign" ||
+      panel === "campaign_sector"
     ) {
       const items =
         panel === "action"
@@ -594,7 +616,11 @@ export default function OperationalRegistriesPanel() {
             ? data.eventTypes
             : panel === "media"
               ? data.mediaTypes
-              : data.serviceTypes;
+              : panel === "campaign"
+                ? data.campaignTypes
+                : panel === "campaign_sector"
+                  ? data.campaignSectors
+                  : data.serviceTypes;
       setName(items.find(item => item.id === id)?.name ?? "");
     }
   };
@@ -684,7 +710,9 @@ export default function OperationalRegistriesPanel() {
       panel === "action" ||
       panel === "event" ||
       panel === "media" ||
-      panel === "service"
+      panel === "service" ||
+      panel === "campaign" ||
+      panel === "campaign_sector"
     )
       return editingId
         ? updateType.mutate({ kind: panel, id: editingId, name })
@@ -793,7 +821,7 @@ export default function OperationalRegistriesPanel() {
                   setLocation("/pontos-de-acao");
                   return;
                 }
-                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", financial_category: "categorias-financeiras" };
+                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
                 setLocation(`/cadastros/${paths[card.key] ?? ""}`);
               }}
               className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

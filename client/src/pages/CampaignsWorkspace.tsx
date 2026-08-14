@@ -65,6 +65,18 @@ const statuses = [
   },
 ];
 
+const months = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+const ratingDefinitions = {
+  1: { label: "Muito ruim", className: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300" },
+  2: { label: "Ruim", className: "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300" },
+  3: { label: "Regular", className: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300" },
+  4: { label: "Bom", className: "border-lime-200 bg-lime-50 text-lime-800 dark:border-lime-900 dark:bg-lime-950/40 dark:text-lime-300" },
+  5: { label: "Excelente", className: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" },
+};
+
 const blankPlan = () => ({
   name: "",
   speed: "",
@@ -85,6 +97,8 @@ const blankForm = () => ({
   name: "",
   objective: "",
   providerId: null,
+  campaignTypeId: null,
+  campaignSectorId: null,
   regionalIds: [],
   cityIds: [],
   templateId: null,
@@ -105,6 +119,8 @@ const date = value =>
         year: "numeric",
       })
     : "A definir";
+const compactDate = value =>
+  value ? new Date(value).toLocaleDateString("pt-BR") : "—";
 const companyClass = name => {
   const normalized = String(name ?? "").toLocaleLowerCase("pt-BR");
   if (normalized.includes("sempre"))
@@ -129,6 +145,15 @@ function CompanyBadge({ name }) {
   return name ? (
     <Badge variant="outline" className={companyClass(name)}>
       {name}
+    </Badge>
+  ) : null;
+}
+
+function RatingBadge({ rating }) {
+  const definition = ratingDefinitions[Number(rating)];
+  return definition ? (
+    <Badge variant="outline" className={definition.className}>
+      Nota {rating} · {definition.label}
     </Badge>
   ) : null;
 }
@@ -247,6 +272,40 @@ function Editor({
                 }
               />
             </div>
+            <SearchableMultiSelect
+              id="campaign-type"
+              label="Tipo de campanha"
+              options={(refs?.campaignTypes ?? []).map(item => ({
+                id: item.id,
+                label: item.name,
+              }))}
+              values={form.campaignTypeId ? [form.campaignTypeId] : []}
+              onChange={values =>
+                setForm(current => ({
+                  ...current,
+                  campaignTypeId: values[0] ?? null,
+                }))
+              }
+              maxSelections={1}
+              placeholder="Selecione o tipo"
+            />
+            <SearchableMultiSelect
+              id="campaign-sector"
+              label="Setor"
+              options={(refs?.campaignSectors ?? []).map(item => ({
+                id: item.id,
+                label: item.name,
+              }))}
+              values={form.campaignSectorId ? [form.campaignSectorId] : []}
+              onChange={values =>
+                setForm(current => ({
+                  ...current,
+                  campaignSectorId: values[0] ?? null,
+                }))
+              }
+              maxSelections={1}
+              placeholder="Selecione o setor"
+            />
             <div className="md:col-span-2">
               <SearchableMultiSelect
                 id="campaign-company"
@@ -667,6 +726,12 @@ function Detail({
           </p>
           <div className="mt-3 flex flex-wrap gap-1">
             <Badge variant="secondary">{citySummary}</Badge>
+            {campaign.campaignTypeName && (
+              <Badge variant="outline">{campaign.campaignTypeName}</Badge>
+            )}
+            {campaign.campaignSectorName && (
+              <Badge variant="outline">{campaign.campaignSectorName}</Badge>
+            )}
             {campaign.hasExplicitCities &&
               campaign.cities.slice(0, 8).map(city => (
                 <Badge key={city.id} variant="outline">
@@ -783,9 +848,6 @@ function Detail({
                     {item.plans.length} plano
                     {item.plans.length === 1 ? "" : "s"}
                   </Badge>
-                  <span className="text-sm font-semibold text-primary">
-                    {item.plans[0] ? money(item.plans[0].price) : "—"}
-                  </span>
                 </div>
               </button>
             ))}
@@ -870,7 +932,11 @@ function Detail({
                     Math.min(5, Math.max(1, Number(event.target.value) || 1))
                   )
                 }
+                className={ratingDefinitions[rating]?.className}
               />
+              <p className="text-xs text-muted-foreground">
+                {ratingDefinitions[rating]?.label}
+              </p>
             </div>
             <div className="grid gap-1.5">
               <Label>História da campanha</Label>
@@ -1031,6 +1097,10 @@ export default function CampaignsWorkspace() {
   const [providerId, setProviderId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState(null);
+  const [yearFilter, setYearFilter] = useState(null);
+  const [monthFilter, setMonthFilter] = useState(null);
+  const [campaignTypeFilter, setCampaignTypeFilter] = useState(null);
+  const [campaignSectorFilter, setCampaignSectorFilter] = useState(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blankForm());
   const listInput = useMemo(
@@ -1089,6 +1159,8 @@ export default function CampaignsWorkspace() {
       name: campaign.name,
       objective: campaign.objective ?? "",
       providerId: campaign.providerId,
+      campaignTypeId: campaign.campaignTypeId ?? null,
+      campaignSectorId: campaign.campaignSectorId ?? null,
       regionalIds:
         campaign.regionals?.map(regional => regional.id) ??
         (campaign.regionalId ? [campaign.regionalId] : []),
@@ -1132,6 +1204,8 @@ export default function CampaignsWorkspace() {
       name: form.name.trim(),
       objective: form.objective.trim() || undefined,
       providerId: form.providerId,
+      campaignTypeId: form.campaignTypeId,
+      campaignSectorId: form.campaignSectorId,
       regionalId: form.regionalIds[0] ?? null,
       regionalIds: form.regionalIds,
       cityIds: form.cityIds,
@@ -1210,11 +1284,26 @@ export default function CampaignsWorkspace() {
       campaigns.filter(campaign => campaign.status === status.value).length,
     ])
   );
-  const visible = campaigns.filter(
-    campaign =>
+  const availableYears = Array.from(
+    new Set(
+      campaigns
+        .map(campaign =>
+          campaign.startsAt ? new Date(campaign.startsAt).getFullYear() : null
+        )
+        .filter(Boolean)
+    )
+  ).sort((first, second) => second - first);
+  const visible = campaigns.filter(campaign => {
+    const campaignStart = campaign.startsAt ? new Date(campaign.startsAt) : null;
+    return (
       (statusFilter === "all" || campaign.status === statusFilter) &&
-      (!ratingFilter || Number(campaign.debriefRating) === ratingFilter)
-  );
+      (!ratingFilter || Number(campaign.debriefRating) === ratingFilter) &&
+      (!yearFilter || campaignStart?.getFullYear() === yearFilter) &&
+      (!monthFilter || campaignStart?.getMonth() + 1 === monthFilter) &&
+      (!campaignTypeFilter || campaign.campaignTypeId === campaignTypeFilter) &&
+      (!campaignSectorFilter || campaign.campaignSectorId === campaignSectorFilter)
+    );
+  });
   return (
     <main className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -1238,7 +1327,7 @@ export default function CampaignsWorkspace() {
         )}
       </header>
       <section className="space-y-4 rounded-xl border border-border bg-card p-4">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <SearchableMultiSelect
             id="campaign-filter-company"
             label="Filtrar por empresa"
@@ -1256,12 +1345,57 @@ export default function CampaignsWorkspace() {
             label="Filtrar por nota de debriefing"
             options={[1, 2, 3, 4, 5].map(value => ({
               id: value,
-              label: `Nota ${value}`,
+              label: `Nota ${value} · ${ratingDefinitions[value].label}`,
             }))}
             values={ratingFilter ? [ratingFilter] : []}
             onChange={values => setRatingFilter(values[0] ?? null)}
             maxSelections={1}
             placeholder="Todas as notas"
+          />
+          <SearchableMultiSelect
+            id="campaign-filter-year"
+            label="Filtrar por ano"
+            options={availableYears.map(year => ({ id: year, label: String(year) }))}
+            values={yearFilter ? [yearFilter] : []}
+            onChange={values => setYearFilter(values[0] ?? null)}
+            maxSelections={1}
+            placeholder="Todos os anos"
+          />
+          <SearchableMultiSelect
+            id="campaign-filter-month"
+            label="Filtrar por mês"
+            options={months.map((month, index) => ({
+              id: index + 1,
+              label: month,
+            }))}
+            values={monthFilter ? [monthFilter] : []}
+            onChange={values => setMonthFilter(values[0] ?? null)}
+            maxSelections={1}
+            placeholder="Todos os meses"
+          />
+          <SearchableMultiSelect
+            id="campaign-filter-type"
+            label="Filtrar por tipo de campanha"
+            options={(refs?.campaignTypes ?? []).map(item => ({
+              id: item.id,
+              label: item.name,
+            }))}
+            values={campaignTypeFilter ? [campaignTypeFilter] : []}
+            onChange={values => setCampaignTypeFilter(values[0] ?? null)}
+            maxSelections={1}
+            placeholder="Todos os tipos"
+          />
+          <SearchableMultiSelect
+            id="campaign-filter-sector"
+            label="Filtrar por setor"
+            options={(refs?.campaignSectors ?? []).map(item => ({
+              id: item.id,
+              label: item.name,
+            }))}
+            values={campaignSectorFilter ? [campaignSectorFilter] : []}
+            onChange={values => setCampaignSectorFilter(values[0] ?? null)}
+            maxSelections={1}
+            placeholder="Todos os setores"
           />
         </div>
         <div>
@@ -1305,11 +1439,11 @@ export default function CampaignsWorkspace() {
             <button
               key={item.id}
               onClick={() => setLocation(`/campanhas/${item.id}`)}
-              className="grid w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-b-0 hover:bg-muted/40 md:grid-cols-[auto_minmax(180px,1.5fr)_minmax(150px,.85fr)_minmax(150px,.8fr)_minmax(180px,.9fr)_auto] md:items-center"
+              className="grid w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-b-0 hover:bg-muted/40 md:grid-cols-[auto_minmax(150px,1.15fr)_minmax(140px,.75fr)_minmax(136px,.7fr)_minmax(180px,.85fr)_auto] md:items-center"
             >
               <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted text-sm font-bold text-primary">
                 {item.logoUrl || item.providerLogoUrl ? (
-                  <img src={item.logoUrl ?? item.providerLogoUrl} alt="" className="h-full w-full object-contain p-1" />
+                  <img src={item.logoUrl ?? item.providerLogoUrl} alt="" className="h-full w-full bg-card object-contain p-2" />
                 ) : (
                   item.name.slice(0, 1).toUpperCase()
                 )}
@@ -1318,13 +1452,22 @@ export default function CampaignsWorkspace() {
                 <h2 className="truncate font-semibold text-foreground">{item.name}</h2>
                 <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{item.objective || "Objetivo ainda não informado."}</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2"><CompanyBadge name={item.providerName} /><StatusBadge status={item.status} /></div>
-              <div className="text-sm text-muted-foreground">
-                <p>{date(item.startsAt)} — {date(item.endsAt)}</p>
-                <p className="mt-1 text-xs">{item.hasExplicitCities ? `${item.cities.length} cidades` : "Todas as cidades"}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <CompanyBadge name={item.providerName} />
+                <StatusBadge status={item.status} />
+                {item.campaignTypeName && <Badge variant="outline">{item.campaignTypeName}</Badge>}
+                {item.campaignSectorName && <Badge variant="outline">{item.campaignSectorName}</Badge>}
               </div>
-              <div className="text-sm text-primary"><p>{item.actions.length} ações · {item.media.length} mídias · {item.events.length} eventos</p></div>
-              {item.debriefRating ? <Badge variant="outline" className="justify-self-start">Nota {item.debriefRating}</Badge> : <span className="text-xs text-muted-foreground">Sem nota</span>}
+              <div className="text-sm text-muted-foreground">
+                <p className="whitespace-nowrap tabular-nums">{compactDate(item.startsAt)} — {compactDate(item.endsAt)}</p>
+                <p className="mt-1 whitespace-nowrap text-xs">{item.hasExplicitCities ? `${item.cities.length} cidades` : "Todas as cidades"}</p>
+              </div>
+              <div className="flex flex-wrap gap-1.5 text-xs font-medium text-primary">
+                <span className="whitespace-nowrap rounded-md bg-primary/10 px-2 py-1">{item.actions.length} ações</span>
+                <span className="whitespace-nowrap rounded-md bg-primary/10 px-2 py-1">{item.media.length} mídias</span>
+                <span className="whitespace-nowrap rounded-md bg-primary/10 px-2 py-1">{item.events.length} eventos</span>
+              </div>
+              {item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-xs text-muted-foreground">Sem nota</span>}
             </button>
           ))}
           {!visible.length && (

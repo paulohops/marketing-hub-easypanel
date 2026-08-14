@@ -26,10 +26,12 @@ const entities: Record<string, EntityConfig> = {
   "tipos-de-midia": { singular: "Tipo de mídia", plural: "Tipos de mídia", collection: "mediaTypes", kind: "media", description: "Canais e formatos para planejamento de mídia.", icon: Building2 },
   "tipos-de-acao": { singular: "Tipo de ação", plural: "Tipos de ação", collection: "actionTypes", kind: "action", description: "Classificações usadas no planejamento de ações.", icon: Building2 },
   "tipos-de-evento": { singular: "Tipo de evento", plural: "Tipos de evento", collection: "eventTypes", kind: "event", description: "Classificações usadas no planejamento de eventos.", icon: Building2 },
+  "tipos-de-campanha": { singular: "Tipo de campanha", plural: "Tipos de campanha", collection: "campaignTypes", kind: "campaign", description: "Classificações estratégicas usadas no planejamento de Campanhas.", icon: Building2 },
+  "setores-de-campanha": { singular: "Setor de campanha", plural: "Setores de campanha", collection: "campaignSectors", kind: "campaign_sector", description: "Segmentos comerciais atendidos pelas Campanhas, como B2C, B2B e PME.", icon: Building2 },
   "categorias-financeiras": { singular: "Categoria financeira", plural: "Categorias financeiras", collection: "financialCategories", kind: "financial_category", description: "Classificações de estimativas, verbas e controles financeiros.", icon: Building2 },
 };
 
-const registryPaths: Record<string, string> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", financial_category: "categorias-financeiras" };
+const registryPaths: Record<string, string> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
 
 function recordName(record: RegistryRecord) { return String(record.displayName ?? record.name ?? "Sem identificação"); }
 function digits(value?: string | null) { return String(value ?? "").replace(/\D/g, ""); }
@@ -111,7 +113,7 @@ export default function RegistryEntityWorkspace() {
     if (entity.kind === "supplier") return updateSupplier.mutate({ id: selected.id, providerId: form.providerId ? Number(form.providerId) : null, cityId: form.cityId ? Number(form.cityId) : null, displayName: form.name.trim(), legalName: form.legalName.trim() || undefined, document: form.document.trim(), contactName: form.contactName.trim() || undefined, phone: form.phone.trim(), email: form.email.trim(), partnershipType: form.partnershipType as "paid" | "barter" | "mixed", paymentMethod: form.paymentMethod.trim() || undefined, paymentRecurrence: form.paymentRecurrence.trim() || undefined, hasContract: form.hasContract === "yes" });
     if (entity.kind === "partner") return updatePartner.mutate({ id: selected.id, cityId: form.cityId ? Number(form.cityId) : null, name: form.name.trim(), email: form.email.trim() || undefined, phone: form.phone.trim() || undefined, partnershipType: form.partnershipType as "paid" | "barter" | "mixed", paymentMethod: form.paymentMethod.trim() || undefined, paymentRecurrence: form.paymentRecurrence.trim() || undefined, hasContract: form.hasContract === "yes" });
     if (entity.kind === "supervisor") return updateSupervisor.mutate({ id: selected.id, name: form.name.trim(), email: form.email.trim() || undefined, phone: form.phone.trim() || undefined });
-    if (["service", "media", "action", "event"].includes(entity.kind)) return updateType.mutate({ id: selected.id, kind: entity.kind as "service" | "media" | "action" | "event", name: form.name.trim() });
+    if (["service", "media", "action", "event", "campaign", "campaign_sector"].includes(entity.kind)) return updateType.mutate({ id: selected.id, kind: entity.kind as "service" | "media" | "action" | "event" | "campaign" | "campaign_sector", name: form.name.trim() });
     if (entity.kind === "financial_category") return updateFinancialCategory.mutate({ id: selected.id, name: form.name.trim(), description: form.description.trim() || undefined });
   };
 

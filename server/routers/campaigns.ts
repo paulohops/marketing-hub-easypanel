@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignRegionals, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, cities, events, mediaCampaigns, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
+import { actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignRegionals, campaignSectors, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, campaignTypes, cities, events, mediaCampaigns, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -41,6 +41,8 @@ const campaignInput = z.object({
   name: z.string().trim().min(2).max(180),
   objective: z.string().trim().max(2_000).optional(),
   providerId: z.number().int().positive().nullable().default(null),
+  campaignTypeId: z.number().int().positive().nullable().default(null),
+  campaignSectorId: z.number().int().positive().nullable().default(null),
   regionalId: z.number().int().positive().nullable(),
   regionalIds: z.array(z.number().int().positive()).max(40).default([]),
   cityIds: z.array(z.number().int().positive()).max(200).default([]),
@@ -74,6 +76,14 @@ async function validateContext(database: Awaited<ReturnType<typeof requireDataba
   if (input.providerId) {
     const [provider] = await database.select({ id: providers.id }).from(providers).where(and(eq(providers.id, input.providerId), eq(providers.active, true))).limit(1);
     if (!provider) throw new TRPCError({ code: "BAD_REQUEST", message: "Empresa inexistente ou inativa." });
+  }
+  if (input.campaignTypeId) {
+    const [campaignType] = await database.select({ id: campaignTypes.id }).from(campaignTypes).where(and(eq(campaignTypes.id, input.campaignTypeId), eq(campaignTypes.active, true))).limit(1);
+    if (!campaignType) throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de campanha inexistente ou inativo." });
+  }
+  if (input.campaignSectorId) {
+    const [campaignSector] = await database.select({ id: campaignSectors.id }).from(campaignSectors).where(and(eq(campaignSectors.id, input.campaignSectorId), eq(campaignSectors.active, true))).limit(1);
+    if (!campaignSector) throw new TRPCError({ code: "BAD_REQUEST", message: "Setor de campanha inexistente ou inativo." });
   }
   const regionalIds = uniqueIds([...input.regionalIds, ...(input.regionalId ? [input.regionalId] : [])]);
   if (regionalIds.length) {
@@ -146,18 +156,20 @@ export const campaignsRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
-    const [regionalRows, cityRows, providerRows] = await Promise.all([
+    const [regionalRows, cityRows, providerRows, campaignTypeRows, campaignSectorRows] = await Promise.all([
       database.select({ id: regionals.id, name: regionals.name, providerId: regionals.providerId }).from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
       database.select({ id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId, regionalName: regionals.name, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(cities.name)),
       database.select({ id: providers.id, name: providers.name, logoUrl: providers.logoUrl }).from(providers).where(eq(providers.active, true)).orderBy(asc(providers.name)),
+      database.select({ id: campaignTypes.id, name: campaignTypes.name }).from(campaignTypes).where(eq(campaignTypes.active, true)).orderBy(asc(campaignTypes.name)),
+      database.select({ id: campaignSectors.id, name: campaignSectors.name }).from(campaignSectors).where(eq(campaignSectors.active, true)).orderBy(asc(campaignSectors.name)),
     ]);
-    return { regionals: regionalRows, cities: cityRows, providers: providerRows };
+    return { regionals: regionalRows, cities: cityRows, providers: providerRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows };
   }),
 
   list: protectedProcedure.input(z.object({ providerId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
-    const campaignQuery = database.select({ campaign: tradeCampaigns, regionalName: regionals.name, providerName: providers.name, providerLogoUrl: providers.logoUrl, templateName: campaignTemplates.name }).from(tradeCampaigns).leftJoin(regionals, eq(tradeCampaigns.regionalId, regionals.id)).leftJoin(providers, eq(tradeCampaigns.providerId, providers.id)).leftJoin(campaignTemplates, eq(tradeCampaigns.campaignTemplateId, campaignTemplates.id));
+    const campaignQuery = database.select({ campaign: tradeCampaigns, regionalName: regionals.name, providerName: providers.name, providerLogoUrl: providers.logoUrl, campaignTypeName: campaignTypes.name, campaignSectorName: campaignSectors.name, templateName: campaignTemplates.name }).from(tradeCampaigns).leftJoin(regionals, eq(tradeCampaigns.regionalId, regionals.id)).leftJoin(providers, eq(tradeCampaigns.providerId, providers.id)).leftJoin(campaignTypes, eq(tradeCampaigns.campaignTypeId, campaignTypes.id)).leftJoin(campaignSectors, eq(tradeCampaigns.campaignSectorId, campaignSectors.id)).leftJoin(campaignTemplates, eq(tradeCampaigns.campaignTemplateId, campaignTemplates.id));
     const [campaignRows, actionRows, eventRows, mediaRows, cityRows, campaignRegionalRows, availableCityRows, promotionRows, promotionCityRows, planRows] = await Promise.all([
       input?.providerId ? campaignQuery.where(eq(tradeCampaigns.providerId, input.providerId)).orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)) : campaignQuery.orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)),
       database.select({ tradeCampaignId: actions.tradeCampaignId, id: actions.id, name: actions.name, status: actions.status }).from(actions),
@@ -181,6 +193,8 @@ export const campaignsRouter = router({
         regionals: linkedRegionals,
         providerName: row.providerName,
         providerLogoUrl: row.providerLogoUrl,
+        campaignTypeName: row.campaignTypeName,
+        campaignSectorName: row.campaignSectorName,
         templateName: row.templateName,
         cities: coverageCities,
         hasExplicitCities: explicitCities.length > 0,
@@ -199,7 +213,7 @@ export const campaignsRouter = router({
     await validateContext(database, input);
     const created = await database.transaction(async transaction => {
       const regionalIds = uniqueIds([...input.regionalIds, ...(input.regionalId ? [input.regionalId] : [])]);
-      const [campaign] = await transaction.insert(tradeCampaigns).values({ name: input.name, objective: input.objective || null, providerId: input.providerId, regionalId: regionalIds[0] ?? null, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, createdByUserId: ctx.user.id }).returning();
+      const [campaign] = await transaction.insert(tradeCampaigns).values({ name: input.name, objective: input.objective || null, providerId: input.providerId, campaignTypeId: input.campaignTypeId, campaignSectorId: input.campaignSectorId, regionalId: regionalIds[0] ?? null, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, createdByUserId: ctx.user.id }).returning();
       await replaceCampaignStructure(transaction, campaign.id, regionalIds, input.cityIds, input.promotions);
       return campaign;
     });
@@ -216,7 +230,7 @@ export const campaignsRouter = router({
     await validateContext(database, input);
     const updated = await database.transaction(async transaction => {
       const regionalIds = uniqueIds([...input.regionalIds, ...(input.regionalId ? [input.regionalId] : [])]);
-      const [campaign] = await transaction.update(tradeCampaigns).set({ name: input.name, objective: input.objective || null, providerId: input.providerId, regionalId: regionalIds[0] ?? null, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, updatedAt: new Date() }).where(eq(tradeCampaigns.id, input.id)).returning();
+      const [campaign] = await transaction.update(tradeCampaigns).set({ name: input.name, objective: input.objective || null, providerId: input.providerId, campaignTypeId: input.campaignTypeId, campaignSectorId: input.campaignSectorId, regionalId: regionalIds[0] ?? null, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, updatedAt: new Date() }).where(eq(tradeCampaigns.id, input.id)).returning();
       await replaceCampaignStructure(transaction, campaign.id, regionalIds, input.cityIds, input.promotions);
       return campaign;
     });

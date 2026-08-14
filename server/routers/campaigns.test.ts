@@ -40,7 +40,10 @@ describe("campaigns router", () => {
     };
     const validCities = [{ id: 4, regionalId: 1, providerId: null }, { id: 7, regionalId: 1, providerId: null }];
     getDbMock.mockResolvedValue({
-      select: vi.fn(() => ({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ where: vi.fn(() => validCities) })) })) })),
+      select: vi.fn()
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [{ id: 4 }]) })) })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [{ id: 7 }]) })) })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ where: vi.fn(() => validCities) })) })) }),
       transaction: vi.fn(async callback => callback(transaction)),
     });
     const caller = appRouter.createCaller(context());
@@ -49,6 +52,8 @@ describe("campaigns router", () => {
       name: "Volta às aulas",
       objective: "Aumentar adesões",
       providerId: null,
+      campaignTypeId: 4,
+      campaignSectorId: 7,
       regionalId: null,
       cityIds: [4, 7],
       startsAt: new Date("2026-08-20T09:00:00Z"),
@@ -57,6 +62,7 @@ describe("campaigns router", () => {
       promotions: [{ name: "Internet em dobro", description: "Oferta para novos clientes", active: true, plans: [{ name: "300 Mega", speed: "300 Mbps", price: 99.9, unit: "mês", active: true }] }],
     })).resolves.toMatchObject({ id: 77, name: "Volta às aulas" });
 
+    expect(campaignValues).toHaveBeenCalledWith(expect.objectContaining({ campaignTypeId: 4, campaignSectorId: 7 }));
     expect(cityValues).toHaveBeenCalledWith([{ campaignId: 77, cityId: 4 }, { campaignId: 77, cityId: 7 }]);
     expect(promotionValues).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 77, name: "Internet em dobro", sortOrder: 0 }));
     expect(planValues).toHaveBeenCalledWith([{ campaignPromotionId: 88, name: "300 Mega", speed: "300 Mbps", description: null, price: "99.9", unit: "mês", active: true, sortOrder: 0 }]);
