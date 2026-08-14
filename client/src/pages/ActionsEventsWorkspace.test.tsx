@@ -112,7 +112,8 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
     expect(screen.getByText("Contexto comercial")).toBeInTheDocument();
     expect(screen.getByText("Objetivo da ação")).toBeInTheDocument();
-    expect(screen.getByText("Teste")).toBeInTheDocument();
+    expect(screen.getByText("Teste")).toHaveClass("text-lg", "sm:text-xl");
+    expect(screen.getByText("Volta às aulas")).toHaveClass("text-sm");
     expect(screen.getByAltText("Identidade visual da campanha Volta às aulas")).toHaveClass("object-cover");
     expect(screen.getByText("Fotos, vídeos e evidências")).toBeInTheDocument();
     expect(screen.queryByText("Total de itens e serviços")).not.toBeInTheDocument();

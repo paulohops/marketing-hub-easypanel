@@ -918,14 +918,17 @@ function ActionDetail({
           <DetailSection title="Contexto comercial">
             <div className="grid gap-3 sm:grid-cols-2">
               <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
-              <DetailValue label="Objetivo da ação" value={row.action.objective || "Objetivo ainda não informado."} />
-              <div className="relative min-h-36 overflow-hidden rounded-xl border border-border bg-muted/60 sm:col-span-2">
+              <div className="rounded-xl border border-primary/15 bg-primary/5 p-4 sm:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Objetivo da ação</p>
+                <p className="mt-2 break-words text-lg font-semibold leading-snug text-foreground sm:text-xl">{row.action.objective || "Objetivo ainda não informado."}</p>
+              </div>
+              <div className="relative min-h-28 overflow-hidden rounded-xl border border-border bg-muted/60 sm:col-span-2">
                 {row.campaignLogoUrl ? <img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="absolute inset-0 h-full w-full object-cover" /> : null}
                 <div className={`absolute inset-0 ${row.campaignLogoUrl ? "bg-gradient-to-r from-black/70 via-black/40 to-black/10" : "bg-primary/5"}`} />
-                <div className={`relative flex min-h-36 items-end p-4 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
+                <div className={`relative flex min-h-28 items-end p-3 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
                   <div className="min-w-0">
-                    <p className={`text-xs font-semibold ${row.campaignLogoUrl ? "text-white/80" : "text-muted-foreground"}`}>Campanha</p>
-                    <p className="mt-1 break-words text-base font-semibold">{row.campaignName || "Ação sem campanha vinculada"}</p>
+                    <p className={`text-[11px] font-medium uppercase tracking-wide ${row.campaignLogoUrl ? "text-white/75" : "text-muted-foreground"}`}>Campanha</p>
+                    <p className="mt-0.5 break-words text-sm font-medium">{row.campaignName || "Ação sem campanha vinculada"}</p>
                   </div>
                 </div>
               </div>

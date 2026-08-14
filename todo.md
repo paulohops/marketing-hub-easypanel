@@ -340,3 +340,6 @@
 - [x] Mover o objetivo da Ação para a seção Contexto comercial e removê-lo da área sob o nome.
 - [x] Centralizar verticalmente os botões e ações da ficha de Ação.
 - [x] Validar os ajustes visuais da ficha de Ação em desktop e celular.
+
+- [x] Dar maior destaque visual ao objetivo da Ação e reduzir a hierarquia do nome da campanha no Contexto comercial.
+- [x] Validar a nova hierarquia visual da ficha de Ação.
