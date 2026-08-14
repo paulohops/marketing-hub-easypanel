@@ -1,5 +1,5 @@
-import { Badge } from "@/components/ui/badge";
 import { MapView } from "@/components/Map";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { MapPin, RadioTower, CalendarDays, Flag } from "lucide-react";
 import { useMemo, useState } from "react";

@@ -126,7 +126,7 @@ export const actionsRouter = router({
       database.select({ action: actions, cityName: cities.name, actionTypeName: actionTypes.name, debrief: actionDebriefs, supervisorName: commercialSupervisors.name, actionPointName: actionPoints.name, campaignName: tradeCampaigns.name, campaignLogoUrl: tradeCampaigns.logoUrl, eventName: events.name }).from(actions).innerJoin(cities, eq(actions.cityId, cities.id)).innerJoin(actionTypes, eq(actions.actionTypeId, actionTypes.id)).leftJoin(actionDebriefs, eq(actionDebriefs.actionId, actions.id)).leftJoin(commercialSupervisors, eq(actions.commercialSupervisorId, commercialSupervisors.id)).leftJoin(actionPoints, eq(actions.actionPointId, actionPoints.id)).leftJoin(tradeCampaigns, eq(actions.tradeCampaignId, tradeCampaigns.id)).leftJoin(events, eq(actions.eventId, events.id)).orderBy(asc(actions.scheduledFor)),
       database.select({ actionId: actionTeamMembers.actionId, userId: users.id, name: users.name, jobTitle: users.jobTitle, avatarUrl: users.avatarUrl }).from(actionTeamMembers).innerJoin(users, eq(actionTeamMembers.userId, users.id)),
       database.select({ actionId: actionStockItems.actionId, stockItemId: stockItems.id, name: stockItems.name, unit: stockItems.unit, plannedQuantity: actionStockItems.plannedQuantity }).from(actionStockItems).innerJoin(stockItems, eq(actionStockItems.stockItemId, stockItems.id)),
-      database.select({ actionId: actionSuppliers.actionId, supplierId: suppliers.id, name: suppliers.displayName }).from(actionSuppliers).innerJoin(suppliers, eq(actionSuppliers.supplierId, suppliers.id)),
+      database.select({ actionId: actionSuppliers.actionId, supplierId: suppliers.id, name: suppliers.displayName, photoUrl: suppliers.photoUrl, mainService: suppliers.mainService }).from(actionSuppliers).innerJoin(suppliers, eq(actionSuppliers.supplierId, suppliers.id)),
       database.select({ actionId: actionServices.actionId, serviceTypeId: serviceTypes.id, name: serviceTypes.name, estimatedAmount: actionServices.estimatedAmount, supplierOfferingId: actionServices.supplierOfferingId, offeringName: supplierOfferings.name, unit: supplierOfferings.unit, listedUnitPrice: supplierOfferings.unitPrice, supplierId: suppliers.id, supplierName: suppliers.displayName }).from(actionServices).innerJoin(serviceTypes, eq(actionServices.serviceTypeId, serviceTypes.id)).leftJoin(supplierOfferings, eq(actionServices.supplierOfferingId, supplierOfferings.id)).leftJoin(suppliers, eq(supplierOfferings.supplierId, suppliers.id)),
       database.select({ actionId: auditLogs.entityId, auditAction: auditLogs.action, occurredAt: auditLogs.occurredAt, actorName: users.name, afterData: auditLogs.afterData }).from(auditLogs).leftJoin(users, eq(auditLogs.actorUserId, users.id)).where(eq(auditLogs.entityType, "action")).orderBy(asc(auditLogs.occurredAt)),
       database.select({ actionId: documents.entityId, url: documents.url, createdAt: documents.createdAt }).from(documents).where(and(eq(documents.entityType, "action"), inArray(documents.mimeType, ["image/jpeg", "image/png", "image/webp"]))).orderBy(asc(documents.createdAt)),
@@ -141,8 +141,38 @@ export const actionsRouter = router({
         if (service.supplierName || linkedSuppliers.length !== 1) return service;
         return { ...service, supplierId: linkedSuppliers[0].supplierId, supplierName: linkedSuppliers[0].name };
       });
+      const enrichedSuppliers = linkedSuppliers.map(supplier => ({
+        ...supplier,
+        mainService:
+          supplier.mainService
+          || linkedServices.find(service => service.supplierId === supplier.supplierId)?.offeringName
+          || linkedServices.find(service => service.supplierId === supplier.supplierId)?.name
+          || null,
+      }));
       const estimatedAmount = Number(row.action.estimatedCost);
-      return { ...row, coverImageUrl: row.action.coverImageUrl ?? imageRows.find(image => image.actionId === row.action.id)?.url ?? null, finance: { estimatedAmount, invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount }, teamMembers: teamRows.filter(member => member.actionId === row.action.id), stockItems: stockRows.filter(item => item.actionId === row.action.id), suppliers: linkedSuppliers, services: linkedServices, history: historyRows.filter(item => item.actionId === row.action.id) };
+      return {
+        action: row.action,
+        cityName: row.cityName,
+        actionTypeName: row.actionTypeName,
+        debrief: row.debrief,
+        supervisorName: row.supervisorName,
+        actionPointName: row.actionPointName,
+        campaignName: row.campaignName,
+        campaignLogoUrl: row.campaignLogoUrl,
+        eventName: row.eventName,
+        coverImageUrl: row.action.coverImageUrl ?? imageRows.find(image => image.actionId === row.action.id)?.url ?? null,
+        finance: {
+          estimatedAmount,
+          invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0),
+          paidAmount,
+          remainingAmount: estimatedAmount - paidAmount,
+        },
+        teamMembers: teamRows.filter(member => member.actionId === row.action.id),
+        stockItems: stockRows.filter(item => item.actionId === row.action.id),
+        suppliers: enrichedSuppliers,
+        services: linkedServices,
+        history: historyRows.filter(item => item.actionId === row.action.id),
+      };
     });
   }),
   create: protectedProcedure.input(z.object({

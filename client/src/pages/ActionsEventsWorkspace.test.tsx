@@ -8,7 +8,7 @@ const savePostEvent = vi.hoisted(() => vi.fn());
 const updateExecutionStatus = vi.hoisted(() => vi.fn());
 const actionListQuery = vi.hoisted(() => vi.fn());
 const eventListQuery = vi.hoisted(() => vi.fn());
-const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 5 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supplierOfferings: [{ id: 9, supplierId: 4, supplierName: "Fornecedor MG", name: "Promotoria", unit: "dia", unitPrice: "400" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [], campaigns: [] };
+const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "MG", regionalId: 11 }, regionalName: "Central Mineira" }], actionTypes: [{ id: 2, name: "Blitz" }], eventTypes: [{ id: 3, name: "Feira" }], suppliers: [{ id: 4, displayName: "Fornecedor MG" }], supplierCities: [{ supplierId: 4, cityId: 1 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 5 }], serviceTypes: [{ id: 5, name: "Promotoria" }], supplierOfferings: [{ id: 9, supplierId: 4, supplierName: "Fornecedor MG", name: "Promotoria", unit: "dia", unitPrice: "400" }], supervisors: [{ id: 6, name: "Larissa Souza" }], teamUsers: [{ id: 7, name: "Rafael Lima", email: "rafael@cluster.com", jobTitle: "Promotor" }], stockItems: [{ id: 8, name: "Tenda", sku: "TEN-01", unit: "un", cityId: 1, regionalId: 11 }], actionPoints: [{ id: 12, cityId: 1, name: "Praça Central", address: "Praça Sete, Centro", latitude: "-19.9208", longitude: "-43.9378", active: true }], campaigns: [] };
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ actions: { list: { invalidate: vi.fn() }, referenceData: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } }, campaigns: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
@@ -59,6 +59,7 @@ describe("formulários operacionais ampliados", () => {
     fireEvent.change(screen.getByLabelText("Nome da ação"), { target: { value: "Blitz Centro" } });
     selectMultiple("Cidade", "Belo Horizonte");
     selectMultiple("Tipo de ação", "Blitz");
+    selectMultiple("Ponto comercial ou local de ação", "Praça Central");
     selectMultiple("Supervisor responsável", "Larissa Souza");
     fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2026-08-14T09:00" } });
     fireEvent.change(screen.getByLabelText("Término"), { target: { value: "2026-08-14T12:00" } });
@@ -70,7 +71,7 @@ describe("formulários operacionais ampliados", () => {
     selectMultiple("Recursos de estoque", "Tenda");
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Planejar ação" }));
-    expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, commercialSupervisorId: 6, partnershipType: "mixed", supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, supplierOfferingId: 9, estimatedAmount: 400 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
+    expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, actionPointId: 12, latitude: -19.9208, longitude: -43.9378, commercialSupervisorId: 6, partnershipType: "mixed", supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, supplierOfferingId: 9, estimatedAmount: 400 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
   });
 
   it("oferece filtros recolhíveis, incluindo responsável e nota, na lista de ações", () => {
@@ -107,7 +108,7 @@ describe("formulários operacionais ampliados", () => {
   });
 
   it("abre a ficha da ação antes de registrar o debriefing", () => {
-    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste", address: "Avenida Afonso Pena, 100" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", actionPointName: "Farmácia Nacional · Loja 17", supervisorName: null, campaignName: "Volta às aulas", campaignLogoUrl: "https://cdn.example.com/campanha.png", teamMembers: [], services: [{ serviceTypeId: 5, name: "Panfletagem", supplierName: "Fornecedor MG", estimatedAmount: "100" }], stockItems: [{ stockItemId: 8, name: "Tenda", sku: "TEN-01", plannedQuantity: "9.00" }], debrief: null }], isLoading: false });
+    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste", address: "Avenida Afonso Pena, 100" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", actionPointName: "Farmácia Nacional · Loja 17", supervisorName: null, campaignName: "Volta às aulas", campaignLogoUrl: "https://cdn.example.com/campanha.png", teamMembers: [], suppliers: [{ supplierId: 4, name: "Fornecedor MG", photoUrl: null, mainService: "Panfletagem" }], services: [{ serviceTypeId: 5, name: "Panfletagem", supplierName: "Fornecedor MG", estimatedAmount: "100" }], stockItems: [{ stockItemId: 8, name: "Tenda", sku: "TEN-01", plannedQuantity: "9.00" }], history: [{ auditAction: "updated", occurredAt: new Date("2026-08-14T10:00:00Z"), actorName: "Paulo Oliveira", afterData: null }], debrief: null }], isLoading: false });
     render(<ActionsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: /Blitz.*Teste/ }));
     expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
@@ -119,10 +120,13 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByText("Farmácia Nacional · Loja 17").tagName).toBe("STRONG");
     expect(screen.getByText("Avenida Afonso Pena, 100")).toBeInTheDocument();
     expect(screen.getByText("Fornecedor: Fornecedor MG")).toBeInTheDocument();
+    expect(screen.getByText("Fornecedor MG")).toBeInTheDocument();
+    expect(screen.getAllByText("Panfletagem").length).toBeGreaterThan(1);
     expect(screen.getByText("9")).toBeInTheDocument();
     expect(screen.getByText("Fotos, vídeos e evidências")).toBeInTheDocument();
     expect(screen.getByTestId("evidence-upload")).toHaveAttribute("data-variant", "gallery");
     expect(screen.queryByText("Total de itens e serviços")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ver motivo e evidências/i })).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Status" }), { target: { value: "planned" } });
     expect(updateExecutionStatus).toHaveBeenCalledWith({ actionId: 21, status: "planned" });
     expect(screen.queryByText("Confirmar alteração de status")).not.toBeInTheDocument();

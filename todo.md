@@ -351,3 +351,9 @@
 - [x] Corrigir a área vazia no diálogo de reagendamento e simplificar a atualização direta dos status planejada, em execução e concluída.
 - [x] Melhorar o resumo de localização com nome do local em negrito, endereço separado e período em bloco próprio.
 - [x] Cobrir e validar os refinamentos de ficha, evidências, status e planejamento de Ações.
+
+- [x] Exibir motivo e evidências no histórico de Ações apenas nas entradas que possuírem esses dados.
+- [x] Adicionar o serviço principal ao cadastro de fornecedores e exibir fornecedores envolvidos em cartões com foto, nome e especialidade.
+- [x] Corrigir a inclusão de Ações com localização no mapa de BI e Indicadores.
+- [x] Pesquisar e documentar o caminho seguro para uma futura integração editável com Miro.
+- [x] Cobrir e validar os refinamentos de histórico, fornecedores e geolocalização de Ações.

@@ -5,10 +5,15 @@ const getDbMock = vi.hoisted(() => vi.fn());
 const assertPermissionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../db", () => ({ getDb: getDbMock }));
-vi.mock("../authorization", async importOriginal => ({
-  ...(await importOriginal<typeof import("../authorization")>()),
-  assertPermission: assertPermissionMock,
-}));
+vi.mock("../authorization", async importOriginal => {
+  const actual = await importOriginal<typeof import("../authorization")>();
+  return {
+    ...actual,
+    permissionModules: ["dashboard", "settings", "inventory", "finance", "media", "actions", "events", "operations", "documents", "map", "notifications"],
+    permissionActions: ["read", "create", "update", "delete"],
+    assertPermission: assertPermissionMock,
+  };
+});
 
 import { appRouter } from "../routers";
 

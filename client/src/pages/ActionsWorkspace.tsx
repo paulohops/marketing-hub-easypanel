@@ -16,6 +16,7 @@ import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { trpc } from "@/lib/trpc";
 import {
   ArrowLeft,
+  Building2,
   CalendarClock,
   ClipboardCheck,
   FolderUp,
@@ -417,6 +418,9 @@ export default function ActionsWorkspace() {
     }));
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    const selectedPoint = form.actionPointId
+      ? (references.data?.actionPoints ?? []).find((item: any) => item.id === Number(form.actionPointId))
+      : null;
     const payload = {
       name: form.name,
       tradeCampaignId: form.tradeCampaignId ? Number(form.tradeCampaignId) : null,
@@ -428,8 +432,8 @@ export default function ActionsWorkspace() {
       endsAt: form.endsAt ? new Date(form.endsAt) : null,
       objective: form.objective,
       address: form.address || undefined,
-      latitude: null,
-      longitude: null,
+      latitude: selectedPoint?.latitude == null ? null : Number(selectedPoint.latitude),
+      longitude: selectedPoint?.longitude == null ? null : Number(selectedPoint.longitude),
       commercialSupervisorId: form.commercialSupervisorId
         ? Number(form.commercialSupervisorId)
         : null,
@@ -824,6 +828,14 @@ function ActionDetail({
       ? (() => { try { return JSON.parse(historyDetail.afterData); } catch { return {}; } })()
       : historyDetail.afterData ?? {}
     : {};
+  const historyPayloadFor = (entry: any) => {
+    if (typeof entry?.afterData !== "string") return entry?.afterData ?? {};
+    try { return JSON.parse(entry.afterData); } catch { return {}; }
+  };
+  const hasHistoryDetail = (entry: any) => {
+    const payload = historyPayloadFor(entry);
+    return Boolean(String(payload?.reason ?? "").trim() || (Array.isArray(payload?.evidenceUrls) && payload.evidenceUrls.length));
+  };
   const downloadHistoryEvidence = async (url: string, index: number) => {
     try {
       const response = await fetch(url);
@@ -943,7 +955,7 @@ function ActionDetail({
             </div>
           </DetailSection>
         </section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Responsáveis e fornecedores"><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><UsersRound className="h-4 w-4" /> Responsáveis do trade</p>{row.teamMembers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.teamMembers.map((member: any) => <div key={member.userId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-contain" /> : (member.name || "U").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{member.name || `Usuário #${member.userId}`}</p><p className="truncate text-xs text-muted-foreground">{member.jobTitle || "Colaborador"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum responsável definido.</p>}</div><DetailValue label="Fornecedores envolvidos" value={row.suppliers?.length ? row.suppliers.map((supplier: any) => supplier.name).join(", ") : "Não informados"} /></div></DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Responsáveis e fornecedores"><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><UsersRound className="h-4 w-4" /> Responsáveis do trade</p>{row.teamMembers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.teamMembers.map((member: any) => <div key={member.userId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-contain" /> : (member.name || "U").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{member.name || `Usuário #${member.userId}`}</p><p className="truncate text-xs text-muted-foreground">{member.jobTitle || "Colaborador"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum responsável definido.</p>}</div><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Building2 className="h-4 w-4" /> Fornecedores envolvidos</p>{row.suppliers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.suppliers.map((supplier: any) => <div key={supplier.supplierId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{supplier.photoUrl ? <img src={supplier.photoUrl} alt="" className="h-full w-full object-cover" /> : (supplier.name || "F").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{supplier.name || `Fornecedor #${supplier.supplierId}`}</p><p className="truncate text-xs text-muted-foreground">{supplier.mainService || "Serviço principal não informado"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum fornecedor definido.</p>}</div></div></DetailSection></section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Serviços"><div className="space-y-2">{row.services?.length ? row.services.map((service: any) => <div key={service.serviceTypeId} className="grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium text-foreground">{service.name}</p><p className="mt-0.5 text-xs text-muted-foreground">Fornecedor: {service.supplierName || "não definido"}{service.offeringName ? ` · ${service.offeringName}` : ""}{service.unit ? ` · ${service.unit}` : ""}</p></div><strong className="text-sm tabular-nums text-primary">{Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum serviço planejado.</p>}</div>{row.services?.length ? <div className="mt-3 flex justify-end border-t border-border pt-3"><span className="text-sm font-semibold text-foreground">Total dos serviços: <strong className="text-primary">{Number((row.services ?? []).reduce((total: number, service: any) => total + Number(service.estimatedAmount ?? 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span></div> : null}</DetailSection></section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: any) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.sku || "Sem SKU"}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(Number(item.plannedQuantity || 0))}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
         <section className="rounded-xl border border-border bg-card p-4">
@@ -982,7 +994,7 @@ function ActionDetail({
                       {new Date(entry.occurredAt).toLocaleString("pt-BR")}
                       {entry.actorName ? ` · ${entry.actorName}` : ""}
                     </p>
-                    {(entry.afterData?.reason || entry.afterData?.evidenceUrls?.length || typeof entry.afterData === "string") && <Button type="button" variant="link" className="mt-1 h-auto px-0 text-xs text-primary" onClick={() => setHistoryDetail(entry)}>Ver motivo e evidências</Button>}
+                    {hasHistoryDetail(entry) && <Button type="button" variant="link" className="mt-1 h-auto px-0 text-xs text-primary" onClick={() => setHistoryDetail(entry)}>Ver motivo e evidências</Button>}
                   </div>
                 ))}
               </div>
