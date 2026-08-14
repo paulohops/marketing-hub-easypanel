@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   CalendarClock,
   ClipboardCheck,
+  ImagePlus,
   MapPin,
   PackageCheck,
   Plus,
@@ -35,6 +36,7 @@ type ServiceAllocation = { serviceTypeId: number; supplierOfferingId: number | n
 const statusLabel: Record<string, string> = {
   planned: "Planejada",
   in_progress: "Em execução",
+  paused: "Pausada",
   completed: "Concluída",
   cancelled: "Cancelada",
 };
@@ -46,6 +48,7 @@ const partnershipLabel: Record<string, string> = {
 const actionStatusClass: Record<string, string> = {
   planned: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300",
   in_progress: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+  paused: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
   completed: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
   cancelled: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300",
 };
@@ -87,6 +90,15 @@ const blankForm = () => ({
 const toDateField = (value: Date | string | null | undefined) =>
   value ? new Date(value).toISOString().slice(0, 16) : "";
 
+function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível preparar a foto de capa."));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ActionsWorkspace() {
   const [, setLocation] = useLocation();
   const [isDetailRoute, routeParams] = useRoute("/acoes/:actionId");
@@ -105,6 +117,9 @@ export default function ActionsWorkspace() {
   const [cityFilter, setCityFilter] = useState("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [statusChangeOpen, setStatusChangeOpen] = useState(false);
+  const [statusChange, setStatusChange] = useState({ status: "planned", reason: "", evidenceUrls: [] as string[] });
   const [debrief, setDebrief] = useState({
     rating: "5",
     notes: "",
@@ -121,6 +136,8 @@ export default function ActionsWorkspace() {
   const [reschedule, setReschedule] = useState({
     scheduledFor: "",
     endsAt: "",
+    reason: "",
+    evidenceUrls: [] as string[],
   });
   const cities = useMemo(
     () =>
@@ -203,12 +220,26 @@ export default function ActionsWorkspace() {
             })),
     [references.data, form.cityId]
   );
+  const uploadCover = trpc.actions.uploadCover.useMutation({
+    onSuccess: () => utils.actions.list.invalidate(),
+    onError: error => toast.error(error.message),
+  });
+  const saveCover = async (actionId: number, file = coverFile) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Envie uma imagem JPEG, PNG ou WEBP para a capa.");
+      return;
+    }
+    await uploadCover.mutateAsync({ actionId, originalName: file.name, mimeType: file.type as "image/jpeg" | "image/png" | "image/webp", dataBase64: await fileToBase64(file) });
+  };
   const create = trpc.actions.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async (created: any) => {
+      await saveCover(created.id);
       toast.success("Ação planejada com sucesso.");
       utils.actions.list.invalidate();
       setFormOpen(false);
       setForm(blankForm());
+      setCoverFile(null);
     },
     onError: error => toast.error(error.message),
   });
@@ -217,6 +248,7 @@ export default function ActionsWorkspace() {
       utils.actions.list.invalidate();
       setFormOpen(false);
       setEditingActionId(null);
+      setCoverFile(null);
       toast.success("Detalhes da ação atualizados.");
     },
     onError: error => toast.error(error.message),
@@ -294,9 +326,11 @@ export default function ActionsWorkspace() {
   const openForm = () => {
     setForm(blankForm());
     setEditingActionId(null);
+    setCoverFile(null);
     setFormOpen(true);
   };
   const openEdit = (row: any) => {
+    setCoverFile(null);
     setForm({
       name: row.action.name,
       tradeCampaignId: row.action.tradeCampaignId ? String(row.action.tradeCampaignId) : "",
@@ -407,6 +441,7 @@ export default function ActionsWorkspace() {
       })),
     };
     if (editingActionId) {
+      if (coverFile) void saveCover(editingActionId);
       updateDetails.mutate({ actionId: editingActionId, ...payload });
     } else {
       create.mutate(payload);
@@ -420,9 +455,10 @@ export default function ActionsWorkspace() {
           canWrite={canWrite}
           onBack={() => setLocation("/acoes")}
           onEdit={() => openEdit(selected)}
-          onStatus={next =>
-            changeStatus.mutate({ actionId: selected.action.id, status: next })
-          }
+          onStatus={next => {
+            setStatusChange({ status: next, reason: "", evidenceUrls: [] });
+            setStatusChangeOpen(true);
+          }}
           debrief={debrief}
           onDebriefChange={setDebrief}
           onSaveDebrief={() => saveDebrief.mutate({ actionId: selected.action.id, rating: Number(debrief.rating), notes: debrief.notes || undefined, positives: debrief.positives || undefined, negatives: debrief.negatives || undefined, resultAchieved: debrief.resultAchieved, resultSummary: debrief.resultSummary || undefined, leadCount: Number(debrief.leadCount || 0), saleCount: Number(debrief.saleCount || 0), renewalCount: Number(debrief.renewalCount || 0), worthRepeating: debrief.worthRepeating, completedAt: new Date(debrief.completedAt) })}
@@ -431,6 +467,8 @@ export default function ActionsWorkspace() {
             setReschedule({
               scheduledFor: toDateField(selected.action.scheduledFor),
               endsAt: toDateField(selected.action.endsAt),
+              reason: "",
+              evidenceUrls: [],
             });
             setRescheduleOpen(true);
           }}
@@ -453,9 +491,22 @@ export default function ActionsWorkspace() {
           submit={submit}
           pending={updateDetails.isPending}
           isEditing
+          coverFile={coverFile}
+          onCoverChange={setCoverFile}
+          currentCoverUrl={selected.action.coverImageUrl}
         />
+        <Dialog open={statusChangeOpen} onOpenChange={setStatusChangeOpen}>
+          <DialogContent className="max-h-[90vh] w-[calc(100vw-1.25rem)] max-w-2xl overflow-y-auto">
+            <DialogHeader><DialogTitle>Confirmar alteração de status</DialogTitle><DialogDescription>Registre o contexto operacional e os arquivos que justificam esta mudança. O registro ficará disponível no histórico da ação.</DialogDescription></DialogHeader>
+            <form className="grid gap-4" onSubmit={event => { event.preventDefault(); changeStatus.mutate({ actionId: selected.action.id, status: statusChange.status as "planned" | "in_progress" | "paused" | "completed" | "cancelled", reason: statusChange.reason || undefined, evidenceUrls: statusChange.evidenceUrls }, { onSuccess: () => setStatusChangeOpen(false) }); }}>
+              <label className="grid gap-1.5 text-sm font-medium">Motivo {(["paused", "cancelled"] as string[]).includes(statusChange.status) ? "(obrigatório)" : "(opcional)"}<Textarea required={["paused", "cancelled"].includes(statusChange.status)} minLength={["paused", "cancelled"].includes(statusChange.status) ? 3 : undefined} value={statusChange.reason} onChange={event => setStatusChange(current => ({ ...current, reason: event.target.value }))} placeholder="Descreva a razão da alteração de status." /></label>
+              <EvidenceUpload entityType="action" entityId={selected.action.id} regionalId={null} canWrite={canWrite} variant="side" onUploadComplete={url => setStatusChange(current => ({ ...current, evidenceUrls: [...current.evidenceUrls, url] }))} />
+              <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setStatusChangeOpen(false)}>Voltar</Button><Button type="submit" className="bg-primary" disabled={changeStatus.isPending}>{changeStatus.isPending ? "Salvando..." : "Confirmar status"}</Button></div>
+            </form>
+          </DialogContent>
+        </Dialog>
         <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-          <DialogContent className="max-w-xl">
+          <DialogContent className="max-h-[90vh] w-[calc(100vw-1.25rem)] max-w-2xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Reagendar ação</DialogTitle>
               <DialogDescription>
@@ -473,6 +524,8 @@ export default function ActionsWorkspace() {
                   endsAt: reschedule.endsAt
                     ? new Date(reschedule.endsAt)
                     : null,
+                  reason: reschedule.reason,
+                  evidenceUrls: reschedule.evidenceUrls,
                 });
               }}
             >
@@ -500,6 +553,11 @@ export default function ActionsWorkspace() {
                   }
                 />
               </label>
+              <label className="grid gap-1.5 text-sm font-medium">
+                Motivo do reagendamento
+                <Textarea required minLength={3} value={reschedule.reason} onChange={event => setReschedule(current => ({ ...current, reason: event.target.value }))} placeholder="Explique o motivo da nova data." />
+              </label>
+              <EvidenceUpload entityType="action" entityId={selected.action.id} regionalId={null} canWrite={canWrite} variant="side" onUploadComplete={url => setReschedule(current => ({ ...current, evidenceUrls: [...current.evidenceUrls, url] }))} />
               <div className="flex justify-end">
                 <Button
                   type="submit"
@@ -550,7 +608,7 @@ export default function ActionsWorkspace() {
           <p className="mb-2 text-xs font-medium text-muted-foreground">Situação da ação</p>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
             <Button type="button" variant={status === "all" ? "default" : "outline"} onClick={() => setStatus("all")} className="justify-between">Todas <span className="rounded bg-background/20 px-1.5 text-xs">{(actionList.data ?? []).length}</span></Button>
-            {(["planned", "in_progress", "completed", "cancelled"] as const).map(value => <Button key={value} type="button" variant="outline" onClick={() => setStatus(value)} className={`justify-between ${status === value ? actionStatusClass[value] : ""}`}><span>{statusLabel[value]}</span><span className="rounded bg-background/20 px-1.5 text-xs">{statusCounts[value] ?? 0}</span></Button>)}
+            {(["planned", "in_progress", "paused", "completed", "cancelled"] as const).map(value => <Button key={value} type="button" variant="outline" onClick={() => setStatus(value)} className={`justify-between ${status === value ? actionStatusClass[value] : ""}`}><span>{statusLabel[value]}</span><span className="rounded bg-background/20 px-1.5 text-xs">{statusCounts[value] ?? 0}</span></Button>)}
           </div>
         </div>
       </section>}
@@ -569,7 +627,7 @@ export default function ActionsWorkspace() {
                 className="grid min-h-[150px] w-full grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.15fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.15fr)_minmax(165px,.76fr)_minmax(180px,.86fr)_minmax(190px,.9fr)_62px] xl:gap-x-3"
               >
                 <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-primary md:h-[76px] md:w-[76px] xl:row-span-1">
-                  <CalendarClock className="h-6 w-6" />
+                  {row.action.coverImageUrl || row.coverImageUrl ? <img src={row.action.coverImageUrl || row.coverImageUrl} alt="" className="h-full w-full object-contain" /> : <CalendarClock className="h-6 w-6" />}
                 </div>
                 <div className="min-w-0">
                   <h2 className="truncate font-semibold text-foreground">{row.action.name}</h2>
@@ -580,7 +638,7 @@ export default function ActionsWorkspace() {
                   <div className="flex flex-wrap gap-2"><Badge variant="secondary">{row.actionTypeName || "Tipo não informado"}</Badge><Badge variant="outline">{row.cityName || "Cidade não informada"}</Badge></div>
                 </div>
                 <div className="col-span-2 min-w-0 rounded-xl bg-muted/45 px-3 py-2.5 lg:col-span-1"><p className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{compactDate(row.action.scheduledFor)} — {compactDate(row.action.endsAt)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{row.supervisorName || "Supervisor não definido"}</p></div>
-                <div className="col-span-2 min-w-0 text-primary lg:col-span-2 xl:col-span-1"><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-2 py-1.5 text-center"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.action.estimatedCost ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">total dos serviços</small></span></div>
+                <div className="col-span-2 min-w-0 text-primary lg:col-span-2 xl:col-span-1"><span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-2 py-1.5 text-center"><strong className="text-sm font-semibold leading-none tabular-nums">{Number(row.action.estimatedCost ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">itens e serviços</small></span></div>
                 <div className="col-span-2 flex min-h-8 items-center lg:col-span-2 xl:col-span-1 xl:justify-center">{row.debrief?.rating ? <Badge variant="outline" className={`min-w-9 justify-center font-bold tabular-nums ${actionRatingClass[Number(row.debrief.rating)] ?? ""}`} title={`Nota ${row.debrief.rating}/5`}>{row.debrief.rating}</Badge> : <span className="text-[11px] text-muted-foreground">Sem nota</span>}</div>
               </button>
             ))}
@@ -608,6 +666,8 @@ export default function ActionsWorkspace() {
         setServices={setServices}
         submit={submit}
         pending={create.isPending}
+        coverFile={coverFile}
+        onCoverChange={setCoverFile}
       />
       <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
         <DialogContent className="max-w-xl">
@@ -629,6 +689,8 @@ export default function ActionsWorkspace() {
                   endsAt: reschedule.endsAt
                     ? new Date(reschedule.endsAt)
                     : null,
+                  reason: reschedule.reason,
+                  evidenceUrls: reschedule.evidenceUrls,
                 });
             }}
           >
@@ -688,7 +750,7 @@ function ActionDetail({
   canWrite: boolean;
   onBack: () => void;
   onEdit: () => void;
-  onStatus: (status: "planned" | "in_progress" | "completed" | "cancelled") => void;
+  onStatus: (status: "planned" | "in_progress" | "paused" | "completed" | "cancelled") => void;
   debrief: any;
   onDebriefChange: (next: any) => void;
   onSaveDebrief: () => void;
@@ -696,6 +758,29 @@ function ActionDetail({
   onReschedule: () => void;
 }) {
   const regionalId = null;
+  const [historyDetail, setHistoryDetail] = useState<any | null>(null);
+  const historyPayload = historyDetail
+    ? typeof historyDetail.afterData === "string"
+      ? (() => { try { return JSON.parse(historyDetail.afterData); } catch { return {}; } })()
+      : historyDetail.afterData ?? {}
+    : {};
+  const downloadHistoryEvidence = async (url: string, index: number) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error();
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = `evidencia-acao-${index + 1}`;
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
+    } catch {
+      toast.error("Não foi possível iniciar o download da evidência.");
+    }
+  };
   const historyLabel: Record<string, string> = {
     create: "Ação planejada",
     update_execution_status: "Status atualizado",
@@ -709,8 +794,8 @@ function ActionDetail({
       </Button>
       <header className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm xl:flex-row xl:items-start xl:justify-between">
         <div className="flex min-w-0 gap-4">
-          <div className="grid h-20 w-20 shrink-0 place-items-center rounded-xl border border-border bg-primary/5 text-primary">
-            <CalendarClock className="h-7 w-7" />
+          <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-primary">
+            {row.coverImageUrl ? <img src={row.coverImageUrl} alt={`Capa de ${row.action.name}`} className="h-full w-full object-contain" /> : <CalendarClock className="h-7 w-7" />}
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -731,8 +816,8 @@ function ActionDetail({
             </Button>
             <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 text-xs font-medium text-muted-foreground">
               Status
-              <select value={row.action.status} onChange={event => onStatus(event.target.value as "planned" | "in_progress" | "completed" | "cancelled")} className="h-8 bg-transparent text-sm font-medium text-foreground outline-none">
-                <option value="planned">Planejada</option><option value="in_progress">Em execução</option><option value="completed">Concluída</option><option value="cancelled">Cancelada</option>
+              <select value={row.action.status} onChange={event => onStatus(event.target.value as "planned" | "in_progress" | "paused" | "completed" | "cancelled")} className="h-8 bg-transparent text-sm font-medium text-foreground outline-none">
+                <option value="planned">Planejada</option><option value="in_progress">Em execução</option><option value="paused">Pausada</option><option value="completed">Concluída</option><option value="cancelled">Cancelada</option>
               </select>
             </label>
           </div>
@@ -805,6 +890,10 @@ function ActionDetail({
           </DetailSection>
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+            <h2 className="text-base font-semibold text-foreground">Total de itens e serviços</h2>
+            <strong className="text-lg tabular-nums text-primary">{Number(row.finance?.estimatedAmount ?? row.action.estimatedCost ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
+          </div>
           <DetailSection title="Histórico da ação">
             {row.history?.length ? (
               <div className="space-y-3">
@@ -821,6 +910,7 @@ function ActionDetail({
                       {new Date(entry.occurredAt).toLocaleString("pt-BR")}
                       {entry.actorName ? ` · ${entry.actorName}` : ""}
                     </p>
+                    {(entry.afterData?.reason || entry.afterData?.evidenceUrls?.length || typeof entry.afterData === "string") && <Button type="button" variant="link" className="mt-1 h-auto px-0 text-xs text-primary" onClick={() => setHistoryDetail(entry)}>Ver motivo e evidências</Button>}
                   </div>
                 ))}
               </div>
@@ -832,6 +922,15 @@ function ActionDetail({
           </DetailSection>
         </section>
       </div>
+      <Dialog open={Boolean(historyDetail)} onOpenChange={open => !open && setHistoryDetail(null)}>
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1.25rem)] max-w-xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Motivo e evidências da alteração</DialogTitle><DialogDescription>{historyDetail ? `${historyLabel[historyDetail.auditAction] ?? "Atualização registrada"} em ${new Date(historyDetail.occurredAt).toLocaleString("pt-BR")}` : ""}</DialogDescription></DialogHeader>
+          <div className="space-y-4">
+            <div><p className="text-xs font-semibold text-muted-foreground">Motivo informado</p><p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{historyPayload.reason || "Nenhum motivo registrado para esta alteração."}</p></div>
+            {Array.isArray(historyPayload.evidenceUrls) && historyPayload.evidenceUrls.length ? <div><p className="mb-2 text-xs font-semibold text-muted-foreground">Evidências anexadas</p><div className="grid gap-3 sm:grid-cols-2">{historyPayload.evidenceUrls.map((url: string, index: number) => { const normalizedUrl = url.toLowerCase(); const isVideo = /\.(mp4|webm)(?:\?|$)/.test(normalizedUrl); const isAudio = /\.(mp3|wav)(?:\?|$)/.test(normalizedUrl); const isDocument = /\.pdf(?:\?|$)/.test(normalizedUrl); return <div key={`${url}-${index}`} className="overflow-hidden rounded-lg border border-border bg-muted/30">{isVideo ? <video controls preload="metadata" className="max-h-44 w-full bg-black"><source src={url} /></video> : isAudio ? <audio controls className="m-3 w-[calc(100%-1.5rem)]"><source src={url} /></audio> : isDocument ? <iframe title={`Evidência ${index + 1}`} src={url} className="h-44 w-full bg-background" /> : <img src={url} alt={`Evidência ${index + 1}`} className="max-h-44 w-full object-contain" />}<div className="border-t border-border p-2"><Button type="button" variant="outline" size="sm" onClick={() => void downloadHistoryEvidence(url, index)}>Baixar arquivo</Button></div></div>; })}</div></div> : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
@@ -886,10 +985,13 @@ function ActionForm({
   submit,
   pending,
   isEditing = false,
+  coverFile,
+  onCoverChange,
+  currentCoverUrl,
 }: any) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] w-[calc(100vw-2rem)] max-w-6xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-7xl overflow-y-auto p-4 sm:w-[calc(100vw-2rem)] sm:p-6">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar ação" : "Planejar nova ação"}</DialogTitle>
           <DialogDescription>
@@ -897,8 +999,12 @@ function ActionForm({
             passam a mostrar somente opções compatíveis.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="grid gap-4 md:grid-cols-4">
-          <label className="grid gap-1.5 text-sm font-medium">
+        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-3 sm:col-span-2 lg:col-span-4 sm:flex-row sm:items-center">
+            {(coverFile || currentCoverUrl) ? <img src={coverFile ? URL.createObjectURL(coverFile) : currentCoverUrl} alt="Capa da ação" className="h-20 w-full rounded-lg bg-background object-cover sm:w-32" /> : <div className="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-border bg-background text-xs text-muted-foreground sm:w-32">Sem capa</div>}
+            <label className="grid flex-1 gap-1.5 text-sm font-medium">Foto de capa <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => onCoverChange(event.target.files?.[0] ?? null)} /><span className="text-xs font-normal text-muted-foreground">JPEG, PNG ou WEBP. A capa identifica a ação na ficha.</span></label>
+          </div>
+          <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
             Nome da ação
             <Input
               required
@@ -972,20 +1078,7 @@ function ActionForm({
               }
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-medium">
-            Modalidade
-            <select
-              value={form.partnershipType}
-              onChange={event =>
-                setForm({ ...form, partnershipType: event.target.value })
-              }
-              className="control"
-            >
-              <option value="paid">Pago</option>
-              <option value="barter">Permuta</option>
-              <option value="mixed">Misto</option>
-            </select>
-          </label>
+          <SearchableMultiSelect id="action-modality" label="Modalidade" options={[{ id: 1, label: "Pago" }, { id: 2, label: "Permuta" }, { id: 3, label: "Misto" }]} values={[form.partnershipType === "paid" ? 1 : form.partnershipType === "barter" ? 2 : 3]} onChange={ids => setForm({ ...form, partnershipType: ({ 1: "paid", 2: "barter", 3: "mixed" } as Record<number, string>)[ids[0]] ?? "paid" })} maxSelections={1} placeholder="Selecionar modalidade" />
           <div className="md:col-span-2">
             <SearchableMultiSelect
               id="action-point"
@@ -1125,7 +1218,7 @@ function ActionForm({
               Cancelar
             </Button>
             <Button type="submit" className="bg-primary" disabled={pending}>
-              Planejar ação
+              {isEditing ? "Salvar alterações" : "Planejar ação"}
             </Button>
           </div>
         </form>

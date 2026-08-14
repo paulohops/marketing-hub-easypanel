@@ -19,7 +19,7 @@ export const userRoles = ["user", "team_member", "admin", "regional_manager", "o
 export const userRoleEnum = pgEnum("user_role", userRoles);
 export const movementTypeEnum = pgEnum("stock_movement_type", ["entry", "exit", "adjustment"]);
 export const campaignStatusEnum = pgEnum("campaign_status", ["scheduled", "active", "completed", "cancelled"]);
-export const operationStatusEnum = pgEnum("operation_status", ["planned", "in_progress", "completed", "cancelled"]);
+export const operationStatusEnum = pgEnum("operation_status", ["planned", "in_progress", "paused", "completed", "cancelled"]);
 export const stockCategoryEnum = pgEnum("stock_category", ["brinde_relacionamento", "brinde_vip", "material_suporte"]);
 export const tradeOperationTypeEnum = pgEnum("trade_operation_type", ["trade_action", "media", "event"]);
 export const tradeOperationStatusEnum = pgEnum("trade_operation_status", ["planned", "approved", "in_progress", "completed", "cancelled"]);
@@ -619,6 +619,7 @@ export const actions = pgTable("actions", {
   commercialSupervisorId: integer("commercialSupervisorId").references(() => commercialSupervisors.id, { onDelete: "set null" }),
   partnershipType: partnershipTypeEnum("partnershipType").default("paid").notNull(),
   estimatedCost: numeric("estimatedCost", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  coverImageUrl: text("coverImageUrl"),
   status: operationStatusEnum("status").default("planned").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),

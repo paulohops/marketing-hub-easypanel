@@ -319,3 +319,11 @@
 - [x] Padronizar os status de Ações ao módulo de Campanhas, com alteração direta e acessível na ficha.
 - [x] Remover o atalho Nova campanha da lista de Ações, mostrar a descrição completa e usar a soma dos serviços nos valores exibidos.
 - [x] Cobrir e validar os novos fluxos de Ações com testes, tipagem, dados persistidos e revisão responsiva.
+
+- [x] Calcular os valores exibidos em Ações e no Financeiro pela soma dos itens efetivamente utilizados.
+- [x] Corrigir e ampliar o formulário de criação e edição de Ações, com composição responsiva para notebooks e celulares.
+- [x] Padronizar o seletor de modalidade com os demais campos de escolha única do sistema.
+- [x] Permitir enviar e exibir uma foto de capa ao criar ou editar uma Ação.
+- [x] Registrar reagendamento, pausa e cancelamento com motivo obrigatório, evidências e consulta detalhada no histórico da Ação.
+- [x] Elevar para 50 MB o limite de anexos em todo o sistema e corrigir o download direto de arquivos sem abrir a pré-visualização.
+- [x] Cobrir e validar os ajustes de Ações e anexos com testes, tipagem, dados persistidos e revisão responsiva.

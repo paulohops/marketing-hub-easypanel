@@ -11,7 +11,7 @@ const references = { cities: [{ city: { id: 1, name: "Belo Horizonte", state: "M
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ actions: { list: { invalidate: vi.fn() }, referenceData: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } }, campaigns: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
-  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
+  actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadCover: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
   events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) } },
   campaigns: { create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
 }));
@@ -61,7 +61,7 @@ describe("formulários operacionais ampliados", () => {
     selectMultiple("Supervisor responsável", "Larissa Souza");
     fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2026-08-14T09:00" } });
     fireEvent.change(screen.getByLabelText("Término"), { target: { value: "2026-08-14T12:00" } });
-    fireEvent.change(screen.getByLabelText("Modalidade"), { target: { value: "mixed" } });
+    selectMultiple("Modalidade", "Misto");
     fireEvent.change(screen.getByLabelText("Objetivo"), { target: { value: "Gerar experimentação" } });
     selectMultiple("Responsáveis do trade", "Rafael Lima");
     selectMultiple("Fornecedores envolvidos", "Fornecedor MG");
@@ -72,7 +72,7 @@ describe("formulários operacionais ampliados", () => {
     expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, commercialSupervisorId: 6, partnershipType: "mixed", supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, supplierOfferingId: 9, estimatedAmount: 400 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
   });
 
-  it("oferece filtros recolhíveis e total de serviços na lista de ações", () => {
+  it("oferece filtros recolhíveis e total de itens e serviços na lista de ações", () => {
     actionListQuery.mockReturnValue({ data: [{ action: { id: 25, cityId: 1, name: "Blitz Financeira", status: "planned", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "800", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null, finance: { estimatedAmount: 800, paidAmount: 250, remainingAmount: 550 } }], isLoading: false });
     render(<ActionsWorkspace />);
 
@@ -80,7 +80,7 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByLabelText("Regional")).toBeInTheDocument();
     expect(screen.getByLabelText("Cidade")).toBeInTheDocument();
     expect(screen.getByText("Blitz Financeira")).toBeInTheDocument();
-    expect(screen.getByText("total dos serviços")).toBeInTheDocument();
+    expect(screen.getByText("itens e serviços")).toBeInTheDocument();
     expect(screen.queryByText("saldo")).not.toBeInTheDocument();
   });
 
