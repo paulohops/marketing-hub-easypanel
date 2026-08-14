@@ -874,10 +874,10 @@ function Detail({
                 completedAt: new Date(),
               });
             }}
-            className="mt-3 space-y-4"
+            className="mt-3 space-y-3"
           >
-            <div className="inline-flex flex-wrap items-end gap-3 rounded-xl border border-border bg-muted/25 px-3 py-2.5">
-              <div className="grid gap-1.5">
+            <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="grid min-h-28 content-start gap-2 rounded-xl border border-border bg-muted/25 p-3">
                 <Label htmlFor="campaign-debrief-rating">Nota geral</Label>
                 <Input
                   id="campaign-debrief-rating"
@@ -893,15 +893,13 @@ function Detail({
                   }
                   className={`w-20 font-semibold tabular-nums ${ratingDefinitions[rating]?.className ?? ""}`}
                 />
+                <Badge
+                  variant="outline"
+                  className={`w-fit ${ratingDefinitions[rating]?.className ?? ""}`}
+                >
+                  {rating}/5 · {ratingDefinitions[rating]?.label}
+                </Badge>
               </div>
-              <Badge
-                variant="outline"
-                className={`mb-0.5 ${ratingDefinitions[rating]?.className ?? ""}`}
-              >
-                {rating}/5 · {ratingDefinitions[rating]?.label}
-              </Badge>
-            </div>
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] lg:items-end">
               <div className="grid gap-1.5">
                 <Label>História da campanha</Label>
                 <Textarea
@@ -920,8 +918,8 @@ function Detail({
                   className="min-h-24 resize-y"
                 />
               </div>
-              {canWrite && <Button type="submit" className="lg:mb-0.5">Salvar debriefing</Button>}
             </div>
+            {canWrite && <Button type="submit" className="w-full">Salvar debriefing</Button>}
           </form>
         </section>
       </div>
@@ -1336,7 +1334,7 @@ export default function CampaignsWorkspace() {
             <button
               key={item.id}
               onClick={() => setLocation(`/campanhas/${item.id}`)}
-              className="grid min-h-[150px] grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 md:grid-cols-[76px_minmax(185px,1.2fr)_minmax(155px,.8fr)] md:px-5 xl:grid-cols-[76px_minmax(170px,1.25fr)_minmax(145px,.85fr)_minmax(155px,.75fr)_minmax(195px,.9fr)_64px]"
+              className="grid w-full min-h-[150px] grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 md:grid-cols-[76px_minmax(185px,1.2fr)_minmax(155px,.8fr)] md:px-5 xl:grid-cols-[76px_minmax(205px,1.4fr)_minmax(145px,.75fr)_minmax(170px,.85fr)_minmax(190px,.9fr)_70px] xl:gap-x-3"
             >
               <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-sm font-bold text-primary md:h-[76px] md:w-[76px] xl:row-span-1">
                 {item.logoUrl || item.providerLogoUrl ? (

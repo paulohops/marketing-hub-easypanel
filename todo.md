@@ -297,3 +297,6 @@
 - [x] Empilhar os indicadores operacionais da lista de Campanhas, exibindo número acima de Ações, Mídias e Eventos para preservar a data em uma linha.
 - [x] Mover o módulo de Equipes para dentro de Configurações, preservando rota, permissões e acesso administrativo.
 - [x] Validar a lista compacta e a nova localização de Equipes com testes, tipagem e revisão visual.
+- [x] Eliminar o espaço residual à direita na lista de Campanhas, com distribuição proporcional de vigência, operações e nota.
+- [x] Reorganizar o debriefing com Nota geral compacta à esquerda, História e Avaliação lado a lado e botão Salvar em linha inferior de largura total.
+- [x] Validar o novo alinhamento da lista e do debriefing com testes, tipagem e revisão visual responsiva.
