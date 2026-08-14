@@ -84,9 +84,11 @@ describe("campaigns router", () => {
   });
 
   it("persiste somente cidades pertencentes à segmentação da campanha em uma promoção", async () => {
-    const promotion = { id: 88, campaignId: 77 };
+    const promotion = { id: 88, campaignId: 77, providerId: null, regionalId: null };
     const promotionWhere = vi.fn(() => ({ limit: vi.fn(() => [promotion]) }));
-    const eligibleCitiesWhere = vi.fn(() => [{ cityId: 4 }, { cityId: 7 }]);
+    const explicitCitiesWhere = vi.fn(() => []);
+    const regionalLinksWhere = vi.fn(() => []);
+    const eligibleCitiesWhere = vi.fn(() => [{ cityId: 4, regionalId: 1, providerId: null }, { cityId: 7, regionalId: 1, providerId: null }]);
     const promotionCitiesValues = vi.fn();
     const transaction = {
       delete: vi.fn(() => ({ where: vi.fn() })),
@@ -94,8 +96,10 @@ describe("campaigns router", () => {
     };
     getDbMock.mockResolvedValue({
       select: vi.fn()
-        .mockReturnValueOnce({ from: vi.fn(() => ({ where: promotionWhere })) })
-        .mockReturnValueOnce({ from: vi.fn(() => ({ where: eligibleCitiesWhere })) }),
+        .mockReturnValueOnce({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ where: promotionWhere })) })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: explicitCitiesWhere })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: regionalLinksWhere })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ where: eligibleCitiesWhere })) })) }),
       transaction: vi.fn(async callback => callback(transaction)),
     });
     const caller = appRouter.createCaller(context());

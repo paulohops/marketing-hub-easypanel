@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, cities, events, mediaCampaigns, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
+import { actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignRegionals, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, cities, events, mediaCampaigns, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -41,6 +41,7 @@ const campaignInput = z.object({
   objective: z.string().trim().max(2_000).optional(),
   providerId: z.number().int().positive().nullable().default(null),
   regionalId: z.number().int().positive().nullable(),
+  regionalIds: z.array(z.number().int().positive()).max(40).default([]),
   cityIds: z.array(z.number().int().positive()).max(200).default([]),
   campaignTemplateId: z.number().int().positive().nullable().optional(),
   startsAt: z.coerce.date().nullable(),
@@ -73,16 +74,17 @@ async function validateContext(database: Awaited<ReturnType<typeof requireDataba
     const [provider] = await database.select({ id: providers.id }).from(providers).where(and(eq(providers.id, input.providerId), eq(providers.active, true))).limit(1);
     if (!provider) throw new TRPCError({ code: "BAD_REQUEST", message: "Empresa inexistente ou inativa." });
   }
-  if (input.regionalId) {
-    const [regional] = await database.select({ id: regionals.id, providerId: regionals.providerId }).from(regionals).where(and(eq(regionals.id, input.regionalId), eq(regionals.active, true))).limit(1);
-    if (!regional) throw new TRPCError({ code: "BAD_REQUEST", message: "Regional inexistente ou inativa." });
-    if (input.providerId && regional.providerId !== input.providerId) throw new TRPCError({ code: "BAD_REQUEST", message: "A regional selecionada não pertence à empresa informada." });
+  const regionalIds = uniqueIds([...input.regionalIds, ...(input.regionalId ? [input.regionalId] : [])]);
+  if (regionalIds.length) {
+    const regionalRows = await database.select({ id: regionals.id, providerId: regionals.providerId }).from(regionals).where(and(inArray(regionals.id, regionalIds), eq(regionals.active, true)));
+    if (regionalRows.length !== regionalIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Uma ou mais regionais selecionadas não existem ou estão inativas." });
+    if (input.providerId && regionalRows.some(regional => regional.providerId !== input.providerId)) throw new TRPCError({ code: "BAD_REQUEST", message: "Todas as regionais precisam pertencer à empresa selecionada." });
   }
   const cityIds = uniqueIds(input.cityIds);
   if (cityIds.length) {
     const cityRows = await database.select({ id: cities.id, regionalId: cities.regionalId, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(and(inArray(cities.id, cityIds), eq(cities.active, true)));
     if (cityRows.length !== cityIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Uma ou mais cidades selecionadas não existem ou estão inativas." });
-    if (input.regionalId && cityRows.some(city => city.regionalId !== input.regionalId)) throw new TRPCError({ code: "BAD_REQUEST", message: "Todas as cidades precisam pertencer à regional selecionada." });
+    if (regionalIds.length && cityRows.some(city => !regionalIds.includes(city.regionalId))) throw new TRPCError({ code: "BAD_REQUEST", message: "Todas as cidades precisam pertencer a uma das regionais selecionadas." });
     if (input.providerId && cityRows.some(city => city.providerId !== input.providerId)) throw new TRPCError({ code: "BAD_REQUEST", message: "Todas as cidades precisam pertencer à empresa selecionada." });
   }
   if (input.campaignTemplateId) {
@@ -90,6 +92,12 @@ async function validateContext(database: Awaited<ReturnType<typeof requireDataba
     if (!template) throw new TRPCError({ code: "BAD_REQUEST", message: "Modelo de campanha inexistente ou inativo." });
   }
   const campaignCityIds = new Set(uniqueIds(input.cityIds));
+  if (!campaignCityIds.size) {
+    const allScopedCities = await database.select({ id: cities.id, regionalId: cities.regionalId, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true));
+    for (const city of allScopedCities) {
+      if ((!input.providerId || city.providerId === input.providerId) && (!regionalIds.length || regionalIds.includes(city.regionalId))) campaignCityIds.add(city.id);
+    }
+  }
   for (const promotion of input.promotions) {
     const promotionCityIds = uniqueIds(promotion.cityIds);
     if (promotionCityIds.some(cityId => !campaignCityIds.has(cityId))) throw new TRPCError({ code: "BAD_REQUEST", message: "As cidades de uma promoção precisam estar entre as cidades atendidas pela campanha." });
@@ -98,7 +106,10 @@ async function validateContext(database: Awaited<ReturnType<typeof requireDataba
 
 type MutationDatabase = Pick<Awaited<ReturnType<typeof requireDatabase>>, "delete" | "insert">;
 
-async function replaceCampaignStructure(database: MutationDatabase, campaignId: number, cityIds: number[], promotions: z.infer<typeof promotionInput>[]) {
+async function replaceCampaignStructure(database: MutationDatabase, campaignId: number, regionalIds: number[], cityIds: number[], promotions: z.infer<typeof promotionInput>[]) {
+  await database.delete(campaignRegionals).where(eq(campaignRegionals.campaignId, campaignId));
+  const uniqueRegionalIds = uniqueIds(regionalIds);
+  if (uniqueRegionalIds.length) await database.insert(campaignRegionals).values(uniqueRegionalIds.map(regionalId => ({ campaignId, regionalId })));
   await database.delete(campaignCities).where(eq(campaignCities.campaignId, campaignId));
   const uniqueCityIds = uniqueIds(cityIds);
   if (uniqueCityIds.length) await database.insert(campaignCities).values(uniqueCityIds.map(cityId => ({ campaignId, cityId })));
@@ -146,28 +157,38 @@ export const campaignsRouter = router({
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
     const campaignQuery = database.select({ campaign: tradeCampaigns, regionalName: regionals.name, providerName: providers.name, providerLogoUrl: providers.logoUrl, templateName: campaignTemplates.name }).from(tradeCampaigns).leftJoin(regionals, eq(tradeCampaigns.regionalId, regionals.id)).leftJoin(providers, eq(tradeCampaigns.providerId, providers.id)).leftJoin(campaignTemplates, eq(tradeCampaigns.campaignTemplateId, campaignTemplates.id));
-    const [campaignRows, actionRows, eventRows, mediaRows, cityRows, promotionRows, promotionCityRows, planRows] = await Promise.all([
+    const [campaignRows, actionRows, eventRows, mediaRows, cityRows, campaignRegionalRows, availableCityRows, promotionRows, promotionCityRows, planRows] = await Promise.all([
       input?.providerId ? campaignQuery.where(eq(tradeCampaigns.providerId, input.providerId)).orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)) : campaignQuery.orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)),
       database.select({ tradeCampaignId: actions.tradeCampaignId, id: actions.id, name: actions.name, status: actions.status }).from(actions),
       database.select({ tradeCampaignId: events.tradeCampaignId, id: events.id, name: events.name, status: events.status }).from(events),
       database.select({ tradeCampaignId: mediaCampaigns.tradeCampaignId, id: mediaCampaigns.id, name: mediaCampaigns.name, status: mediaCampaigns.status }).from(mediaCampaigns),
       database.select({ campaignId: campaignCities.campaignId, id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId }).from(campaignCities).innerJoin(cities, eq(campaignCities.cityId, cities.id)).orderBy(asc(cities.name)),
+      database.select({ campaignId: campaignRegionals.campaignId, id: regionals.id, name: regionals.name, providerId: regionals.providerId }).from(campaignRegionals).innerJoin(regionals, eq(campaignRegionals.regionalId, regionals.id)).orderBy(asc(regionals.name)),
+      database.select({ id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(cities.name)),
       database.select().from(campaignPromotions).orderBy(asc(campaignPromotions.sortOrder), asc(campaignPromotions.name)),
       database.select({ campaignPromotionId: campaignPromotionCities.campaignPromotionId, id: cities.id, name: cities.name, state: cities.state }).from(campaignPromotionCities).innerJoin(cities, eq(campaignPromotionCities.cityId, cities.id)).orderBy(asc(cities.name)),
       database.select().from(campaignPromotionPlans).orderBy(asc(campaignPromotionPlans.sortOrder), asc(campaignPromotionPlans.name)),
     ]);
-    return campaignRows.map(row => ({
-      ...row.campaign,
-      regionalName: row.regionalName,
-      providerName: row.providerName,
-      providerLogoUrl: row.providerLogoUrl,
-      templateName: row.templateName,
-      cities: cityRows.filter(city => city.campaignId === row.campaign.id),
-      promotions: promotionRows.filter(promotion => promotion.campaignId === row.campaign.id).map(promotion => ({ ...promotion, cities: promotionCityRows.filter(city => city.campaignPromotionId === promotion.id), plans: planRows.filter(plan => plan.campaignPromotionId === promotion.id) })),
-      actions: actionRows.filter(action => action.tradeCampaignId === row.campaign.id),
-      events: eventRows.filter(event => event.tradeCampaignId === row.campaign.id),
-      media: mediaRows.filter(media => media.tradeCampaignId === row.campaign.id),
-    }));
+    return campaignRows.map(row => {
+      const linkedRegionals = campaignRegionalRows.filter(regional => regional.campaignId === row.campaign.id);
+      const regionalIds = uniqueIds([...linkedRegionals.map(regional => regional.id), ...(row.campaign.regionalId ? [row.campaign.regionalId] : [])]);
+      const explicitCities = cityRows.filter(city => city.campaignId === row.campaign.id);
+      const coverageCities = explicitCities.length ? explicitCities : availableCityRows.filter(city => (!row.campaign.providerId || city.providerId === row.campaign.providerId) && (!regionalIds.length || regionalIds.includes(city.regionalId)));
+      return {
+        ...row.campaign,
+        regionalName: row.regionalName,
+        regionals: linkedRegionals,
+        providerName: row.providerName,
+        providerLogoUrl: row.providerLogoUrl,
+        templateName: row.templateName,
+        cities: coverageCities,
+        hasExplicitCities: explicitCities.length > 0,
+        promotions: promotionRows.filter(promotion => promotion.campaignId === row.campaign.id).map(promotion => ({ ...promotion, cities: promotionCityRows.filter(city => city.campaignPromotionId === promotion.id), plans: planRows.filter(plan => plan.campaignPromotionId === promotion.id) })),
+        actions: actionRows.filter(action => action.tradeCampaignId === row.campaign.id),
+        events: eventRows.filter(event => event.tradeCampaignId === row.campaign.id),
+        media: mediaRows.filter(media => media.tradeCampaignId === row.campaign.id),
+      };
+    });
   }),
 
   create: protectedProcedure.input(campaignInput).mutation(async ({ ctx, input }) => {
@@ -176,11 +197,12 @@ export const campaignsRouter = router({
     const database = await requireDatabase();
     await validateContext(database, input);
     const created = await database.transaction(async transaction => {
-      const [campaign] = await transaction.insert(tradeCampaigns).values({ name: input.name, objective: input.objective || null, providerId: input.providerId, regionalId: input.regionalId, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, createdByUserId: ctx.user.id }).returning();
-      await replaceCampaignStructure(transaction, campaign.id, input.cityIds, input.promotions);
+      const regionalIds = uniqueIds([...input.regionalIds, ...(input.regionalId ? [input.regionalId] : [])]);
+      const [campaign] = await transaction.insert(tradeCampaigns).values({ name: input.name, objective: input.objective || null, providerId: input.providerId, regionalId: regionalIds[0] ?? null, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, createdByUserId: ctx.user.id }).returning();
+      await replaceCampaignStructure(transaction, campaign.id, regionalIds, input.cityIds, input.promotions);
       return campaign;
     });
-    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId ?? undefined, entityType: "trade_campaign", entityId: created.id, action: "create", afterData: { ...created, cityIds: input.cityIds, promotionCount: input.promotions.length } });
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId ?? input.regionalIds[0], entityType: "trade_campaign", entityId: created.id, action: "create", afterData: { ...created, regionalIds: input.regionalIds, cityIds: input.cityIds, promotionCount: input.promotions.length } });
     return created;
   }),
 
@@ -192,11 +214,12 @@ export const campaignsRouter = router({
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Campanha não encontrada." });
     await validateContext(database, input);
     const updated = await database.transaction(async transaction => {
-      const [campaign] = await transaction.update(tradeCampaigns).set({ name: input.name, objective: input.objective || null, providerId: input.providerId, regionalId: input.regionalId, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, updatedAt: new Date() }).where(eq(tradeCampaigns.id, input.id)).returning();
-      await replaceCampaignStructure(transaction, campaign.id, input.cityIds, input.promotions);
+      const regionalIds = uniqueIds([...input.regionalIds, ...(input.regionalId ? [input.regionalId] : [])]);
+      const [campaign] = await transaction.update(tradeCampaigns).set({ name: input.name, objective: input.objective || null, providerId: input.providerId, regionalId: regionalIds[0] ?? null, campaignTemplateId: input.campaignTemplateId || null, startsAt: input.startsAt, endsAt: input.endsAt, status: input.status, updatedAt: new Date() }).where(eq(tradeCampaigns.id, input.id)).returning();
+      await replaceCampaignStructure(transaction, campaign.id, regionalIds, input.cityIds, input.promotions);
       return campaign;
     });
-    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId ?? undefined, entityType: "trade_campaign", entityId: updated.id, action: "update", beforeData: before, afterData: { ...updated, cityIds: input.cityIds, promotionCount: input.promotions.length } });
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId ?? input.regionalIds[0], entityType: "trade_campaign", entityId: updated.id, action: "update", beforeData: before, afterData: { ...updated, regionalIds: input.regionalIds, cityIds: input.cityIds, promotionCount: input.promotions.length } });
     return updated;
   }),
 
@@ -226,11 +249,20 @@ export const campaignsRouter = router({
   savePromotionCities: protectedProcedure.input(z.object({ promotionId: z.number().int().positive(), cityIds: z.array(z.number().int().positive()).max(200).default([]) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "actions.write");
     const database = await requireDatabase();
-    const [promotion] = await database.select({ id: campaignPromotions.id, campaignId: campaignPromotions.campaignId }).from(campaignPromotions).where(eq(campaignPromotions.id, input.promotionId)).limit(1);
+    const [promotion] = await database.select({ id: campaignPromotions.id, campaignId: campaignPromotions.campaignId, providerId: tradeCampaigns.providerId, regionalId: tradeCampaigns.regionalId }).from(campaignPromotions).innerJoin(tradeCampaigns, eq(campaignPromotions.campaignId, tradeCampaigns.id)).where(eq(campaignPromotions.id, input.promotionId)).limit(1);
     if (!promotion) throw new TRPCError({ code: "NOT_FOUND", message: "Promoção não encontrada." });
     const cityIds = uniqueIds(input.cityIds);
     if (cityIds.length) {
-      const eligibleCities = await database.select({ cityId: campaignCities.cityId }).from(campaignCities).where(and(eq(campaignCities.campaignId, promotion.campaignId), inArray(campaignCities.cityId, cityIds)));
+      const [explicitCities, linkedRegionals, candidateCities] = await Promise.all([
+        database.select({ cityId: campaignCities.cityId }).from(campaignCities).where(eq(campaignCities.campaignId, promotion.campaignId)),
+        database.select({ regionalId: campaignRegionals.regionalId }).from(campaignRegionals).where(eq(campaignRegionals.campaignId, promotion.campaignId)),
+        database.select({ cityId: cities.id, regionalId: cities.regionalId, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(and(inArray(cities.id, cityIds), eq(cities.active, true))),
+      ]);
+      const scopedRegionalIds = uniqueIds([...linkedRegionals.map(regional => regional.regionalId), ...(promotion.regionalId ? [promotion.regionalId] : [])]);
+      const explicitCityIds = new Set(explicitCities.map(city => city.cityId));
+      const eligibleCities = explicitCityIds.size
+        ? candidateCities.filter(city => explicitCityIds.has(city.cityId))
+        : candidateCities.filter(city => (!promotion.providerId || city.providerId === promotion.providerId) && (!scopedRegionalIds.length || scopedRegionalIds.includes(city.regionalId)));
       if (eligibleCities.length !== cityIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "As cidades escolhidas precisam fazer parte da segmentação da campanha." });
     }
     await database.transaction(async transaction => {

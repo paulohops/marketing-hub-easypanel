@@ -176,6 +176,13 @@
       "when": 1786669866762,
       "tag": "0024_wooden_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786670932747,
+      "tag": "0025_dapper_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }

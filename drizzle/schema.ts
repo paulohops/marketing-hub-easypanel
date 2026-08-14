@@ -386,6 +386,12 @@ export const tradeCampaigns = pgTable("trade_campaigns", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const campaignRegionals = pgTable("campaign_regionals", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaignId").notNull().references(() => tradeCampaigns.id, { onDelete: "cascade" }),
+  regionalId: integer("regionalId").notNull().references(() => regionals.id, { onDelete: "restrict" }),
+}, table => [uniqueIndex("campaign_regionals_campaign_regional_uq").on(table.campaignId, table.regionalId)]);
+
 export const campaignCities = pgTable("campaign_cities", {
   id: serial("id").primaryKey(),
   campaignId: integer("campaignId").notNull().references(() => tradeCampaigns.id, { onDelete: "cascade" }),

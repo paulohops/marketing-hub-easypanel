@@ -250,3 +250,10 @@
 - [x] Enriquecer os cartões operacionais, iniciando por Ações com data de início e objetivo visíveis.
 - [x] Permitir vincular cidades específicas a cada promoção, com persistência, edição e visualização em diálogo próprio.
 - [x] Validar as novas rotas operacionais, o diálogo de promoções e a acessibilidade com testes e revisão visual.
+- [x] Exibir em diálogo os detalhes completos de cada promoção, incluindo planos, valores e cidades selecionadas.
+- [x] Corrigir a rolagem do mouse nos seletores pesquisáveis de cidades e demais listas extensas.
+- [x] Destacar visualmente em amarelo a estrela correspondente à nota selecionada no debriefing de Campanha.
+- [x] Permitir a seleção de múltiplas regionais em Campanhas, preservando compatibilidade territorial e relatórios.
+- [x] Tratar uma Campanha sem cidades marcadas como cobertura de todas as cidades das regionais selecionadas.
+- [x] Corrigir textos e rótulos com acentuação ou concatenação incorreta no módulo de Campanhas.
+- [x] Cobrir os ajustes de promoção, território e avaliação com testes, tipagem e revisão visual.
