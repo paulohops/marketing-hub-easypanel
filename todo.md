@@ -300,3 +300,8 @@
 - [x] Eliminar o espaço residual à direita na lista de Campanhas, com distribuição proporcional de vigência, operações e nota.
 - [x] Reorganizar o debriefing com Nota geral compacta à esquerda, História e Avaliação lado a lado e botão Salvar em linha inferior de largura total.
 - [x] Validar o novo alinhamento da lista e do debriefing com testes, tipagem e revisão visual responsiva.
+
+- [x] Reduzir a largura da Nota geral no debriefing de Campanhas e transferir espaço aos campos de História e Avaliação.
+- [x] Exibir foto, nome, tipo, cidade e início nos diálogos de Ações, Mídias e Eventos vinculados à Campanha.
+- [x] Corrigir o colapso responsivo da lista de Campanhas e impedir corte ou quebra irregular de empresa e status.
+- [x] Cobrir os novos detalhes vinculados e a responsividade da lista com testes, tipagem e revisão visual.

@@ -160,4 +160,56 @@ describe("campaigns router", () => {
     expect(planValues).toHaveBeenCalledWith([{ campaignTemplatePromotionId: 43, name: "500 Mega", speed: "500 Mbps", description: null, price: "109.9", unit: "mês", active: true, sortOrder: 0 }]);
     expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "campaign_template", entityId: 42, action: "create" }));
   });
+
+  it("retorna dados de identificação completos para as operações vinculadas", async () => {
+    const campaignRows = [{ campaign: { id: 77, providerId: null, regionalId: null, name: "Mês dos pais" }, regionalName: null, providerName: "Sempre Internet", providerLogoUrl: null, campaignTypeName: null, campaignSectorName: null, templateName: null }];
+    const actionRows = [{ tradeCampaignId: 77, id: 5, name: "Panfletagem centro", status: "planned", cityName: "Belo Horizonte", typeName: "Ação externa", startsAt: new Date("2026-08-18T12:00:00Z") }];
+    const eventRows = [{ tradeCampaignId: 77, id: 6, name: "Feira regional", status: "active", cityName: "Contagem", typeName: "Feira", startsAt: new Date("2026-08-20T12:00:00Z") }];
+    const mediaRows = [{ tradeCampaignId: 77, id: 7, name: "Outdoor avenida", status: "active", cityName: "Betim", typeName: "Outdoor", startsOn: "2026-08-21", endsOn: "2026-08-31", partnershipType: "paid", estimatedCost: "1000", mediaPointId: 9, notes: null, campaignDetails: null }];
+    const campaignQuery = { from: vi.fn(), leftJoin: vi.fn(), orderBy: vi.fn(() => campaignRows) };
+    campaignQuery.from.mockReturnValue(campaignQuery);
+    campaignQuery.leftJoin.mockReturnValue(campaignQuery);
+    const actionQuery = { from: vi.fn(), innerJoin: vi.fn() };
+    actionQuery.from.mockReturnValue(actionQuery);
+    actionQuery.innerJoin.mockReturnValueOnce(actionQuery).mockReturnValueOnce(actionRows);
+    const eventQuery = { from: vi.fn(), innerJoin: vi.fn() };
+    eventQuery.from.mockReturnValue(eventQuery);
+    eventQuery.innerJoin.mockReturnValueOnce(eventQuery).mockReturnValueOnce(eventRows);
+    const mediaQuery = { from: vi.fn(), innerJoin: vi.fn() };
+    mediaQuery.from.mockReturnValue(mediaQuery);
+    mediaQuery.innerJoin.mockReturnValueOnce(mediaQuery).mockReturnValueOnce(mediaQuery).mockReturnValueOnce(mediaRows);
+    const joinOrdered = rows => ({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ orderBy: vi.fn(() => rows) })) })) });
+    const joinWhereOrdered = rows => ({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn(() => rows) })) })) })) });
+    const ordered = rows => ({ from: vi.fn(() => ({ orderBy: vi.fn(() => rows) })) });
+    const documentQuery = { from: vi.fn(), where: vi.fn(), orderBy: vi.fn(() => [
+      { entityType: "action", entityId: 5, url: "/acao.png" },
+      { entityType: "event", entityId: 6, url: "/evento.png" },
+      { entityType: "media_campaign", entityId: 7, url: "/midia.png" },
+    ]) };
+    documentQuery.from.mockReturnValue(documentQuery);
+    documentQuery.where.mockReturnValue(documentQuery);
+    getDbMock.mockResolvedValue({
+      select: vi.fn()
+        .mockReturnValueOnce(campaignQuery)
+        .mockReturnValueOnce(actionQuery)
+        .mockReturnValueOnce(eventQuery)
+        .mockReturnValueOnce(mediaQuery)
+        .mockReturnValueOnce(joinOrdered([]))
+        .mockReturnValueOnce(joinOrdered([]))
+        .mockReturnValueOnce(joinWhereOrdered([]))
+        .mockReturnValueOnce(ordered([]))
+        .mockReturnValueOnce(joinOrdered([]))
+        .mockReturnValueOnce(ordered([]))
+        .mockReturnValueOnce(documentQuery),
+    });
+    const caller = appRouter.createCaller(context());
+
+    await expect(caller.campaigns.list()).resolves.toEqual([
+      expect.objectContaining({
+        actions: [expect.objectContaining({ cityName: "Belo Horizonte", typeName: "Ação externa", imageUrl: "/acao.png" })],
+        events: [expect.objectContaining({ cityName: "Contagem", typeName: "Feira", imageUrl: "/evento.png" })],
+        media: [expect.objectContaining({ cityName: "Betim", typeName: "Outdoor", imageUrl: "/midia.png" })],
+      }),
+    ]);
+  });
 });

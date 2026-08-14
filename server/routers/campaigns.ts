@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignRegionals, campaignSectors, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, campaignTypes, cities, events, mediaCampaigns, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
+import { actionTypes, actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignRegionals, campaignSectors, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, campaignTypes, cities, documents, events, eventTypes, mediaCampaigns, mediaPoints, mediaTypes, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -170,17 +170,18 @@ export const campaignsRouter = router({
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
     const campaignQuery = database.select({ campaign: tradeCampaigns, regionalName: regionals.name, providerName: providers.name, providerLogoUrl: providers.logoUrl, campaignTypeName: campaignTypes.name, campaignSectorName: campaignSectors.name, templateName: campaignTemplates.name }).from(tradeCampaigns).leftJoin(regionals, eq(tradeCampaigns.regionalId, regionals.id)).leftJoin(providers, eq(tradeCampaigns.providerId, providers.id)).leftJoin(campaignTypes, eq(tradeCampaigns.campaignTypeId, campaignTypes.id)).leftJoin(campaignSectors, eq(tradeCampaigns.campaignSectorId, campaignSectors.id)).leftJoin(campaignTemplates, eq(tradeCampaigns.campaignTemplateId, campaignTemplates.id));
-    const [campaignRows, actionRows, eventRows, mediaRows, cityRows, campaignRegionalRows, availableCityRows, promotionRows, promotionCityRows, planRows] = await Promise.all([
+    const [campaignRows, actionRows, eventRows, mediaRows, cityRows, campaignRegionalRows, availableCityRows, promotionRows, promotionCityRows, planRows, operationImageRows] = await Promise.all([
       input?.providerId ? campaignQuery.where(eq(tradeCampaigns.providerId, input.providerId)).orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)) : campaignQuery.orderBy(asc(tradeCampaigns.startsAt), asc(tradeCampaigns.name)),
-      database.select({ tradeCampaignId: actions.tradeCampaignId, id: actions.id, name: actions.name, status: actions.status }).from(actions),
-      database.select({ tradeCampaignId: events.tradeCampaignId, id: events.id, name: events.name, status: events.status }).from(events),
-      database.select({ tradeCampaignId: mediaCampaigns.tradeCampaignId, id: mediaCampaigns.id, name: mediaCampaigns.name, status: mediaCampaigns.status, startsOn: mediaCampaigns.startsOn, endsOn: mediaCampaigns.endsOn, partnershipType: mediaCampaigns.partnershipType, estimatedCost: mediaCampaigns.estimatedCost, mediaPointId: mediaCampaigns.mediaPointId, notes: mediaCampaigns.notes, campaignDetails: mediaCampaigns.campaignDetails }).from(mediaCampaigns),
+      database.select({ tradeCampaignId: actions.tradeCampaignId, id: actions.id, name: actions.name, status: actions.status, cityName: cities.name, typeName: actionTypes.name, startsAt: actions.scheduledFor }).from(actions).innerJoin(cities, eq(actions.cityId, cities.id)).innerJoin(actionTypes, eq(actions.actionTypeId, actionTypes.id)),
+      database.select({ tradeCampaignId: events.tradeCampaignId, id: events.id, name: events.name, status: events.status, cityName: cities.name, typeName: eventTypes.name, startsAt: events.startsAt }).from(events).innerJoin(cities, eq(events.cityId, cities.id)).innerJoin(eventTypes, eq(events.eventTypeId, eventTypes.id)),
+      database.select({ tradeCampaignId: mediaCampaigns.tradeCampaignId, id: mediaCampaigns.id, name: mediaCampaigns.name, status: mediaCampaigns.status, startsOn: mediaCampaigns.startsOn, endsOn: mediaCampaigns.endsOn, partnershipType: mediaCampaigns.partnershipType, estimatedCost: mediaCampaigns.estimatedCost, mediaPointId: mediaCampaigns.mediaPointId, notes: mediaCampaigns.notes, campaignDetails: mediaCampaigns.campaignDetails, cityName: cities.name, typeName: mediaTypes.name }).from(mediaCampaigns).innerJoin(mediaPoints, eq(mediaCampaigns.mediaPointId, mediaPoints.id)).innerJoin(cities, eq(mediaPoints.cityId, cities.id)).innerJoin(mediaTypes, eq(mediaPoints.mediaTypeId, mediaTypes.id)),
       database.select({ campaignId: campaignCities.campaignId, id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId }).from(campaignCities).innerJoin(cities, eq(campaignCities.cityId, cities.id)).orderBy(asc(cities.name)),
       database.select({ campaignId: campaignRegionals.campaignId, id: regionals.id, name: regionals.name, providerId: regionals.providerId }).from(campaignRegionals).innerJoin(regionals, eq(campaignRegionals.regionalId, regionals.id)).orderBy(asc(regionals.name)),
       database.select({ id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(cities.name)),
       database.select().from(campaignPromotions).orderBy(asc(campaignPromotions.sortOrder), asc(campaignPromotions.name)),
       database.select({ campaignPromotionId: campaignPromotionCities.campaignPromotionId, id: cities.id, name: cities.name, state: cities.state }).from(campaignPromotionCities).innerJoin(cities, eq(campaignPromotionCities.cityId, cities.id)).orderBy(asc(cities.name)),
       database.select().from(campaignPromotionPlans).orderBy(asc(campaignPromotionPlans.sortOrder), asc(campaignPromotionPlans.name)),
+      database.select({ entityType: documents.entityType, entityId: documents.entityId, url: documents.url }).from(documents).where(and(inArray(documents.entityType, ["action", "event", "media_campaign"]), inArray(documents.mimeType, [...imageMimeTypes]))).orderBy(asc(documents.createdAt)),
     ]);
     return campaignRows.map(row => {
       const linkedRegionals = campaignRegionalRows.filter(regional => regional.campaignId === row.campaign.id);
@@ -199,9 +200,9 @@ export const campaignsRouter = router({
         cities: coverageCities,
         hasExplicitCities: explicitCities.length > 0,
         promotions: promotionRows.filter(promotion => promotion.campaignId === row.campaign.id).map(promotion => ({ ...promotion, cities: promotionCityRows.filter(city => city.campaignPromotionId === promotion.id), plans: planRows.filter(plan => plan.campaignPromotionId === promotion.id) })),
-        actions: actionRows.filter(action => action.tradeCampaignId === row.campaign.id),
-        events: eventRows.filter(event => event.tradeCampaignId === row.campaign.id),
-        media: mediaRows.filter(media => media.tradeCampaignId === row.campaign.id),
+        actions: actionRows.filter(action => action.tradeCampaignId === row.campaign.id).map(action => ({ ...action, imageUrl: operationImageRows.find(image => image.entityType === "action" && image.entityId === action.id)?.url ?? null })),
+        events: eventRows.filter(event => event.tradeCampaignId === row.campaign.id).map(event => ({ ...event, imageUrl: operationImageRows.find(image => image.entityType === "event" && image.entityId === event.id)?.url ?? null })),
+        media: mediaRows.filter(media => media.tradeCampaignId === row.campaign.id).map(media => ({ ...media, imageUrl: operationImageRows.find(image => image.entityType === "media_campaign" && image.entityId === media.id)?.url ?? null })),
       };
     });
   }),

@@ -133,6 +133,8 @@ const companyClass = name => {
 };
 const partnershipLabel = value =>
   ({ paid: "Pago", barter: "Permuta", mixed: "Misto" })[value] ?? value;
+const operationStatusLabel = value =>
+  ({ planned: "Planejada", scheduled: "Agendada", active: "Ativa", completed: "Encerrada", cancelled: "Cancelada" })[value] ?? value;
 
 function StatusBadge({ status }) {
   const item = statuses.find(candidate => candidate.value === status);
@@ -876,7 +878,7 @@ function Detail({
             }}
             className="mt-3 space-y-3"
           >
-            <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)]">
               <div className="grid min-h-28 content-start gap-2 rounded-xl border border-border bg-muted/25 p-3">
                 <Label htmlFor="campaign-debrief-rating">Nota geral</Label>
                 <Input
@@ -1007,24 +1009,32 @@ function Detail({
         </DialogContent>
       </Dialog>
       <Dialog open={Boolean(operationDialog)} onOpenChange={open => !open && setOperationDialog(null)}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{operationTitle} vinculadas</DialogTitle>
             <DialogDescription>Registros vinculados exclusivamente a esta campanha.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2">
+          <div className="grid gap-3">
             {selectedOperations.map(item => (
               <button
                 key={`${item.kind}-${item.id}`}
                 type="button"
                 onClick={() => { setOperationDialog(null); setLocation(item.href); }}
-                className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-muted/25 px-4 py-3 text-left transition hover:border-primary/40 hover:bg-muted/50"
+                className="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-border bg-muted/25 p-3 text-left transition hover:border-primary/40 hover:bg-muted/50 sm:grid-cols-[72px_minmax(0,1fr)_auto]"
               >
+                <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-primary/5 text-xs font-semibold text-primary sm:h-[72px] sm:w-[72px]">
+                  {item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : item.label.slice(0, 1)}
+                </span>
                 <span className="min-w-0">
                   <strong className="block truncate text-sm text-foreground">{item.name}</strong>
+                  <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span>{item.label} · {item.typeName || "Tipo não informado"}</span>
+                    <span className="inline-flex items-center gap-1"><MapPinned className="h-3.5 w-3.5" />{item.cityName || "Cidade não informada"}</span>
+                    <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />Início: {date(item.startsAt ?? item.startsOn)}</span>
+                  </span>
                   {item.kind === "media" && <span className="mt-1 block text-xs text-muted-foreground">{date(item.startsOn)} — {date(item.endsOn)} · {partnershipLabel(item.partnershipType)}</span>}
                 </span>
-                <StatusBadge status={item.status} />
+                <Badge variant="outline" className="col-start-2 w-fit sm:col-start-3">{operationStatusLabel(item.status)}</Badge>
               </button>
             ))}
             {!selectedOperations.length && <p className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">Nenhum registro vinculado a esta campanha.</p>}
@@ -1334,7 +1344,7 @@ export default function CampaignsWorkspace() {
             <button
               key={item.id}
               onClick={() => setLocation(`/campanhas/${item.id}`)}
-              className="grid w-full min-h-[150px] grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 md:grid-cols-[76px_minmax(185px,1.2fr)_minmax(155px,.8fr)] md:px-5 xl:grid-cols-[76px_minmax(205px,1.4fr)_minmax(145px,.75fr)_minmax(170px,.85fr)_minmax(190px,.9fr)_70px] xl:gap-x-3"
+              className="grid w-full min-h-[150px] grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.2fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.2fr)_minmax(178px,.9fr)_minmax(164px,.8fr)_minmax(180px,.86fr)_62px] xl:gap-x-3"
             >
               <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-sm font-bold text-primary md:h-[76px] md:w-[76px] xl:row-span-1">
                 {item.logoUrl || item.providerLogoUrl ? (
@@ -1347,20 +1357,20 @@ export default function CampaignsWorkspace() {
                 <h2 className="truncate font-semibold text-foreground">{item.name}</h2>
                 <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{item.objective || "Objetivo ainda não informado."}</p>
               </div>
-              <div className="col-span-2 min-w-0 space-y-2 md:col-span-1 xl:col-span-1">
+              <div className="col-span-2 min-w-0 space-y-2 lg:col-span-1 xl:col-span-1">
                 <div className="flex flex-wrap items-center gap-2"><CompanyBadge name={item.providerName} /><StatusBadge status={item.status} /></div>
                 <div className="flex flex-wrap items-center gap-2">{item.campaignTypeName && <Badge variant="outline">{item.campaignTypeName}</Badge>}{item.campaignSectorName && <Badge variant="outline">{item.campaignSectorName}</Badge>}</div>
               </div>
-              <div className="col-span-2 min-w-0 rounded-xl bg-muted/45 px-3 py-2.5 md:col-span-1 xl:col-span-1">
+              <div className="col-span-2 min-w-0 rounded-xl bg-muted/45 px-3 py-2.5 lg:col-span-1 xl:col-span-1">
                 <p className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{compactDate(item.startsAt)} — {compactDate(item.endsAt)}</p>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{item.hasExplicitCities ? `${item.cities.length} cidades` : "Todas as cidades"}</p>
               </div>
-              <div className="col-span-2 grid min-w-0 grid-cols-3 gap-1.5 text-center text-primary md:col-span-2 xl:col-span-1">
+              <div className="col-span-2 grid min-w-0 grid-cols-3 gap-1.5 text-center text-primary lg:col-span-2 xl:col-span-1">
                 <span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-base font-semibold leading-none tabular-nums">{item.actions.length}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">ações</small></span>
                 <span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-base font-semibold leading-none tabular-nums">{item.media.length}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">mídias</small></span>
                 <span className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-primary/8 px-1 py-1.5"><strong className="text-base font-semibold leading-none tabular-nums">{item.events.length}</strong><small className="mt-1 text-[10px] font-medium leading-none text-primary/80">eventos</small></span>
               </div>
-              <div className="col-span-2 flex min-h-8 items-center md:col-span-2 xl:col-span-1 xl:justify-center">
+              <div className="col-span-2 flex min-h-8 items-center lg:col-span-2 xl:col-span-1 xl:justify-center">
                 {item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-[11px] text-muted-foreground">Sem nota</span>}
               </div>
             </button>
