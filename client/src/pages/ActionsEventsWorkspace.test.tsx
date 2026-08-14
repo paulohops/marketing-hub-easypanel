@@ -111,7 +111,9 @@ describe("formulários operacionais ampliados", () => {
     fireEvent.click(screen.getByRole("button", { name: /Blitz.*Teste/ }));
     expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
     expect(screen.getByText("Contexto comercial")).toBeInTheDocument();
-    expect(screen.getByAltText("Identidade visual da campanha Volta às aulas")).toBeInTheDocument();
+    expect(screen.getByText("Objetivo da ação")).toBeInTheDocument();
+    expect(screen.getByText("Teste")).toBeInTheDocument();
+    expect(screen.getByAltText("Identidade visual da campanha Volta às aulas")).toHaveClass("object-cover");
     expect(screen.getByText("Fotos, vídeos e evidências")).toBeInTheDocument();
     expect(screen.queryByText("Total de itens e serviços")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Vale repetir"));

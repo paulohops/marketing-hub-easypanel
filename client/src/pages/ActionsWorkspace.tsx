@@ -848,7 +848,7 @@ function ActionDetail({
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar para ações
       </Button>
-      <header className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm xl:flex-row xl:items-start xl:justify-between">
+      <header className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 gap-4">
           <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-primary">
             {row.coverImageUrl ? <img src={row.coverImageUrl} alt={`Capa de ${row.action.name}`} className="h-full w-full object-contain" /> : <CalendarClock className="h-7 w-7" />}
@@ -859,11 +859,10 @@ function ActionDetail({
               <Badge variant="outline">{partnershipLabel[row.action.partnershipType]}</Badge>
             </div>
             <h1 className="mt-2 break-words font-display text-3xl font-bold text-foreground">{row.action.name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{row.action.objective || "Objetivo ainda não informado."}</p>
           </div>
         </div>
         {canWrite && (
-          <div className="flex flex-wrap gap-2 xl:justify-end">
+          <div className="flex flex-wrap items-center gap-2 xl:justify-end">
             <Button variant="outline" onClick={onEdit}>
                 Editar ação
             </Button>
@@ -919,11 +918,15 @@ function ActionDetail({
           <DetailSection title="Contexto comercial">
             <div className="grid gap-3 sm:grid-cols-2">
               <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
-              <div className="rounded-xl bg-muted/60 p-3">
-                <p className="text-xs font-semibold text-muted-foreground">Campanha</p>
-                <div className="mt-2 flex min-w-0 items-center gap-3">
-                  {row.campaignLogoUrl ? <div className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-background"><img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="h-full w-full object-contain" /></div> : null}
-                  <p className="min-w-0 break-words text-sm text-foreground">{row.campaignName || "Ação sem campanha vinculada"}</p>
+              <DetailValue label="Objetivo da ação" value={row.action.objective || "Objetivo ainda não informado."} />
+              <div className="relative min-h-36 overflow-hidden rounded-xl border border-border bg-muted/60 sm:col-span-2">
+                {row.campaignLogoUrl ? <img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="absolute inset-0 h-full w-full object-cover" /> : null}
+                <div className={`absolute inset-0 ${row.campaignLogoUrl ? "bg-gradient-to-r from-black/70 via-black/40 to-black/10" : "bg-primary/5"}`} />
+                <div className={`relative flex min-h-36 items-end p-4 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
+                  <div className="min-w-0">
+                    <p className={`text-xs font-semibold ${row.campaignLogoUrl ? "text-white/80" : "text-muted-foreground"}`}>Campanha</p>
+                    <p className="mt-1 break-words text-base font-semibold">{row.campaignName || "Ação sem campanha vinculada"}</p>
+                  </div>
                 </div>
               </div>
             </div>

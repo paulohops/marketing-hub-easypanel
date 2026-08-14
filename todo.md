@@ -335,3 +335,8 @@
 - [x] Exibir Serviços e valores previstos em lista e restringir a escolha de serviços às ofertas do fornecedor selecionado.
 - [x] Remover o indicador redundante de total de itens e serviços acima do histórico da Ação.
 - [x] Cobrir e validar os refinamentos de filtros, formulário, dependências, capa e histórico de Ações.
+
+- [x] Exibir a identidade visual da campanha em modo de cobertura na ficha de Ação.
+- [x] Mover o objetivo da Ação para a seção Contexto comercial e removê-lo da área sob o nome.
+- [x] Centralizar verticalmente os botões e ações da ficha de Ação.
+- [x] Validar os ajustes visuais da ficha de Ação em desktop e celular.
