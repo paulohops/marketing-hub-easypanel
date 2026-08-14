@@ -257,3 +257,11 @@
 - [x] Tratar uma Campanha sem cidades marcadas como cobertura de todas as cidades das regionais selecionadas.
 - [x] Corrigir textos e rótulos com acentuação ou concatenação incorreta no módulo de Campanhas.
 - [x] Cobrir os ajustes de promoção, território e avaliação com testes, tipagem e revisão visual.
+- [x] Remover do formulário de Campanha o texto explicativo sobre cobertura automática de cidades.
+- [x] Restaurar o estilo anterior de Promoções e Planos, preservando os detalhes, valores e cidades já implementados.
+- [x] Exibir contadores e filtros por Ações, Mídias e Eventos nas operações vinculadas de cada Campanha.
+- [x] Substituir as estrelas do debriefing por uma nota numérica de 1 a 5 e permitir filtrar Campanhas por nota.
+- [x] Tornar os filtros de status de Campanhas mais legíveis, incluindo planejadas e canceladas.
+- [x] Exibir cobertura territorial integral como “Todas as cidades” e corrigir o espaçamento da identidade visual com múltiplas cidades.
+- [x] Identificar visualmente a empresa de cada Campanha, com Sempre Internet em laranja e OnNet Telecom em verde.
+- [x] Validar os refinamentos de Campanhas com testes, tipagem, acessibilidade e revisão visual.
