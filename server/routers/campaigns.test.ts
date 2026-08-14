@@ -75,6 +75,22 @@ describe("campaigns router", () => {
     expect(getDbMock).not.toHaveBeenCalled();
   });
 
+  it("renova a vigência, reativa a campanha e registra a alteração", async () => {
+    const before = { id: 77, regionalId: 2, startsAt: new Date("2026-08-01T12:00:00Z"), endsAt: new Date("2026-08-31T12:00:00Z"), status: "completed" };
+    const updated = { ...before, startsAt: new Date("2026-09-01T12:00:00Z"), endsAt: new Date("2026-09-30T12:00:00Z"), status: "active" };
+    const set = vi.fn(() => ({ where: vi.fn(() => ({ returning: vi.fn(() => [updated]) })) }));
+    getDbMock.mockResolvedValue({
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [before]) })) })) })),
+      update: vi.fn(() => ({ set })),
+    });
+    const caller = appRouter.createCaller(context());
+
+    await expect(caller.campaigns.renew({ campaignId: 77, startsAt: new Date("2026-09-01T12:00:00Z"), endsAt: new Date("2026-09-30T12:00:00Z") })).resolves.toEqual(updated);
+
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ status: "active", startsAt: updated.startsAt, endsAt: updated.endsAt }));
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "trade_campaign", entityId: 77, action: "renew" }));
+  });
+
   it("salva nota e resultado consolidados no debriefing da campanha", async () => {
     const before = { id: 77, regionalId: 2, debriefRating: null, debriefAt: null };
     const updated = { ...before, debriefRating: 5, debriefResult: "Meta superada" };

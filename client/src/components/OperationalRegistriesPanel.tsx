@@ -103,6 +103,20 @@ const cards: Array<{
     group: "Parceiros",
   },
   {
+    key: "campaign",
+    title: "Tipos",
+    description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.",
+    icon: Megaphone,
+    group: "Operação",
+  },
+  {
+    key: "campaign_sector",
+    title: "Setores",
+    description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.",
+    icon: Settings2,
+    group: "Operação",
+  },
+  {
     key: "action",
     title: "Tipos de ação",
     description: "Categorias configuráveis para ações de trade.",
@@ -121,20 +135,6 @@ const cards: Array<{
     title: "Tipos de evento",
     description: "Categorias configuráveis para a agenda de eventos.",
     icon: CalendarDays,
-    group: "Operação",
-  },
-  {
-    key: "campaign",
-    title: "Tipos de campanha",
-    description: "Classificações como Comercial, Fidelização e outras estratégias.",
-    icon: Megaphone,
-    group: "Operação",
-  },
-  {
-    key: "campaign_sector",
-    title: "Setores de campanha",
-    description: "Segmentos atendidos, como B2C, B2B, PME e demais públicos.",
-    icon: Settings2,
     group: "Operação",
   },
   {

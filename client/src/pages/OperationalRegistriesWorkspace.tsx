@@ -8,7 +8,7 @@ export default function OperationalRegistriesWorkspace() {
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">Gestão operacional</p>
         <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-foreground">Cadastros operacionais</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Mantenha empresas, territórios, fornecedores, ofertas, serviços e parâmetros que estruturam a operação do Trade HUB.</p>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Mantenha empresas, territórios, fornecedores, ofertas, serviços e parâmetros que estruturam a operação do Marketing HUB.</p>
       </div>
     </div>
     <OperationalRegistriesPanel />

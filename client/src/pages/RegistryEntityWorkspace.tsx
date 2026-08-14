@@ -26,8 +26,8 @@ const entities: Record<string, EntityConfig> = {
   "tipos-de-midia": { singular: "Tipo de mídia", plural: "Tipos de mídia", collection: "mediaTypes", kind: "media", description: "Canais e formatos para planejamento de mídia.", icon: Building2 },
   "tipos-de-acao": { singular: "Tipo de ação", plural: "Tipos de ação", collection: "actionTypes", kind: "action", description: "Classificações usadas no planejamento de ações.", icon: Building2 },
   "tipos-de-evento": { singular: "Tipo de evento", plural: "Tipos de evento", collection: "eventTypes", kind: "event", description: "Classificações usadas no planejamento de eventos.", icon: Building2 },
-  "tipos-de-campanha": { singular: "Tipo de campanha", plural: "Tipos de campanha", collection: "campaignTypes", kind: "campaign", description: "Classificações estratégicas usadas no planejamento de Campanhas.", icon: Building2 },
-  "setores-de-campanha": { singular: "Setor de campanha", plural: "Setores de campanha", collection: "campaignSectors", kind: "campaign_sector", description: "Segmentos comerciais atendidos pelas Campanhas, como B2C, B2B e PME.", icon: Building2 },
+  "tipos-de-campanha": { singular: "Tipo", plural: "Tipos", collection: "campaignTypes", kind: "campaign", description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.", icon: Building2 },
+  "setores-de-campanha": { singular: "Setor", plural: "Setores", collection: "campaignSectors", kind: "campaign_sector", description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.", icon: Building2 },
   "categorias-financeiras": { singular: "Categoria financeira", plural: "Categorias financeiras", collection: "financialCategories", kind: "financial_category", description: "Classificações de estimativas, verbas e controles financeiros.", icon: Building2 },
 };
 

@@ -238,6 +238,17 @@ export const campaignsRouter = router({
     return updated;
   }),
 
+  renew: protectedProcedure.input(z.object({ campaignId: z.number().int().positive(), startsAt: z.coerce.date(), endsAt: z.coerce.date() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "actions.write");
+    if (!validateDateRange(input.startsAt, input.endsAt)) throw new TRPCError({ code: "BAD_REQUEST", message: "O término da renovação deve ser posterior ao início." });
+    const database = await requireDatabase();
+    const [before] = await database.select().from(tradeCampaigns).where(eq(tradeCampaigns.id, input.campaignId)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Campanha não encontrada." });
+    const [updated] = await database.update(tradeCampaigns).set({ startsAt: input.startsAt, endsAt: input.endsAt, status: "active", updatedAt: new Date() }).where(eq(tradeCampaigns.id, input.campaignId)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: before.regionalId ?? undefined, entityType: "trade_campaign", entityId: before.id, action: "renew", beforeData: { startsAt: before.startsAt, endsAt: before.endsAt, status: before.status }, afterData: { startsAt: updated.startsAt, endsAt: updated.endsAt, status: updated.status } });
+    return updated;
+  }),
+
   uploadLogo: protectedProcedure.input(z.object({ campaignId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(imageMimeTypes), dataBase64: z.string().min(1).max(4_500_000) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "actions.write");
     const database = await requireDatabase();

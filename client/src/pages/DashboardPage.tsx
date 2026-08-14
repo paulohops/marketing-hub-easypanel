@@ -28,7 +28,7 @@ export default function DashboardPage() {
         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
             <Badge className="border-0 bg-sidebar-primary px-3 py-1 text-[10px] font-bold tracking-[0.12em] text-white">CLUSTER MG</Badge>
-            <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Trade HUB em movimento</h1>
+            <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Marketing HUB em movimento</h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-sidebar-foreground">A central de gestão do Cluster MG para conectar território, campanhas, fornecedores e resultados.</p>
           </div>
           <Button onClick={() => setLocation("/ajuda")} className="h-10 rounded-xl bg-sidebar-primary px-4 text-xs font-bold text-white hover:bg-accent-foreground"><CircleHelp className="mr-1.5 h-4 w-4" /> Ver ajuda e suporte</Button>

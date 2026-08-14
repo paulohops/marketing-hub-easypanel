@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 const onboardingStorageKey = "trade_hub_onboarding_done";
 
 const steps = [
-  { title: "Bem-vindo ao Trade HUB", description: "Você está na central de gestão do Cluster MG. Aqui, a operação e os investimentos ficam reunidos em uma única visão.", icon: Sparkles, accent: "bg-accent text-sidebar-primary" },
+  { title: "Bem-vindo ao Marketing HUB", description: "Você está na central de gestão do Cluster MG. Aqui, a operação e os investimentos ficam reunidos em uma única visão.", icon: Sparkles, accent: "bg-accent text-sidebar-primary" },
   { title: "Acompanhe a operação", description: "Planeje ações, mídias e eventos, registre responsáveis, fornecedores, custos e decisões pós-execução.", icon: MapPinned, accent: "bg-secondary text-primary" },
   { title: "Administre a gestão", description: "Controle materiais, orçamento, notas fiscais e pagamentos com os vínculos originados pela operação.", icon: LayoutDashboard, accent: "bg-secondary text-primary" },
   { title: "Mantenha os cadastros organizados", description: "Em Gestão > Cadastros, configure empresas, territórios, fornecedores, parceiros, serviços e parâmetros que abastecem os módulos.", icon: Settings2, accent: "bg-secondary text-primary" },

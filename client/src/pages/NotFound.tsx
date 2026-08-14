@@ -16,7 +16,7 @@ export default function NotFound() {
         <CardContent className="pt-8 pb-8 text-center">
           <div className="mb-6 flex items-center justify-center gap-2">
             <img src="/manus-storage/cluster-mg-logo_947e1614.png" alt="Cluster MG" className="h-8 w-8 rounded-lg bg-background object-contain p-0.5" />
-            <span className="font-display text-sm font-extrabold tracking-tight text-foreground">TRADE HUB <span className="text-primary">— CLUSTER MG</span></span>
+            <span className="font-display text-sm font-extrabold tracking-tight text-foreground">MARKETING HUB <span className="text-primary">— CLUSTER MG</span></span>
           </div>
           <div className="flex justify-center mb-6">
             <div className="relative">

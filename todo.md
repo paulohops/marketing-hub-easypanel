@@ -278,3 +278,11 @@
 - [x] Simplificar os cartões de promoções antes da abertura do diálogo, removendo o valor resumido.
 - [x] Aplicar escala textual e cores semânticas para notas de 1 a 5 em Campanhas.
 - [x] Validar a evolução de classificação e filtros de Campanhas com migração, testes, tipagem e revisão visual.
+- [x] Renomear os cadastros de classificação para Tipos e Setores, preparando o reuso nos demais módulos.
+- [x] Corrigir a composição da lista de Campanhas para impedir mistura entre datas, operações e nota, ampliar a altura das linhas e preencher a miniatura de identidade visual.
+- [x] Reorganizar os filtros de Campanhas em painel recolhível acionado por botão, incluindo ano, mês, tipo e setor.
+- [x] Manter a nota numérica de 1 a 5 com escala textual e cor semântica consistentes.
+- [x] Substituir a seção de Mídia atual por pop-ups contextuais de Ações, Mídias e Eventos vinculados à Campanha.
+- [x] Renomear a aplicação para Marketing HUB em toda a interface visível.
+- [x] Implementar renovação de Campanha com seleção de novo período de vigência e histórico auditável.
+- [x] Validar os ajustes de lista, renovação e vínculos operacionais com testes, tipagem e revisão visual.

@@ -9,7 +9,7 @@ describe("tutorial guiado", () => {
   it("abre na primeira entrada e permite impedir novas exibições", () => {
     render(<OnboardingTutorial />);
 
-    expect(screen.getByRole("dialog", { name: "Bem-vindo ao Trade HUB" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Bem-vindo ao Marketing HUB" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Não mostrar novamente" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

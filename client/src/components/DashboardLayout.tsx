@@ -142,7 +142,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <img src="/manus-storage/cluster-mg-logo_947e1614.png" alt="Cluster MG" className="h-full w-full object-contain" />
           </span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="block font-display text-[1.05rem] font-extrabold tracking-tight">TRADE HUB</span>
+            <span className="block font-display text-[1.05rem] font-extrabold tracking-tight">MARKETING HUB</span>
             <span className="block text-[10px] font-bold tracking-[0.18em] text-sidebar-foreground">CLUSTER MG</span>
           </span>
         </button>

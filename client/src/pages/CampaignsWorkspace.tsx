@@ -24,6 +24,8 @@ import {
   MapPinned,
   PackagePlus,
   Plus,
+  RefreshCw,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -152,8 +154,13 @@ function CompanyBadge({ name }) {
 function RatingBadge({ rating }) {
   const definition = ratingDefinitions[Number(rating)];
   return definition ? (
-    <Badge variant="outline" className={definition.className}>
-      Nota {rating} · {definition.label}
+    <Badge
+      variant="outline"
+      className={`min-w-9 justify-center font-bold tabular-nums ${definition.className}`}
+      title={`Nota ${rating}: ${definition.label}`}
+      aria-label={`Nota ${rating}: ${definition.label}`}
+    >
+      {rating}
     </Badge>
   ) : null;
 }
@@ -626,15 +633,19 @@ function Detail({
   upload,
   saveDebrief,
   saveCities,
+  renew,
+  renewing,
   saving,
 }) {
   const [rating, setRating] = useState(campaign.debriefRating ?? 5);
   const [notes, setNotes] = useState(campaign.debriefNotes ?? "");
   const [result, setResult] = useState(campaign.debriefResult ?? "");
   const [promotion, setPromotion] = useState(null);
-  const [selectedMedia, setSelectedMedia] = useState(null);
   const [cityIds, setCityIds] = useState([]);
-  const [operationFilter, setOperationFilter] = useState("all");
+  const [operationDialog, setOperationDialog] = useState(null);
+  const [renewalOpen, setRenewalOpen] = useState(false);
+  const [renewalStartsAt, setRenewalStartsAt] = useState("");
+  const [renewalEndsAt, setRenewalEndsAt] = useState("");
   const [, setLocation] = useLocation();
   const openPromotion = item => {
     setPromotion(item);
@@ -661,21 +672,17 @@ function Detail({
     })),
   ];
   const operationKinds = [
-    { id: "all", label: "Todas", count: operations.length },
     { id: "action", label: "Ações", count: campaign.actions.length },
     { id: "media", label: "Mídias", count: campaign.media.length },
     { id: "event", label: "Eventos", count: campaign.events.length },
   ];
-  const visibleOperations =
-    operationFilter === "all"
-      ? operations
-      : operations.filter(operation => operation.kind === operationFilter);
+  const selectedOperations = operationDialog
+    ? operations.filter(operation => operation.kind === operationDialog)
+    : [];
+  const operationTitle = operationKinds.find(item => item.id === operationDialog)?.label;
   const citySummary = campaign.hasExplicitCities
     ? `${campaign.cities.length} cidades selecionadas`
     : "Todas as cidades";
-  const currentMedia =
-    campaign.media.find(item => item.status === "active") ?? campaign.media[0];
-
   return (
     <main className="mx-auto max-w-6xl space-y-5">
       <Button variant="outline" onClick={back}>
@@ -705,10 +712,16 @@ function Detail({
           </div>
         </div>
         {canWrite && (
-          <Button variant="outline" onClick={edit}>
-            <Edit3 className="mr-2 h-4 w-4" />
-            Editar campanha
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => { setRenewalStartsAt(""); setRenewalEndsAt(""); setRenewalOpen(true); }}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Renovar campanha
+            </Button>
+            <Button variant="outline" onClick={edit}>
+              <Edit3 className="mr-2 h-4 w-4" />
+              Editar campanha
+            </Button>
+          </div>
         )}
       </header>
       <div className="grid gap-5 lg:grid-cols-2">
@@ -774,40 +787,6 @@ function Detail({
           />
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">Mídia atual</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Mídia ativa vinculada a esta campanha.
-              </p>
-            </div>
-            {currentMedia ? (
-              <Button type="button" variant="outline" onClick={() => setSelectedMedia(currentMedia)}>
-                Ver detalhes
-              </Button>
-            ) : null}
-          </div>
-          {currentMedia ? (
-            <button
-              type="button"
-              onClick={() => setSelectedMedia(currentMedia)}
-              className="mt-3 flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-muted/25 px-3 py-3 text-left transition hover:border-primary/40 hover:bg-muted/50"
-            >
-              <span className="min-w-0">
-                <strong className="block truncate text-sm text-foreground">{currentMedia.name}</strong>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {date(currentMedia.startsOn)} — {date(currentMedia.endsOn)}
-                </span>
-              </span>
-              <StatusBadge status={currentMedia.status} />
-            </button>
-          ) : (
-            <p className="mt-3 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-              Nenhuma mídia vinculada a esta campanha.
-            </p>
-          )}
-        </section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="font-semibold">Promoções e planos</h2>
@@ -863,44 +842,23 @@ function Detail({
             <div>
               <h2 className="font-semibold">Operações vinculadas</h2>
               <p className="text-xs text-muted-foreground">
-                Acompanhe os registros ligados a esta campanha.
+                Consulte Ações, Mídias ou Eventos vinculados exclusivamente a esta campanha.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {operationKinds.map(item => (
-                <Button
-                  key={item.id}
-                  type="button"
-                  size="sm"
-                  variant={operationFilter === item.id ? "default" : "outline"}
-                  onClick={() => setOperationFilter(item.id)}
-                >
-                  {item.label}
-                  <span className="ml-1.5 rounded bg-background/20 px-1.5 text-xs">
-                    {item.count}
-                  </span>
-                </Button>
-              ))}
             </div>
           </div>
-          <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {visibleOperations.map(item => (
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {operationKinds.map(item => (
               <button
-                key={`${item.kind}-${item.id}`}
-                onClick={() => setLocation(item.href)}
-                className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-muted/25 px-3 py-2.5 text-left transition hover:border-primary/40"
+                key={item.id}
+                type="button"
+                onClick={() => setOperationDialog(item.id)}
+                className="rounded-xl border border-border bg-muted/25 p-3 text-left transition hover:border-primary/40 hover:bg-muted/50"
               >
-                <span className="truncate text-sm font-medium text-foreground">
-                  {item.name}
-                </span>
-                <Badge variant="outline">{item.label}</Badge>
+                <span className="block text-xs font-medium text-muted-foreground">{item.label} vinculadas</span>
+                <strong className="mt-1 block text-2xl font-semibold text-foreground">{item.count}</strong>
+                <span className="mt-1 block text-xs text-primary">Ver {item.label.toLowerCase()}</span>
               </button>
             ))}
-            {!visibleOperations.length && (
-              <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
-                Nenhuma operação neste filtro.
-              </p>
-            )}
           </div>
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
@@ -1042,46 +1000,44 @@ function Detail({
           )}
         </DialogContent>
       </Dialog>
-      <Dialog open={Boolean(selectedMedia)} onOpenChange={open => !open && setSelectedMedia(null)}>
+      <Dialog open={Boolean(operationDialog)} onOpenChange={open => !open && setOperationDialog(null)}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>{selectedMedia?.name}</DialogTitle>
-            <DialogDescription>Detalhes da mídia atual vinculada a esta campanha.</DialogDescription>
+            <DialogTitle>{operationTitle} vinculadas</DialogTitle>
+            <DialogDescription>Registros vinculados exclusivamente a esta campanha.</DialogDescription>
           </DialogHeader>
-          {selectedMedia && (
-            <div className="grid gap-4">
-              <div className="grid gap-3 rounded-xl border border-border bg-muted/25 p-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Situação</p>
-                  <div className="mt-1"><StatusBadge status={selectedMedia.status} /></div>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Modalidade</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{partnershipLabel(selectedMedia.partnershipType)}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Vigência</p>
-                  <p className="mt-1 text-sm text-foreground">{date(selectedMedia.startsOn)} — {date(selectedMedia.endsOn)}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Valor previsto</p>
-                  <p className="mt-1 text-sm font-semibold text-primary">{money(selectedMedia.estimatedCost)}</p>
-                </div>
-              </div>
-              {(selectedMedia.campaignDetails || selectedMedia.notes) && (
-                <div className="rounded-xl border border-border p-4">
-                  <p className="text-xs font-medium text-muted-foreground">Detalhes</p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{selectedMedia.campaignDetails || selectedMedia.notes}</p>
-                </div>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setSelectedMedia(null)}>Fechar</Button>
-                <Button onClick={() => { setSelectedMedia(null); setLocation(`/midias/${selectedMedia.id}`); }}>
-                  Abrir mídia
-                </Button>
-              </div>
+          <div className="grid gap-2">
+            {selectedOperations.map(item => (
+              <button
+                key={`${item.kind}-${item.id}`}
+                type="button"
+                onClick={() => { setOperationDialog(null); setLocation(item.href); }}
+                className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-muted/25 px-4 py-3 text-left transition hover:border-primary/40 hover:bg-muted/50"
+              >
+                <span className="min-w-0">
+                  <strong className="block truncate text-sm text-foreground">{item.name}</strong>
+                  {item.kind === "media" && <span className="mt-1 block text-xs text-muted-foreground">{date(item.startsOn)} — {date(item.endsOn)} · {partnershipLabel(item.partnershipType)}</span>}
+                </span>
+                <StatusBadge status={item.status} />
+              </button>
+            ))}
+            {!selectedOperations.length && <p className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">Nenhum registro vinculado a esta campanha.</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={renewalOpen} onOpenChange={setRenewalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Renovar campanha</DialogTitle>
+            <DialogDescription>Defina o novo período de vigência. A campanha será reativada e a renovação ficará registrada no histórico.</DialogDescription>
+          </DialogHeader>
+          <form className="grid gap-4" onSubmit={event => { event.preventDefault(); void renew({ campaignId: campaign.id, startsAt: new Date(`${renewalStartsAt}T12:00:00`), endsAt: new Date(`${renewalEndsAt}T12:00:00`) }).then(() => setRenewalOpen(false)); }}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5"><Label>Nova data de início</Label><Input type="date" required value={renewalStartsAt} onChange={event => setRenewalStartsAt(event.target.value)} /></div>
+              <div className="grid gap-1.5"><Label>Nova data de término</Label><Input type="date" required value={renewalEndsAt} onChange={event => setRenewalEndsAt(event.target.value)} /></div>
             </div>
-          )}
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setRenewalOpen(false)}>Cancelar</Button><Button type="submit" disabled={renewing}>{renewing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Renovar campanha</Button></div>
+          </form>
         </DialogContent>
       </Dialog>
     </main>
@@ -1101,6 +1057,7 @@ export default function CampaignsWorkspace() {
   const [monthFilter, setMonthFilter] = useState(null);
   const [campaignTypeFilter, setCampaignTypeFilter] = useState(null);
   const [campaignSectorFilter, setCampaignSectorFilter] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blankForm());
   const listInput = useMemo(
@@ -1149,6 +1106,13 @@ export default function CampaignsWorkspace() {
   const logo = trpc.campaigns.uploadLogo.useMutation({
     onSuccess: () => {
       toast.success("Imagem atualizada.");
+      refresh();
+    },
+    onError: error => toast.error(error.message),
+  });
+  const renewCampaign = trpc.campaigns.renew.useMutation({
+    onSuccess: () => {
+      toast.success("Campanha renovada e reativada.");
       refresh();
     },
     onError: error => toast.error(error.message),
@@ -1260,6 +1224,8 @@ export default function CampaignsWorkspace() {
           upload={upload}
           saveDebrief={debrief.mutate}
           saveCities={promotionCities.mutate}
+          renew={renewCampaign.mutateAsync}
+          renewing={renewCampaign.isPending}
           saving={promotionCities.isPending}
         />
         <Editor
@@ -1304,6 +1270,16 @@ export default function CampaignsWorkspace() {
       (!campaignSectorFilter || campaign.campaignSectorId === campaignSectorFilter)
     );
   });
+  const activeFilterCount = [providerId, ratingFilter, yearFilter, monthFilter, campaignTypeFilter, campaignSectorFilter].filter(Boolean).length + (statusFilter === "all" ? 0 : 1);
+  const resetFilters = () => {
+    setProviderId(null);
+    setRatingFilter(null);
+    setYearFilter(null);
+    setMonthFilter(null);
+    setCampaignTypeFilter(null);
+    setCampaignSectorFilter(null);
+    setStatusFilter("all");
+  };
   return (
     <main className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -1326,111 +1302,24 @@ export default function CampaignsWorkspace() {
           </Button>
         )}
       </header>
-      <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" onClick={() => setFiltersOpen(current => !current)}>
+          <SlidersHorizontal className="mr-2 h-4 w-4" />
+          Filtros{activeFilterCount ? ` (${activeFilterCount})` : ""}
+        </Button>
+        {activeFilterCount > 0 && <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button>}
+      </div>
+      {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <SearchableMultiSelect
-            id="campaign-filter-company"
-            label="Filtrar por empresa"
-            options={(refs?.providers ?? []).map(provider => ({
-              id: provider.id,
-              label: provider.name,
-            }))}
-            values={providerId ? [providerId] : []}
-            onChange={values => setProviderId(values[0] ?? null)}
-            maxSelections={1}
-            placeholder="Todas as empresas"
-          />
-          <SearchableMultiSelect
-            id="campaign-filter-rating"
-            label="Filtrar por nota de debriefing"
-            options={[1, 2, 3, 4, 5].map(value => ({
-              id: value,
-              label: `Nota ${value} · ${ratingDefinitions[value].label}`,
-            }))}
-            values={ratingFilter ? [ratingFilter] : []}
-            onChange={values => setRatingFilter(values[0] ?? null)}
-            maxSelections={1}
-            placeholder="Todas as notas"
-          />
-          <SearchableMultiSelect
-            id="campaign-filter-year"
-            label="Filtrar por ano"
-            options={availableYears.map(year => ({ id: year, label: String(year) }))}
-            values={yearFilter ? [yearFilter] : []}
-            onChange={values => setYearFilter(values[0] ?? null)}
-            maxSelections={1}
-            placeholder="Todos os anos"
-          />
-          <SearchableMultiSelect
-            id="campaign-filter-month"
-            label="Filtrar por mês"
-            options={months.map((month, index) => ({
-              id: index + 1,
-              label: month,
-            }))}
-            values={monthFilter ? [monthFilter] : []}
-            onChange={values => setMonthFilter(values[0] ?? null)}
-            maxSelections={1}
-            placeholder="Todos os meses"
-          />
-          <SearchableMultiSelect
-            id="campaign-filter-type"
-            label="Filtrar por tipo de campanha"
-            options={(refs?.campaignTypes ?? []).map(item => ({
-              id: item.id,
-              label: item.name,
-            }))}
-            values={campaignTypeFilter ? [campaignTypeFilter] : []}
-            onChange={values => setCampaignTypeFilter(values[0] ?? null)}
-            maxSelections={1}
-            placeholder="Todos os tipos"
-          />
-          <SearchableMultiSelect
-            id="campaign-filter-sector"
-            label="Filtrar por setor"
-            options={(refs?.campaignSectors ?? []).map(item => ({
-              id: item.id,
-              label: item.name,
-            }))}
-            values={campaignSectorFilter ? [campaignSectorFilter] : []}
-            onChange={values => setCampaignSectorFilter(values[0] ?? null)}
-            maxSelections={1}
-            placeholder="Todos os setores"
-          />
+          <SearchableMultiSelect id="campaign-filter-company" label="Empresa" options={(refs?.providers ?? []).map(provider => ({ id: provider.id, label: provider.name }))} values={providerId ? [providerId] : []} onChange={values => setProviderId(values[0] ?? null)} maxSelections={1} placeholder="Todas as empresas" />
+          <SearchableMultiSelect id="campaign-filter-rating" label="Nota de debriefing" options={[1, 2, 3, 4, 5].map(value => ({ id: value, label: `Nota ${value} · ${ratingDefinitions[value].label}` }))} values={ratingFilter ? [ratingFilter] : []} onChange={values => setRatingFilter(values[0] ?? null)} maxSelections={1} placeholder="Todas as notas" />
+          <SearchableMultiSelect id="campaign-filter-year" label="Ano" options={availableYears.map(year => ({ id: year, label: String(year) }))} values={yearFilter ? [yearFilter] : []} onChange={values => setYearFilter(values[0] ?? null)} maxSelections={1} placeholder="Todos os anos" />
+          <SearchableMultiSelect id="campaign-filter-month" label="Mês" options={months.map((month, index) => ({ id: index + 1, label: month }))} values={monthFilter ? [monthFilter] : []} onChange={values => setMonthFilter(values[0] ?? null)} maxSelections={1} placeholder="Todos os meses" />
+          <SearchableMultiSelect id="campaign-filter-type" label="Tipo" options={(refs?.campaignTypes ?? []).map(item => ({ id: item.id, label: item.name }))} values={campaignTypeFilter ? [campaignTypeFilter] : []} onChange={values => setCampaignTypeFilter(values[0] ?? null)} maxSelections={1} placeholder="Todos os tipos" />
+          <SearchableMultiSelect id="campaign-filter-sector" label="Setor" options={(refs?.campaignSectors ?? []).map(item => ({ id: item.id, label: item.name }))} values={campaignSectorFilter ? [campaignSectorFilter] : []} onChange={values => setCampaignSectorFilter(values[0] ?? null)} maxSelections={1} placeholder="Todos os setores" />
         </div>
-        <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
-            Situação da campanha
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            <Button
-              type="button"
-              variant={statusFilter === "all" ? "default" : "outline"}
-              onClick={() => setStatusFilter("all")}
-              className="justify-between"
-            >
-              Todas{" "}
-              <span className="rounded bg-background/20 px-1.5 text-xs">
-                {campaigns.length}
-              </span>
-            </Button>
-            {statuses.map(status => (
-              <Button
-                key={status.value}
-                type="button"
-                variant="outline"
-                onClick={() => setStatusFilter(status.value)}
-                className={`justify-between ${statusFilter === status.value ? status.className : ""}`}
-              >
-                <span>{status.label}</span>
-                <span className="rounded bg-background/20 px-1.5 text-xs">
-                  {statusCounts[status.value]}
-                </span>
-              </Button>
-            ))}
-          </div>
-        </div>
-      </section>
+        <div><p className="mb-2 text-xs font-medium text-muted-foreground">Situação da campanha</p><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5"><Button type="button" variant={statusFilter === "all" ? "default" : "outline"} onClick={() => setStatusFilter("all")} className="justify-between">Todas <span className="rounded bg-background/20 px-1.5 text-xs">{campaigns.length}</span></Button>{statuses.map(status => <Button key={status.value} type="button" variant="outline" onClick={() => setStatusFilter(status.value)} className={`justify-between ${statusFilter === status.value ? status.className : ""}`}><span>{status.label}</span><span className="rounded bg-background/20 px-1.5 text-xs">{statusCounts[status.value]}</span></Button>)}</div></div>
+      </section>}
       {isLoading ? (
         <p className="text-muted-foreground">Carregando campanhas...</p>
       ) : (
@@ -1439,11 +1328,11 @@ export default function CampaignsWorkspace() {
             <button
               key={item.id}
               onClick={() => setLocation(`/campanhas/${item.id}`)}
-              className="grid w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-b-0 hover:bg-muted/40 md:grid-cols-[auto_minmax(150px,1.15fr)_minmax(140px,.75fr)_minmax(136px,.7fr)_minmax(180px,.85fr)_auto] md:items-center"
+              className="grid min-h-[142px] grid-cols-[72px_minmax(0,1fr)] gap-x-4 gap-y-3 border-b border-border px-5 py-6 text-left transition last:border-b-0 hover:bg-muted/40 lg:grid-cols-[72px_minmax(180px,1.25fr)_minmax(170px,.8fr)_minmax(190px,.9fr)] lg:items-center xl:grid-cols-[72px_minmax(180px,1.25fr)_minmax(150px,.8fr)_minmax(170px,.85fr)_minmax(205px,.9fr)_auto]"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted text-sm font-bold text-primary">
+              <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-sm font-bold text-primary xl:row-span-1">
                 {item.logoUrl || item.providerLogoUrl ? (
-                  <img src={item.logoUrl ?? item.providerLogoUrl} alt="" className="h-full w-full bg-card object-contain p-2" />
+                  <img src={item.logoUrl ?? item.providerLogoUrl} alt="" className="h-full w-full object-cover object-center" />
                 ) : (
                   item.name.slice(0, 1).toUpperCase()
                 )}
@@ -1452,22 +1341,17 @@ export default function CampaignsWorkspace() {
                 <h2 className="truncate font-semibold text-foreground">{item.name}</h2>
                 <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{item.objective || "Objetivo ainda não informado."}</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <CompanyBadge name={item.providerName} />
-                <StatusBadge status={item.status} />
-                {item.campaignTypeName && <Badge variant="outline">{item.campaignTypeName}</Badge>}
-                {item.campaignSectorName && <Badge variant="outline">{item.campaignSectorName}</Badge>}
+              <div className="min-w-0 space-y-2">
+                <div className="flex flex-wrap items-center gap-2"><CompanyBadge name={item.providerName} /><StatusBadge status={item.status} /></div>
+                <div className="flex flex-wrap items-center gap-2">{item.campaignTypeName && <Badge variant="outline">{item.campaignTypeName}</Badge>}{item.campaignSectorName && <Badge variant="outline">{item.campaignSectorName}</Badge>}</div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                <p className="whitespace-nowrap tabular-nums">{compactDate(item.startsAt)} — {compactDate(item.endsAt)}</p>
-                <p className="mt-1 whitespace-nowrap text-xs">{item.hasExplicitCities ? `${item.cities.length} cidades` : "Todas as cidades"}</p>
+              <div className="min-w-0 rounded-xl bg-muted/45 px-3 py-2.5">
+                <p className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{compactDate(item.startsAt)} — {compactDate(item.endsAt)}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{item.hasExplicitCities ? `${item.cities.length} cidades` : "Todas as cidades"}</p>
               </div>
-              <div className="flex flex-wrap gap-1.5 text-xs font-medium text-primary">
-                <span className="whitespace-nowrap rounded-md bg-primary/10 px-2 py-1">{item.actions.length} ações</span>
-                <span className="whitespace-nowrap rounded-md bg-primary/10 px-2 py-1">{item.media.length} mídias</span>
-                <span className="whitespace-nowrap rounded-md bg-primary/10 px-2 py-1">{item.events.length} eventos</span>
-              </div>
-              {item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-xs text-muted-foreground">Sem nota</span>}
+              <div className="col-span-2 grid grid-cols-3 gap-1.5 text-center text-xs font-medium text-primary lg:col-span-3 xl:col-span-1"><span className="rounded-lg bg-primary/8 px-2 py-2">{item.actions.length} ações</span><span className="rounded-lg bg-primary/8 px-2 py-2">{item.media.length} mídias</span><span className="rounded-lg bg-primary/8 px-2 py-2">{item.events.length} eventos</span></div>
+              <div className="hidden justify-end xl:flex">{item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-xs text-muted-foreground">Sem nota</span>}</div>
+              <div className="flex items-center justify-end lg:col-start-4 xl:hidden">{item.debriefRating ? <RatingBadge rating={item.debriefRating} /> : <span className="text-xs text-muted-foreground">Sem nota</span>}</div>
             </button>
           ))}
           {!visible.length && (
