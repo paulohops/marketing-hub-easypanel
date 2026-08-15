@@ -25,4 +25,15 @@ describe("SearchableMultiSelect", () => {
 
     expect(onChange).toHaveBeenCalledWith([2]);
   });
+
+  it("usa escolha única sem checkbox e fecha a lista ao selecionar uma nota", () => {
+    const onChange = vi.fn();
+    render(<SearchableMultiSelect id="rating" label="Nota geral" options={[{ id: 5, label: "5 · Excelente" }, { id: 4, label: "4 · Bom" }]} values={[]} onChange={onChange} maxSelections={1} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Nota geral" }));
+    fireEvent.click(screen.getByRole("option", { name: "Selecionar 5 · Excelente" }));
+
+    expect(onChange).toHaveBeenCalledWith([5]);
+    expect(screen.queryByPlaceholderText("Pesquisar…")).not.toBeInTheDocument();
+  });
 });

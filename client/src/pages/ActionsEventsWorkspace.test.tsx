@@ -109,7 +109,7 @@ describe("formulários operacionais ampliados", () => {
   });
 
   it("abre a ficha da ação antes de registrar o debriefing", () => {
-    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste", address: "Avenida Afonso Pena, 100" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", actionPointName: "Farmácia Nacional · Loja 17", supervisorName: null, campaignName: "Volta às aulas", campaignLogoUrl: "https://cdn.example.com/campanha.png", teamMembers: [], suppliers: [{ supplierId: 4, name: "Fornecedor MG", photoUrl: null, mainService: "Panfletagem" }], services: [{ serviceTypeId: 5, name: "Panfletagem", supplierName: "Fornecedor MG", estimatedAmount: "100" }], stockItems: [{ stockItemId: 8, name: "Tenda", sku: "TEN-01", plannedQuantity: "9.00" }], history: [{ auditAction: "updated", occurredAt: new Date("2026-08-14T10:00:00Z"), actorName: "Paulo Oliveira", afterData: null }], debrief: null }], isLoading: false });
+    actionListQuery.mockReturnValue({ data: [{ action: { id: 21, tradeCampaignId: 16, name: "Blitz", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste", address: "Avenida Afonso Pena, 100" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", actionPointName: "Farmácia Nacional · Loja 17", supervisorName: null, campaignName: "Volta às aulas", campaignLogoUrl: "https://cdn.example.com/campanha.png", teamMembers: [], suppliers: [{ supplierId: 4, name: "Fornecedor MG", photoUrl: null, mainService: "Panfletagem" }], services: [{ serviceTypeId: 5, name: "Panfletagem", supplierName: "Fornecedor MG", estimatedAmount: "100" }], stockItems: [{ stockItemId: 8, name: "Tenda", sku: "TEN-01", plannedQuantity: "9.00" }], history: [{ auditAction: "create", occurredAt: new Date("2026-08-14T09:00:00Z"), actorName: "Paulo Oliveira", afterData: null }, { auditAction: "update_execution_status", occurredAt: new Date("2026-08-14T10:00:00Z"), actorName: "Paulo Oliveira", afterData: null }], debrief: null }], isLoading: false });
     render(<ActionsWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: /Blitz.*Teste/ }));
     expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
@@ -126,14 +126,20 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByText("9")).toBeInTheDocument();
     expect(screen.getByText("Fotos, vídeos e evidências")).toBeInTheDocument();
     expect(screen.getByTestId("evidence-upload")).toHaveAttribute("data-variant", "gallery");
+    expect(screen.getAllByText(/Status atualizado|Ação planejada/).map(element => element.textContent)).toEqual(["Status atualizado", "Ação planejada"]);
     expect(screen.queryByText("Total de itens e serviços")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /ver motivo e evidências/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Nota geral" }));
+    fireEvent.click(screen.getByRole("option", { name: "Selecionar 4 · Bom" }));
+    expect(screen.queryByRole("checkbox", { name: "Selecionar 4 · Bom" })).not.toBeInTheDocument();
     selectMultiple("Alterar status", "Planejada");
     expect(updateExecutionStatus).toHaveBeenCalledWith({ actionId: 21, status: "planned" });
     expect(screen.queryByText("Confirmar alteração de status")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Vale repetir"));
     fireEvent.click(screen.getByRole("button", { name: "Salvar debriefing" }));
     expect(saveActionDebrief).toHaveBeenCalledWith(expect.objectContaining({ actionId: 21, worthRepeating: false, resultAchieved: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Abrir campanha Volta às aulas" }));
+    expect(window.location.pathname).toBe("/campanhas/16");
   });
 
   it("persiste a decisão de renovação dentro da ficha do evento", () => {

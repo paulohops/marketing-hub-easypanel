@@ -365,3 +365,9 @@
 - [x] Restringir quantidades de recursos de estoque a números inteiros em interface, validação e persistência.
 - [x] Eliminar espaço vazio e rolagem indevida dos diálogos de reagendamento, pausa e cancelamento.
 - [x] Cobrir os novos ajustes de Ações com testes automatizados e revisão visual responsiva.
+
+- [x] Corrigir o seletor de Nota geral no debriefing para escolha única sem comprometer sua composição visual.
+- [x] Diferenciar semanticamente os dropdowns de escolha única e múltipla no módulo de Ações.
+- [x] Ordenar o Histórico da Ação de forma decrescente, exibindo a atualização mais recente primeiro.
+- [x] Permitir abrir a página da Campanha vinculada diretamente pela ficha de Ação.
+- [x] Cobrir e validar os últimos refinamentos de seleção, histórico e navegação de Ações.

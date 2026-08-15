@@ -484,6 +484,7 @@ export default function ActionsWorkspace() {
           canWrite={canWrite}
           onBack={() => setLocation("/acoes")}
           onEdit={() => openEdit(selected)}
+          onOpenCampaign={campaignId => setLocation(`/campanhas/${campaignId}`)}
           onStatus={next => {
             if (["planned", "in_progress", "completed"].includes(next)) {
               changeStatus.mutate({ actionId: selected.action.id, status: next as "planned" | "in_progress" | "completed" });
@@ -821,6 +822,7 @@ function ActionDetail({
   canWrite,
   onBack,
   onEdit,
+  onOpenCampaign,
   onStatus,
   debrief,
   onDebriefChange,
@@ -832,6 +834,7 @@ function ActionDetail({
   canWrite: boolean;
   onBack: () => void;
   onEdit: () => void;
+  onOpenCampaign: (campaignId: number) => void;
   onStatus: (status: "planned" | "in_progress" | "paused" | "completed" | "cancelled") => void;
   debrief: any;
   onDebriefChange: (next: any) => void;
@@ -965,7 +968,13 @@ function ActionDetail({
             <div className="grid gap-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
-                <div className="relative min-h-24 overflow-hidden rounded-xl border border-border bg-muted/60">
+                <button
+                  type="button"
+                  disabled={!row.action.tradeCampaignId}
+                  onClick={() => row.action.tradeCampaignId && onOpenCampaign(row.action.tradeCampaignId)}
+                  className="relative min-h-24 overflow-hidden rounded-xl border border-border bg-muted/60 text-left transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:hover:border-border"
+                  aria-label={row.action.tradeCampaignId ? `Abrir campanha ${row.campaignName ?? "vinculada"}` : "Ação sem campanha vinculada"}
+                >
                   {row.campaignLogoUrl ? <img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="absolute inset-0 h-full w-full object-cover" /> : null}
                   <div className={`absolute inset-0 ${row.campaignLogoUrl ? "bg-gradient-to-r from-black/75 via-black/45 to-black/15" : "bg-primary/5"}`} />
                   <div className={`relative flex min-h-24 items-end p-3 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
@@ -974,7 +983,7 @@ function ActionDetail({
                       <p className="mt-0.5 break-words text-sm font-medium leading-snug">{row.campaignName || "Ação sem campanha vinculada"}</p>
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
               <div className="flex min-h-44 flex-col rounded-xl border border-primary/15 bg-primary/5 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">Objetivo da ação</p>
@@ -1009,7 +1018,7 @@ function ActionDetail({
           <DetailSection title="Histórico da ação">
             {row.history?.length ? (
               <div className="space-y-3">
-                {row.history.map((entry: any, index: number) => (
+                {[...row.history].sort((left: any, right: any) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()).map((entry: any, index: number) => (
                   <div
                     key={entry.id ?? `${entry.auditAction}-${entry.occurredAt}-${index}`}
                     className="border-l-2 border-primary/30 pl-3"
