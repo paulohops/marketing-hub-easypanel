@@ -1,5 +1,12 @@
 # Project TODO
 
+- [x] Renomear visualmente Mídias Gráficas para Mídia Urbana e Áudio/Vídeo para Mídia Tradicional, preservando as rotas estáveis existentes.
+- [x] Criar taxonomia configurável de mídia principal, subtipo e variação, vinculada aos Tipos de mídia em Cadastros.
+- [x] Reformular o cadastro de Mídia Urbana com fornecedor elegível, serviço, território, localização e periodicidade de troca.
+- [x] Padronizar filtros e campos de seleção de Mídia Urbana com o seletor pesquisável usado nos demais módulos.
+- [x] Cobrir a nova taxonomia e o formulário de Mídia Urbana com testes automatizados e revisão responsiva.
+- [x] Cobrir em teste os rótulos atualizados de Mídia Tradicional na navegação e na tela protegida correspondente.
+- [x] Cobrir na página protegida o rótulo de Mídia Tradicional e executar novamente os testes relevantes.
 - [x] Ajustar categorias-pai com submenu para expandirem somente por clique e não possuírem página inicial própria.
 - [x] Redirecionar explicitamente as rotas-pai /midias e /cadastros para os primeiros itens filhos, sem página própria acessível.
 - [x] Cobrir em testes o acesso direto às rotas-pai e a expansão da barra lateral sem navegação.

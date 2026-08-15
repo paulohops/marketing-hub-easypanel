@@ -9,6 +9,7 @@ import { writeAuditLog } from "../audit";
 import { storagePut } from "../storage";
 
 const paymentKinds = ["paid", "barter", "mixed"] as const;
+const mediaOperationCategories = ["graphics", "audio_video", "leafleting", "sound_car", "influencers"] as const;
 const contractMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
@@ -216,9 +217,20 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
+  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
+    if (input.kind === "media") {
+      const parentId = input.parentMediaTypeId ?? null;
+      const [parent] = parentId ? await database.select().from(mediaTypes).where(eq(mediaTypes.id, parentId)).limit(1) : [null];
+      if (parentId && !parent) throw new TRPCError({ code: "BAD_REQUEST", message: "O subtipo de mídia selecionado não existe." });
+      if (parent?.parentMediaTypeId) throw new TRPCError({ code: "BAD_REQUEST", message: "A variação deve ser vinculada diretamente a um subtipo de mídia." });
+      const operationCategory = input.operationCategory ?? parent?.operationCategory ?? "graphics";
+      if (parent && parent.operationCategory !== operationCategory) throw new TRPCError({ code: "BAD_REQUEST", message: "O subtipo deve pertencer à mesma categoria principal." });
+      const [created] = await database.insert(mediaTypes).values({ name: input.name, operationCategory, parentMediaTypeId: parentId }).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_type", entityId: created.id, action: "create", afterData: created });
+      return created;
+    }
     const table = { service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind];
     const [created] = await database.insert(table).values({ name: input.name }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: created.id, action: "create", afterData: created });
@@ -259,8 +271,25 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(cities).where(eq(cities.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cidade não encontrada." }); const [updated] = await database.update(cities).set({ ...input, ibgeCode: input.ibgeCode || null, address: input.address || null, zipCode: input.zipCode || null, latitude: input.latitude?.toFixed(7), longitude: input.longitude?.toFixed(7), locationNotes: input.locationNotes || null, updatedAt: new Date() }).where(eq(cities.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId, entityType: "city", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const table = { service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind]; const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo não encontrado." }); const [updated] = await database.update(table).set({ name: input.name }).where(eq(table.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
+  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    if (input.kind === "media") {
+      const [before] = await database.select().from(mediaTypes).where(eq(mediaTypes.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo de mídia não encontrado." });
+      const parentId = input.parentMediaTypeId === undefined ? before.parentMediaTypeId : input.parentMediaTypeId;
+      if (parentId === input.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Um tipo não pode ser variação de si mesmo." });
+      const [parent] = parentId ? await database.select().from(mediaTypes).where(eq(mediaTypes.id, parentId)).limit(1) : [null];
+      if (parentId && !parent) throw new TRPCError({ code: "BAD_REQUEST", message: "O subtipo de mídia selecionado não existe." });
+      if (parent?.parentMediaTypeId) throw new TRPCError({ code: "BAD_REQUEST", message: "A variação deve ser vinculada diretamente a um subtipo de mídia." });
+      const operationCategory = input.operationCategory ?? parent?.operationCategory ?? before.operationCategory;
+      if (parent && parent.operationCategory !== operationCategory) throw new TRPCError({ code: "BAD_REQUEST", message: "O subtipo deve pertencer à mesma categoria principal." });
+      const [updated] = await database.update(mediaTypes).set({ name: input.name, operationCategory, parentMediaTypeId: parentId }).where(eq(mediaTypes.id, input.id)).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_type", entityId: input.id, action: "update", beforeData: before, afterData: updated });
+      return updated;
+    }
+    const table = { service: serviceTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind];
+    const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo não encontrado." }); const [updated] = await database.update(table).set({ name: input.name }).where(eq(table.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
   createCommercialSupervisor: protectedProcedure.input(z.object({ userId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(160), email: z.string().trim().email().max(320).optional(), phone: z.string().trim().max(32).optional() })).mutation(async ({ ctx, input }) => {

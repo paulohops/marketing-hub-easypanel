@@ -226,6 +226,8 @@ export const partners = pgTable("partners", {
 export const mediaTypes = pgTable("media_types", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 120 }).notNull().unique(),
+  operationCategory: mediaOperationCategoryEnum("operationCategory").default("graphics").notNull(),
+  parentMediaTypeId: integer("parentMediaTypeId").references((): AnyPgColumn => mediaTypes.id, { onDelete: "set null" }),
   active: boolean("active").default(true).notNull(),
 });
 
@@ -554,10 +556,12 @@ export const mediaPoints = pgTable("media_points", {
   supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "restrict" }),
   cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),
   mediaTypeId: integer("mediaTypeId").notNull().references(() => mediaTypes.id, { onDelete: "restrict" }),
+  mediaVariationTypeId: integer("mediaVariationTypeId").references(() => mediaTypes.id, { onDelete: "set null" }),
   serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
   channelKind: mediaChannelKindEnum("channelKind").default("standard").notNull(),
   operationCategory: mediaOperationCategoryEnum("operationCategory").default("graphics").notNull(),
+  replacementFrequency: varchar("replacementFrequency", { length: 32 }),
   address: text("address"),
   latitude: numeric("latitude", { precision: 10, scale: 7 }),
   longitude: numeric("longitude", { precision: 10, scale: 7 }),

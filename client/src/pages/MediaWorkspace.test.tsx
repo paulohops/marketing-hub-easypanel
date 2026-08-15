@@ -44,7 +44,7 @@ describe("detalhe de mídias", () => {
     fireEvent.click(screen.getByRole("button", { name: "Novo ponto de mídia" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Novo ponto de mídia" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Novo ponto de mídia urbana" })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome do ponto")).toBeInTheDocument();
   });
 
@@ -110,7 +110,8 @@ describe("detalhe de mídias", () => {
     fireEvent.change(leaflet.getByLabelText("Quantidade total"), { target: { value: "1500" } });
     fireEvent.change(leaflet.getByLabelText("Prazo (dias)"), { target: { value: "5" } });
     fireEvent.change(leaflet.getByLabelText("Instruções de distribuição"), { target: { value: "Promotores em lojas e no centro" } });
-    fireEvent.change(leaflet.getByLabelText("Cidade"), { target: { value: "11" } });
+    fireEvent.click(leaflet.getByRole("button", { name: "Cidade" }));
+    fireEvent.click(screen.getByRole("option", { name: /Selecionar Uberlândia/ }));
     fireEvent.change(leaflet.getByLabelText("Quantidade"), { target: { value: "1500" } });
     fireEvent.change(leaflet.getByLabelText("Observação"), { target: { value: "Centro e comércio" } });
     fireEvent.click(leaflet.getByRole("button", { name: "Adicionar" }));
@@ -118,5 +119,24 @@ describe("detalhe de mídias", () => {
     fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
 
     expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 21, tradeCampaignId: null, name: "Volta às aulas", startsOn: "2026-09-01", endsOn: "2026-09-15", partnershipType: "paid", estimatedCost: 800, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, vehicleOperation: undefined, airingSchedule: undefined, activeSpotId: undefined, materialFormat: "A5 frente e verso", materialQuantity: 1500, deadlineDays: 5, deliveryInstructions: "Promotores em lojas e no centro" }, cityDistributions: [{ cityId: 11, quantity: 1500, notes: "Centro e comércio" }] });
+  });
+
+  it("apresenta o formulário de Mídia Urbana com taxonomia, fornecedor, território e coordenadas", () => {
+    referenceDataQuery.mockReturnValue({ data: { suppliers: [{ id: 4, displayName: "Fornecedor Urbano", mainService: "Outdoor" }], regionals: [{ id: 2, name: "Triângulo" }], cities: [{ city: { id: 11, name: "Uberlândia", regionalId: 2 }, regionalName: "Triângulo" }], mediaTypes: [{ id: 9, name: "Outdoor", operationCategory: "graphics", parentMediaTypeId: null }, { id: 10, name: "Impressão de papel", operationCategory: "graphics", parentMediaTypeId: 9 }], serviceTypes: [{ id: 7, name: "Exibição urbana" }], supplierMediaTypes: [{ supplierId: 4, mediaTypeId: 9 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 7 }], supplierOfferings: [] }, isLoading: false } as any);
+    listQuery.mockReturnValue({ data: [], isLoading: false });
+    detailQuery.mockReturnValue({ data: undefined, isLoading: false });
+
+    render(<MediaWorkspace initialCategory="graphics" />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo ponto de mídia urbana" }));
+
+    const modal = within(screen.getByRole("dialog"));
+    expect(modal.getByRole("button", { name: "Tipo de mídia" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Fornecedor" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Serviço do fornecedor" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Cidade do ponto" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Período de troca" })).toBeInTheDocument();
+    expect(modal.getByLabelText("Localização ou rota de referência")).toBeInTheDocument();
+    expect(modal.getByLabelText("Latitude e longitude")).toBeInTheDocument();
+    expect(modal.queryByLabelText("Canal")).toBeNull();
   });
 });

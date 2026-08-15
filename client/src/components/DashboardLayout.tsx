@@ -89,8 +89,8 @@ const navigationGroups: NavGroup[] = [
         icon: Megaphone,
         permission: "media.read",
         children: [
-          { label: "Mídias gráficas", path: "/midias/graficas", icon: PanelsTopLeft, permission: "media.read" },
-          { label: "Áudio e vídeo", path: "/midias/audio-video", icon: Radio, permission: "media.read" },
+          { label: "Mídia Urbana", path: "/midias/graficas", icon: PanelsTopLeft, permission: "media.read" },
+          { label: "Mídia Tradicional", path: "/midias/audio-video", icon: Radio, permission: "media.read" },
           { label: "Panfletagem", path: "/midias/panfletagem", icon: FileSpreadsheet, permission: "media.read" },
           { label: "Carro de som", path: "/midias/carro-de-som", icon: Volume2, permission: "media.read" },
           { label: "Influencers", path: "/midias/influencers", icon: UserRound, permission: "media.read" },

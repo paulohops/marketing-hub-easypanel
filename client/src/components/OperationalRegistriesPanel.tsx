@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 
 type Panel =
   | "provider"
@@ -221,6 +222,8 @@ export default function OperationalRegistriesPanel() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentRecurrence, setPaymentRecurrence] = useState("");
   const [hasContract, setHasContract] = useState(false);
+  const [mediaOperationCategory, setMediaOperationCategory] = useState<"graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers">("graphics");
+  const [parentMediaTypeId, setParentMediaTypeId] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
@@ -420,6 +423,8 @@ export default function OperationalRegistriesPanel() {
     setPaymentMethod("");
     setPaymentRecurrence("");
     setHasContract(false);
+    setMediaOperationCategory("graphics");
+    setParentMediaTypeId("");
     setSupervisorStoreIds([]);
   };
   useEffect(() => {
@@ -622,7 +627,13 @@ export default function OperationalRegistriesPanel() {
                 : panel === "campaign_sector"
                   ? data.campaignSectors
                   : data.serviceTypes;
-      setName(items.find(item => item.id === id)?.name ?? "");
+      const item = items.find(item => item.id === id);
+      setName(item?.name ?? "");
+      const mediaItem = panel === "media" ? data.mediaTypes.find(row => row.id === id) : undefined;
+      if (mediaItem) {
+        setMediaOperationCategory((mediaItem.operationCategory ?? "graphics") as "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers");
+        setParentMediaTypeId(mediaItem.parentMediaTypeId ? String(mediaItem.parentMediaTypeId) : "");
+      }
     }
   };
   const submit = () => {
@@ -716,8 +727,8 @@ export default function OperationalRegistriesPanel() {
       panel === "campaign_sector"
     )
       return editingId
-        ? updateType.mutate({ kind: panel, id: editingId, name })
-        : createType.mutate({ kind: panel, name });
+        ? updateType.mutate({ kind: panel, id: editingId, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) })
+        : createType.mutate({ kind: panel, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) });
   };
   const beginSupplierEdit = () => {
     if (!selectedSupplier) return;
@@ -1053,6 +1064,11 @@ export default function OperationalRegistriesPanel() {
                 setPaymentRecurrence={setPaymentRecurrence}
                 hasContract={hasContract}
                 setHasContract={setHasContract}
+                mediaOperationCategory={mediaOperationCategory}
+                setMediaOperationCategory={setMediaOperationCategory}
+                parentMediaTypeId={parentMediaTypeId}
+                setParentMediaTypeId={setParentMediaTypeId}
+                mediaTypes={overview.data?.mediaTypes ?? []}
                 editingId={editingId}
                 onUploadContract={async file => {
                   if (!editingId || panel !== "partner") return;
@@ -1176,6 +1192,11 @@ function RegistryForm(props: {
   setPaymentRecurrence: (v: string) => void;
   hasContract: boolean;
   setHasContract: (v: boolean) => void;
+  mediaOperationCategory: "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers";
+  setMediaOperationCategory: (v: "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers") => void;
+  parentMediaTypeId: string;
+  setParentMediaTypeId: (v: string) => void;
+  mediaTypes: Array<{ id: number; name: string; active: boolean; operationCategory?: string | null; parentMediaTypeId?: number | null }>;
   editingId: number | null;
   onUploadContract: (file: File) => void;
 }) {
@@ -1189,6 +1210,37 @@ function RegistryForm(props: {
         value={props.name}
         setValue={props.setName}
       />
+      {props.panel === "media" ? (
+        <>
+          <SearchableMultiSelect
+            id="registry-media-category"
+            label="Tipo principal"
+            options={[
+              { id: 1, label: "Mídia Urbana" },
+              { id: 2, label: "Mídia Tradicional" },
+              { id: 3, label: "Panfletagem" },
+              { id: 4, label: "Carro de Som" },
+              { id: 5, label: "Influencers" },
+            ]}
+            values={[["graphics", "audio_video", "leafleting", "sound_car", "influencers"].indexOf(props.mediaOperationCategory) + 1]}
+            onChange={values => props.setMediaOperationCategory((["graphics", "audio_video", "leafleting", "sound_car", "influencers"][Math.max(0, (values[0] ?? 1) - 1)] ?? "graphics") as "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers")}
+            maxSelections={1}
+            placeholder="Selecionar tipo principal"
+            emptyMessage="Nenhum tipo principal disponível"
+          />
+          <SearchableMultiSelect
+            id="registry-media-parent"
+            label="Subtipo pai"
+            options={props.mediaTypes.filter(item => item.active && !item.parentMediaTypeId && item.operationCategory === props.mediaOperationCategory).map(item => ({ id: item.id, label: item.name, description: "Criar como uma variação deste subtipo" }))}
+            values={props.parentMediaTypeId ? [Number(props.parentMediaTypeId)] : []}
+            onChange={values => props.setParentMediaTypeId(values[0] ? String(values[0]) : "")}
+            maxSelections={1}
+            placeholder="Sem pai: criar um subtipo"
+            emptyMessage="Nenhum subtipo cadastrado nesta categoria"
+          />
+          <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Deixe o subtipo pai vazio para criar um subtipo, como <strong>Outdoor</strong>. Selecione-o para criar uma variação, como <strong>Impressão de papel</strong>.</p>
+        </>
+      ) : null}
       {props.panel === "regional" ? (
         <>
           <Field

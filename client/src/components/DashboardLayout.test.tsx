@@ -57,6 +57,8 @@ describe("DashboardLayout", () => {
     fireEvent.click(midias!);
     expect(midias).toHaveAttribute("aria-expanded", "true");
     expect(window.location.pathname).toBe("/acoes");
+    expect(screen.getByText("Mídia Urbana")).toBeInTheDocument();
+    expect(screen.getByText("Mídia Tradicional")).toBeInTheDocument();
 
     fireEvent.click(cadastros!);
     expect(cadastros).toHaveAttribute("aria-expanded", "true");

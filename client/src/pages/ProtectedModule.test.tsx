@@ -12,7 +12,9 @@ const authState = vi.hoisted(() => ({
 
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => authState }));
 vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read"] }) } } } }));
-vi.mock("./MediaWorkspace", () => ({ default: () => <h1>Mídias e campanhas</h1> }));
+vi.mock("./MediaWorkspace", () => ({
+  default: ({ initialCategory }: { initialCategory?: string }) => <h1>{initialCategory === "audio_video" ? "Mídia Tradicional" : "Mídias e campanhas"}</h1>,
+}));
 vi.mock("@/components/MediaCoverageExplorer", () => ({ default: () => null }));
 vi.mock("@/components/MediaCampaignLibrary", () => ({ default: () => null }));
 vi.mock("@/components/RegionalMediaPanel", () => ({ default: () => null }));
@@ -33,5 +35,12 @@ describe("ProtectedModule", () => {
     render(<ProtectedModule module="midias" />);
 
     expect(screen.getByRole("heading", { name: "Mídias e campanhas" })).toBeInTheDocument();
+  });
+
+  it("abre a tela protegida de Mídia Tradicional com o rótulo atualizado", () => {
+    authState.user.role = "viewer";
+    render(<ProtectedModule module="midias-audio-video" />);
+
+    expect(screen.getByRole("heading", { name: "Mídia Tradicional" })).toBeInTheDocument();
   });
 });
