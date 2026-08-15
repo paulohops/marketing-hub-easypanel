@@ -81,6 +81,7 @@ const blankForm = () => ({
   endsAt: "",
   objective: "",
   address: "",
+  coordinates: "",
   commercialSupervisorId: "",
   partnershipType: "paid" as const,
   supplierIds: [] as number[],
@@ -91,6 +92,15 @@ const blankForm = () => ({
 });
 const toDateField = (value: Date | string | null | undefined) =>
   value ? new Date(value).toISOString().slice(0, 16) : "";
+const coordinatePair = (latitude: number | string | null | undefined, longitude: number | string | null | undefined) => latitude == null || longitude == null ? "" : `${Number(latitude)}, ${Number(longitude)}`;
+const parseCoordinatePair = (value: string) => {
+  const [latitude, longitude, ...extra] = value.split(",").map(item => item.trim());
+  if (!value.trim()) return null;
+  if (extra.length || !latitude || !longitude) return undefined;
+  const parsedLatitude = Number(latitude);
+  const parsedLongitude = Number(longitude);
+  return Number.isFinite(parsedLatitude) && Number.isFinite(parsedLongitude) && parsedLatitude >= -90 && parsedLatitude <= 90 && parsedLongitude >= -180 && parsedLongitude <= 180 ? { latitude: parsedLatitude, longitude: parsedLongitude } : undefined;
+};
 
 function fileToBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -350,6 +360,7 @@ export default function ActionsWorkspace() {
       endsAt: toDateField(row.action.endsAt),
       objective: row.action.objective,
       address: row.action.address ?? "",
+      coordinates: coordinatePair(row.action.latitude, row.action.longitude),
       commercialSupervisorId: row.action.commercialSupervisorId ? String(row.action.commercialSupervisorId) : "",
       partnershipType: row.action.partnershipType,
       supplierIds: (row.suppliers ?? []).map((item: any) => item.id ?? item.supplierId),
@@ -368,6 +379,7 @@ export default function ActionsWorkspace() {
       eventId: "",
       actionPointId: "",
       address: "",
+      coordinates: "",
       supplierIds: [],
       stockAllocations: [],
     }));
@@ -379,6 +391,7 @@ export default function ActionsWorkspace() {
       ...current,
       actionPointId: pointId ? String(pointId) : "",
       address: point?.address ?? current.address,
+      coordinates: point ? coordinatePair(point.latitude, point.longitude) : current.coordinates,
     }));
   };
   const setStock = (ids: number[]) =>
@@ -421,6 +434,11 @@ export default function ActionsWorkspace() {
     const selectedPoint = form.actionPointId
       ? (references.data?.actionPoints ?? []).find((item: any) => item.id === Number(form.actionPointId))
       : null;
+    const typedCoordinates = parseCoordinatePair(form.coordinates);
+    if (typedCoordinates === undefined) {
+      toast.error("Informe latitude e longitude na mesma linha, separadas por vírgula.");
+      return;
+    }
     const payload = {
       name: form.name,
       tradeCampaignId: form.tradeCampaignId ? Number(form.tradeCampaignId) : null,
@@ -432,8 +450,8 @@ export default function ActionsWorkspace() {
       endsAt: form.endsAt ? new Date(form.endsAt) : null,
       objective: form.objective,
       address: form.address || undefined,
-      latitude: selectedPoint?.latitude == null ? null : Number(selectedPoint.latitude),
-      longitude: selectedPoint?.longitude == null ? null : Number(selectedPoint.longitude),
+      latitude: typedCoordinates?.latitude ?? (selectedPoint?.latitude == null ? null : Number(selectedPoint.latitude)),
+      longitude: typedCoordinates?.longitude ?? (selectedPoint?.longitude == null ? null : Number(selectedPoint.longitude)),
       commercialSupervisorId: form.commercialSupervisorId
         ? Number(form.commercialSupervisorId)
         : null,
@@ -511,7 +529,7 @@ export default function ActionsWorkspace() {
           currentCoverUrl={selected.action.coverImageUrl}
         />
         <Dialog open={statusChangeOpen} onOpenChange={setStatusChangeOpen}>
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-1.25rem)] max-w-2xl overflow-y-auto">
+          <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl overflow-x-hidden overflow-y-auto">
             <DialogHeader><DialogTitle>Confirmar alteração de status</DialogTitle><DialogDescription>Registre o contexto operacional e os arquivos que justificam esta mudança. O registro ficará disponível no histórico da ação.</DialogDescription></DialogHeader>
             <form className="grid gap-4" onSubmit={event => { event.preventDefault(); changeStatus.mutate({ actionId: selected.action.id, status: statusChange.status as "planned" | "in_progress" | "paused" | "completed" | "cancelled", reason: statusChange.reason || undefined, evidenceUrls: statusChange.evidenceUrls }, { onSuccess: () => setStatusChangeOpen(false) }); }}>
               <label className="grid gap-1.5 text-sm font-medium">Motivo {(["paused", "cancelled"] as string[]).includes(statusChange.status) ? "(obrigatório)" : "(opcional)"}<Textarea required={["paused", "cancelled"].includes(statusChange.status)} minLength={["paused", "cancelled"].includes(statusChange.status) ? 3 : undefined} value={statusChange.reason} onChange={event => setStatusChange(current => ({ ...current, reason: event.target.value }))} placeholder="Descreva a razão da alteração de status." /></label>
@@ -521,7 +539,7 @@ export default function ActionsWorkspace() {
           </DialogContent>
         </Dialog>
         <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-          <DialogContent className="max-h-[90vh] w-[min(42rem,calc(100vw-1.25rem))] max-w-none overflow-y-auto p-5 sm:max-w-none sm:p-6 lg:max-w-none">
+          <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl overflow-x-hidden overflow-y-auto p-5 sm:p-6">
             <DialogHeader>
               <DialogTitle>Reagendar ação</DialogTitle>
               <DialogDescription>
@@ -530,7 +548,7 @@ export default function ActionsWorkspace() {
               </DialogDescription>
             </DialogHeader>
             <form
-              className="grid w-full min-w-0 gap-4"
+              className="grid min-w-0 gap-4"
               onSubmit={event => {
                 event.preventDefault();
                 rescheduleAction.mutate({
@@ -785,7 +803,7 @@ function StatusEvidenceFolder({
     onChange([...value, result.url]);
   };
   return (
-    <section className="rounded-xl border border-dashed border-primary/35 bg-primary/5 p-3">
+    <section className="min-w-0 overflow-hidden rounded-xl border border-dashed border-primary/35 bg-primary/5 p-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 gap-2">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><FolderUp className="h-4 w-4" /></div>
@@ -885,12 +903,22 @@ function ActionDetail({
             <Button variant="outline" onClick={onReschedule}>
                 Reagendar
             </Button>
-            <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 text-xs font-medium text-muted-foreground">
-              Status
-              <select value={row.action.status} onChange={event => onStatus(event.target.value as "planned" | "in_progress" | "paused" | "completed" | "cancelled")} className="h-8 bg-transparent text-sm font-medium text-foreground outline-none">
-                <option value="planned">Planejada</option><option value="in_progress">Em execução</option><option value="paused">Pausada</option><option value="completed">Concluída</option><option value="cancelled">Cancelada</option>
-              </select>
-            </label>
+            <div className="min-w-[12.5rem]">
+              <SearchableMultiSelect
+                id="action-detail-status"
+                label="Alterar status"
+                hideLabel
+                maxSelections={1}
+                placeholder="Status"
+                triggerClassName="h-9 bg-background text-sm font-medium"
+                options={[{ id: 1, label: "Planejada" }, { id: 2, label: "Em execução" }, { id: 3, label: "Pausada" }, { id: 4, label: "Concluída" }, { id: 5, label: "Cancelada" }]}
+                values={[({ planned: 1, in_progress: 2, paused: 3, completed: 4, cancelled: 5 } as Record<string, number>)[row.action.status]]}
+                onChange={ids => {
+                  const selectedStatus = ({ 1: "planned", 2: "in_progress", 3: "paused", 4: "completed", 5: "cancelled" } as Record<number, "planned" | "in_progress" | "paused" | "completed" | "cancelled">)[ids[0]];
+                  if (selectedStatus) onStatus(selectedStatus);
+                }}
+              />
+            </div>
           </div>
         )}
       </header>
@@ -934,35 +962,35 @@ function ActionDetail({
         </section>
         <section className="min-w-0 rounded-xl border border-border bg-card p-4">
           <DetailSection title="Contexto comercial">
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(11rem,.7fr)]">
-              <div className="flex min-h-40 flex-col justify-center rounded-xl border border-primary/15 bg-primary/5 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Objetivo da ação</p>
-                <p className="mt-2 break-words text-lg font-semibold leading-snug text-foreground sm:text-xl">{row.action.objective || "Objetivo ainda não informado."}</p>
-              </div>
-              <div className="grid content-start gap-3">
+            <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <DetailValue label="Modalidade" value={partnershipLabel[row.action.partnershipType]} />
-                <div className="relative min-h-20 overflow-hidden rounded-xl border border-border bg-muted/60">
+                <div className="relative min-h-24 overflow-hidden rounded-xl border border-border bg-muted/60">
                   {row.campaignLogoUrl ? <img src={row.campaignLogoUrl} alt={`Identidade visual da campanha ${row.campaignName ?? ""}`} className="absolute inset-0 h-full w-full object-cover" /> : null}
                   <div className={`absolute inset-0 ${row.campaignLogoUrl ? "bg-gradient-to-r from-black/75 via-black/45 to-black/15" : "bg-primary/5"}`} />
-                  <div className={`relative flex min-h-20 items-end p-3 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
+                  <div className={`relative flex min-h-24 items-end p-3 ${row.campaignLogoUrl ? "text-white" : "text-foreground"}`}>
                     <div className="min-w-0">
                       <p className={`text-[10px] font-medium uppercase tracking-wide ${row.campaignLogoUrl ? "text-white/75" : "text-muted-foreground"}`}>Campanha</p>
-                      <p className="mt-0.5 break-words text-xs font-medium leading-snug">{row.campaignName || "Ação sem campanha vinculada"}</p>
+                      <p className="mt-0.5 break-words text-sm font-medium leading-snug">{row.campaignName || "Ação sem campanha vinculada"}</p>
                     </div>
                   </div>
                 </div>
+              </div>
+              <div className="flex min-h-44 flex-col rounded-xl border border-primary/15 bg-primary/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Objetivo da ação</p>
+                <p className="mt-3 whitespace-pre-wrap break-words text-base font-semibold leading-7 text-foreground">{row.action.objective || "Objetivo ainda não informado."}</p>
               </div>
             </div>
           </DetailSection>
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Responsáveis e fornecedores"><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><UsersRound className="h-4 w-4" /> Responsáveis do trade</p>{row.teamMembers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.teamMembers.map((member: any) => <div key={member.userId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-contain" /> : (member.name || "U").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{member.name || `Usuário #${member.userId}`}</p><p className="truncate text-xs text-muted-foreground">{member.jobTitle || "Colaborador"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum responsável definido.</p>}</div><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Building2 className="h-4 w-4" /> Fornecedores envolvidos</p>{row.suppliers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.suppliers.map((supplier: any) => <div key={supplier.supplierId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{supplier.photoUrl ? <img src={supplier.photoUrl} alt="" className="h-full w-full object-cover" /> : (supplier.name || "F").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{supplier.name || `Fornecedor #${supplier.supplierId}`}</p><p className="truncate text-xs text-muted-foreground">{supplier.mainService || "Serviço principal não informado"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum fornecedor definido.</p>}</div></div></DetailSection></section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Serviços"><div className="space-y-2">{row.services?.length ? row.services.map((service: any) => <div key={service.serviceTypeId} className="grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium text-foreground">{service.name}</p><p className="mt-0.5 text-xs text-muted-foreground">Fornecedor: {service.supplierName || "não definido"}{service.offeringName ? ` · ${service.offeringName}` : ""}{service.unit ? ` · ${service.unit}` : ""}</p></div><strong className="text-sm tabular-nums text-primary">{Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum serviço planejado.</p>}</div>{row.services?.length ? <div className="mt-3 flex justify-end border-t border-border pt-3"><span className="text-sm font-semibold text-foreground">Total dos serviços: <strong className="text-primary">{Number((row.services ?? []).reduce((total: number, service: any) => total + Number(service.estimatedAmount ?? 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span></div> : null}</DetailSection></section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: any) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.sku || "Sem SKU"}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(Number(item.plannedQuantity || 0))}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: any) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.sku || "Sem SKU"}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Number(item.plannedQuantity || 0))}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
         <section className="rounded-xl border border-border bg-card p-4">
           <DetailSection title="Debriefing e resultado">
             <form onSubmit={event => { event.preventDefault(); onSaveDebrief(); }} className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-[126px_minmax(0,1fr)]">
-                <div className="grid content-start gap-2 rounded-xl border border-border bg-muted/25 p-3"><p className="text-xs font-semibold text-muted-foreground">Nota geral</p><strong className="text-2xl font-semibold tabular-nums text-foreground">{debrief.rating}</strong><Badge variant="outline" className={`w-fit text-[10px] ${actionRatingClass[Number(debrief.rating)] ?? ""}`}>{debrief.rating}/5 · {actionRatingLabel[Number(debrief.rating)] ?? "Avaliação"}</Badge><select aria-label="Nota geral" value={debrief.rating} onChange={event => onDebriefChange({ ...debrief, rating: event.target.value })} className="control h-8 text-xs">{[5, 4, 3, 2, 1].map(value => <option key={value} value={value}>{value} · {actionRatingLabel[value]}</option>)}</select></div>
+                <div className="grid content-start gap-2 rounded-xl border border-border bg-muted/25 p-3"><p className="text-xs font-semibold text-muted-foreground">Nota geral</p><strong className="text-2xl font-semibold tabular-nums text-foreground">{debrief.rating}</strong><Badge variant="outline" className={`w-fit text-[10px] ${actionRatingClass[Number(debrief.rating)] ?? ""}`}>{debrief.rating}/5 · {actionRatingLabel[Number(debrief.rating)] ?? "Avaliação"}</Badge><SearchableMultiSelect id="action-debrief-rating" label="Nota geral" hideLabel maxSelections={1} options={[5, 4, 3, 2, 1].map(value => ({ id: value, label: `${value} · ${actionRatingLabel[value]}` }))} values={debrief.rating ? [Number(debrief.rating)] : []} onChange={ids => ids[0] && onDebriefChange({ ...debrief, rating: String(ids[0]) })} placeholder="Selecionar nota" triggerClassName="h-8 px-2 text-[10px]" /></div>
                 <div className="grid gap-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">História e resultado da ação<Textarea className="min-h-24" value={debrief.resultSummary} onChange={event => onDebriefChange({ ...debrief, resultSummary: event.target.value })} placeholder="Contexto, resultado alcançado e impacto percebido" /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Avaliação e aprendizados<Textarea className="min-h-24" value={debrief.notes} onChange={event => onDebriefChange({ ...debrief, notes: event.target.value })} placeholder="O que funcionou e o que deve ser aprimorado" /></label></div>
               </div>
               <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Leads<Input type="number" min="0" value={debrief.leadCount} onChange={event => onDebriefChange({ ...debrief, leadCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Vendas<Input type="number" min="0" value={debrief.saleCount} onChange={event => onDebriefChange({ ...debrief, saleCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Renovações<Input type="number" min="0" value={debrief.renewalCount} onChange={event => onDebriefChange({ ...debrief, renewalCount: event.target.value })} /></label></div>
@@ -1180,6 +1208,17 @@ function ActionForm({
               placeholder="Selecionar ponto cadastrado"
             />
           </div>
+          <label htmlFor="action-coordinates" className="grid gap-1.5 text-sm font-medium md:col-span-2">
+            Coordenadas do local
+            <Input
+              id="action-coordinates"
+              inputMode="decimal"
+              value={form.coordinates}
+              onChange={event => setForm({ ...form, coordinates: event.target.value })}
+              placeholder="Ex.: -18.95677454094437, -46.99206057116672"
+            />
+            <span className="text-xs font-normal text-muted-foreground">Cole latitude e longitude na mesma linha, separadas por vírgula. O ponto cadastrado preenche este campo automaticamente quando houver coordenadas.</span>
+          </label>
           <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
             Endereço e referência
             <Textarea
@@ -1246,7 +1285,7 @@ function ActionForm({
               <div className="mt-3 space-y-2">
                 {form.serviceAllocations.map((allocation: ServiceAllocation) => {
                   const service = (references?.serviceTypes ?? []).find((item: any) => item.id === allocation.serviceTypeId);
-                  return <div key={allocation.serviceTypeId} className="grid gap-3 rounded-lg border border-border bg-background p-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,1.2fr)_150px] sm:items-end"><div className="min-w-0"><p className="text-sm font-medium text-foreground">{service?.name ?? "Serviço"}</p><p className="mt-1 text-xs text-muted-foreground">Fornecedor e valor aplicado à previsão.</p></div><label className="grid gap-1 text-xs font-medium text-muted-foreground">Oferta do fornecedor<select className="control h-9" value={allocation.supplierOfferingId ?? ""} onChange={event => { const offering = selectedSupplierOfferings.find((item: any) => item.id === Number(event.target.value)); setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, supplierOfferingId: offering?.id ?? null, estimatedAmount: offering ? String(offering.unitPrice ?? 0) : current.estimatedAmount } : current) }); }}><option value="">Selecionar oferta</option>{selectedSupplierOfferings.map((offering: any) => <option key={offering.id} value={offering.id}>{offering.name}{offering.unit ? ` (${offering.unit})` : ""}</option>)}</select></label><label className="grid gap-1 text-xs font-medium text-muted-foreground">Valor aplicado<Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label></div>;
+                  return <div key={allocation.serviceTypeId} className="grid gap-3 rounded-lg border border-border bg-background p-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,1.2fr)_150px] sm:items-end"><div className="min-w-0"><p className="text-sm font-medium text-foreground">{service?.name ?? "Serviço"}</p><p className="mt-1 text-xs text-muted-foreground">Fornecedor e valor aplicado à previsão.</p></div><SearchableMultiSelect id={`action-service-offering-${allocation.serviceTypeId}`} label="Oferta do fornecedor" options={selectedSupplierOfferings.map((offering: any) => ({ id: offering.id, label: `${offering.name}${offering.unit ? ` (${offering.unit})` : ""}`, description: offering.supplierName }))} values={allocation.supplierOfferingId ? [allocation.supplierOfferingId] : []} onChange={ids => { const offering = selectedSupplierOfferings.find((item: any) => item.id === ids[0]); setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, supplierOfferingId: offering?.id ?? null, estimatedAmount: offering ? String(offering.unitPrice ?? 0) : current.estimatedAmount } : current) }); }} maxSelections={1} placeholder="Selecionar oferta" /><label className="grid gap-1 text-xs font-medium text-muted-foreground">Valor aplicado<Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label></div>;
                 })}
               </div>
               <div className="mt-3 flex justify-end border-t border-border pt-3 text-sm font-semibold text-foreground">Total previsto: <strong className="ml-1 text-primary">{form.serviceAllocations.reduce((total: number, item: ServiceAllocation) => total + Number(item.estimatedAmount || 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>
@@ -1274,8 +1313,8 @@ function ActionForm({
                       <Input
                         required
                         type="number"
-                        min="0.01"
-                        step="0.01"
+                        min="1"
+                        step="1"
                         value={allocation.quantity}
                         onChange={event =>
                           setForm((current: any) => ({
@@ -1283,7 +1322,7 @@ function ActionForm({
                             stockAllocations: current.stockAllocations.map(
                               (row: StockAllocation) =>
                                 row.stockItemId === allocation.stockItemId
-                                  ? { ...row, quantity: event.target.value }
+                                  ? { ...row, quantity: event.target.value.split(/[,.]/)[0].replace(/[^0-9]/g, "") }
                                   : row
                             ),
                           }))

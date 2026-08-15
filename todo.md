@@ -357,3 +357,11 @@
 - [x] Corrigir a inclusão de Ações com localização no mapa de BI e Indicadores.
 - [x] Pesquisar e documentar o caminho seguro para uma futura integração editável com Miro.
 - [x] Cobrir e validar os refinamentos de histórico, fornecedores e geolocalização de Ações.
+
+- [x] Corrigir a normalização e o salvamento de URLs de evidências nos diálogos de reagendamento, pausa e cancelamento de Ações.
+- [x] Reorganizar o Contexto comercial da ficha de Ação conforme a composição validada, com modalidade e campanha acima do objetivo.
+- [x] Padronizar todos os dropdowns com o tema visual escuro e o padrão pesquisável consistente do sistema.
+- [x] Permitir colar latitude e longitude em uma única linha no planejamento de localização da Ação.
+- [x] Restringir quantidades de recursos de estoque a números inteiros em interface, validação e persistência.
+- [x] Eliminar espaço vazio e rolagem indevida dos diálogos de reagendamento, pausa e cancelamento.
+- [x] Cobrir os novos ajustes de Ações com testes automatizados e revisão visual responsiva.

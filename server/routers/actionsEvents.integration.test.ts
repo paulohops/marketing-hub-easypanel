@@ -65,7 +65,7 @@ describe("actions and events routers via tRPC", () => {
     expect(values.supplierValues).toHaveBeenCalledWith([{ actionId: 91, supplierId: 4 }]);
     expect(values.serviceValues).toHaveBeenCalledWith([{ actionId: 91, serviceTypeId: 5, supplierOfferingId: null, estimatedAmount: "500.00" }]);
     expect(values.teamValues).toHaveBeenCalledWith([{ actionId: 91, userId: 7 }]);
-    expect(values.stockValues).toHaveBeenCalledWith([{ actionId: 91, stockItemId: 8, plannedQuantity: "2.00" }]);
+    expect(values.stockValues).toHaveBeenCalledWith([{ actionId: 91, stockItemId: 8, plannedQuantity: "2" }]);
     expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "action", entityId: 91, action: "create" }));
   });
 

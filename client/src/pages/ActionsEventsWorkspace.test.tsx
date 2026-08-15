@@ -60,6 +60,7 @@ describe("formulários operacionais ampliados", () => {
     selectMultiple("Cidade", "Belo Horizonte");
     selectMultiple("Tipo de ação", "Blitz");
     selectMultiple("Ponto comercial ou local de ação", "Praça Central");
+    fireEvent.change(screen.getByPlaceholderText("Ex.: -18.95677454094437, -46.99206057116672"), { target: { value: "-18.95677454094437, -46.99206057116672" } });
     selectMultiple("Supervisor responsável", "Larissa Souza");
     fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2026-08-14T09:00" } });
     fireEvent.change(screen.getByLabelText("Término"), { target: { value: "2026-08-14T12:00" } });
@@ -71,7 +72,7 @@ describe("formulários operacionais ampliados", () => {
     selectMultiple("Recursos de estoque", "Tenda");
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Planejar ação" }));
-    expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, actionPointId: 12, latitude: -19.9208, longitude: -43.9378, commercialSupervisorId: 6, partnershipType: "mixed", supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, supplierOfferingId: 9, estimatedAmount: 400 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
+    expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, actionPointId: 12, latitude: -18.95677454094437, longitude: -46.99206057116672, commercialSupervisorId: 6, partnershipType: "mixed", supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, supplierOfferingId: 9, estimatedAmount: 400 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
   });
 
   it("oferece filtros recolhíveis, incluindo responsável e nota, na lista de ações", () => {
@@ -114,8 +115,8 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByText("Planejamento e local")).toBeInTheDocument();
     expect(screen.getByText("Contexto comercial")).toBeInTheDocument();
     expect(screen.getByText("Objetivo da ação")).toBeInTheDocument();
-    expect(screen.getByText("Teste")).toHaveClass("text-lg", "sm:text-xl");
-    expect(screen.getByText("Volta às aulas")).toHaveClass("text-xs");
+    expect(screen.getByText("Teste")).toHaveClass("text-base", "leading-7");
+    expect(screen.getByText("Volta às aulas")).toHaveClass("text-sm");
     expect(screen.getByAltText("Identidade visual da campanha Volta às aulas")).toHaveClass("object-cover");
     expect(screen.getByText("Farmácia Nacional · Loja 17").tagName).toBe("STRONG");
     expect(screen.getByText("Avenida Afonso Pena, 100")).toBeInTheDocument();
@@ -127,7 +128,7 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByTestId("evidence-upload")).toHaveAttribute("data-variant", "gallery");
     expect(screen.queryByText("Total de itens e serviços")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /ver motivo e evidências/i })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), { target: { value: "planned" } });
+    selectMultiple("Alterar status", "Planejada");
     expect(updateExecutionStatus).toHaveBeenCalledWith({ actionId: 21, status: "planned" });
     expect(screen.queryByText("Confirmar alteração de status")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Vale repetir"));
