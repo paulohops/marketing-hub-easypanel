@@ -14,7 +14,7 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production \
-    PORT=3000 \
+    PORT=8978 \
     STORAGE_DIR=/data/storage
 
 RUN corepack enable && mkdir -p /data/storage
