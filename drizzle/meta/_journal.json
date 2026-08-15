@@ -267,6 +267,13 @@
       "when": 1786770741849,
       "tag": "0037_flowery_joystick",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1786835291237,
+      "tag": "0038_seed_operations_permissions",
+      "breakpoints": true
     }
   ]
 }
