@@ -17,6 +17,11 @@ function Router() {
     <Route path="/operacoes">{() => <ProtectedModule module="operacoes" />}</Route>
     <Route path="/campanhas/:campaignId">{() => <ProtectedModule module="campanhas" />}</Route>
     <Route path="/campanhas">{() => <ProtectedModule module="campanhas" />}</Route>
+    <Route path="/midias/graficas">{() => <ProtectedModule module="midias-graficas" />}</Route>
+    <Route path="/midias/audio-video">{() => <ProtectedModule module="midias-audio-video" />}</Route>
+    <Route path="/midias/panfletagem">{() => <ProtectedModule module="midias-panfletagem" />}</Route>
+    <Route path="/midias/carro-de-som">{() => <ProtectedModule module="midias-carro-som" />}</Route>
+    <Route path="/midias/influencers">{() => <ProtectedModule module="midias-influencers" />}</Route>
     <Route path="/midias/:mediaPointId">{() => <ProtectedModule module="midias" />}</Route>
     <Route path="/midias">{() => <ProtectedModule module="midias" />}</Route>
     <Route path="/acoes/:actionId">{() => <ProtectedModule module="acoes" />}</Route>
@@ -27,6 +32,7 @@ function Router() {
     <Route path="/cadastros/:entity/:id">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros/modelos-acoes">{() => <ProtectedModule module="modelos-acao" />}</Route>
     <Route path="/cadastros/modelos">{() => <ProtectedModule module="modelos-campanha" />}</Route>
+    <Route path="/cadastros/influencers">{() => <ProtectedModule module="cadastro-influencers" />}</Route>
     <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros">{() => <ProtectedModule module="cadastros" />}</Route>
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>

@@ -3,18 +3,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const listQuery = vi.hoisted(() => vi.fn());
 const detailQuery = vi.hoisted(() => vi.fn());
+const referenceDataQuery = vi.hoisted(() => vi.fn(() => ({ data: { suppliers: [], cities: [], regionals: [], mediaTypes: [], serviceTypes: [], supplierMediaTypes: [], supplierServiceTypes: [], supplierOfferings: [] }, isLoading: false })));
 const createCampaignMutation = vi.hoisted(() => vi.fn());
 const createConfiguredCampaignMutation = vi.hoisted(() => vi.fn());
 const renewCampaignMutation = vi.hoisted(() => vi.fn());
 const saveDebriefMutation = vi.hoisted(() => vi.fn());
 
 const trpcStub = vi.hoisted(() => ({
-  useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() } } }),
+  useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() }, listSpecializedData: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read", "media.write", "media.create", "media.update", "media.delete"] }) } },
   media: {
-    referenceData: { useQuery: () => ({ data: { suppliers: [], cities: [], regionals: [], mediaTypes: [], serviceTypes: [], supplierMediaTypes: [], supplierServiceTypes: [], supplierOfferings: [] }, isLoading: false }) },
+    referenceData: { useQuery: referenceDataQuery },
     list: { useQuery: listQuery },
     pointDetails: { useQuery: detailQuery },
+    listSpecializedData: { useQuery: () => ({ data: { spots: [], runs: [], influencers: [], groups: [], memberships: [], posts: [], campaigns: [] }, isLoading: false }) },
     createPoint: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     createCampaign: { useMutation: () => ({ mutate: createCampaignMutation, isPending: false }) },
     createConfiguredCampaign: { useMutation: () => ({ mutate: createConfiguredCampaignMutation, isPending: false }) },
@@ -86,6 +88,35 @@ describe("detalhe de mídias", () => {
     fireEvent.change(modal.getByLabelText("Investimento previsto"), { target: { value: "2450.50" } });
     fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
 
-    expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, tradeCampaignId: null, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, materialFormat: undefined, materialQuantity: undefined, deadlineDays: undefined, deliveryInstructions: undefined }, cityDistributions: [] });
+    expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, tradeCampaignId: null, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, vehicleOperation: undefined, airingSchedule: undefined, activeSpotId: undefined, materialFormat: undefined, materialQuantity: undefined, deadlineDays: undefined, deliveryInstructions: undefined }, cityDistributions: [] });
+  });
+
+  it("programa a panfletagem com materiais e distribuição territorial por cidade", () => {
+    referenceDataQuery.mockReturnValue({ data: { suppliers: [], regionals: [], mediaTypes: [], serviceTypes: [], supplierMediaTypes: [], supplierServiceTypes: [], supplierOfferings: [], cities: [{ city: { id: 11, name: "Uberlândia", regionalId: 3 }, regionalName: "Triângulo" }, { city: { id: 12, name: "Araguari", regionalId: 3 }, regionalName: "Triângulo" }] }, isLoading: false } as any);
+    listQuery.mockReturnValue({ data: [{ id: 21, name: "Panfletagem Triângulo", supplierName: "Gráfica MG", mediaTypeName: "Panfleto", serviceTypeName: "Panfletagem", cityName: "Uberlândia", regionalName: "Triângulo", regionalId: 3, address: null, operationCategory: "leafleting", activeCampaign: null }], isLoading: false });
+    detailQuery.mockReturnValue({ data: undefined, isLoading: false });
+
+    render(<MediaWorkspace initialCategory="leafleting" />);
+    fireEvent.click(screen.getByRole("button", { name: "Nova campanha" }));
+    const modal = within(screen.getByRole("dialog"));
+    fireEvent.change(modal.getByLabelText("Nome da campanha"), { target: { value: "Volta às aulas" } });
+    fireEvent.change(modal.getByLabelText("Início"), { target: { value: "2026-09-01" } });
+    fireEvent.change(modal.getByLabelText("Término"), { target: { value: "2026-09-15" } });
+    fireEvent.change(modal.getByLabelText("Investimento previsto"), { target: { value: "800" } });
+    const leafletSection = screen.getByText("Configuração de panfletagem").closest("section");
+    expect(leafletSection).not.toBeNull();
+    const leaflet = within(leafletSection!);
+    fireEvent.change(leaflet.getByLabelText("Formato do material"), { target: { value: "A5 frente e verso" } });
+    fireEvent.change(leaflet.getByLabelText("Quantidade total"), { target: { value: "1500" } });
+    fireEvent.change(leaflet.getByLabelText("Prazo (dias)"), { target: { value: "5" } });
+    fireEvent.change(leaflet.getByLabelText("Instruções de distribuição"), { target: { value: "Promotores em lojas e no centro" } });
+    fireEvent.change(leaflet.getByLabelText("Cidade"), { target: { value: "11" } });
+    fireEvent.change(leaflet.getByLabelText("Quantidade"), { target: { value: "1500" } });
+    fireEvent.change(leaflet.getByLabelText("Observação"), { target: { value: "Centro e comércio" } });
+    fireEvent.click(leaflet.getByRole("button", { name: "Adicionar" }));
+    expect(screen.getByRole("button", { name: "Remover" })).toBeInTheDocument();
+    fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
+
+    expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 21, tradeCampaignId: null, name: "Volta às aulas", startsOn: "2026-09-01", endsOn: "2026-09-15", partnershipType: "paid", estimatedCost: 800, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, vehicleOperation: undefined, airingSchedule: undefined, activeSpotId: undefined, materialFormat: "A5 frente e verso", materialQuantity: 1500, deadlineDays: 5, deliveryInstructions: "Promotores em lojas e no centro" }, cityDistributions: [{ cityId: 11, quantity: 1500, notes: "Centro e comércio" }] });
   });
 });

@@ -1,5 +1,8 @@
 # Project TODO
 
+- [x] Consolidar os parâmetros estruturados de veiculação em Áudio/Vídeo, distribuição de Panfletagem e calendário de Influencers, com cobertura automatizada.
+- [x] Expor e testar no formulário de Panfletagem a distribuição de materiais por cidade, quantidade e observações.
+
 - [x] Definir o modelo de implantação do banco PostgreSQL e a conexão segura do servidor.
 - [x] Configurar a credencial do PostgreSQL externo em segredo de ambiente e validar a conexão TLS.
 - [x] Adaptar o schema, o acesso a dados e as migrações do projeto para PostgreSQL.
@@ -376,3 +379,13 @@
 - [x] Exibir os cinco registros mais recentes no Histórico da Ação e permitir expandir a lista completa sob demanda.
 - [x] Criar modelos reutilizáveis de Ações, com seleção e preenchimento inicial no planejamento.
 - [x] Cobrir e validar os ajustes de Nota geral, histórico progressivo e modelos de Ações.
+
+- [x] Reorganizar a navegação lateral com submenus responsivos e clicáveis para módulos com categorias internas, começando por Mídias e Cadastros.
+- [x] Criar páginas específicas para Mídias Gráficas, Áudio/Vídeo, Panfletagem, Carro de Som e Influencers.
+- [x] Modelar dados compartilhados de mídia, incluindo vínculo com fornecedor, agenda, evidências, status e debriefing.
+- [x] Estruturar Áudio/Vídeo com veículos, horários de exibição, spots ativos e evidências de veiculação.
+- [x] Estruturar Panfletagem vinculada a Campanhas, promoções, planos, setores e distribuição territorial.
+- [x] Estruturar Carro de Som com cadastro de spots ativo/inativo, fornecedores, dias, horários, registros de rodagem e evidências.
+- [x] Adicionar Influencers aos Cadastros, incluindo dados de pagamento, agenda de postagens, grupos, comprovação publicada e evidências.
+- [x] Padronizar o debriefing para todas as operações específicas de Mídias.
+- [x] Cobrir a nova navegação e os fluxos iniciais de Mídias com testes e revisão responsiva.

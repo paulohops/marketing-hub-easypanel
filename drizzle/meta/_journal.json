@@ -225,6 +225,13 @@
       "when": 1786753965006,
       "tag": "0031_greedy_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1786755798175,
+      "tag": "0032_smooth_salo",
+      "breakpoints": true
     }
   ]
 }

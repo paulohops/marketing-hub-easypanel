@@ -19,6 +19,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -33,6 +36,7 @@ import {
   ChevronDown,
   CircleHelp,
   Database,
+  FileSpreadsheet,
   Flag,
   Landmark,
   LayoutDashboard,
@@ -41,10 +45,13 @@ import {
   Megaphone,
   Moon,
   Network,
+  PanelsTopLeft,
+  Radio,
   Settings2,
   Sun,
   Trello,
   UserRound,
+  Volume2,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -56,6 +63,7 @@ type NavItem = {
   path: string;
   icon: typeof LayoutDashboard;
   permission: string;
+  children?: Array<Omit<NavItem, "children">>;
 };
 
 type NavGroup = {
@@ -75,7 +83,19 @@ const navigationGroups: NavGroup[] = [
     items: [
       { label: "Campanhas", path: "/campanhas", icon: Flag, permission: "actions.read" },
       { label: "Ações", path: "/acoes", icon: CalendarDays, permission: "actions.read" },
-      { label: "Mídias", path: "/midias", icon: Megaphone, permission: "media.read" },
+      {
+        label: "Mídias",
+        path: "/midias",
+        icon: Megaphone,
+        permission: "media.read",
+        children: [
+          { label: "Mídias gráficas", path: "/midias/graficas", icon: PanelsTopLeft, permission: "media.read" },
+          { label: "Áudio e vídeo", path: "/midias/audio-video", icon: Radio, permission: "media.read" },
+          { label: "Panfletagem", path: "/midias/panfletagem", icon: FileSpreadsheet, permission: "media.read" },
+          { label: "Carro de som", path: "/midias/carro-de-som", icon: Volume2, permission: "media.read" },
+          { label: "Influencers", path: "/midias/influencers", icon: UserRound, permission: "media.read" },
+        ],
+      },
       { label: "Eventos", path: "/eventos", icon: MapPinned, permission: "events.read" },
     ],
   },
@@ -84,7 +104,19 @@ const navigationGroups: NavGroup[] = [
     items: [
       { label: "Estoque", path: "/estoque", icon: Boxes, permission: "inventory.read" },
       { label: "Financeiro", path: "/financeiro", icon: Landmark, permission: "finance.read" },
-      { label: "Cadastros", path: "/cadastros", icon: Database, permission: "settings.read" },
+      {
+        label: "Cadastros",
+        path: "/cadastros",
+        icon: Database,
+        permission: "settings.read",
+        children: [
+          { label: "Cadastros operacionais", path: "/cadastros", icon: Database, permission: "settings.read" },
+          { label: "Pontos de ação", path: "/pontos-de-acao", icon: MapPinned, permission: "settings.read" },
+          { label: "Modelos de campanha", path: "/cadastros/modelos", icon: FileSpreadsheet, permission: "settings.read" },
+          { label: "Modelos de ações", path: "/cadastros/modelos-acoes", icon: FileSpreadsheet, permission: "settings.read" },
+          { label: "Influencers", path: "/cadastros/influencers", icon: UserRound, permission: "settings.read" },
+        ],
+      },
     ],
   },
   {
@@ -113,6 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(() => !document.cookie.includes("sidebar_state=false"));
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const { can: canNavigate } = useEffectivePermissions();
 
   if (loading) return <DashboardLayoutSkeleton />;
@@ -124,12 +157,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const profileName = user.name?.trim() || "Paulo Oliveira";
   const initials = profileName.slice(0, 2).toUpperCase();
   const renderItem = (item: NavItem) => {
-    const active = location === item.path;
-    return <SidebarMenuItem key={item.path}>
-      <SidebarMenuButton isActive={active} tooltip={item.label} onClick={() => setLocation(item.path)} className="h-10 rounded-lg px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-sidebar-primary data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto">
-        <item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />
-        <span>{item.label}</span>
-      </SidebarMenuButton>
+    const active = location === item.path || item.children?.some(child => location === child.path) || false;
+    const visibleChildren = item.children?.filter(child => canNavigate(child.permission)) ?? [];
+    const isExpanded = Boolean(expandedMenus[item.path]);
+    return <SidebarMenuItem key={item.path} className="group/menu-item relative">
+      <div className="relative">
+        <SidebarMenuButton isActive={active} tooltip={item.label} onClick={() => setLocation(item.path)} className="h-10 rounded-lg px-3 pr-10 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-sidebar-primary data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto">
+          <item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />
+          <span>{item.label}</span>
+        </SidebarMenuButton>
+        {visibleChildren.length > 0 && <button type="button" aria-label={`Expandir submenu de ${item.label}`} aria-expanded={isExpanded} onClick={() => setExpandedMenus(current => ({ ...current, [item.path]: !current[item.path] }))} className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded-md text-white/80 transition hover:bg-white/[0.12] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 group-data-[collapsible=icon]:hidden"><ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} /></button>}
+      </div>
+      {visibleChildren.length > 0 && <SidebarMenuSub className={`mt-1 overflow-hidden border-l-white/20 transition-[max-height,opacity,padding] duration-200 ease-out ${isExpanded ? "pointer-events-auto max-h-64 py-0.5 opacity-100" : "pointer-events-none max-h-0 py-0 opacity-0 group-hover/menu-item:pointer-events-auto group-hover/menu-item:max-h-64 group-hover/menu-item:py-0.5 group-hover/menu-item:opacity-100 group-focus-within/menu-item:pointer-events-auto group-focus-within/menu-item:max-h-64 group-focus-within/menu-item:py-0.5 group-focus-within/menu-item:opacity-100"}`}>
+        {visibleChildren.map(child => <SidebarMenuSubItem key={child.path}>
+          <SidebarMenuSubButton
+            href={child.path}
+            isActive={location === child.path}
+            onClick={(event) => {
+              event.preventDefault();
+              setLocation(child.path);
+            }}
+            className="text-white/85 hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-white/[0.16] data-[active=true]:text-white"
+          >
+            <child.icon className="h-3.5 w-3.5 text-white/70" />
+            <span>{child.label}</span>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>)}
+      </SidebarMenuSub>}
     </SidebarMenuItem>;
   };
 

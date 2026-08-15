@@ -28,6 +28,25 @@ beforeEach(() => {
 });
 
 describe("media router via tRPC", () => {
+  it("valida o spot selecionado na configuração de veiculação antes de acessar o banco", async () => {
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.media.createConfiguredCampaign({
+      mediaPointId: 12,
+      name: "Veiculação rádio regional",
+      startsOn: "2026-08-20",
+      endsOn: "2026-08-31",
+      estimatedCost: 2500,
+      campaignConfig: {
+        vehicleOperation: "Programa regional com inserções comerciais.",
+        airingSchedule: "Segunda a sexta, às 07h15, 12h30 e 18h45.",
+        activeSpotId: 0,
+      },
+    })).rejects.toThrow();
+
+    expect(getDbMock).not.toHaveBeenCalled();
+  });
+
   it("persiste a nota, o resultado e o debriefing de uma campanha", async () => {
     const before = { id: 81, name: "Campanha Centro", rating: null, resultAchieved: null, feedback: null };
     const saved = { ...before, rating: 5, resultAchieved: true, feedback: "Ótimo alcance local e boa lembrança de marca." };

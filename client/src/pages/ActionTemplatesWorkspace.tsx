@@ -1,4 +1,3 @@
-import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, ClipboardList, Edit3, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";

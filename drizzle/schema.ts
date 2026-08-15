@@ -34,6 +34,8 @@ export const documentEntityEnum = pgEnum("document_entity_type", ["media_campaig
 export const notificationCategoryEnum = pgEnum("notification_category", ["campaign_expiry", "payment_due", "action_pending", "stock_minimum"]);
 export const partnershipTypeEnum = pgEnum("partnership_type", ["paid", "barter", "mixed"]);
 export const mediaChannelKindEnum = pgEnum("media_channel_kind", ["standard", "external"]);
+export const mediaOperationCategoryEnum = pgEnum("media_operation_category", ["graphics", "audio_video", "leafleting", "sound_car", "influencers"]);
+export const influencerPostStatusEnum = pgEnum("influencer_post_status", ["planned", "published", "missed", "cancelled"]);
 export const permissionModuleEnum = pgEnum("permission_module", ["dashboard", "settings", "inventory", "finance", "media", "actions", "events", "operations", "documents", "map", "notifications"]);
 export const permissionActionEnum = pgEnum("permission_action", ["read", "create", "update", "delete"]);
 
@@ -555,6 +557,7 @@ export const mediaPoints = pgTable("media_points", {
   serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, { onDelete: "restrict" }),
   name: varchar("name", { length: 180 }).notNull(),
   channelKind: mediaChannelKindEnum("channelKind").default("standard").notNull(),
+  operationCategory: mediaOperationCategoryEnum("operationCategory").default("graphics").notNull(),
   address: text("address"),
   latitude: numeric("latitude", { precision: 10, scale: 7 }),
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
@@ -579,6 +582,9 @@ export const mediaCampaigns = pgTable("media_campaigns", {
     circulationDays?: number;
     dailyRoute?: string;
     audioBrief?: string;
+    vehicleOperation?: string;
+    airingSchedule?: string;
+    activeSpotId?: number;
     materialFormat?: string;
     materialQuantity?: number;
     deadlineDays?: number;
@@ -604,6 +610,80 @@ export const mediaCampaignCityDistributions = pgTable("media_campaign_city_distr
   quantity: integer("quantity").notNull(),
   notes: text("notes"),
 }, table => [uniqueIndex("media_campaign_city_distributions_uq").on(table.mediaCampaignId, table.cityId)]);
+
+export const mediaSpots = pgTable("media_spots", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 180 }).notNull(),
+  storageKey: varchar("storageKey", { length: 512 }),
+  url: text("url"),
+  mimeType: varchar("mimeType", { length: 120 }),
+  active: boolean("active").default(true).notNull(),
+  notes: text("notes"),
+  createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const soundCarRuns = pgTable("sound_car_runs", {
+  id: serial("id").primaryKey(),
+  mediaCampaignId: integer("mediaCampaignId").notNull().references(() => mediaCampaigns.id, { onDelete: "cascade" }),
+  drivenOn: date("drivenOn").notNull(),
+  startsAt: varchar("startsAt", { length: 5 }),
+  endsAt: varchar("endsAt", { length: 5 }),
+  route: text("route"),
+  notes: text("notes"),
+  evidenceUrls: jsonb("evidenceUrls").$type<string[]>().default([]).notNull(),
+  createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const influencers = pgTable("influencers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 180 }).notNull(),
+  phone: varchar("phone", { length: 32 }),
+  email: varchar("email", { length: 320 }),
+  socialHandle: varchar("socialHandle", { length: 180 }),
+  profileImageUrl: text("profileImageUrl"),
+  paymentMethod: varchar("paymentMethod", { length: 80 }),
+  paymentFrequency: varchar("paymentFrequency", { length: 80 }),
+  paymentDay: integer("paymentDay"),
+  notes: text("notes"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const influencerGroups = pgTable("influencer_groups", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 180 }).notNull(),
+  weekday: integer("weekday"),
+  notes: text("notes"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const influencerGroupMembers = pgTable("influencer_group_members", {
+  id: serial("id").primaryKey(),
+  influencerGroupId: integer("influencerGroupId").notNull().references(() => influencerGroups.id, { onDelete: "cascade" }),
+  influencerId: integer("influencerId").notNull().references(() => influencers.id, { onDelete: "cascade" }),
+}, table => [uniqueIndex("influencer_group_members_uq").on(table.influencerGroupId, table.influencerId)]);
+
+export const influencerPosts = pgTable("influencer_posts", {
+  id: serial("id").primaryKey(),
+  influencerId: integer("influencerId").notNull().references(() => influencers.id, { onDelete: "restrict" }),
+  influencerGroupId: integer("influencerGroupId").references(() => influencerGroups.id, { onDelete: "set null" }),
+  tradeCampaignId: integer("tradeCampaignId").references(() => tradeCampaigns.id, { onDelete: "set null" }),
+  scheduledFor: timestamp("scheduledFor", { withTimezone: true }).notNull(),
+  platform: varchar("platform", { length: 80 }),
+  deliverable: text("deliverable"),
+  status: influencerPostStatusEnum("status").default("planned").notNull(),
+  publicationConfirmed: boolean("publicationConfirmed").default(false).notNull(),
+  publishedAt: timestamp("publishedAt", { withTimezone: true }),
+  evidenceUrls: jsonb("evidenceUrls").$type<string[]>().default([]).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const actionTemplates = pgTable("action_templates", {
   id: serial("id").primaryKey(),
