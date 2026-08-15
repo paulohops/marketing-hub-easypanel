@@ -30,6 +30,15 @@
 - [x] Validar no componente real da ficha de Cadastro o fluxo completo de exclusão de Empresa, incluindo confirmação, mutation e retorno à lista após o sucesso.
 - [x] Ampliar o teste integrado de status para todos os domínios de Cadastro que aceitam ativo/inativo.
 - [x] Registrar evidência visual dos controles de exclusão e status na ficha individual e do estado final da listagem de Empresas após remover Paulo.
+- [x] Mapear os dados atuais de Empresas, Cidades, anexos e vínculos de cobertura para a ampliação do cadastro institucional.
+- [x] Incluir no modelo de Empresas logo, razão social, CNPJ, e-mail, telefone, endereço de faturamento, cores em hexadecimal e referências aos anexos institucionais.
+- [x] Permitir definir uma cidade vinculada como matriz da Empresa e exibir essa informação na ficha empresarial.
+- [x] Implementar upload, visualização e substituição de logotipo, Cartão CNPJ e Manual da marca, com armazenamento seguro.
+- [x] Atualizar criação, edição, ficha e lista de Empresas para exibir dados institucionais, logo, matriz, vínculos e coberturas.
+- [x] Cobrir a evolução de Empresas com migração, testes de persistência, interface e validação responsiva.
+- [x] Adicionar testes integrados de persistência para cidade-matriz e paleta de cores de Empresas.
+- [x] Adicionar testes de upload seguro para Cartão CNPJ e Manual da marca.
+- [x] Adicionar teste da ficha individual de Empresa para matriz, paleta e documentos institucionais.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.

@@ -128,6 +128,8 @@ export default function OperationalRegistriesPanel() {
   const [regionalId, setRegionalId] = useState("");
   const [legalName, setLegalName] = useState("");
   const [billingCnpj, setBillingCnpj] = useState("");
+  const [headquartersCityId, setHeadquartersCityId] = useState("");
+  const [brandColors, setBrandColors] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -336,6 +338,8 @@ export default function OperationalRegistriesPanel() {
     setRegionalId("");
     setLegalName("");
     setBillingCnpj("");
+    setHeadquartersCityId("");
+    setBrandColors("");
     setEmail("");
     setPhone("");
     setAddress("");
@@ -496,6 +500,8 @@ export default function OperationalRegistriesPanel() {
       setName(item.name);
       setLegalName(item.legalName ?? "");
       setBillingCnpj(item.billingCnpj ?? "");
+      setHeadquartersCityId(item.headquartersCityId ? String(item.headquartersCityId) : "");
+      setBrandColors((item.brandColors ?? []).join(", "));
       setEmail(item.email ?? "");
       setPhone(item.phone ?? "");
       setAddress(item.address ?? "");
@@ -603,6 +609,8 @@ export default function OperationalRegistriesPanel() {
         name,
         legalName: legalName || undefined,
         billingCnpj: billingCnpj || undefined,
+        headquartersCityId: headquartersCityId ? Number(headquartersCityId) : null,
+        brandColors: brandColors.split(",").map(color => color.trim()).filter(Boolean),
         email: email || undefined,
         phone: phone || undefined,
         address: address || undefined,
@@ -1011,6 +1019,10 @@ export default function OperationalRegistriesPanel() {
                 setLegalName={setLegalName}
                 billingCnpj={billingCnpj}
                 setBillingCnpj={setBillingCnpj}
+                headquartersCityId={headquartersCityId}
+                setHeadquartersCityId={setHeadquartersCityId}
+                brandColors={brandColors}
+                setBrandColors={setBrandColors}
                 email={email}
                 setEmail={setEmail}
                 phone={phone}
@@ -1141,6 +1153,10 @@ function RegistryForm(props: {
   setLegalName: (v: string) => void;
   billingCnpj: string;
   setBillingCnpj: (v: string) => void;
+  headquartersCityId: string;
+  setHeadquartersCityId: (v: string) => void;
+  brandColors: string;
+  setBrandColors: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
   phone: string;
@@ -1160,8 +1176,8 @@ function RegistryForm(props: {
   description: string;
   setDescription: (v: string) => void;
   providers: Array<{ id: number; name: string; active: boolean }>;
-  regionals: Array<{ id: number; name: string; active: boolean }>;
-  cities: Array<{ id: number; name: string; state: string; active: boolean }>;
+  regionals: Array<{ id: number; name: string; active: boolean; providerId?: number | null }>;
+  cities: Array<{ id: number; name: string; state: string; active: boolean; regionalId?: number }>;
   stores: Array<{ id: number; name: string; cityId: number; active: boolean }>;
   supervisorStoreIds: number[];
   onToggleSupervisorStore: (id: number) => void;
@@ -1185,6 +1201,9 @@ function RegistryForm(props: {
 }) {
   const city = props.panel === "city";
   const provider = props.panel === "provider";
+  const providerRegionalIds = new Set(props.regionals.filter(regional => regional.providerId === props.editingId).map(regional => regional.id));
+  const providerCities = props.editingId ? props.cities.filter(item => item.active && providerRegionalIds.has(item.regionalId ?? -1)) : [];
+  const colorPreview = props.brandColors.split(",").map(color => color.trim().toUpperCase()).filter(color => /^#[0-9A-F]{6}$/.test(color));
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Field
@@ -1345,6 +1364,28 @@ function RegistryForm(props: {
             value={props.address}
             setValue={props.setAddress}
           />
+          <SearchableMultiSelect
+            id="provider-headquarters-city"
+            label="Cidade-matriz"
+            maxSelections={1}
+            options={providerCities.map(item => ({ id: item.id, label: `${item.name} · ${item.state}` }))}
+            values={props.headquartersCityId ? [Number(props.headquartersCityId)] : []}
+            onChange={values => props.setHeadquartersCityId(values[0] ? String(values[0]) : "")}
+            placeholder={props.editingId ? "Selecionar cidade vinculada" : "Defina após criar a Empresa"}
+            emptyMessage={props.editingId ? "Nenhuma cidade vinculada a esta Empresa" : "Crie a Empresa e vincule regionais e cidades"}
+          />
+          <div className="grid gap-2 sm:col-span-2">
+            <Field
+              label="Cores da empresa (hexadecimal)"
+              id="provider-brand-colors"
+              value={props.brandColors}
+              setValue={props.setBrandColors}
+              placeholder="#0E723B, #F45103"
+            />
+            <p className="-mt-1 text-xs leading-5 text-muted-foreground">Separe até 10 cores por vírgula. Use o formato <strong>#RRGGBB</strong>.</p>
+            {colorPreview.length ? <div className="flex flex-wrap gap-2">{colorPreview.map(color => <span key={color} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-semibold text-foreground"><span aria-hidden="true" className="h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: color }} />{color}</span>)}</div> : null}
+          </div>
+          {!props.editingId ? <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Após criar a Empresa e vincular suas regionais e cidades, defina a cidade-matriz na edição ou na ficha individual.</p> : null}
         </>
       ) : null}
       {props.panel === "partner" ? (
@@ -1855,6 +1896,7 @@ function Field({
   setValue,
   type = "text",
   inputMode,
+  placeholder,
 }: {
   label: string;
   id: string;
@@ -1862,6 +1904,7 @@ function Field({
   setValue: (v: string) => void;
   type?: string;
   inputMode?: "decimal";
+  placeholder?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -1871,6 +1914,7 @@ function Field({
         type={type}
         inputMode={inputMode}
         value={value}
+        placeholder={placeholder}
         onChange={event => setValue(event.target.value)}
       />
     </div>

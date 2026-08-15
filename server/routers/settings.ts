@@ -12,6 +12,18 @@ const paymentKinds = ["paid", "barter", "mixed"] as const;
 const mediaOperationCategories = ["graphics", "audio_video", "leafleting", "sound_car", "influencers"] as const;
 const contractMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+const hexColorSchema = z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/, "Informe uma cor no formato hexadecimal #RRGGBB.").transform(value => value.toUpperCase());
+const providerInputSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  legalName: z.string().trim().max(220).optional(),
+  billingCnpj: z.string().trim().max(32).optional(),
+  contactName: z.string().trim().max(160).optional(),
+  phone: z.string().trim().max(32).optional(),
+  email: z.string().trim().email().max(320).optional(),
+  address: z.string().trim().max(1000).optional(),
+  headquartersCityId: z.number().int().positive().nullable().optional(),
+  brandColors: z.array(hexColorSchema).max(10).optional(),
+});
 
 function safeContractName(name: string) {
   const normalized = name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_").slice(0, 180);
@@ -90,14 +102,18 @@ export const settingsRouter = router({
     return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
   }),
 
-  createProvider: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), address: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+  createProvider: protectedProcedure.input(providerInputSchema).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const [existing] = await database.select({ id: providers.id }).from(providers).where(sql`lower(${providers.name}) = lower(${input.name})`).limit(1);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor de origem com este nome." });
     const billingCnpj = input.billingCnpj ? normalizeCnpj(input.billingCnpj) : null;
     if (billingCnpj && billingCnpj.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ de faturamento com 14 dígitos." });
-    const [created] = await database.insert(providers).values({ ...input, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, address: input.address || null }).returning();
+    if (input.headquartersCityId) {
+      const [headquarters] = await database.select({ id: cities.id }).from(cities).where(eq(cities.id, input.headquartersCityId)).limit(1);
+      if (!headquarters) throw new TRPCError({ code: "BAD_REQUEST", message: "A cidade selecionada para matriz não existe." });
+    }
+    const [created] = await database.insert(providers).values({ ...input, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, address: input.address || null, headquartersCityId: input.headquartersCityId ?? null, brandColors: input.brandColors ?? [] }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: created.id, action: "create", afterData: created });
     return created;
   }),
@@ -112,6 +128,32 @@ export const settingsRouter = router({
     const stored = await storagePut(`trade/providers/${provider.id}/logo-${Date.now()}-${safeContractName(input.originalName)}`, bytes, input.mimeType);
     const [updated] = await database.update(providers).set({ logoStorageKey: stored.key, logoUrl: stored.url, updatedAt: new Date() }).where(eq(providers.id, provider.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: provider.id, action: "upload_logo", beforeData: { logoStorageKey: provider.logoStorageKey }, afterData: { logoStorageKey: updated.logoStorageKey } });
+    return updated;
+  }),
+
+  uploadProviderCnpjCard: protectedProcedure.input(z.object({ providerId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(contractMimeTypes), dataBase64: z.string().min(1).max(7_000_000) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [provider] = await database.select().from(providers).where(eq(providers.id, input.providerId)).limit(1);
+    if (!provider) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada." });
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 5 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O Cartão CNPJ deve ter até 5 MB." });
+    const stored = await storagePut(`trade/providers/${provider.id}/cnpj-card-${Date.now()}-${safeContractName(input.originalName)}`, bytes, input.mimeType);
+    const [updated] = await database.update(providers).set({ cnpjCardStorageKey: stored.key, cnpjCardUrl: stored.url, updatedAt: new Date() }).where(eq(providers.id, provider.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: provider.id, action: "upload_cnpj_card", beforeData: { cnpjCardStorageKey: provider.cnpjCardStorageKey }, afterData: { cnpjCardStorageKey: updated.cnpjCardStorageKey } });
+    return updated;
+  }),
+
+  uploadProviderBrandManual: protectedProcedure.input(z.object({ providerId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(contractMimeTypes), dataBase64: z.string().min(1).max(14_000_000) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [provider] = await database.select().from(providers).where(eq(providers.id, input.providerId)).limit(1);
+    if (!provider) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada." });
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 10 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O Manual da marca deve ter até 10 MB." });
+    const stored = await storagePut(`trade/providers/${provider.id}/brand-manual-${Date.now()}-${safeContractName(input.originalName)}`, bytes, input.mimeType);
+    const [updated] = await database.update(providers).set({ brandManualStorageKey: stored.key, brandManualUrl: stored.url, updatedAt: new Date() }).where(eq(providers.id, provider.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: provider.id, action: "upload_brand_manual", beforeData: { brandManualStorageKey: provider.brandManualStorageKey }, afterData: { brandManualStorageKey: updated.brandManualStorageKey } });
     return updated;
   }),
 
@@ -259,8 +301,21 @@ export const settingsRouter = router({
     return created;
   }),
 
-  updateProvider: protectedProcedure.input(z.object({ id: z.number().int().positive(), name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), address: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(providers).where(eq(providers.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada." }); const billingCnpj = input.billingCnpj ? normalizeCnpj(input.billingCnpj) : null; if (billingCnpj && billingCnpj.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ de faturamento com 14 dígitos." }); const [updated] = await database.update(providers).set({ ...input, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, address: input.address || null, updatedAt: new Date() }).where(eq(providers.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
+  updateProvider: protectedProcedure.input(providerInputSchema.extend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(providers).where(eq(providers.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada." });
+    const billingCnpj = input.billingCnpj ? normalizeCnpj(input.billingCnpj) : null;
+    if (billingCnpj && billingCnpj.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ de faturamento com 14 dígitos." });
+    const headquartersCityId = input.headquartersCityId === undefined ? before.headquartersCityId : input.headquartersCityId;
+    if (headquartersCityId) {
+      const [headquarters] = await database.select({ id: cities.id, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.id, headquartersCityId)).limit(1);
+      if (!headquarters || headquarters.providerId !== input.id) throw new TRPCError({ code: "BAD_REQUEST", message: "A cidade-matriz deve estar vinculada a uma regional desta empresa." });
+    }
+    const [updated] = await database.update(providers).set({ name: input.name, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, address: input.address || null, headquartersCityId: headquartersCityId ?? null, brandColors: input.brandColors ?? before.brandColors, updatedAt: new Date() }).where(eq(providers.id, input.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: input.id, action: "update", beforeData: before, afterData: updated });
+    return updated;
   }),
 
   updateRegional: protectedProcedure.input(z.object({ id: z.number().int().positive(), providerId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).toUpperCase() })).mutation(async ({ ctx, input }) => {

@@ -253,6 +253,13 @@
       "when": 1786763668724,
       "tag": "0035_colorful_pretty_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786769465748,
+      "tag": "0036_great_wolfpack",
+      "breakpoints": true
     }
   ]
 }

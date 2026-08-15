@@ -4,12 +4,13 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 const setCommercialSupervisorStores = vi.hoisted(() => vi.fn());
 const updateType = vi.hoisted(() => vi.fn());
 const updateStore = vi.hoisted(() => vi.fn());
+const updateProvider = vi.hoisted(() => vi.fn());
 const deleteRegistry = vi.hoisted(() => vi.fn());
 const setRegistryActive = vi.hoisted(() => vi.fn());
 const trpcStub = vi.hoisted(() => {
   const mutations = () => ({ mutate: vi.fn(), isPending: false });
   const overviewData = {
-    providers: [{ id: 1, name: "Paulo", legalName: "Paulo Serviços Ltda.", active: true }], regionals: [{ id: 1, name: "Regional Central", code: "CENTRAL", providerId: 1, active: true }], cities: [{ id: 3, name: "Belo Horizonte", state: "MG", regionalId: 1, active: true }], stores: [{ id: 2, cityId: 3, name: "Loja Central", code: "LC-01", address: "Av. Central, 100", referencePoint: "Ao lado da praça", zipCode: "30100-000", phone: "3133334444", email: "loja@cluster.com", openingHours: "08h às 18h", latitude: "-19.9", longitude: "-43.9", active: true }],
+    providers: [{ id: 1, name: "Paulo", legalName: "Paulo Serviços Ltda.", headquartersCityId: 3, brandColors: ["#0E723B", "#F45103"], cnpjCardUrl: "https://files.example/cartao-cnpj.pdf", brandManualUrl: "https://files.example/manual-marca.pdf", active: true }], regionals: [{ id: 1, name: "Regional Central", code: "CENTRAL", providerId: 1, active: true }], cities: [{ id: 3, name: "Belo Horizonte", state: "MG", regionalId: 1, active: true }], stores: [{ id: 2, cityId: 3, name: "Loja Central", code: "LC-01", address: "Av. Central, 100", referencePoint: "Ao lado da praça", zipCode: "30100-000", phone: "3133334444", email: "loja@cluster.com", openingHours: "08h às 18h", latitude: "-19.9", longitude: "-43.9", active: true }],
     suppliers: [{ id: 7, displayName: "Fornecedor Central", document: "12.345.678/0001-90", phone: "31999999999", email: "contato@fornecedor.com", cityId: 3, active: true }],
     partners: [{ id: 8, name: "Parceiro Central", active: true }], commercialSupervisors: [{ id: 21, name: "Gabriel", email: "gabriel@cluster.com", active: true }], commercialSupervisorStores: [{ commercialSupervisorId: 21, storeId: 2 }], serviceTypes: [{ id: 4, name: "Panfletagem", active: true }], mediaTypes: [{ id: 5, name: "Outdoor", operationCategory: "graphics", active: true }, { id: 6, name: "Impressão em lona", operationCategory: "graphics", parentMediaTypeId: 5, active: true }], actionTypes: [{ id: 31, name: "Ação promocional", active: true }], eventTypes: [{ id: 32, name: "Evento de loja", active: true }], campaignTypes: [{ id: 33, name: "Comercial", active: true }], campaignSectors: [{ id: 34, name: "B2C", active: true }], financialCategories: [{ id: 35, name: "Mídia", active: true }], supplierOfferings: [{ id: 9, supplierId: 7, name: "Folder A5", unit: "milheiro", unitPrice: "450.00" }],
     operationalFootprint: { actions: [{ id: 11, name: "Ação Central", cityId: 3 }], events: [{ id: 12, name: "Evento Central", cityId: 3 }], mediaPoints: [{ id: 13, name: "Painel Central", cityId: 3, supplierId: 7 }], actionSuppliers: [{ actionId: 11, supplierId: 7 }], eventSuppliers: [{ eventId: 12, supplierId: 7 }] },
@@ -22,6 +23,7 @@ const trpcStub = vi.hoisted(() => {
       setCommercialSupervisorStores: { useMutation: () => ({ mutate: setCommercialSupervisorStores, isPending: false }) },
       updateType: { useMutation: () => ({ mutate: updateType, isPending: false }) },
       updateStore: { useMutation: () => ({ mutate: updateStore, isPending: false }) },
+      updateProvider: { useMutation: () => ({ mutate: updateProvider, isPending: false }) },
       setRegistryActive: { useMutation: () => ({ mutate: setRegistryActive, isPending: false }) },
       deleteRegistry: { useMutation: (options?: { onSuccess?: () => void }) => ({ mutate: (input: unknown) => { deleteRegistry(input); options?.onSuccess?.(); }, isPending: false }) },
     }, { get: (target, property) => target[property as keyof typeof target] ?? { useMutation: mutations } }),
@@ -105,6 +107,22 @@ describe("fichas de cadastros", () => {
     expect(confirm).toHaveBeenCalledWith("Excluir empresa? Regionais e fornecedores vinculados serão desvinculados da empresa, preservando os demais dados.");
     expect(deleteRegistry).toHaveBeenCalledWith({ kind: "provider", id: 1 });
     expect(window.location.pathname).toBe("/cadastros/empresas");
+  });
+
+  it("mostra e edita matriz, paleta e documentos na ficha individual de Empresa", () => {
+    window.history.replaceState({}, "", "/cadastros/empresas/1");
+    render(<RegistryEntityWorkspace />);
+
+    expect(screen.getByText("Cartão CNPJ")).toBeInTheDocument();
+    expect(screen.getByText("Manual da marca")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Abrir" })).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
+    expect(screen.getByLabelText("Cidade-matriz")).toHaveValue("3");
+    const paletteInput = screen.getByPlaceholderText("#0E723B, #F45103");
+    expect(paletteInput).toHaveValue("#0E723B, #F45103");
+    fireEvent.change(paletteInput, { target: { value: "#0e723b, #f45103" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(updateProvider).toHaveBeenCalledWith(expect.objectContaining({ id: 1, headquartersCityId: 3, brandColors: ["#0e723b", "#f45103"] }));
   });
 
   it.each([
