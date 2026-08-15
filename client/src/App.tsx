@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -22,8 +22,8 @@ function Router() {
     <Route path="/midias/panfletagem">{() => <ProtectedModule module="midias-panfletagem" />}</Route>
     <Route path="/midias/carro-de-som">{() => <ProtectedModule module="midias-carro-som" />}</Route>
     <Route path="/midias/influencers">{() => <ProtectedModule module="midias-influencers" />}</Route>
+    <Route path="/midias">{() => <Redirect to="/midias/graficas" replace />}</Route>
     <Route path="/midias/:mediaPointId">{() => <ProtectedModule module="midias" />}</Route>
-    <Route path="/midias">{() => <ProtectedModule module="midias" />}</Route>
     <Route path="/acoes/:actionId">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/acoes">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/eventos/:eventId">{() => <ProtectedModule module="eventos" />}</Route>
@@ -33,8 +33,9 @@ function Router() {
     <Route path="/cadastros/modelos-acoes">{() => <ProtectedModule module="modelos-acao" />}</Route>
     <Route path="/cadastros/modelos">{() => <ProtectedModule module="modelos-campanha" />}</Route>
     <Route path="/cadastros/influencers">{() => <ProtectedModule module="cadastro-influencers" />}</Route>
+    <Route path="/cadastros/operacionais">{() => <ProtectedModule module="cadastros" />}</Route>
+    <Route path="/cadastros">{() => <Redirect to="/cadastros/operacionais" replace />}</Route>
     <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
-    <Route path="/cadastros">{() => <ProtectedModule module="cadastros" />}</Route>
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/trello">{() => <ProtectedModule module="trello" />}</Route>
     <Route path="/importar-dados">{() => <ProtectedModule module="importacao" />}</Route>

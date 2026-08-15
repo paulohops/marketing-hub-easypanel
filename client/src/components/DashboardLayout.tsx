@@ -110,7 +110,7 @@ const navigationGroups: NavGroup[] = [
         icon: Database,
         permission: "settings.read",
         children: [
-          { label: "Cadastros operacionais", path: "/cadastros", icon: Database, permission: "settings.read" },
+          { label: "Cadastros operacionais", path: "/cadastros/operacionais", icon: Database, permission: "settings.read" },
           { label: "Pontos de ação", path: "/pontos-de-acao", icon: MapPinned, permission: "settings.read" },
           { label: "Modelos de campanha", path: "/cadastros/modelos", icon: FileSpreadsheet, permission: "settings.read" },
           { label: "Modelos de ações", path: "/cadastros/modelos-acoes", icon: FileSpreadsheet, permission: "settings.read" },
@@ -157,18 +157,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const profileName = user.name?.trim() || "Paulo Oliveira";
   const initials = profileName.slice(0, 2).toUpperCase();
   const renderItem = (item: NavItem) => {
-    const active = location === item.path || item.children?.some(child => location === child.path) || false;
     const visibleChildren = item.children?.filter(child => canNavigate(child.permission)) ?? [];
+    const active = visibleChildren.length > 0 ? visibleChildren.some(child => location === child.path) : location === item.path;
     const isExpanded = Boolean(expandedMenus[item.path]);
+    const toggleSubmenu = () => {
+      if (!sidebarOpen) setSidebarOpen(true);
+      setExpandedMenus(current => ({ ...current, [item.path]: !current[item.path] }));
+    };
     return <SidebarMenuItem key={item.path} className="group/menu-item relative">
       <div className="relative">
-        <SidebarMenuButton isActive={active} tooltip={item.label} onClick={() => setLocation(item.path)} className="h-10 rounded-lg px-3 pr-10 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-sidebar-primary data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto">
+        <SidebarMenuButton isActive={active} tooltip={item.label} aria-expanded={visibleChildren.length > 0 ? isExpanded : undefined} onClick={visibleChildren.length > 0 ? toggleSubmenu : () => setLocation(item.path)} className="h-10 rounded-lg px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-sidebar-primary data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto">
           <item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />
           <span>{item.label}</span>
+          {visibleChildren.length > 0 ? <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 group-data-[collapsible=icon]:hidden ${isExpanded ? "rotate-180" : ""}`} /> : null}
         </SidebarMenuButton>
-        {visibleChildren.length > 0 && <button type="button" aria-label={`Expandir submenu de ${item.label}`} aria-expanded={isExpanded} onClick={() => setExpandedMenus(current => ({ ...current, [item.path]: !current[item.path] }))} className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded-md text-white/80 transition hover:bg-white/[0.12] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 group-data-[collapsible=icon]:hidden"><ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} /></button>}
       </div>
-      {visibleChildren.length > 0 && <SidebarMenuSub className={`mt-1 overflow-hidden border-l-white/20 transition-[max-height,opacity,padding] duration-200 ease-out ${isExpanded ? "pointer-events-auto max-h-64 py-0.5 opacity-100" : "pointer-events-none max-h-0 py-0 opacity-0 group-hover/menu-item:pointer-events-auto group-hover/menu-item:max-h-64 group-hover/menu-item:py-0.5 group-hover/menu-item:opacity-100 group-focus-within/menu-item:pointer-events-auto group-focus-within/menu-item:max-h-64 group-focus-within/menu-item:py-0.5 group-focus-within/menu-item:opacity-100"}`}>
+      {visibleChildren.length > 0 && <SidebarMenuSub className={`mt-1 overflow-hidden border-l-white/20 transition-[max-height,opacity,padding] duration-200 ease-out ${isExpanded ? "pointer-events-auto max-h-64 py-0.5 opacity-100" : "pointer-events-none max-h-0 py-0 opacity-0"}`}>
         {visibleChildren.map(child => <SidebarMenuSubItem key={child.path}>
           <SidebarMenuSubButton
             href={child.path}

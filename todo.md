@@ -1,5 +1,9 @@
 # Project TODO
 
+- [x] Ajustar categorias-pai com submenu para expandirem somente por clique e não possuírem página inicial própria.
+- [x] Redirecionar explicitamente as rotas-pai /midias e /cadastros para os primeiros itens filhos, sem página própria acessível.
+- [x] Cobrir em testes o acesso direto às rotas-pai e a expansão da barra lateral sem navegação.
+- [x] Validar visualmente a barra lateral e os redirecionamentos das rotas-pai em desktop e celular.
 - [x] Consolidar os parâmetros estruturados de veiculação em Áudio/Vídeo, distribuição de Panfletagem e calendário de Influencers, com cobertura automatizada.
 - [x] Expor e testar no formulário de Panfletagem a distribuição de materiais por cidade, quantidade e observações.
 

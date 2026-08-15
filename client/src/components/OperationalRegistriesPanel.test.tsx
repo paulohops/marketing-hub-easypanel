@@ -24,7 +24,7 @@ import OperationalRegistriesPanel from "./OperationalRegistriesPanel";
 
 afterEach(() => {
   cleanup();
-  window.history.replaceState({}, "", "/cadastros");
+  window.history.replaceState({}, "", "/cadastros/operacionais");
   vi.clearAllMocks();
 });
 
@@ -53,7 +53,7 @@ describe("centro de cadastros operacionais", () => {
     ["Categorias financeiras", "/cadastros/categorias-financeiras"],
     ["Pontos de ação", "/pontos-de-acao"],
   ])("direciona %s para %s", (cardTitle, expectedPath) => {
-    window.history.replaceState({}, "", "/cadastros");
+    window.history.replaceState({}, "", "/cadastros/operacionais");
     render(<OperationalRegistriesPanel />);
 
     fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${cardTitle}`) }));

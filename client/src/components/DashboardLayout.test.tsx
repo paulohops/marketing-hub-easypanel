@@ -44,6 +44,25 @@ describe("DashboardLayout", () => {
     expect(screen.queryByText("Operações unificadas")).not.toBeInTheDocument();
   });
 
+  it("expande Mídias e Cadastros por clique sem navegar para uma página-pai", () => {
+    authState.user.role = "admin";
+    window.history.replaceState({}, "", "/acoes");
+    render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);
+
+    const midias = screen.getByText("Mídias").closest("button");
+    const cadastros = screen.getByText("Cadastros").closest("button");
+    expect(midias).toHaveAttribute("aria-expanded", "false");
+    expect(cadastros).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(midias!);
+    expect(midias).toHaveAttribute("aria-expanded", "true");
+    expect(window.location.pathname).toBe("/acoes");
+
+    fireEvent.click(cadastros!);
+    expect(cadastros).toHaveAttribute("aria-expanded", "true");
+    expect(window.location.pathname).toBe("/acoes");
+  });
+
   it("mantém os rótulos de grupos no fluxo vertical normal da barra lateral", () => {
     authState.user.role = "admin";
     const { container } = render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);
