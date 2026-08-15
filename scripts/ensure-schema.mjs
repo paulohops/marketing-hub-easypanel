@@ -4,6 +4,9 @@ import pg from "pg";
 
 const { Pool } = pg;
 const connectionString = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+const ssl = process.env.DATABASE_SSL === "true"
+  ? { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false" }
+  : undefined;
 
 if (!connectionString) {
   throw new Error("DATABASE_URL é obrigatória para inicializar ou atualizar o banco.");
@@ -14,13 +17,11 @@ if (process.env.RUN_MIGRATIONS === "false") {
   process.exit(0);
 }
 
-const pool = new Pool({
-  connectionString,
-  ...(process.env.DATABASE_SSL === "true"
-    ? { ssl: { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false" } }
-    : {}),
-});
+function createPool() {
+  return new Pool({ connectionString, ...(ssl ? { ssl } : {}) });
+}
 
+const pool = createPool();
 try {
   const result = await pool.query(`
     SELECT
@@ -59,4 +60,43 @@ const migration = spawnSync("pnpm", ["db:migrate"], {
 if (migration.error) throw migration.error;
 if (migration.status !== 0) {
   process.exit(migration.status ?? 1);
+}
+
+const verificationPool = createPool();
+try {
+  const requiredUserColumns = [
+    "id",
+    "openId",
+    "name",
+    "email",
+    "phone",
+    "avatarStorageKey",
+    "avatarUrl",
+    "loginMethod",
+    "jobTitle",
+    "managerUserId",
+    "passwordHash",
+    "passwordUpdatedAt",
+    "isActive",
+    "role",
+    "createdAt",
+    "updatedAt",
+    "lastSignedIn",
+  ];
+  const columns = await verificationPool.query(
+    `SELECT column_name
+       FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'users'`,
+  );
+  const actualColumns = new Set(columns.rows.map(row => row.column_name));
+  const missingColumns = requiredUserColumns.filter(column => !actualColumns.has(column));
+  if (missingColumns.length > 0) {
+    throw new Error(
+      `O schema de users está incompleto. Colunas ausentes: ${missingColumns.join(", ")}. ` +
+      "Verifique se DATABASE_URL aponta para o banco correto e se todas as migrations versionadas foram aplicadas.",
+    );
+  }
+  console.log("[Database] Verificação da tabela users concluída.");
+} finally {
+  await verificationPool.end();
 }

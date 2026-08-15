@@ -102,6 +102,7 @@ O entrypoint aplica automaticamente somente migrations pendentes antes de inicia
 | Container reinicia dizendo `JWT_SECRET` ausente | Adicione um segredo não vazio em `JWT_SECRET`. |
 | Container reinicia dizendo `DATABASE_URL` ausente | Configure a URL completa do PostgreSQL. |
 | Login informa banco indisponível | Verifique DNS interno, porta, usuário, senha, firewall e `DATABASE_SSL`. |
+| Login mostra `Failed query` ao consultar `users` | Confirme que `DATABASE_URL` aponta para o mesmo banco usado pelo deploy, mantenha `RUN_MIGRATIONS=true`, faça redeploy do commit mais recente e verifique no log as colunas ausentes ou migrations pendentes. |
 | `ERR_MODULE_NOT_FOUND: Cannot find package 'vite' imported from /app/dist/index.js` | O serviço está usando um commit antigo ou um bundle antigo que importava Vite. Faça redeploy do commit corrigido mais recente; o entrypoint de produção agora não importa Vite. |
 | Health check falha | Use porta `8978`, caminho `/health` e protocolo HTTP interno. |
 | Upload retorna 404 | Confirme o volume em `/data/storage` e a variável `STORAGE_DIR`. |

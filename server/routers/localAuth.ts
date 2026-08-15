@@ -47,11 +47,20 @@ export const localAuthRouter = router({
       throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
     }
 
-    const [account] = await database
-      .select()
-      .from(users)
-      .where(sql`lower(${users.email}) = ${email}`)
-      .limit(1);
+    let account;
+    try {
+      [account] = await database
+        .select()
+        .from(users)
+        .where(sql`lower(${users.email}) = ${email}`)
+        .limit(1);
+    } catch (error) {
+      console.error("[Auth] Local login query failed; schema may be outdated", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "O banco está em uma versão antiga. Faça o deploy mais recente com RUN_MIGRATIONS=true.",
+      });
+    }
     const validPassword = Boolean(account?.passwordHash) && await verifyLocalPassword(input.password, account.passwordHash!);
     if (!account || !account.isActive || !validPassword) {
       registerFailedAttempt(email);
