@@ -199,6 +199,15 @@
     gap: 0.5rem;
   }
 
+  .media-list-compact .divide-y > article {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .media-list-compact .divide-y > article > button > p.mt-3 {
+    margin-top: 0.5rem;
+  }
+
   /* Compatibilidade: módulos antigos que ainda usam divisórias são exibidos como itens independentes. */
   .divide-y.divide-border {
     display: grid;

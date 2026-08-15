@@ -3,6 +3,14 @@
 **Data:** 15/08/2026  
 **Objetivo:** consolidar cantos de 10 px e itens de lista visualmente independentes no Marketing HUB.
 
+## Complemento — ficha detalhada de Empresas
+
+| Rota validada | Desktop | Resultado visual | Observações |
+| --- | --- | --- | --- |
+| `/empresas/2` | 1280 × 720 e 375 × 812 | Aprovado | Cabeçalho com logotipo, título, tags e ações; métricas; detalhes; documentos e vínculos territoriais em blocos separados. Em celular, os blocos passam a uma coluna sem sobreposição ou perda de controles. Dados ausentes permanecem identificados como “Não informado”. |
+
+> A rota foi validada com uma Empresa existente. A composição preserva a hierarquia adotada na ficha de Ações e não exibe a paleta de cores na experiência de leitura.
+
 ## Padrões globais aplicados
 
 | Elemento | Padrão aplicado | Implementação principal |
@@ -27,13 +35,29 @@
 | Configurações | `client/src/pages/SettingsWorkspace.tsx` | Global + módulo | Entradas administrativas apresentam cartões independentes e cantos padronizados |
 | Configurações | `client/src/pages/UserAdministrationWorkspace.tsx` | Global + módulo | Pessoas, permissões e controles mantêm separação visual em telas estreitas |
 
+## Modo compacto persistente
+
+> A preferência é única por navegador e é compartilhada entre os módulos cobertos. Ela é gravada em `marketing_hub_list_density` e sincronizada entre abas pelo evento `marketing-hub:list-density-change`.
+
+| Módulo | Rota principal | Controle ao lado de Filtros | Efeito aplicado |
+| --- | --- | --- | --- |
+| Campanhas | `/campanhas` | Sim | Reduz os espaçamentos verticais e internos dos itens de campanha. |
+| Ações | `/acoes` | Sim | Reduz o espaçamento entre cartões e a altura interna dos itens operacionais. |
+| Eventos | `/eventos` | Sim | Mantém filtros recolhíveis e reduz espaçamentos entre e dentro dos cartões de evento. |
+| Empresas | `/cadastros/empresas` | Sim | Compacta a seleção de empresas sem retirar logotipo, métricas ou atalho para a ficha. |
+| Mídia Urbana | `/midias/urbana` | Sim | Compacta a relação de pontos de mídia, preservando os controles de detalhes e agendamento. |
+
+As interfaces Financeiro e Notificações foram mantidas fora do alcance desta preferência nesta rodada: a primeira depende prioritariamente de relações tabulares e a segunda é uma fila curta de alertas, sem o mesmo padrão de lista operacional de alto volume. A decisão evita compactar tabelas e notificações sem uma revisão específica de legibilidade.
+
+As regressões automatizadas cobrem a leitura inicial da preferência em todos os módulos incluídos: `client/src/pages/ActionsEventsWorkspace.test.tsx` valida o fluxo cruzado Eventos → Ações; `CampaignsWorkspace.density.test.tsx`, `CompaniesWorkspace.test.tsx` e `MediaWorkspace.test.tsx` confirmam a leitura inicial em Campanhas, Empresas e Mídia Urbana, respectivamente.
+
 ## Matriz de revisão visual
 
 | Área | Rota revisada | Desktop | Celular | Resultado |
 | --- | --- | --- | --- | --- |
 | Campanhas | `/campanhas` | Lista com cartões separados e dados compactos | Conteúdo mantém leitura sem sobreposição | Aprovado |
 | Ações | `/acoes` | Itens separados e controles preservados | Metadados e ações adaptados | Aprovado |
-| Eventos | `/eventos` | Registros separados e pós-evento preservado | Cartões e filtros legíveis | Aprovado |
+| Eventos | `/eventos` | Registros separados, filtros recolhíveis e modo compacto preservado | Cartões, filtros e ações empilham sem extravasamento | Aprovado |
 | Empresas | `/empresas` | Seleção em itens individuais | Logotipo, dados e ação “Ver ficha” legíveis | Aprovado |
 | Estoque | `/estoque` | Itens e posição de estoque separados | Ações reorganizadas em grade móvel; sem extravasamento | Aprovado |
 | Financeiro | `/financeiro` | Blocos de planejamento, custos e notas separados | Campos e controles mantêm leitura vertical | Aprovado |

@@ -29,7 +29,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CompaniesWorkspace from "./CompaniesWorkspace";
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); window.history.pushState({}, "", "/empresas"); });
+afterEach(() => { cleanup(); localStorage.removeItem("marketing_hub_list_density"); vi.clearAllMocks(); window.history.pushState({}, "", "/empresas"); });
 
 describe("workspace Empresas", () => {
   it("exibe Empresas como itens independentes e organizados na lista", () => {
@@ -40,16 +40,28 @@ describe("workspace Empresas", () => {
     expect(screen.getByRole("button", { name: /Ver ficha/ })).toBeInTheDocument();
   });
 
+  it("lê a preferência compacta no primeiro render da lista de Empresas", () => {
+    localStorage.setItem("marketing_hub_list_density", "compact");
+    render(<CompaniesWorkspace />);
+
+    expect(screen.getByRole("button", { name: "Compacto" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("heading", { name: "Cluster MG" }).closest("button")).toHaveClass("p-3");
+  });
+
   it("mostra ficha detalhada, persiste dados e permite incluir documentos complementares", async () => {
     window.history.pushState({}, "", "/empresas/1");
     updateProvider.mockResolvedValue(provider);
     uploadProviderDocument.mockResolvedValue({ id: 9, providerId: 1, title: "Certidão", url: "https://example.com/certidao.pdf", originalName: "certidao.pdf", mimeType: "application/pdf", sizeBytes: 100, createdAt: new Date() });
     render(<CompaniesWorkspace />);
     expect(screen.getByRole("button", { name: /Voltar para Empresas/i })).toBeInTheDocument();
-    expect(screen.getByText("Dados cadastrais")).toBeInTheDocument();
+    expect(screen.getByText("Detalhes cadastrais")).toBeInTheDocument();
     expect(screen.getAllByText("Não informado").length).toBeGreaterThan(0);
     expect(screen.getByText("Cartão CNPJ")).toBeInTheDocument();
-    expect(screen.getByText("Outros documentos")).toBeInTheDocument();
+    expect(screen.getByText("Demais documentos")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Central · MG-C/i })).toHaveAttribute("href", "/cadastros/regionais/2");
+    expect(screen.getByRole("link", { name: /Belo Horizonte · MG/i })).toHaveAttribute("href", "/cadastros/cidades/3");
+    expect(screen.getByRole("link", { name: /Loja Centro/i })).toHaveAttribute("href", "/cadastros/lojas/4");
+    expect(screen.getByRole("link", { name: /Fornecedor BH/i })).toHaveAttribute("href", "/cadastros/fornecedores/5");
 
     fireEvent.click(screen.getByRole("button", { name: "Editar empresa" }));
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));

@@ -54,6 +54,20 @@
 - [x] Registrar evidência explícita de que os cantos de 10 px e as listas revisadas não causaram regressões fora de Campanhas, Ações, Eventos e Empresas.
 - [x] Auditar por código as listas de Gestão, Mídias, Cadastros e Configurações, registrando os arquivos que adotam o padrão de itens separados.
 - [x] Registrar uma matriz de validação visual por rota e breakpoint, com os ajustes aplicados em cada módulo analisado.
+- [x] Mapear os controles de filtros das listas e definir o alcance persistente do modo compacto.
+- [x] Adicionar o controle de modo compacto ao lado de Filtros nas listas aplicáveis, mantendo a escolha do usuário entre sessões.
+- [x] Reestruturar a ficha de Empresa para refletir o cabeçalho de Ações, com logotipo, título, tags, botões e blocos de detalhes.
+- [x] Melhorar a visualização de regionais, cidades, lojas e demais vínculos da Empresa em seções separadas e navegáveis.
+- [x] Remover a seção visual de cores da ficha de Empresa, destacar Manual da marca e reorganizar os demais documentos.
+- [x] Cobrir modo compacto e ficha de Empresa com testes e validação responsiva.
+- [x] Aplicar ou documentar explicitamente o modo compacto em todos os módulos com botão de Filtros e testar a persistência por página.
+- [x] Tornar os blocos de vínculos da Empresa navegáveis para fichas de Regionais, Cidades, Lojas e entidades relacionadas, com teste de interface.
+- [x] Integrar CompactListToggle na lista de Eventos, junto aos filtros, e refletir a densidade compacta nos espaçamentos e cartões.
+- [x] Criar regressões de interface para o controle compacto de Eventos e a persistência da preferência entre módulos.
+- [x] Documentar os módulos cobertos pelo modo compacto e seu escopo na auditoria visual.
+- [x] Validar em teste de interface que a preferência compacta salva em Eventos é lida na primeira renderização de outro módulo coberto.
+- [x] Adicionar regressões de persistência inicial do modo compacto em Campanhas, Empresas e Mídia Urbana.
+- [x] Vincular ao checklist a exclusão intencional de Financeiro e Notificações do modo compacto nesta rodada, documentada na auditoria visual.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.

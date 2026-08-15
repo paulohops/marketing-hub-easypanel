@@ -25,7 +25,7 @@ vi.mock("@/components/EvidenceUpload", () => ({ default: ({ variant }: { variant
 import ActionsWorkspace from "./ActionsWorkspace";
 import EventsWorkspace from "./EventsWorkspace";
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); localStorage.removeItem("marketing_hub_list_density"); vi.clearAllMocks(); });
 beforeEach(() => { actionListQuery.mockReturnValue({ data: [], isLoading: false }); eventListQuery.mockReturnValue({ data: [], isLoading: false }); });
 
 function selectMultiple(label: string, option: string) {
@@ -98,6 +98,36 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByText("Blitz Financeira")).toBeInTheDocument();
     expect(screen.getByText("itens e serviços")).toBeInTheDocument();
     expect(screen.queryByText("saldo")).not.toBeInTheDocument();
+  });
+
+  it("mantém filtros recolhíveis e aplica a densidade compacta aos cartões de eventos", () => {
+    localStorage.removeItem("marketing_hub_list_density");
+    eventListQuery.mockReturnValue({ data: [{ event: { id: 28, cityId: 1, name: "Feira Regional", status: "planned", partnershipType: "paid", startsAt: new Date("2026-08-20T10:00:00Z"), endsAt: null, estimatedCost: "300", rating: null, worthRenewing: null }, cityName: "Belo Horizonte", eventTypeName: "Feira", supervisorName: null, teamMembers: [], stockItems: [], finance: { estimatedAmount: 300, paidAmount: 0, remainingAmount: 300 } }], isLoading: false });
+    render(<EventsWorkspace />);
+
+    expect(screen.queryByLabelText("Filtrar eventos por regional")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
+    expect(screen.getByLabelText("Filtrar eventos por regional")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filtrar eventos por cidade")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Modo compacto" }));
+    expect(localStorage.getItem("marketing_hub_list_density")).toBe("compact");
+    expect(screen.getByRole("button", { name: "Compacto" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Feira Regional").closest("article")).toHaveAttribute("data-density", "compact");
+  });
+
+  it("aplica em Ações a preferência compacta escolhida anteriormente em Eventos", () => {
+    eventListQuery.mockReturnValue({ data: [{ event: { id: 29, cityId: 1, name: "Feira de Persistência", status: "planned", partnershipType: "paid", startsAt: new Date("2026-08-20T10:00:00Z"), endsAt: null, estimatedCost: "300", rating: null, worthRenewing: null }, cityName: "Belo Horizonte", eventTypeName: "Feira", supervisorName: null, teamMembers: [], stockItems: [], finance: { estimatedAmount: 300, paidAmount: 0, remainingAmount: 300 } }], isLoading: false });
+    const eventView = render(<EventsWorkspace />);
+    fireEvent.click(screen.getByRole("button", { name: "Modo compacto" }));
+    expect(localStorage.getItem("marketing_hub_list_density")).toBe("compact");
+    eventView.unmount();
+
+    actionListQuery.mockReturnValue({ data: [{ action: { id: 30, cityId: 1, name: "Blitz Compacta", status: "planned", partnershipType: "paid", scheduledFor: new Date("2026-08-20T10:00:00Z"), endsAt: null, estimatedCost: "300", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null, finance: { estimatedAmount: 300, paidAmount: 0, remainingAmount: 300 } }], isLoading: false });
+    render(<ActionsWorkspace />);
+
+    expect(screen.getByRole("button", { name: "Compacto" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Blitz Compacta").closest("button")).toHaveClass("min-h-[112px]", "py-3");
   });
 
   it("envia custos, parceria, vínculos e recursos ao planejar um evento", () => {

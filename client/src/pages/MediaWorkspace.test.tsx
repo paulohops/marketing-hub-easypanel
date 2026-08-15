@@ -49,9 +49,19 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import MediaWorkspace from "./MediaWorkspace";
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); window.history.replaceState({}, "", "/midias"); window.dispatchEvent(new PopStateEvent("popstate")); });
+afterEach(() => { cleanup(); localStorage.removeItem("marketing_hub_list_density"); vi.clearAllMocks(); window.history.replaceState({}, "", "/midias"); window.dispatchEvent(new PopStateEvent("popstate")); });
 
 describe("detalhe de mídias", () => {
+  it("lê a preferência compacta no primeiro render da Mídia Urbana", () => {
+    localStorage.setItem("marketing_hub_list_density", "compact");
+    listQuery.mockReturnValue({ data: [], isLoading: false });
+    detailQuery.mockReturnValue({ data: undefined, isLoading: false });
+    const { container } = render(<MediaWorkspace initialCategory="graphics" />);
+
+    expect(screen.getByRole("button", { name: "Compacto" })).toHaveAttribute("aria-pressed", "true");
+    expect(container.firstElementChild).toHaveClass("media-list-compact");
+  });
+
   it("abre a criação de ponto em modal, sem expandir o formulário na cobertura", () => {
     listQuery.mockReturnValue({ data: [], isLoading: false });
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
