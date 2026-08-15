@@ -37,7 +37,7 @@ describe("workspace Empresas", () => {
     expect(screen.getByRole("heading", { name: "Empresas" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cluster MG" })).toBeInTheDocument();
     expect(screen.getByText("Cluster MG LTDA")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Ver ficha/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Abrir ficha completa/ })).toBeInTheDocument();
   });
 
   it("lê a preferência compacta no primeiro render da lista de Empresas", () => {
@@ -74,5 +74,27 @@ describe("workspace Empresas", () => {
     fireEvent.change(screen.getByLabelText("Arquivo"), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Adicionar documento" }));
     await waitFor(() => expect(uploadProviderDocument).toHaveBeenCalledWith(expect.objectContaining({ providerId: 1, title: "Certidão", originalName: "certidao.pdf" })));
+  });
+
+  it("preserva a ficha detalhada na rota Cadastros → Território → Empresas", () => {
+    window.history.pushState({}, "", "/cadastros/empresas/1");
+
+    render(<CompaniesWorkspace />);
+
+    expect(screen.getByRole("button", { name: /Voltar para Empresas/i })).toBeInTheDocument();
+    expect(screen.getByText("Detalhes cadastrais")).toBeInTheDocument();
+    expect(screen.getByText("Documentos institucionais")).toBeInTheDocument();
+    expect(screen.getByText("Demais documentos")).toBeInTheDocument();
+  });
+
+  it("abre a ficha completa a partir da lista de Empresas dentro de Cadastros", async () => {
+    window.history.pushState({}, "", "/cadastros/empresas");
+
+    render(<CompaniesWorkspace />);
+    fireEvent.click(screen.getByRole("button", { name: /Abrir ficha completa/i }));
+
+    await waitFor(() => expect(window.location.pathname).toBe("/cadastros/empresas/1"));
+    expect(screen.getByText("Detalhes cadastrais")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Voltar para Empresas/i })).toBeInTheDocument();
   });
 });

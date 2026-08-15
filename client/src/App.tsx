@@ -30,6 +30,8 @@ function Router() {
     <Route path="/eventos/:eventId">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
+    <Route path="/cadastros/empresas/:providerId">{() => <ProtectedModule module="empresas" />}</Route>
+    <Route path="/cadastros/empresas">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/cadastros/:entity/:id">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros/modelos-acoes">{() => <ProtectedModule module="modelos-acao" />}</Route>
     <Route path="/cadastros/modelos">{() => <ProtectedModule module="modelos-campanha" />}</Route>

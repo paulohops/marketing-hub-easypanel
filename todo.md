@@ -68,6 +68,11 @@
 - [x] Validar em teste de interface que a preferência compacta salva em Eventos é lida na primeira renderização de outro módulo coberto.
 - [x] Adicionar regressões de persistência inicial do modo compacto em Campanhas, Empresas e Mídia Urbana.
 - [x] Vincular ao checklist a exclusão intencional de Financeiro e Notificações do modo compacto nesta rodada, documentada na auditoria visual.
+- [x] Inspecionar o fluxo Cadastros → Território → Empresas e identificar por que ele ainda apresenta a experiência anterior.
+- [x] Redesenhar a lista de Empresas dentro de Território com leitura de identidade, indicadores, status e acesso inequívoco à ficha completa.
+- [x] Consolidar a ficha detalhada de Empresa nesse mesmo fluxo, com cabeçalho, dados cadastrais, documentos, cobertura territorial e vínculos navegáveis.
+- [x] Cobrir o fluxo territorial de Empresas com testes de interface e revisão responsiva em desktop e celular.
+- [x] Cobrir em teste a abertura da ficha completa a partir da lista de Empresas dentro de Cadastros.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.
