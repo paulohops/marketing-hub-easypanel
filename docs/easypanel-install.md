@@ -98,6 +98,7 @@ O volume `/data/storage` e o serviço PostgreSQL devem ser preservados durante a
 | Container reinicia dizendo `JWT_SECRET` ausente | Adicione um segredo não vazio em `JWT_SECRET`. |
 | Container reinicia dizendo `DATABASE_URL` ausente | Configure a URL completa do PostgreSQL. |
 | Login informa banco indisponível | Verifique DNS interno, porta, usuário, senha, firewall e `DATABASE_SSL`. |
+| `ERR_MODULE_NOT_FOUND: Cannot find package 'vite' imported from /app/dist/index.js` | O serviço está usando um commit antigo ou um bundle antigo que importava Vite. Faça redeploy do commit corrigido mais recente; o entrypoint de produção agora não importa Vite. |
 | Health check falha | Use porta `3000`, caminho `/health` e protocolo HTTP interno. |
 | Upload retorna 404 | Confirme o volume em `/data/storage` e a variável `STORAGE_DIR`. |
 | Upload funciona, mas arquivo some após redeploy | O volume não está persistente ou está montado em caminho diferente. |
