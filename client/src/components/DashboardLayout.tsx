@@ -198,7 +198,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarHeader className="flex-row items-center gap-1 px-3 pb-3 pt-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <button onClick={() => setLocation("/")} className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden">
           <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-sidebar-accent p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
-            <img src="/manus-storage/cluster-mg-logo_947e1614.png" alt="Cluster MG" className="h-full w-full object-contain" />
+            <img src="/brand/logo.svg" alt="Cluster MG" className="h-full w-full object-contain" />
           </span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
             <span className="block whitespace-nowrap font-display text-[0.9rem] font-extrabold leading-tight tracking-tight">MARKETING HUB</span>

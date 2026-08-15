@@ -1,27 +1,34 @@
-import { eq } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { InsertUser, users } from "../drizzle/schema";
+import { users, type InsertUser } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let pool: Pool | null = null;
 let db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
-  const connectionString = process.env.POSTGRES_URL;
+  const connectionString = ENV.databaseUrl;
   if (!connectionString) {
-    console.warn("[Database] POSTGRES_URL is not configured");
+    console.warn("[Database] DATABASE_URL is not configured");
     return null;
   }
 
   if (!db) {
+    const sslEnabled = process.env.DATABASE_SSL === "true";
     pool = new Pool({
       connectionString,
-      max: 8,
+      max: Number(process.env.DATABASE_POOL_MAX ?? 8),
       idleTimeoutMillis: 30_000,
-      ssl: { rejectUnauthorized: true },
+      ...(sslEnabled
+        ? {
+            ssl: {
+              rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
+            },
+          }
+        : {}),
     });
+    pool.on("error", error => console.error("[Database] Pool error", error));
     db = drizzle(pool);
   }
 

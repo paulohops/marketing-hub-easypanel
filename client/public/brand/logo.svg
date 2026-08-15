@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Trade HUB</title>
+  <desc id="desc">Marca geométrica verde do Trade HUB</desc>
+  <rect width="128" height="128" rx="26" fill="#f5fff8"/>
+  <path d="M24 32h80v18H76v46H52V50H24z" fill="#0e723b"/>
+  <path d="M84 71c0-10 8-18 18-18h2v18h-2a9 9 0 0 0-9 9v16H75V80c0-5 4-9 9-9z" fill="#d1f06b"/>
+</svg>

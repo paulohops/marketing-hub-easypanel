@@ -12,7 +12,7 @@ async function requireDatabase() { const database = await getDb(); if (!database
 
 const allocationSchema = z.object({ stockItemId: z.number().int().positive(), quantity: z.coerce.number().int().positive().max(99999999) });
 const serviceAllocationSchema = z.object({ serviceTypeId: z.number().int().positive(), supplierOfferingId: z.number().int().positive().nullable().optional(), estimatedAmount: z.coerce.number().finite().min(0).max(99999999999) });
-const evidenceUrlSchema = z.string().trim().min(1).max(2_000).refine(value => value.startsWith("/manus-storage/") || /^https?:\/\//i.test(value), "Endereço de evidência inválido.");
+const evidenceUrlSchema = z.string().trim().min(1).max(2_000).refine(value => value.startsWith("/uploads/") || value.startsWith("/manus-storage/") || /^https?:\/\//i.test(value), "Endereço de evidência inválido.");
 const actionTemplateInput = z.object({ id: z.number().int().positive().optional(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(3000).optional(), objective: z.string().trim().max(3000).optional(), defaultActionTypeId: z.number().int().positive().nullable(), defaultPartnershipType: z.enum(["paid", "barter", "mixed"]), defaultDurationHours: z.coerce.number().int().min(1).max(24 * 30).nullable(), active: z.boolean() });
 
 async function calculateActionTotal(database: any, serviceAllocations: Array<{ estimatedAmount: number }>, stockAllocations: Array<{ stockItemId: number; quantity: number }>) {

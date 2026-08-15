@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+dist
+.git
+.github
+.env
+.env.*
+*.log
+coverage
+.vscode
+.idea
+.webdev
+.manus-logs
+client/public/__manus__

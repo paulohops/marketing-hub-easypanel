@@ -31,7 +31,10 @@ function registerFailedAttempt(email: string) {
 function assertNotRateLimited(email: string) {
   const current = attemptsByEmail.get(email);
   if (current && current.until > Date.now() && current.attempts >= MAX_ATTEMPTS) {
-    throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente." });
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
+    });
   }
 }
 
@@ -40,9 +43,15 @@ export const localAuthRouter = router({
     const email = input.email.toLowerCase();
     assertNotRateLimited(email);
     const database = await getDb();
-    if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
+    if (!database) {
+      throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
+    }
 
-    const [account] = await database.select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1);
+    const [account] = await database
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .limit(1);
     const validPassword = Boolean(account?.passwordHash) && await verifyLocalPassword(input.password, account.passwordHash!);
     if (!account || !account.isActive || !validPassword) {
       registerFailedAttempt(email);
@@ -52,7 +61,10 @@ export const localAuthRouter = router({
     attemptsByEmail.delete(email);
     const signedInAt = new Date();
     await database.update(users).set({ lastSignedIn: signedInAt, updatedAt: signedInAt }).where(eq(users.id, account.id));
-    const token = await sdk.createSessionToken(account.openId, { name: account.name || "Trade HUB", expiresInMs: ONE_YEAR_MS });
+    const token = await sdk.createSessionToken(account.openId, {
+      name: account.name || "Trade HUB",
+      expiresInMs: ONE_YEAR_MS,
+    });
     ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
     return { success: true } as const;
   }),
