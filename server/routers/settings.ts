@@ -386,7 +386,7 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(supplierOfferings).where(eq(supplierOfferings.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Oferta não encontrada." }); const [updated] = await database.update(supplierOfferings).set({ kind: input.kind, name: input.name, unit: input.unit, unitPrice: input.unitPrice.toFixed(2), notes: input.notes || null, updatedAt: new Date() }).where(eq(supplierOfferings.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_offering", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  setRegistryActive: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive(), active: z.boolean() })).mutation(async ({ ctx, input }) => {
+  setRegistryActive: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "store", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive(), active: z.boolean() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const now = new Date();
@@ -394,6 +394,7 @@ export const settingsRouter = router({
       case "provider": await database.update(providers).set({ active: input.active }).where(eq(providers.id, input.id)); break;
       case "regional": await database.update(regionals).set({ active: input.active }).where(eq(regionals.id, input.id)); break;
       case "city": await database.update(cities).set({ active: input.active }).where(eq(cities.id, input.id)); break;
+      case "store": await database.update(stores).set({ active: input.active, updatedAt: now }).where(eq(stores.id, input.id)); break;
       case "supplier": await database.update(suppliers).set({ active: input.active, updatedAt: now }).where(eq(suppliers.id, input.id)); break;
       case "partner": await database.update(partners).set({ active: input.active }).where(eq(partners.id, input.id)); break;
       case "supervisor": await database.update(commercialSupervisors).set({ active: input.active, updatedAt: now }).where(eq(commercialSupervisors.id, input.id)); break;
@@ -410,10 +411,10 @@ export const settingsRouter = router({
     return { success: true } as const;
   }),
 
-  deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+  deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "store", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
-    const tables = { provider: providers, regional: regionals, city: cities, supplier: suppliers, partner: partners, supervisor: commercialSupervisors, service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors, financial_category: financialCategories, supplier_offering: supplierOfferings } as const;
+    const tables = { provider: providers, regional: regionals, city: cities, store: stores, supplier: suppliers, partner: partners, supervisor: commercialSupervisors, service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors, financial_category: financialCategories, supplier_offering: supplierOfferings } as const;
     const table = tables[input.kind];
     const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });

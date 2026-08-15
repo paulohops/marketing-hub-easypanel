@@ -40,6 +40,7 @@ type Panel =
   | "provider"
   | "regional"
   | "city"
+  | "store"
   | "supplier"
   | "partner"
   | "supervisor"
@@ -52,7 +53,7 @@ type Panel =
   | "financial_category"
   | "action_point";
 type Row = { id: number; name: string; active: boolean; detail?: string };
-type RegistryGroup = "Lojas e localidade" | "Parceiros" | "Operação";
+type RegistryGroup = "Território" | "Parceiros" | "Operação" | "Categorias" | "Financeiro" | "Modelos";
 
 const cards: Array<{
   key: Panel;
@@ -61,105 +62,20 @@ const cards: Array<{
   icon: typeof Building2;
   group: RegistryGroup;
 }> = [
-  {
-    key: "provider",
-    title: "Empresas",
-    description: "Faturamento, CNPJ, contatos e vínculo territorial.",
-    icon: Building2,
-    group: "Lojas e localidade",
-  },
-  {
-    key: "regional",
-    title: "Regionais",
-    description: "Estrutura territorial, código e empresa responsável.",
-    icon: MapPinned,
-    group: "Lojas e localidade",
-  },
-  {
-    key: "city",
-    title: "Cidades",
-    description: "UF, endereço, CEP e coordenadas de localização.",
-    icon: Store,
-    group: "Lojas e localidade",
-  },
-  {
-    key: "supplier",
-    title: "Fornecedores e preços",
-    description: "Cobertura, ofertas, preços e capacidades contratáveis.",
-    icon: Handshake,
-    group: "Parceiros",
-  },
-  {
-    key: "partner",
-    title: "Parceiros",
-    description: "Parceiros comerciais e institucionais ativos.",
-    icon: Handshake,
-    group: "Parceiros",
-  },
-  {
-    key: "supervisor",
-    title: "Supervisores comerciais",
-    description:
-      "Pessoas disponíveis para liderar ações e eventos no território.",
-    icon: Store,
-    group: "Parceiros",
-  },
-  {
-    key: "campaign",
-    title: "Tipos",
-    description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.",
-    icon: Megaphone,
-    group: "Operação",
-  },
-  {
-    key: "campaign_sector",
-    title: "Setores",
-    description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.",
-    icon: Settings2,
-    group: "Operação",
-  },
-  {
-    key: "action",
-    title: "Tipos de ação",
-    description: "Categorias configuráveis para ações de trade.",
-    icon: Megaphone,
-    group: "Operação",
-  },
-  {
-    key: "action_point",
-    title: "Pontos de ação",
-    description: "Locais recorrentes para planejar, comparar e avaliar ações de trade.",
-    icon: MapPinned,
-    group: "Operação",
-  },
-  {
-    key: "event",
-    title: "Tipos de evento",
-    description: "Categorias configuráveis para a agenda de eventos.",
-    icon: CalendarDays,
-    group: "Operação",
-  },
-  {
-    key: "media",
-    title: "Tipos de mídia",
-    description: "Canais e formatos de mídia usados no território.",
-    icon: Radio,
-    group: "Operação",
-  },
-  {
-    key: "service",
-    title: "Serviços",
-    description: "Serviços contratáveis de fornecedores e parceiros.",
-    icon: Wrench,
-    group: "Operação",
-  },
-  {
-    key: "financial_category",
-    title: "Categorias financeiras",
-    description: "Classificações de planejamento e controle de verba.",
-    icon: ReceiptText,
-    group: "Operação",
-  },
+  { key: "provider", title: "Empresas", description: "Faturamento, CNPJ, contatos e vínculo territorial.", icon: Building2, group: "Território" },
+  { key: "regional", title: "Regionais", description: "Estrutura territorial, código e empresa responsável.", icon: MapPinned, group: "Território" },
+  { key: "city", title: "Cidades", description: "UF, endereço, CEP e coordenadas de localização.", icon: Store, group: "Território" },
+  { key: "store", title: "Lojas", description: "Unidades de atendimento, localização, horário e responsáveis comerciais.", icon: Store, group: "Território" },
+  { key: "action_point", title: "Pontos de ação", description: "Locais recorrentes para planejar, comparar e avaliar ações de trade.", icon: MapPinned, group: "Território" },
+  { key: "supplier", title: "Fornecedores", description: "Cobertura, ofertas, preços e capacidades contratáveis.", icon: Handshake, group: "Parceiros" },
+  { key: "partner", title: "Parceiros comerciais", description: "Parceiros comerciais e institucionais ativos.", icon: Handshake, group: "Parceiros" },
+  { key: "supervisor", title: "Supervisores comerciais", description: "Pessoas disponíveis para liderar ações e eventos no território.", icon: Store, group: "Parceiros" },
+  { key: "campaign", title: "Atuação", description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.", icon: Megaphone, group: "Operação" },
+  { key: "campaign_sector", title: "Setores", description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.", icon: Settings2, group: "Operação" },
+  { key: "service", title: "Serviços", description: "Serviços contratáveis de fornecedores e parceiros.", icon: Wrench, group: "Operação" },
+  { key: "action", title: "Tipos de ação", description: "Categorias configuráveis para ações de trade.", icon: Megaphone, group: "Categorias" },
+  { key: "event", title: "Tipos de evento", description: "Categorias configuráveis para a agenda de eventos.", icon: CalendarDays, group: "Categorias" },
+  { key: "media", title: "Tipos de mídia", description: "Canais e formatos de mídia usados no território.", icon: Radio, group: "Categorias" },
 ];
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -211,6 +127,7 @@ export default function OperationalRegistriesPanel() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [openingHours, setOpeningHours] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -271,6 +188,12 @@ export default function OperationalRegistriesPanel() {
   );
   const updateCity = trpc.settings.updateCity.useMutation(
     feedback("Cidade atualizada.")
+  );
+  const createStore = trpc.settings.createStore.useMutation(
+    feedback("Loja cadastrada.")
+  );
+  const updateStore = trpc.settings.updateStore.useMutation(
+    feedback("Loja atualizada.")
   );
   const createPartner = trpc.settings.createPartner.useMutation(
     feedback("Parceiro cadastrado.")
@@ -412,6 +335,7 @@ export default function OperationalRegistriesPanel() {
     setEmail("");
     setPhone("");
     setAddress("");
+    setOpeningHours("");
     setZipCode("");
     setLatitude("");
     setLongitude("");
@@ -428,8 +352,8 @@ export default function OperationalRegistriesPanel() {
     setSupervisorStoreIds([]);
   };
   useEffect(() => {
-    const requested = new URLSearchParams(location.split("?")[1] ?? "").get("novo");
-    const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "tipos-de-campanha": "campaign", "setores-de-campanha": "campaign_sector", "categorias-financeiras": "financial_category" };
+    const requested = new URLSearchParams(window.location.search).get("novo");
+    const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", lojas: "store", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "tipos-de-campanha": "campaign", "setores-de-campanha": "campaign_sector", "categorias-financeiras": "financial_category" };
     const target = requested ? panelBySlug[requested] : undefined;
     if (!target || handledCreateIntent.current === requested) return;
     handledCreateIntent.current = requested;
@@ -453,6 +377,8 @@ export default function OperationalRegistriesPanel() {
     updateRegional.isPending ||
     createCity.isPending ||
     updateCity.isPending ||
+    createStore.isPending ||
+    updateStore.isPending ||
     createPartner.isPending ||
     updatePartner.isPending ||
     createCommercialSupervisor.isPending ||
@@ -495,6 +421,16 @@ export default function OperationalRegistriesPanel() {
         active: item.active,
         detail: `${item.state}${item.address ? ` · ${item.address}` : ""}`,
       }));
+    if (panel === "store")
+      return data.stores.map(item => {
+        const city = data.cities.find(cityItem => cityItem.id === item.cityId);
+        return {
+          id: item.id,
+          name: item.name,
+          active: item.active,
+          detail: `${item.code}${city ? ` · ${city.name}/${city.state}` : ""}`,
+        };
+      });
     if (panel === "supplier")
       return data.suppliers.map(item => ({
         id: item.id,
@@ -576,6 +512,22 @@ export default function OperationalRegistriesPanel() {
       setLatitude(toStringValue(item.latitude));
       setLongitude(toStringValue(item.longitude));
       setLocationNotes(item.locationNotes ?? "");
+      return;
+    }
+    if (panel === "store") {
+      const item = data.stores.find(row => row.id === id);
+      if (!item) return;
+      setName(item.name);
+      setCode(item.code);
+      setRegistryCityId(String(item.cityId));
+      setAddress(item.address ?? "");
+      setLocationNotes(item.referencePoint ?? "");
+      setZipCode(item.zipCode ?? "");
+      setPhone(item.phone ?? "");
+      setEmail(item.email ?? "");
+      setOpeningHours(item.openingHours ?? "");
+      setLatitude(toStringValue(item.latitude));
+      setLongitude(toStringValue(item.longitude));
       return;
     }
     if (panel === "partner") {
@@ -675,6 +627,24 @@ export default function OperationalRegistriesPanel() {
       return editingId
         ? updateCity.mutate({ id: editingId, ...payload })
         : createCity.mutate(payload);
+    }
+    if (panel === "store") {
+      const payload = {
+        cityId: Number(registryCityId),
+        name,
+        code,
+        address: address || undefined,
+        referencePoint: locationNotes || undefined,
+        zipCode: zipCode || undefined,
+        phone: phone || undefined,
+        email: email || undefined,
+        openingHours: openingHours || undefined,
+        latitude: latitude ? Number(latitude.replace(",", ".")) : null,
+        longitude: longitude ? Number(longitude.replace(",", ".")) : null,
+      };
+      return editingId
+        ? updateStore.mutate({ id: editingId, ...payload })
+        : createStore.mutate(payload);
     }
     if (panel === "partner")
       return editingId
@@ -819,10 +789,10 @@ export default function OperationalRegistriesPanel() {
         </Badge>
       </div>
       <div className="mt-6 space-y-8">
-        {(["Lojas e localidade", "Parceiros", "Operação"] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
+        {(["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
           <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.filter(card => card.group === group).map(card => {
+        {group === "Financeiro" ? <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-5 sm:col-span-2 xl:col-span-3"><p className="font-semibold text-foreground">Planejamento financeiro</p><p className="mt-1 text-sm text-muted-foreground">Os cadastros e parâmetros financeiros serão estruturados na próxima etapa do Marketing HUB.</p></div> : cards.filter(card => card.group === group).map(card => {
           const Icon = card.icon;
           return (
             <button
@@ -833,7 +803,7 @@ export default function OperationalRegistriesPanel() {
                   setLocation("/pontos-de-acao");
                   return;
                 }
-                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
+                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
                 setLocation(`/cadastros/${paths[card.key] ?? ""}`);
               }}
               className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -863,7 +833,7 @@ export default function OperationalRegistriesPanel() {
             <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Gerenciar influencers <Plus className="ml-1 h-3.5 w-3.5" /></span>
           </button>
         )}
-        {group === "Operação" && (
+        {group === "Modelos" && (
           <>
             <button
               type="button"
@@ -1038,6 +1008,8 @@ export default function OperationalRegistriesPanel() {
                 setPhone={setPhone}
                 address={address}
                 setAddress={setAddress}
+                openingHours={openingHours}
+                setOpeningHours={setOpeningHours}
                 zipCode={zipCode}
                 setZipCode={setZipCode}
                 latitude={latitude}
@@ -1166,6 +1138,8 @@ function RegistryForm(props: {
   setPhone: (v: string) => void;
   address: string;
   setAddress: (v: string) => void;
+  openingHours: string;
+  setOpeningHours: (v: string) => void;
   zipCode: string;
   setZipCode: (v: string) => void;
   latitude: string;
@@ -1312,6 +1286,21 @@ function RegistryForm(props: {
             value={props.locationNotes}
             setValue={props.setLocationNotes}
           />
+        </>
+      ) : null}
+      {props.panel === "store" ? (
+        <>
+          <Field label="Código" id="store-code" value={props.code} setValue={value => props.setCode(value.toUpperCase())} />
+          <SelectField id="store-city" label="Cidade" value={props.registryCityId} onChange={props.setRegistryCityId} options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: `${item.name} · ${item.state}` }))} />
+          <Field label="Endereço" id="store-address" value={props.address} setValue={props.setAddress} />
+          <Field label="Ponto de referência" id="store-reference-point" value={props.locationNotes} setValue={props.setLocationNotes} />
+          <Field label="CEP" id="store-zip" value={props.zipCode} setValue={props.setZipCode} />
+          <Field label="Telefone" id="store-phone" value={props.phone} setValue={props.setPhone} />
+          <Field label="E-mail" id="store-email" value={props.email} setValue={props.setEmail} type="email" />
+          <Field label="Horário de funcionamento" id="store-opening-hours" value={props.openingHours} setValue={props.setOpeningHours} />
+          <Field label="Latitude" id="store-latitude" value={props.latitude} setValue={props.setLatitude} inputMode="decimal" />
+          <Field label="Longitude" id="store-longitude" value={props.longitude} setValue={props.setLongitude} inputMode="decimal" />
+          <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Após salvar, abra a ficha da loja para adicionar a foto e vincular seus supervisores comerciais.</p>
         </>
       ) : null}
       {provider ? (

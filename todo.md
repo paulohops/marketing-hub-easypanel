@@ -7,6 +7,14 @@
 - [x] Criar ficha específica de veiculação com campanha, objetivo, status, reagendamento, debriefing, evidências e histórico no padrão visual de Campanhas.
 - [x] Cobrir os novos vínculos e fluxos de ponto/veiculação com testes automatizados e validação responsiva.
 - [x] Validar visualmente as fichas de ponto e veiculação de Mídia Urbana nos breakpoints móvel e tablet, corrigindo quebras se identificadas.
+- [x] Reorganizar a central de Cadastros em Território, Parceiros, Operação, Categorias, Financeiro e Modelos, com os novos nomes definidos.
+- [x] Incluir Lojas no grupo Território e garantir sua criação, edição, visualização e exclusão segura.
+- [x] Revisar todos os domínios de Cadastro para corrigir rotas que retornam indevidamente à página inicial e procedimentos de criação indisponíveis.
+- [x] Criar ou atualizar testes automatizados para cada fluxo de cadastro e seus endpoints de criação, edição e navegação.
+- [x] Validar a reorganização de Cadastros em desktop e dispositivos móveis antes da publicação.
+- [x] Validar a exclusão segura de Lojas na ficha individual, incluindo o endpoint de remoção protegido.
+- [x] Auditar os procedimentos de criação dos demais domínios de Cadastros e corrigir eventuais falhas de rota ou endpoint.
+- [x] Ampliar a cobertura automatizada de criação, edição e navegação para cada domínio ativo de Cadastros.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.

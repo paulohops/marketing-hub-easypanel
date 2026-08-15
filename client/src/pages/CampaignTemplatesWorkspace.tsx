@@ -463,8 +463,9 @@ export default function CampaignTemplatesWorkspace() {
                       <div className="flex items-start gap-3">
                         <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
                           <div className="grid gap-1.5">
-                            <Label>Nome da promoção</Label>
+                            <Label htmlFor={`template-promotion-${promotionIndex}-name`}>Nome da promoção</Label>
                             <Input
+                              id={`template-promotion-${promotionIndex}-name`}
                               value={promotion.name}
                               onChange={event =>
                                 updatePromotion(promotionIndex, {
@@ -475,8 +476,9 @@ export default function CampaignTemplatesWorkspace() {
                             />
                           </div>
                           <div className="grid gap-1.5">
-                            <Label>Descrição</Label>
+                            <Label htmlFor={`template-promotion-${promotionIndex}-description`}>Descrição</Label>
                             <Input
+                              id={`template-promotion-${promotionIndex}-description`}
                               value={promotion.description}
                               onChange={event =>
                                 updatePromotion(promotionIndex, {
@@ -509,8 +511,9 @@ export default function CampaignTemplatesWorkspace() {
                             className="grid gap-3 rounded-lg bg-muted/40 p-3 md:grid-cols-[1.2fr_.75fr_.7fr_.6fr_1.2fr_auto]"
                           >
                             <div className="grid gap-1.5">
-                              <Label>Nome do plano</Label>
+                              <Label htmlFor={`template-promotion-${promotionIndex}-plan-${planIndex}-name`}>Nome do plano</Label>
                               <Input
+                                id={`template-promotion-${promotionIndex}-plan-${planIndex}-name`}
                                 value={plan.name}
                                 onChange={event =>
                                   updatePlan(promotionIndex, planIndex, {
@@ -521,8 +524,9 @@ export default function CampaignTemplatesWorkspace() {
                               />
                             </div>
                             <div className="grid gap-1.5">
-                              <Label>Velocidade</Label>
+                              <Label htmlFor={`template-promotion-${promotionIndex}-plan-${planIndex}-speed`}>Velocidade</Label>
                               <Input
+                                id={`template-promotion-${promotionIndex}-plan-${planIndex}-speed`}
                                 value={plan.speed}
                                 onChange={event =>
                                   updatePlan(promotionIndex, planIndex, {
@@ -532,8 +536,9 @@ export default function CampaignTemplatesWorkspace() {
                               />
                             </div>
                             <div className="grid gap-1.5">
-                              <Label>Valor</Label>
+                              <Label htmlFor={`template-promotion-${promotionIndex}-plan-${planIndex}-price`}>Valor</Label>
                               <Input
+                                id={`template-promotion-${promotionIndex}-plan-${planIndex}-price`}
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -547,8 +552,9 @@ export default function CampaignTemplatesWorkspace() {
                               />
                             </div>
                             <div className="grid gap-1.5">
-                              <Label>Mês</Label>
+                              <Label htmlFor={`template-promotion-${promotionIndex}-plan-${planIndex}-unit`}>Mês</Label>
                               <Input
+                                id={`template-promotion-${promotionIndex}-plan-${planIndex}-unit`}
                                 value={plan.unit}
                                 onChange={event =>
                                   updatePlan(promotionIndex, planIndex, {
@@ -558,8 +564,9 @@ export default function CampaignTemplatesWorkspace() {
                               />
                             </div>
                             <div className="grid gap-1.5">
-                              <Label>Detalhes</Label>
+                              <Label htmlFor={`template-promotion-${promotionIndex}-plan-${planIndex}-description`}>Detalhes</Label>
                               <Input
+                                id={`template-promotion-${promotionIndex}-plan-${planIndex}-description`}
                                 value={plan.description}
                                 onChange={event =>
                                   updatePlan(promotionIndex, planIndex, {

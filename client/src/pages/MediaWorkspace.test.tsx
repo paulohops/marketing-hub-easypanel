@@ -10,6 +10,7 @@ const renewCampaignMutation = vi.hoisted(() => vi.fn());
 const saveDebriefMutation = vi.hoisted(() => vi.fn());
 const createUrbanRegistrationMutation = vi.hoisted(() => vi.fn());
 const createUrbanVeiculationMutation = vi.hoisted(() => vi.fn());
+const createInfluencerMutation = vi.hoisted(() => vi.fn());
 
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() }, listSpecializedData: { invalidate: vi.fn() }, campaignDetails: { invalidate: vi.fn() } } }),
@@ -26,6 +27,15 @@ const trpcStub = vi.hoisted(() => ({
     saveDebrief: { useMutation: () => ({ mutate: saveDebriefMutation, isPending: false }) },
     createUrbanRegistration: { useMutation: () => ({ mutate: createUrbanRegistrationMutation, isPending: false }) },
     createUrbanVeiculation: { useMutation: () => ({ mutate: createUrbanVeiculationMutation, isPending: false }) },
+    createInfluencer: { useMutation: () => ({ mutate: createInfluencerMutation, isPending: false }) },
+    createSpot: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    uploadSpot: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    uploadEvidenceFile: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    createSoundCarRun: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    createInfluencerGroup: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    createInfluencerPost: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    confirmInfluencerPost: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    updateSpot: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     campaignDetails: { useQuery: () => ({ data: undefined, isLoading: false }) },
     updateCampaignStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
@@ -148,5 +158,27 @@ describe("detalhe de mídias", () => {
     expect(modal.queryByRole("button", { name: "Variação" })).toBeNull();
     expect(modal.queryByRole("button", { name: "Período de troca" })).toBeNull();
     expect(modal.queryByLabelText("Canal")).toBeNull();
+  });
+
+  it("cadastra influencer pelo painel dedicado de Cadastros", () => {
+    listQuery.mockReturnValue({ data: [], isLoading: false });
+    detailQuery.mockReturnValue({ data: undefined, isLoading: false });
+
+    render(<MediaWorkspace initialCategory="influencers" />);
+    fireEvent.change(screen.getByPlaceholderText("Nome"), { target: { value: "Ana Andrade" } });
+    fireEvent.change(screen.getByPlaceholderText("@perfil"), { target: { value: "@anaandrade" } });
+    fireEvent.change(screen.getByPlaceholderText("Forma de pagamento"), { target: { value: "PIX" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar influencer" }));
+
+    expect(createInfluencerMutation).toHaveBeenCalledWith({
+      name: "Ana Andrade",
+      phone: undefined,
+      email: undefined,
+      socialHandle: "@anaandrade",
+      paymentMethod: "PIX",
+      paymentFrequency: undefined,
+      paymentDay: undefined,
+      notes: undefined,
+    });
   });
 });
