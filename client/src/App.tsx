@@ -25,6 +25,7 @@ function Router() {
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
     <Route path="/cadastros/:entity/:id">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
+    <Route path="/cadastros/modelos-acoes">{() => <ProtectedModule module="modelos-acao" />}</Route>
     <Route path="/cadastros/modelos">{() => <ProtectedModule module="modelos-campanha" />}</Route>
     <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros">{() => <ProtectedModule module="cadastros" />}</Route>

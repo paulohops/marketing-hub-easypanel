@@ -28,6 +28,7 @@ import DataImportWorkspace from "./DataImportWorkspace";
 import ReportExportWorkspace from "./ReportExportWorkspace";
 import CampaignsWorkspace from "./CampaignsWorkspace";
 import CampaignTemplatesWorkspace from "./CampaignTemplatesWorkspace";
+import ActionTemplatesWorkspace from "./ActionTemplatesWorkspace";
 import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
 import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
@@ -45,6 +46,7 @@ const definitions = {
   configuracoes: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Cadastros", description: "Gerencie cadastros operacionais, usuários, segurança e a governança que abastece cada módulo.", icon: Settings2, resources: [{ title: "Segurança", description: "Papéis, permissões e rastreabilidade." }, { title: "Usuários", description: "Acessos e administração da equipe." }, { title: "Cadastros operacionais", description: "Empresas, territórios, fornecedores, serviços, mídias e parâmetros financeiros." }], accent: "var(--primary)" },
   cadastros: { permission: "settings.read", eyebrow: "Gestão operacional", title: "Cadastros operacionais", description: "Organize os cadastros mestres que sustentam a operação do Marketing HUB.", icon: Settings2, resources: [], accent: "var(--primary)" },
   "modelos-campanha": { permission: "settings.read", eyebrow: "Gestão operacional", title: "Modelos de campanha", description: "Padronize estruturas reutilizáveis para os planejamentos de campanha.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
+  "modelos-acao": { permission: "settings.read", eyebrow: "Gestão operacional", title: "Modelos de ações", description: "Padronize informações reutilizáveis para o planejamento de ações.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
   "cadastro-entidade": { permission: "settings.read", eyebrow: "Gestão operacional", title: "Cadastro operacional", description: "Consulte e mantenha as informações detalhadas do cadastro selecionado.", icon: Settings2, resources: [], accent: "var(--primary)" },
   empresas: { permission: "settings.read", eyebrow: "Gestão operacional", title: "Empresas", description: "Consulte empresas, dados de faturamento e relações territoriais.", icon: Building2, resources: [], accent: "var(--primary)" },
   trello: { permission: "settings.read", eyebrow: "Gestão integrada", title: "Trello", description: "Acesse o quadro integrado de gestão da equipe.", icon: Flag, resources: [], accent: "var(--primary)" },
@@ -77,6 +79,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "configuracoes") return <DashboardLayout><div className="cluster-workspace"><SettingsWorkspace /></div></DashboardLayout>;
   if (module === "cadastros") return <DashboardLayout><div className="cluster-workspace"><OperationalRegistriesWorkspace /></div></DashboardLayout>;
   if (module === "modelos-campanha") return <DashboardLayout><div className="cluster-workspace"><CampaignTemplatesWorkspace /></div></DashboardLayout>;
+  if (module === "modelos-acao") return <DashboardLayout><div className="cluster-workspace"><ActionTemplatesWorkspace /></div></DashboardLayout>;
   if (module === "cadastro-entidade") return <DashboardLayout><div className="cluster-workspace"><RegistryEntityWorkspace /></div></DashboardLayout>;
   if (module === "empresas") return <DashboardLayout><div className="cluster-workspace"><CompaniesWorkspace /></div></DashboardLayout>;
   if (module === "trello") return <DashboardLayout><div className="cluster-workspace"><TrelloWorkspace /></div></DashboardLayout>;

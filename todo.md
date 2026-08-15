@@ -371,3 +371,8 @@
 - [x] Ordenar o Histórico da Ação de forma decrescente, exibindo a atualização mais recente primeiro.
 - [x] Permitir abrir a página da Campanha vinculada diretamente pela ficha de Ação.
 - [x] Cobrir e validar os últimos refinamentos de seleção, histórico e navegação de Ações.
+
+- [x] Ampliar e estabilizar o bloco de Nota geral para manter o dropdown inteiramente contido no debriefing.
+- [x] Exibir os cinco registros mais recentes no Histórico da Ação e permitir expandir a lista completa sob demanda.
+- [x] Criar modelos reutilizáveis de Ações, com seleção e preenchimento inicial no planejamento.
+- [x] Cobrir e validar os ajustes de Nota geral, histórico progressivo e modelos de Ações.

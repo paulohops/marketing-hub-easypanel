@@ -605,8 +605,23 @@ export const mediaCampaignCityDistributions = pgTable("media_campaign_city_distr
   notes: text("notes"),
 }, table => [uniqueIndex("media_campaign_city_distributions_uq").on(table.mediaCampaignId, table.cityId)]);
 
+export const actionTemplates = pgTable("action_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 180 }).notNull(),
+  description: text("description"),
+  objective: text("objective"),
+  defaultActionTypeId: integer("defaultActionTypeId").references(() => actionTypes.id, { onDelete: "set null" }),
+  defaultPartnershipType: partnershipTypeEnum("defaultPartnershipType").default("paid").notNull(),
+  defaultDurationHours: integer("defaultDurationHours"),
+  active: boolean("active").default(true).notNull(),
+  createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const actions = pgTable("actions", {
   id: serial("id").primaryKey(),
+  actionTemplateId: integer("actionTemplateId").references(() => actionTemplates.id, { onDelete: "set null" }),
   tradeCampaignId: integer("tradeCampaignId").references(() => tradeCampaigns.id, { onDelete: "set null" }),
   eventId: integer("eventId").references(() => events.id, { onDelete: "set null" }),
   cityId: integer("cityId").notNull().references(() => cities.id, { onDelete: "restrict" }),

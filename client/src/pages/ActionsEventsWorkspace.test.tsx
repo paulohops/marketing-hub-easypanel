@@ -75,6 +75,17 @@ describe("formulários operacionais ampliados", () => {
     expect(createAction).toHaveBeenCalledWith(expect.objectContaining({ name: "Blitz Centro", cityId: 1, actionTypeId: 2, actionPointId: 12, latitude: -18.95677454094437, longitude: -46.99206057116672, commercialSupervisorId: 6, partnershipType: "mixed", supplierIds: [4], serviceTypeIds: [5], serviceAllocations: [{ serviceTypeId: 5, supplierOfferingId: 9, estimatedAmount: 400 }], teamMemberIds: [7], stockAllocations: [{ stockItemId: 8, quantity: 2 }] }));
   });
 
+  it("aplica um modelo de ação sem bloquear a edição do planejamento", () => {
+    (references as any).actionTemplates = [{ id: 31, name: "Panfletagem em loja", actionTypeName: "Blitz", defaultActionTypeId: 2, defaultPartnershipType: "paid", defaultDurationHours: "6", objective: "Divulgar planos no entorno da loja" }];
+    render(<ActionsWorkspace />);
+    fireEvent.click(screen.getByRole("button", { name: "Nova ação" }));
+    fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2026-08-14T09:00" } });
+    selectMultiple("Começar com um modelo", "Panfletagem em loja");
+    expect(screen.getByLabelText("Objetivo")).toHaveValue("Divulgar planos no entorno da loja");
+    expect(screen.getByLabelText("Término")).toHaveValue("2026-08-14T15:00");
+    selectMultiple("Tipo de ação", "Blitz");
+  });
+
   it("oferece filtros recolhíveis, incluindo responsável e nota, na lista de ações", () => {
     actionListQuery.mockReturnValue({ data: [{ action: { id: 25, cityId: 1, name: "Blitz Financeira", status: "planned", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "800", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", supervisorName: null, teamMembers: [], stockItems: [], debrief: null, finance: { estimatedAmount: 800, paidAmount: 250, remainingAmount: 550 } }], isLoading: false });
     render(<ActionsWorkspace />);
@@ -140,6 +151,16 @@ describe("formulários operacionais ampliados", () => {
     expect(saveActionDebrief).toHaveBeenCalledWith(expect.objectContaining({ actionId: 21, worthRepeating: false, resultAchieved: true }));
     fireEvent.click(screen.getByRole("button", { name: "Abrir campanha Volta às aulas" }));
     expect(window.location.pathname).toBe("/campanhas/16");
+  });
+
+  it("mostra inicialmente os cinco registros mais recentes e permite expandir o Histórico", () => {
+    actionListQuery.mockReturnValue({ data: [{ action: { id: 33, name: "Histórico", status: "completed", partnershipType: "paid", scheduledFor: new Date("2026-08-14T09:00:00Z"), endsAt: null, estimatedCost: "0", objective: "Teste" }, cityName: "Belo Horizonte", actionTypeName: "Blitz", teamMembers: [], suppliers: [], services: [], stockItems: [], debrief: null, history: [1, 2, 3, 4, 5, 6].map(index => ({ id: index, auditAction: "update_execution_status", occurredAt: new Date(`2026-08-${index + 10}T10:00:00Z`), actorName: `Usuário ${index}` })) }], isLoading: false });
+    render(<ActionsWorkspace />);
+    fireEvent.click(screen.getByText("Histórico"));
+    expect(screen.getByText(/Usuário 6/)).toBeInTheDocument();
+    expect(screen.queryByText(/Usuário 1/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar tudo (6)" }));
+    expect(screen.getByText(/Usuário 1/)).toBeInTheDocument();
   });
 
   it("persiste a decisão de renovação dentro da ficha do evento", () => {

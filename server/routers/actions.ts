@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionDebriefs, actionPoints, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, auditLogs, cities, commercialSupervisors, documents, events, invoices, payments, regionals, serviceTypes, stockItems, stockMovements, supplierCities, supplierOfferings, supplierServiceTypes, suppliers, tradeCampaigns, users } from "../../drizzle/schema";
+import { actionDebriefs, actionPoints, actionTemplates, actions, actionServices, actionStockItems, actionSuppliers, actionTeamMembers, actionTypes, auditLogs, cities, commercialSupervisors, documents, events, invoices, payments, regionals, serviceTypes, stockItems, stockMovements, supplierCities, supplierOfferings, supplierServiceTypes, suppliers, tradeCampaigns, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -13,6 +13,7 @@ async function requireDatabase() { const database = await getDb(); if (!database
 const allocationSchema = z.object({ stockItemId: z.number().int().positive(), quantity: z.coerce.number().int().positive().max(99999999) });
 const serviceAllocationSchema = z.object({ serviceTypeId: z.number().int().positive(), supplierOfferingId: z.number().int().positive().nullable().optional(), estimatedAmount: z.coerce.number().finite().min(0).max(99999999999) });
 const evidenceUrlSchema = z.string().trim().min(1).max(2_000).refine(value => value.startsWith("/manus-storage/") || /^https?:\/\//i.test(value), "Endereço de evidência inválido.");
+const actionTemplateInput = z.object({ id: z.number().int().positive().optional(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(3000).optional(), objective: z.string().trim().max(3000).optional(), defaultActionTypeId: z.number().int().positive().nullable(), defaultPartnershipType: z.enum(["paid", "barter", "mixed"]), defaultDurationHours: z.coerce.number().int().min(1).max(24 * 30).nullable(), active: z.boolean() });
 
 async function calculateActionTotal(database: any, serviceAllocations: Array<{ estimatedAmount: number }>, stockAllocations: Array<{ stockItemId: number; quantity: number }>) {
   const servicesTotal = serviceAllocations.reduce((total, allocation) => total + allocation.estimatedAmount, 0);
@@ -44,7 +45,7 @@ export function normalizeServiceAllocations(allocations: Array<{ serviceTypeId: 
   return Array.from(new Map(allocations.map(allocation => [allocation.serviceTypeId, { ...allocation, supplierOfferingId: allocation.supplierOfferingId ?? null }])).values());
 }
 
-async function ensureActionReferences(database: any, input: { tradeCampaignId?: number | null; eventId?: number | null; cityId: number; actionTypeId: number; actionPointId: number | null; commercialSupervisorId: number | null; supplierIds: number[]; serviceTypeIds: number[]; serviceAllocations?: Array<{ supplierOfferingId?: number | null }>; teamMemberIds: number[]; stockAllocations: Array<{ stockItemId: number }> }) {
+async function ensureActionReferences(database: any, input: { actionTemplateId?: number | null; tradeCampaignId?: number | null; eventId?: number | null; cityId: number; actionTypeId: number; actionPointId: number | null; commercialSupervisorId: number | null; supplierIds: number[]; serviceTypeIds: number[]; serviceAllocations?: Array<{ supplierOfferingId?: number | null }>; teamMemberIds: number[]; stockAllocations: Array<{ stockItemId: number }> }) {
   const checks = [
     { ids: [input.cityId], table: cities, column: cities.id, activeColumn: cities.active, label: "cidade" },
     { ids: [input.actionTypeId], table: actionTypes, column: actionTypes.id, activeColumn: actionTypes.active, label: "tipo de ação" },
@@ -60,6 +61,10 @@ async function ensureActionReferences(database: any, input: { tradeCampaignId?: 
     const rows = await database.select({ id: check.column }).from(check.table).where(and(inArray(check.column, ids), eq(check.activeColumn, true)));
     if (rows.length !== ids.length) throw new TRPCError({ code: "BAD_REQUEST", message: `Vínculo de ${check.label} inexistente ou indisponível.` });
   }));
+  if (input.actionTemplateId) {
+    const [template] = await database.select({ id: actionTemplates.id }).from(actionTemplates).where(and(eq(actionTemplates.id, input.actionTemplateId), eq(actionTemplates.active, true))).limit(1);
+    if (!template) throw new TRPCError({ code: "BAD_REQUEST", message: "Modelo de ação inexistente ou inativo." });
+  }
   const [selectedCity] = await database.select({ id: cities.id, regionalId: cities.regionalId }).from(cities).where(eq(cities.id, input.cityId));
   if (input.tradeCampaignId) {
     const [campaign] = await database.select({ id: tradeCampaigns.id, regionalId: tradeCampaigns.regionalId }).from(tradeCampaigns).where(eq(tradeCampaigns.id, input.tradeCampaignId));
@@ -103,7 +108,7 @@ export const actionsRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
-    const [cityRows, typeRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows, actionPointRows, supplierCityRows, supplierServiceTypeRows, campaignRows, eventRows, offeringRows] = await Promise.all([
+    const [cityRows, typeRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows, actionPointRows, supplierCityRows, supplierServiceTypeRows, campaignRows, eventRows, offeringRows, templateRows] = await Promise.all([
       database.select({ city: cities, regionalName: regionals.name }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(regionals.name), asc(cities.name)),
       database.select().from(actionTypes).where(eq(actionTypes.active, true)).orderBy(asc(actionTypes.name)),
       database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName)),
@@ -117,8 +122,49 @@ export const actionsRouter = router({
       database.select({ id: tradeCampaigns.id, name: tradeCampaigns.name, regionalId: tradeCampaigns.regionalId, status: tradeCampaigns.status, logoUrl: tradeCampaigns.logoUrl }).from(tradeCampaigns).orderBy(asc(tradeCampaigns.name)),
       database.select({ id: events.id, name: events.name, cityId: events.cityId, tradeCampaignId: events.tradeCampaignId, status: events.status, startsAt: events.startsAt }).from(events).orderBy(asc(events.startsAt)),
       database.select({ id: supplierOfferings.id, supplierId: supplierOfferings.supplierId, name: supplierOfferings.name, unit: supplierOfferings.unit, unitPrice: supplierOfferings.unitPrice, notes: supplierOfferings.notes }).from(supplierOfferings).where(and(eq(supplierOfferings.kind, "service"), eq(supplierOfferings.active, true))).orderBy(asc(supplierOfferings.name)),
+      database.select({ template: actionTemplates, actionTypeName: actionTypes.name }).from(actionTemplates).leftJoin(actionTypes, eq(actionTemplates.defaultActionTypeId, actionTypes.id)).where(eq(actionTemplates.active, true)).orderBy(asc(actionTemplates.name)),
     ]);
-    return { cities: cityRows, actionTypes: typeRows, suppliers: supplierRows, serviceTypes: serviceRows, supervisors: supervisorRows, teamUsers: teamRows, stockItems: stockRows, actionPoints: actionPointRows, supplierCities: supplierCityRows, supplierServiceTypes: supplierServiceTypeRows, campaigns: campaignRows, events: eventRows, supplierOfferings: offeringRows };
+    return { cities: cityRows, actionTypes: typeRows, suppliers: supplierRows, serviceTypes: serviceRows, supervisors: supervisorRows, teamUsers: teamRows, stockItems: stockRows, actionPoints: actionPointRows, supplierCities: supplierCityRows, supplierServiceTypes: supplierServiceTypeRows, campaigns: campaignRows, events: eventRows, supplierOfferings: offeringRows, actionTemplates: templateRows.map(row => ({ ...row.template, actionTypeName: row.actionTypeName })) };
+  }),
+  listTemplates: protectedProcedure.query(async ({ ctx }) => {
+    await assertPermission(ctx.user, "actions.read");
+    const database = await requireDatabase();
+    return database.select({ template: actionTemplates, actionTypeName: actionTypes.name }).from(actionTemplates).leftJoin(actionTypes, eq(actionTemplates.defaultActionTypeId, actionTypes.id)).orderBy(asc(actionTemplates.name)).then(rows => rows.map(row => ({ ...row.template, actionTypeName: row.actionTypeName })));
+  }),
+  applyTemplate: protectedProcedure.input(z.object({ templateId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "actions.read");
+    const database = await requireDatabase();
+    const [template] = await database.select().from(actionTemplates).where(and(eq(actionTemplates.id, input.templateId), eq(actionTemplates.active, true))).limit(1);
+    if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "Modelo de ação não encontrado ou inativo." });
+    return template;
+  }),
+  saveTemplate: protectedProcedure.input(actionTemplateInput).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const values = { name: input.name, description: input.description || null, objective: input.objective || null, defaultActionTypeId: input.defaultActionTypeId, defaultPartnershipType: input.defaultPartnershipType, defaultDurationHours: input.defaultDurationHours, active: input.active, updatedAt: new Date() };
+    if (input.defaultActionTypeId) {
+      const [type] = await database.select({ id: actionTypes.id }).from(actionTypes).where(and(eq(actionTypes.id, input.defaultActionTypeId), eq(actionTypes.active, true))).limit(1);
+      if (!type) throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de ação inexistente ou inativo." });
+    }
+    if (input.id) {
+      const [before] = await database.select().from(actionTemplates).where(eq(actionTemplates.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Modelo de ação não encontrado." });
+      const [updated] = await database.update(actionTemplates).set(values).where(eq(actionTemplates.id, input.id)).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "action_template", entityId: updated.id, action: "update", beforeData: before, afterData: updated });
+      return updated;
+    }
+    const [created] = await database.insert(actionTemplates).values({ ...values, createdByUserId: ctx.user.id }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "action_template", entityId: created.id, action: "create", afterData: created });
+    return created;
+  }),
+  deleteTemplate: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(actionTemplates).where(eq(actionTemplates.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Modelo de ação não encontrado." });
+    await database.delete(actionTemplates).where(eq(actionTemplates.id, input.id));
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "action_template", entityId: input.id, action: "delete", beforeData: before });
+    return { success: true };
   }),
   list: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "actions.read");
@@ -177,7 +223,7 @@ export const actionsRouter = router({
     });
   }),
   create: protectedProcedure.input(z.object({
-    tradeCampaignId: z.number().int().positive().nullable(), eventId: z.number().int().positive().nullable().default(null), cityId: z.number().int().positive(), actionTypeId: z.number().int().positive(), actionPointId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), scheduledFor: z.coerce.date(), endsAt: z.coerce.date().nullable(), objective: z.string().trim().min(3).max(2000), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999).optional(), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), serviceAllocations: z.array(serviceAllocationSchema).max(20).optional(), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),
+    actionTemplateId: z.number().int().positive().nullable().default(null), tradeCampaignId: z.number().int().positive().nullable(), eventId: z.number().int().positive().nullable().default(null), cityId: z.number().int().positive(), actionTypeId: z.number().int().positive(), actionPointId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), scheduledFor: z.coerce.date(), endsAt: z.coerce.date().nullable(), objective: z.string().trim().min(3).max(2000), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999).optional(), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), serviceAllocations: z.array(serviceAllocationSchema).max(20).optional(), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),
   })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "actions.write");
     if (!validActionRange(input.scheduledFor, input.endsAt)) throw new TRPCError({ code: "BAD_REQUEST", message: "O término da ação deve ser posterior ao início." });
@@ -187,7 +233,7 @@ export const actionsRouter = router({
     const stockAllocations = normalizeStockAllocations(input.stockAllocations);
     const estimatedCost = await calculateActionTotal(database, serviceAllocations, stockAllocations);
     const created = await database.transaction(async transaction => {
-      const [action] = await transaction.insert(actions).values({ tradeCampaignId: input.tradeCampaignId, eventId: input.eventId, cityId: input.cityId, actionTypeId: input.actionTypeId, actionPointId: input.actionPointId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, scheduledFor: input.scheduledFor, endsAt: input.endsAt, objective: input.objective, commercialSupervisorId: input.commercialSupervisorId, partnershipType: input.partnershipType, estimatedCost: estimatedCost.toFixed(2) }).returning();
+      const [action] = await transaction.insert(actions).values({ actionTemplateId: input.actionTemplateId, tradeCampaignId: input.tradeCampaignId, eventId: input.eventId, cityId: input.cityId, actionTypeId: input.actionTypeId, actionPointId: input.actionPointId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, scheduledFor: input.scheduledFor, endsAt: input.endsAt, objective: input.objective, commercialSupervisorId: input.commercialSupervisorId, partnershipType: input.partnershipType, estimatedCost: estimatedCost.toFixed(2) }).returning();
       if (input.supplierIds.length) await transaction.insert(actionSuppliers).values(Array.from(new Set(input.supplierIds)).map(supplierId => ({ actionId: action.id, supplierId })));
       if (serviceAllocations.length) await transaction.insert(actionServices).values(serviceAllocations.map(allocation => ({ actionId: action.id, serviceTypeId: allocation.serviceTypeId, supplierOfferingId: allocation.supplierOfferingId, estimatedAmount: allocation.estimatedAmount.toFixed(2) })));
       if (input.teamMemberIds.length) await transaction.insert(actionTeamMembers).values(Array.from(new Set(input.teamMemberIds)).map(userId => ({ actionId: action.id, userId })));
@@ -198,7 +244,7 @@ export const actionsRouter = router({
     return created;
   }),
   updateDetails: protectedProcedure.input(z.object({
-    actionId: z.number().int().positive(), tradeCampaignId: z.number().int().positive().nullable(), eventId: z.number().int().positive().nullable().default(null), cityId: z.number().int().positive(), actionTypeId: z.number().int().positive(), actionPointId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), scheduledFor: z.coerce.date(), endsAt: z.coerce.date().nullable(), objective: z.string().trim().min(3).max(2000), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999).optional(), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), serviceAllocations: z.array(serviceAllocationSchema).max(20).optional(), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),
+    actionId: z.number().int().positive(), actionTemplateId: z.number().int().positive().nullable().default(null), tradeCampaignId: z.number().int().positive().nullable(), eventId: z.number().int().positive().nullable().default(null), cityId: z.number().int().positive(), actionTypeId: z.number().int().positive(), actionPointId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(180), address: z.string().trim().max(2000).optional(), latitude: z.number().min(-90).max(90).nullable(), longitude: z.number().min(-180).max(180).nullable(), scheduledFor: z.coerce.date(), endsAt: z.coerce.date().nullable(), objective: z.string().trim().min(3).max(2000), commercialSupervisorId: z.number().int().positive().nullable(), partnershipType: z.enum(["paid", "barter", "mixed"]), estimatedCost: z.coerce.number().finite().min(0).max(99999999999).optional(), supplierIds: z.array(z.number().int().positive()).max(20), serviceTypeIds: z.array(z.number().int().positive()).max(20), serviceAllocations: z.array(serviceAllocationSchema).max(20).optional(), teamMemberIds: z.array(z.number().int().positive()).max(40), stockAllocations: z.array(allocationSchema).max(40),
   })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "actions.write");
     if (!validActionRange(input.scheduledFor, input.endsAt)) throw new TRPCError({ code: "BAD_REQUEST", message: "O término da ação deve ser posterior ao início." });
@@ -210,7 +256,7 @@ export const actionsRouter = router({
     await ensureActionReferences(database, { ...input, serviceTypeIds: serviceAllocations.map(allocation => allocation.serviceTypeId), serviceAllocations });
     const estimatedCost = await calculateActionTotal(database, serviceAllocations, stockAllocations);
     const updated = await database.transaction(async transaction => {
-      const [action] = await transaction.update(actions).set({ tradeCampaignId: input.tradeCampaignId, eventId: input.eventId, cityId: input.cityId, actionTypeId: input.actionTypeId, actionPointId: input.actionPointId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, scheduledFor: input.scheduledFor, endsAt: input.endsAt, objective: input.objective, commercialSupervisorId: input.commercialSupervisorId, partnershipType: input.partnershipType, estimatedCost: estimatedCost.toFixed(2), updatedAt: new Date() }).where(eq(actions.id, input.actionId)).returning();
+      const [action] = await transaction.update(actions).set({ actionTemplateId: input.actionTemplateId, tradeCampaignId: input.tradeCampaignId, eventId: input.eventId, cityId: input.cityId, actionTypeId: input.actionTypeId, actionPointId: input.actionPointId, name: input.name, address: input.address || null, latitude: input.latitude?.toFixed(7) ?? null, longitude: input.longitude?.toFixed(7) ?? null, scheduledFor: input.scheduledFor, endsAt: input.endsAt, objective: input.objective, commercialSupervisorId: input.commercialSupervisorId, partnershipType: input.partnershipType, estimatedCost: estimatedCost.toFixed(2), updatedAt: new Date() }).where(eq(actions.id, input.actionId)).returning();
       await Promise.all([
         transaction.delete(actionSuppliers).where(eq(actionSuppliers.actionId, input.actionId)),
         transaction.delete(actionServices).where(eq(actionServices.actionId, input.actionId)),

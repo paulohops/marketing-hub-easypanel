@@ -72,6 +72,7 @@ const compactDate = (value: Date | string | null | undefined) =>
   value ? new Date(value).toLocaleDateString("pt-BR") : "—";
 const blankForm = () => ({
   name: "",
+  actionTemplateId: "",
   tradeCampaignId: "",
   eventId: "",
   cityId: "",
@@ -83,7 +84,7 @@ const blankForm = () => ({
   address: "",
   coordinates: "",
   commercialSupervisorId: "",
-  partnershipType: "paid" as const,
+  partnershipType: "paid" as "paid" | "barter" | "mixed",
   supplierIds: [] as number[],
   serviceTypeIds: [] as number[],
   serviceAllocations: [] as ServiceAllocation[],
@@ -351,6 +352,7 @@ export default function ActionsWorkspace() {
     setCoverFile(null);
     setForm({
       name: row.action.name,
+      actionTemplateId: row.action.actionTemplateId ? String(row.action.actionTemplateId) : "",
       tradeCampaignId: row.action.tradeCampaignId ? String(row.action.tradeCampaignId) : "",
       eventId: row.action.eventId ? String(row.action.eventId) : "",
       cityId: String(row.action.cityId),
@@ -429,6 +431,28 @@ export default function ActionsWorkspace() {
           ) ?? (() => { const offering = matchingOffering(serviceTypeId, current.supplierIds); return { serviceTypeId, supplierOfferingId: offering?.id ?? null, estimatedAmount: String(offering?.unitPrice ?? 0) }; })()
       ),
     }));
+  const applyActionTemplate = (templateId: string) => {
+    const template = (references.data?.actionTemplates ?? []).find((item: any) => item.id === Number(templateId));
+    if (!template) {
+      setForm(current => ({ ...current, actionTemplateId: "" }));
+      return;
+    }
+    setForm(current => {
+      const durationHours = Number(template.defaultDurationHours ?? 0);
+      const startingAt = current.scheduledFor ? new Date(current.scheduledFor) : null;
+      const calculatedEnd = startingAt && durationHours > 0 && !Number.isNaN(startingAt.getTime())
+        ? new Date(startingAt.getTime() + durationHours * 60 * 60 * 1000).toISOString().slice(0, 16)
+        : current.endsAt;
+      return {
+        ...current,
+        actionTemplateId: String(template.id),
+        actionTypeId: template.defaultActionTypeId ? String(template.defaultActionTypeId) : current.actionTypeId,
+        objective: template.objective || current.objective,
+        partnershipType: template.defaultPartnershipType ?? current.partnershipType,
+        endsAt: calculatedEnd,
+      };
+    });
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const selectedPoint = form.actionPointId
@@ -441,6 +465,7 @@ export default function ActionsWorkspace() {
     }
     const payload = {
       name: form.name,
+      actionTemplateId: form.actionTemplateId ? Number(form.actionTemplateId) : null,
       tradeCampaignId: form.tradeCampaignId ? Number(form.tradeCampaignId) : null,
       eventId: form.eventId ? Number(form.eventId) : null,
       cityId: Number(form.cityId),
@@ -522,6 +547,7 @@ export default function ActionsWorkspace() {
           setStock={setStock}
           setSuppliers={setSuppliers}
           setServices={setServices}
+          applyTemplate={applyActionTemplate}
           submit={submit}
           pending={updateDetails.isPending}
           isEditing
@@ -700,6 +726,7 @@ export default function ActionsWorkspace() {
         setStock={setStock}
         setSuppliers={setSuppliers}
         setServices={setServices}
+        applyTemplate={applyActionTemplate}
         submit={submit}
         pending={create.isPending}
         coverFile={coverFile}
@@ -844,6 +871,13 @@ function ActionDetail({
 }) {
   const regionalId = null;
   const [historyDetail, setHistoryDetail] = useState<any | null>(null);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  useEffect(() => setShowAllHistory(false), [row.action.id]);
+  const orderedHistory = [...(row.history ?? [])].sort(
+    (left: any, right: any) =>
+      new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()
+  );
+  const visibleHistory = showAllHistory ? orderedHistory : orderedHistory.slice(0, 5);
   const historyPayload = historyDetail
     ? typeof historyDetail.afterData === "string"
       ? (() => { try { return JSON.parse(historyDetail.afterData); } catch { return {}; } })()
@@ -998,8 +1032,8 @@ function ActionDetail({
         <section className="rounded-xl border border-border bg-card p-4">
           <DetailSection title="Debriefing e resultado">
             <form onSubmit={event => { event.preventDefault(); onSaveDebrief(); }} className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-[126px_minmax(0,1fr)]">
-                <div className="grid content-start gap-2 rounded-xl border border-border bg-muted/25 p-3"><p className="text-xs font-semibold text-muted-foreground">Nota geral</p><strong className="text-2xl font-semibold tabular-nums text-foreground">{debrief.rating}</strong><Badge variant="outline" className={`w-fit text-[10px] ${actionRatingClass[Number(debrief.rating)] ?? ""}`}>{debrief.rating}/5 · {actionRatingLabel[Number(debrief.rating)] ?? "Avaliação"}</Badge><SearchableMultiSelect id="action-debrief-rating" label="Nota geral" hideLabel maxSelections={1} options={[5, 4, 3, 2, 1].map(value => ({ id: value, label: `${value} · ${actionRatingLabel[value]}` }))} values={debrief.rating ? [Number(debrief.rating)] : []} onChange={ids => ids[0] && onDebriefChange({ ...debrief, rating: String(ids[0]) })} placeholder="Selecionar nota" triggerClassName="h-8 px-2 text-[10px]" /></div>
+              <div className="grid gap-3 sm:grid-cols-[minmax(260px,0.9fr)_minmax(0,1.1fr)]">
+                <div className="grid min-w-0 content-start gap-2 overflow-visible rounded-xl border border-border bg-muted/25 p-4"><p className="text-xs font-semibold text-muted-foreground">Nota geral</p><strong className="text-2xl font-semibold tabular-nums text-foreground">{debrief.rating}</strong><Badge variant="outline" className={`w-fit text-[10px] ${actionRatingClass[Number(debrief.rating)] ?? ""}`}>{debrief.rating}/5 · {actionRatingLabel[Number(debrief.rating)] ?? "Avaliação"}</Badge><SearchableMultiSelect id="action-debrief-rating" label="Nota geral" hideLabel maxSelections={1} options={[5, 4, 3, 2, 1].map(value => ({ id: value, label: `${value} · ${actionRatingLabel[value]}` }))} values={debrief.rating ? [Number(debrief.rating)] : []} onChange={ids => ids[0] && onDebriefChange({ ...debrief, rating: String(ids[0]) })} placeholder="Selecionar nota" triggerClassName="h-9 w-full min-w-0 px-2 text-[11px]" /></div>
                 <div className="grid gap-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">História e resultado da ação<Textarea className="min-h-24" value={debrief.resultSummary} onChange={event => onDebriefChange({ ...debrief, resultSummary: event.target.value })} placeholder="Contexto, resultado alcançado e impacto percebido" /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Avaliação e aprendizados<Textarea className="min-h-24" value={debrief.notes} onChange={event => onDebriefChange({ ...debrief, notes: event.target.value })} placeholder="O que funcionou e o que deve ser aprimorado" /></label></div>
               </div>
               <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Leads<Input type="number" min="0" value={debrief.leadCount} onChange={event => onDebriefChange({ ...debrief, leadCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Vendas<Input type="number" min="0" value={debrief.saleCount} onChange={event => onDebriefChange({ ...debrief, saleCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Renovações<Input type="number" min="0" value={debrief.renewalCount} onChange={event => onDebriefChange({ ...debrief, renewalCount: event.target.value })} /></label></div>
@@ -1016,9 +1050,9 @@ function ActionDetail({
         </section>
         <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
           <DetailSection title="Histórico da ação">
-            {row.history?.length ? (
+            {orderedHistory.length ? (
               <div className="space-y-3">
-                {[...row.history].sort((left: any, right: any) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()).map((entry: any, index: number) => (
+                {visibleHistory.map((entry: any, index: number) => (
                   <div
                     key={entry.id ?? `${entry.auditAction}-${entry.occurredAt}-${index}`}
                     className="border-l-2 border-primary/30 pl-3"
@@ -1034,6 +1068,7 @@ function ActionDetail({
                     {hasHistoryDetail(entry) && <Button type="button" variant="link" className="mt-1 h-auto px-0 text-xs text-primary" onClick={() => setHistoryDetail(entry)}>Ver motivo e evidências</Button>}
                   </div>
                 ))}
+                {orderedHistory.length > 5 && <Button type="button" variant="outline" size="sm" onClick={() => setShowAllHistory(current => !current)}>{showAllHistory ? "Mostrar últimos 5" : `Mostrar tudo (${orderedHistory.length})`}</Button>}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -1105,6 +1140,7 @@ function ActionForm({
   setStock,
   setSuppliers,
   setServices,
+  applyTemplate,
   submit,
   pending,
   isEditing = false,
@@ -1130,6 +1166,15 @@ function ActionForm({
             {(coverFile || currentCoverUrl) ? <img src={coverFile ? URL.createObjectURL(coverFile) : currentCoverUrl} alt="Capa da ação" className="h-20 w-full rounded-lg bg-background object-cover sm:w-32" /> : <div className="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-border bg-background text-xs text-muted-foreground sm:w-32">Sem capa</div>}
             <div className="grid flex-1 gap-2"><p className="text-sm font-medium text-foreground">Foto de capa</p><Label htmlFor="action-cover-upload" className="flex h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"><ImagePlus className="h-4 w-4" />{coverFile ? "Trocar imagem de capa" : "Subir imagem de capa"}<Input id="action-cover-upload" type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={event => onCoverChange(event.target.files?.[0] ?? null)} /></Label><span className="text-xs text-muted-foreground">JPEG, PNG ou WEBP. A capa identifica a ação na ficha.</span></div>
           </div>
+          <SearchableMultiSelect
+            id="action-template"
+            label="Começar com um modelo"
+            options={(references?.actionTemplates ?? []).map((item: any) => ({ id: item.id, label: item.name, description: item.actionTypeName || item.description || "Modelo de planejamento" }))}
+            values={form.actionTemplateId ? [Number(form.actionTemplateId)] : []}
+            onChange={ids => applyTemplate(ids[0] ? String(ids[0]) : "")}
+            maxSelections={1}
+            placeholder="Planejar sem modelo"
+          />
           <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
             Nome da ação
             <Input
