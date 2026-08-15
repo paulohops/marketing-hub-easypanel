@@ -8,9 +8,11 @@ const createCampaignMutation = vi.hoisted(() => vi.fn());
 const createConfiguredCampaignMutation = vi.hoisted(() => vi.fn());
 const renewCampaignMutation = vi.hoisted(() => vi.fn());
 const saveDebriefMutation = vi.hoisted(() => vi.fn());
+const createUrbanRegistrationMutation = vi.hoisted(() => vi.fn());
+const createUrbanVeiculationMutation = vi.hoisted(() => vi.fn());
 
 const trpcStub = vi.hoisted(() => ({
-  useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() }, listSpecializedData: { invalidate: vi.fn() } } }),
+  useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() }, listSpecializedData: { invalidate: vi.fn() }, campaignDetails: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read", "media.write", "media.create", "media.update", "media.delete"] }) } },
   media: {
     referenceData: { useQuery: referenceDataQuery },
@@ -22,6 +24,10 @@ const trpcStub = vi.hoisted(() => ({
     createConfiguredCampaign: { useMutation: () => ({ mutate: createConfiguredCampaignMutation, isPending: false }) },
     renewCampaign: { useMutation: () => ({ mutate: renewCampaignMutation, isPending: false }) },
     saveDebrief: { useMutation: () => ({ mutate: saveDebriefMutation, isPending: false }) },
+    createUrbanRegistration: { useMutation: () => ({ mutate: createUrbanRegistrationMutation, isPending: false }) },
+    createUrbanVeiculation: { useMutation: () => ({ mutate: createUrbanVeiculationMutation, isPending: false }) },
+    campaignDetails: { useQuery: () => ({ data: undefined, isLoading: false }) },
+    updateCampaignStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
   campaigns: { list: { useQuery: () => ({ data: [], isLoading: false }) } },
 }));
@@ -48,9 +54,10 @@ describe("detalhe de mídias", () => {
     expect(screen.getByLabelText("Nome do ponto")).toBeInTheDocument();
   });
 
-  it("abre fornecedor, histórico e evidências ao selecionar um ponto", () => {
+  it("abre fornecedor, histórico e registros de mídia ao selecionar um ponto", () => {
     listQuery.mockReturnValue({ data: [{ id: 7, name: "Frontlight Centro", supplierName: "Mídia MG", mediaTypeName: "Outdoor", cityName: "Belo Horizonte", regionalName: "Central", regionalId: 3, address: "Av. Afonso Pena", coverImageUrl: "https://example.com/capa.jpg", activeCampaign: { id: 13, name: "Campanha Primavera", startsOn: "2026-09-01", endsOn: "2026-10-31", status: "active", partnershipType: "paid", finance: { estimatedAmount: 1200, paidAmount: 0, remainingAmount: 1200 } } }], isLoading: false });
-    detailQuery.mockReturnValue({ data: { id: 7, name: "Frontlight Centro", supplierName: "Mídia MG", cityName: "Belo Horizonte", regionalName: "Central", regionalId: 3, mediaTypeName: "Outdoor", serviceTypeName: "Exibição", address: "Av. Afonso Pena", history: [{ id: 1, action: "create", scope: "point", occurredAt: new Date("2026-08-12T12:00:00Z") }], campaigns: [{ id: 13, name: "Campanha Primavera", startsOn: "2026-09-01", endsOn: "2026-10-31", estimatedCost: "1200.00", status: "active", notes: "Circuito principal", evidences: [{ id: 5, url: "https://example.com/foto.jpg", originalName: "foto-instalacao.jpg" }] }] }, isLoading: false });
+    referenceDataQuery.mockReturnValue({ data: { suppliers: [], cities: [], regionals: [], mediaTypes: [{ id: 10, name: "Impressão de papel", operationCategory: "graphics", parentMediaTypeId: 9 }], serviceTypes: [], supplierMediaTypes: [], supplierServiceTypes: [], supplierOfferings: [], supplierContracts: [] }, isLoading: false } as any);
+    detailQuery.mockReturnValue({ data: { id: 7, name: "Frontlight Centro", supplierId: 4, mediaTypeId: 9, supplierName: "Mídia MG", cityName: "Belo Horizonte", regionalName: "Central", regionalId: 3, mediaTypeName: "Outdoor", serviceTypeName: "Exibição", address: "Av. Afonso Pena", history: [{ id: 1, action: "create", scope: "point", occurredAt: new Date("2026-08-12T12:00:00Z") }], registrations: [{ id: 31, variationName: "Impressão de papel", replacementFrequency: "monthly", contractCode: "CT-01", contractName: "Mídia", contractValue: "1200.00", veiculations: [{ id: 13, name: "Campanha Primavera", objective: "Comercial", startsOn: "2026-09-01", endsOn: "2026-10-31", estimatedCost: "1200.00", status: "active" }] }] }, isLoading: false });
 
     render(<MediaWorkspace />);
     expect(screen.getByRole("img", { name: "Identificação de Frontlight Centro" })).toHaveAttribute("src", "https://example.com/capa.jpg");
@@ -58,9 +65,11 @@ describe("detalhe de mídias", () => {
 
     expect(screen.getByRole("heading", { name: "Frontlight Centro" })).toBeInTheDocument();
     expect(screen.getByText("Cobertura e fornecedor")).toBeInTheDocument();
-    expect(screen.getByText("Histórico")).toBeInTheDocument();
+    expect(screen.getByText("Histórico do ponto")).toBeInTheDocument();
     expect(screen.getByText("Registro criado")).toBeInTheDocument();
-    expect(screen.getByText("foto-instalacao.jpg")).toBeInTheDocument();
+    expect(screen.getByText("Mídias registradas")).toBeInTheDocument();
+    expect(screen.getByText("Impressão de papel")).toBeInTheDocument();
+    expect(screen.getByText("Campanha Primavera")).toBeInTheDocument();
     expect(screen.getAllByText(/R\$\s?1\.200,00/).length).toBeGreaterThan(0);
     expect(detailQuery).toHaveBeenLastCalledWith({ mediaPointId: 7 });
   });
@@ -122,7 +131,7 @@ describe("detalhe de mídias", () => {
   });
 
   it("apresenta o formulário de Mídia Urbana com taxonomia, fornecedor, território e coordenadas", () => {
-    referenceDataQuery.mockReturnValue({ data: { suppliers: [{ id: 4, displayName: "Fornecedor Urbano", mainService: "Outdoor" }], regionals: [{ id: 2, name: "Triângulo" }], cities: [{ city: { id: 11, name: "Uberlândia", regionalId: 2 }, regionalName: "Triângulo" }], mediaTypes: [{ id: 9, name: "Outdoor", operationCategory: "graphics", parentMediaTypeId: null }, { id: 10, name: "Impressão de papel", operationCategory: "graphics", parentMediaTypeId: 9 }], serviceTypes: [{ id: 7, name: "Exibição urbana" }], supplierMediaTypes: [{ supplierId: 4, mediaTypeId: 9 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 7 }], supplierOfferings: [] }, isLoading: false } as any);
+    referenceDataQuery.mockReturnValue({ data: { suppliers: [{ id: 4, displayName: "Fornecedor Urbano", mainService: "Outdoor" }], regionals: [{ id: 2, name: "Triângulo" }], cities: [{ city: { id: 11, name: "Uberlândia", regionalId: 2 }, regionalName: "Triângulo" }], mediaTypes: [{ id: 8, name: "Mídia Urbana", operationCategory: "graphics", parentMediaTypeId: null }, { id: 9, name: "Outdoor", operationCategory: "graphics", parentMediaTypeId: 8 }, { id: 10, name: "Impressão de papel", operationCategory: "graphics", parentMediaTypeId: 9 }], serviceTypes: [{ id: 7, name: "Exibição urbana" }], supplierMediaTypes: [{ supplierId: 4, mediaTypeId: 9 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 7 }], supplierOfferings: [], supplierContracts: [] }, isLoading: false } as any);
     listQuery.mockReturnValue({ data: [], isLoading: false });
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
 
@@ -130,13 +139,14 @@ describe("detalhe de mídias", () => {
     fireEvent.click(screen.getByRole("button", { name: "Novo ponto de mídia urbana" }));
 
     const modal = within(screen.getByRole("dialog"));
-    expect(modal.getByRole("button", { name: "Tipo de mídia" })).toBeInTheDocument();
-    expect(modal.getByRole("button", { name: "Fornecedor" })).toBeInTheDocument();
-    expect(modal.getByRole("button", { name: "Serviço do fornecedor" })).toBeInTheDocument();
     expect(modal.getByRole("button", { name: "Cidade do ponto" })).toBeInTheDocument();
-    expect(modal.getByRole("button", { name: "Período de troca" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Fornecedor" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Tipo de mídia" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Serviço do fornecedor" })).toBeInTheDocument();
     expect(modal.getByLabelText("Localização ou rota de referência")).toBeInTheDocument();
     expect(modal.getByLabelText("Latitude e longitude")).toBeInTheDocument();
+    expect(modal.queryByRole("button", { name: "Variação" })).toBeNull();
+    expect(modal.queryByRole("button", { name: "Período de troca" })).toBeNull();
     expect(modal.queryByLabelText("Canal")).toBeNull();
   });
 });

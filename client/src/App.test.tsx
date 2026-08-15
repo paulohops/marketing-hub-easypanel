@@ -29,6 +29,8 @@ describe("rotas protegidas", () => {
     ["/cadastros/operacionais", "cadastros"],
     ["/configuracoes", "configuracoes"],
     ["/ajuda", "ajuda"],
+    ["/midias/27", "midias-graficas"],
+    ["/midias/veiculacao/27", "midias-veiculacao"],
   ])("renderiza o módulo protegido %s", (path, module) => {
     window.history.pushState({}, "", path);
     render(<App />);

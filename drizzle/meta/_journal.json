@@ -239,6 +239,20 @@
       "when": 1786760179887,
       "tag": "0033_fantastic_silk_fever",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786763613826,
+      "tag": "0034_gifted_ultron",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1786763668724,
+      "tag": "0035_colorful_pretty_boy",
+      "breakpoints": true
     }
   ]
 }

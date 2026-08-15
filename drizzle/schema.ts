@@ -569,11 +569,28 @@ export const mediaPoints = pgTable("media_points", {
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const urbanMediaRegistrations = pgTable("urban_media_registrations", {
+  id: serial("id").primaryKey(),
+  mediaPointId: integer("mediaPointId").notNull().references(() => mediaPoints.id, { onDelete: "cascade" }),
+  mediaVariationTypeId: integer("mediaVariationTypeId").notNull().references(() => mediaTypes.id, { onDelete: "restrict" }),
+  supplierContractId: integer("supplierContractId").references(() => supplierContracts.id, { onDelete: "set null" }),
+  replacementFrequency: varchar("replacementFrequency", { length: 32 }).notNull(),
+  contractReference: varchar("contractReference", { length: 180 }),
+  contractValue: numeric("contractValue", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+}, table => [uniqueIndex("urban_media_registrations_point_variation_uq").on(table.mediaPointId, table.mediaVariationTypeId)]);
+
 export const mediaCampaigns = pgTable("media_campaigns", {
   id: serial("id").primaryKey(),
   tradeCampaignId: integer("tradeCampaignId").references(() => tradeCampaigns.id, { onDelete: "set null" }),
   mediaPointId: integer("mediaPointId").notNull().references(() => mediaPoints.id, { onDelete: "restrict" }),
+  urbanMediaRegistrationId: integer("urbanMediaRegistrationId").references(() => urbanMediaRegistrations.id, { onDelete: "set null" }),
+  mediaVariationTypeId: integer("mediaVariationTypeId").references(() => mediaTypes.id, { onDelete: "set null" }),
   name: varchar("name", { length: 180 }).notNull(),
+  objective: varchar("objective", { length: 180 }),
   status: campaignStatusEnum("status").default("active").notNull(),
   partnershipType: partnershipTypeEnum("partnershipType").default("paid").notNull(),
   startsOn: date("startsOn").notNull(),

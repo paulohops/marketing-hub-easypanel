@@ -1,5 +1,12 @@
 # Project TODO
 
+- [x] Separar Mídia Urbana em cadastro de ponto físico e registro de mídia/veiculação operacional.
+- [x] Reordenar o formulário de ponto para cidade, fornecedor, tipo de mídia, localização e coordenadas, com subtipo condicionado ao fornecedor.
+- [x] Manter variações no cadastro de Tipos de mídia e selecioná-las somente no registro operacional da mídia.
+- [x] Criar ficha do ponto com lista de veiculações e formulário de registro vinculado a contrato, valor, variação e período de troca.
+- [x] Criar ficha específica de veiculação com campanha, objetivo, status, reagendamento, debriefing, evidências e histórico no padrão visual de Campanhas.
+- [x] Cobrir os novos vínculos e fluxos de ponto/veiculação com testes automatizados e validação responsiva.
+- [x] Validar visualmente as fichas de ponto e veiculação de Mídia Urbana nos breakpoints móvel e tablet, corrigindo quebras se identificadas.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.

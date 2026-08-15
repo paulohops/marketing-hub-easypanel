@@ -32,6 +32,7 @@ import ActionTemplatesWorkspace from "./ActionTemplatesWorkspace";
 import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
 import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
+import UrbanVeiculationPage from "./UrbanVeiculationPage";
 import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, FileSpreadsheet, Flag, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound } from "lucide-react";
 
 const definitions = {
@@ -45,6 +46,7 @@ const definitions = {
   "midias-panfletagem": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Panfletagem", description: "Planeje distribuição territorial vinculada às campanhas.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-carro-som": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Carro de som", description: "Controle spots, agenda, rodagem e comprovações.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-influencers": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Influencers", description: "Planeje e acompanhe operações com influenciadores.", icon: Megaphone, resources: [], accent: "var(--primary)" },
+  "midias-veiculacao": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Veiculação de Mídia Urbana", description: "Acompanhe o planejamento, status, evidências e debriefing da veiculação selecionada.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   acoes: { permission: "actions.read", eyebrow: "Ativação de marca", title: "Ações de trade", description: "Planeje, execute e documente ações, serviços, fornecedores e debriefings.", icon: CalendarDays, resources: [{ title: "Planejamento", description: "Objetivo, agenda e fornecedores envolvidos." }, { title: "Execução", description: "Status, evidências e acompanhamento." }, { title: "Debriefing", description: "Nota, resultado, pontos positivos e negativos." }], accent: "var(--primary)" },
   eventos: { permission: "events.read", eyebrow: "Experiências presenciais", title: "Eventos", description: "Centralize etapas de pré-evento, execução, avaliação e histórico operacional.", icon: MapPinned, resources: [{ title: "Pré-evento", description: "Planejamento, fornecedores e entregáveis." }, { title: "Acompanhamento", description: "Status, localização e registros." }, { title: "Pós-evento", description: "Avaliação e resultados alcançados." }], accent: "var(--primary)" },
   indicadores: { permission: "dashboard.read", eyebrow: "Business intelligence", title: "Indicadores", description: "Acompanhe indicadores de fornecedores, mídias, ações e eventos para tomada de decisão.", icon: BarChart3, resources: [{ title: "Performance", description: "Indicadores comparativos por fornecedor." }, { title: "Investimento", description: "Leitura de custos e pagamentos por operação." }, { title: "Mapa analítico", description: "Cobertura e resultados por localidade." }], accent: "var(--primary)" },
@@ -99,6 +101,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "midias-panfletagem") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="leafleting" /></div></DashboardLayout>;
   if (module === "midias-carro-som") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="sound_car" /></div></DashboardLayout>;
   if (module === "midias-influencers") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="influencers" /></div></DashboardLayout>;
+  if (module === "midias-veiculacao") return <DashboardLayout><div className="cluster-workspace"><UrbanVeiculationPage /></div></DashboardLayout>;
   if (module === "acoes") return <DashboardLayout><div className="cluster-workspace"><ActionsWorkspace /></div></DashboardLayout>;
   if (module === "eventos") return <DashboardLayout><div className="cluster-workspace"><EventsWorkspace /></div></DashboardLayout>;
   if (module === "indicadores") return <DashboardLayout><div className="cluster-workspace"><IndicatorsWorkspace /></div></DashboardLayout>;

@@ -1,0 +1,2 @@
+ALTER TABLE "urban_media_registrations" ADD COLUMN "supplierContractId" integer;--> statement-breakpoint
+ALTER TABLE "urban_media_registrations" ADD CONSTRAINT "urban_media_registrations_supplierContractId_supplier_contracts_id_fk" FOREIGN KEY ("supplierContractId") REFERENCES "public"."supplier_contracts"("id") ON DELETE set null ON UPDATE no action;

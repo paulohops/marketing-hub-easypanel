@@ -22,8 +22,9 @@ function Router() {
     <Route path="/midias/panfletagem">{() => <ProtectedModule module="midias-panfletagem" />}</Route>
     <Route path="/midias/carro-de-som">{() => <ProtectedModule module="midias-carro-som" />}</Route>
     <Route path="/midias/influencers">{() => <ProtectedModule module="midias-influencers" />}</Route>
+    <Route path="/midias/veiculacao/:campaignId">{() => <ProtectedModule module="midias-veiculacao" />}</Route>
     <Route path="/midias">{() => <Redirect to="/midias/graficas" replace />}</Route>
-    <Route path="/midias/:mediaPointId">{() => <ProtectedModule module="midias" />}</Route>
+    <Route path="/midias/:mediaPointId">{() => <ProtectedModule module="midias-graficas" />}</Route>
     <Route path="/acoes/:actionId">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/acoes">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/eventos/:eventId">{() => <ProtectedModule module="eventos" />}</Route>
