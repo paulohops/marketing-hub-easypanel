@@ -73,6 +73,15 @@
 - [x] Consolidar a ficha detalhada de Empresa nesse mesmo fluxo, com cabeçalho, dados cadastrais, documentos, cobertura territorial e vínculos navegáveis.
 - [x] Cobrir o fluxo territorial de Empresas com testes de interface e revisão responsiva em desktop e celular.
 - [x] Cobrir em teste a abertura da ficha completa a partir da lista de Empresas dentro de Cadastros.
+- [x] Reorganizar a ficha de Empresa para exibir Regionais, Cidades, Lojas e Fornecedores logo abaixo dos detalhes cadastrais.
+- [x] Mover Documentos institucionais e Demais documentos da Empresa para a coluna lateral da ficha.
+- [x] Aplicar a organização visual de Empresas às fichas de Regionais, Cidades e Lojas, preservando todos os dados e ações atuais.
+- [x] Cobrir a reorganização das quatro fichas territoriais com testes e validação responsiva.
+- [x] Restaurar em Vínculos e cobertura o seletor por categoria, exibindo somente Regionais, Cidades, Lojas ou Fornecedores conforme a seleção.
+- [x] Cobrir em teste a troca de categoria dentro de Vínculos e cobertura.
+- [x] Validar visualmente em desktop e celular as fichas reorganizadas de Regionais, Cidades e Lojas.
+- [x] Validar a ficha individual reorganizada de Loja em desktop e celular com uma Loja temporária autorizada.
+- [x] Criar uma Loja temporária autorizada, validar sua ficha individual e removê-la ao fim da revisão.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.

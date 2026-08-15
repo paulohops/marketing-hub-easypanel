@@ -79,6 +79,19 @@ describe("fichas de cadastros", () => {
     expect(setCommercialSupervisorStores).toHaveBeenCalledWith({ commercialSupervisorId: 21, storeIds: [] });
   });
 
+  it.each([
+    ["Regional", "/cadastros/regionais/1", true],
+    ["Cidade", "/cadastros/cidades/3", true],
+    ["Loja", "/cadastros/lojas/2", false],
+  ])("organiza a ficha de %s em detalhes, vínculos e contexto lateral", (_label, path, hasRelations) => {
+    window.history.replaceState({}, "", path);
+    render(<RegistryEntityWorkspace />);
+
+    expect(screen.getByText("Informações do cadastro")).toBeInTheDocument();
+    if (hasRelations) expect(screen.getByText("Vínculos e cobertura")).toBeInTheDocument();
+    expect(screen.getByText("Contexto do cadastro")).toBeInTheDocument();
+  });
+
   it("solicita confirmação e envia a exclusão segura da Loja ao endpoint protegido", () => {
     window.history.replaceState({}, "", "/cadastros/lojas/2");
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);

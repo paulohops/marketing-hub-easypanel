@@ -55,12 +55,17 @@ describe("workspace Empresas", () => {
     render(<CompaniesWorkspace />);
     expect(screen.getByRole("button", { name: /Voltar para Empresas/i })).toBeInTheDocument();
     expect(screen.getByText("Detalhes cadastrais")).toBeInTheDocument();
+    expect(screen.getByText("Vínculos e cobertura")).toBeInTheDocument();
+    expect(screen.getByText("Documentos institucionais")).toBeInTheDocument();
     expect(screen.getAllByText("Não informado").length).toBeGreaterThan(0);
     expect(screen.getByText("Cartão CNPJ")).toBeInTheDocument();
     expect(screen.getByText("Demais documentos")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Central · MG-C/i })).toHaveAttribute("href", "/cadastros/regionais/2");
+    fireEvent.click(screen.getByRole("button", { name: /Cidades atendidas/i }));
     expect(screen.getByRole("link", { name: /Belo Horizonte · MG/i })).toHaveAttribute("href", "/cadastros/cidades/3");
+    fireEvent.click(screen.getByRole("button", { name: /Lojas vinculadas/i }));
     expect(screen.getByRole("link", { name: /Loja Centro/i })).toHaveAttribute("href", "/cadastros/lojas/4");
+    fireEvent.click(screen.getByRole("button", { name: /Fornecedores vinculados/i }));
     expect(screen.getByRole("link", { name: /Fornecedor BH/i })).toHaveAttribute("href", "/cadastros/fornecedores/5");
 
     fireEvent.click(screen.getByRole("button", { name: "Editar empresa" }));
@@ -85,6 +90,21 @@ describe("workspace Empresas", () => {
     expect(screen.getByText("Detalhes cadastrais")).toBeInTheDocument();
     expect(screen.getByText("Documentos institucionais")).toBeInTheDocument();
     expect(screen.getByText("Demais documentos")).toBeInTheDocument();
+  });
+
+  it("exibe uma única categoria de vínculo quando a pessoa a seleciona", () => {
+    window.history.pushState({}, "", "/cadastros/empresas/1");
+    render(<CompaniesWorkspace />);
+
+    const regionais = screen.getByRole("button", { name: /Regionais vinculadas/i });
+    const cidades = screen.getByRole("button", { name: /Cidades atendidas/i });
+    expect(regionais).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByText("Regionais vinculadas"));
+    expect(regionais).toHaveAttribute("aria-pressed", "true");
+    expect(cidades).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByText("Cidades atendidas"));
+    expect(cidades).toHaveAttribute("aria-pressed", "true");
+    expect(regionais).toHaveAttribute("aria-pressed", "false");
   });
 
   it("abre a ficha completa a partir da lista de Empresas dentro de Cadastros", async () => {
