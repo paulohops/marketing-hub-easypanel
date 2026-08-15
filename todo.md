@@ -1,5 +1,12 @@
 # Project TODO
 
+- [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
+- [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
+- [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.
+- [x] Validar criação, edição e relacionamentos dos cadastros importados e cobrir correções com testes.
+- [x] Comprovar, por consultas verificáveis, os exemplos de cidades, fornecedores e serviços da planilha disponíveis para teste.
+- [x] Executar uma varredura objetiva dos principais cadastros e vínculos N:N, documentando falhas encontradas e suas correções.
+- [x] Validar por teste ou consulta os vínculos territoriais importados da OnNet e os dados de fornecedores da planilha.
 - [x] Renomear visualmente Mídias Gráficas para Mídia Urbana e Áudio/Vídeo para Mídia Tradicional, preservando as rotas estáveis existentes.
 - [x] Criar taxonomia configurável de mídia principal, subtipo e variação, vinculada aos Tipos de mídia em Cadastros.
 - [x] Reformular o cadastro de Mídia Urbana com fornecedor elegível, serviço, território, localização e periodicidade de troca.

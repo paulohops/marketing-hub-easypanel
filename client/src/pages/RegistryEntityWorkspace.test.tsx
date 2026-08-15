@@ -2,12 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const setCommercialSupervisorStores = vi.hoisted(() => vi.fn());
+const updateType = vi.hoisted(() => vi.fn());
 const trpcStub = vi.hoisted(() => {
   const mutations = () => ({ mutate: vi.fn(), isPending: false });
   const overviewData = {
     providers: [], regionals: [], cities: [{ id: 3, name: "Belo Horizonte", state: "MG", active: true }], stores: [{ id: 2, cityId: 3, name: "Loja Central", code: "LC-01", active: true }],
     suppliers: [{ id: 7, displayName: "Fornecedor Central", document: "12.345.678/0001-90", phone: "31999999999", email: "contato@fornecedor.com", cityId: 3, active: true }],
-    partners: [], commercialSupervisors: [{ id: 21, name: "Gabriel", email: "gabriel@cluster.com", active: true }], commercialSupervisorStores: [{ commercialSupervisorId: 21, storeId: 2 }], serviceTypes: [{ id: 4, name: "Panfletagem" }], mediaTypes: [{ id: 5, name: "Outdoor" }], actionTypes: [], eventTypes: [], financialCategories: [], supplierOfferings: [{ id: 9, supplierId: 7, name: "Folder A5", unit: "milheiro", unitPrice: "450.00" }],
+    partners: [], commercialSupervisors: [{ id: 21, name: "Gabriel", email: "gabriel@cluster.com", active: true }], commercialSupervisorStores: [{ commercialSupervisorId: 21, storeId: 2 }], serviceTypes: [{ id: 4, name: "Panfletagem" }], mediaTypes: [{ id: 5, name: "Outdoor", operationCategory: "graphics" }, { id: 6, name: "Impressão em lona", operationCategory: "graphics", parentMediaTypeId: 5 }], actionTypes: [], eventTypes: [], financialCategories: [], supplierOfferings: [{ id: 9, supplierId: 7, name: "Folder A5", unit: "milheiro", unitPrice: "450.00" }],
     operationalFootprint: { actions: [{ id: 11, name: "Ação Central", cityId: 3 }], events: [{ id: 12, name: "Evento Central", cityId: 3 }], mediaPoints: [{ id: 13, name: "Painel Central", cityId: 3, supplierId: 7 }], actionSuppliers: [{ actionId: 11, supplierId: 7 }], eventSuppliers: [{ eventId: 12, supplierId: 7 }] },
   };
   return {
@@ -16,6 +17,7 @@ const trpcStub = vi.hoisted(() => {
       overview: { useQuery: () => ({ isLoading: false, data: overviewData }) },
       supplierCoverage: { useQuery: () => ({ data: { citiesBySupplier: [{ supplierId: 7, cityId: 3 }], servicesBySupplier: [{ supplierId: 7, serviceTypeId: 4 }], mediaBySupplier: [{ supplierId: 7, mediaTypeId: 5 }] } }) },
       setCommercialSupervisorStores: { useMutation: () => ({ mutate: setCommercialSupervisorStores, isPending: false }) },
+      updateType: { useMutation: () => ({ mutate: updateType, isPending: false }) },
     }, { get: (target, property) => target[property as keyof typeof target] ?? { useMutation: mutations } }),
   };
 });
@@ -59,5 +61,17 @@ describe("fichas de cadastros", () => {
     expect(screen.getByText("Gabriel")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Desvincular" }));
     expect(setCommercialSupervisorStores).toHaveBeenCalledWith({ commercialSupervisorId: 21, storeIds: [] });
+  });
+
+  it("edita a hierarquia de um Tipo de mídia pela ficha individual", () => {
+    window.history.replaceState({}, "", "/cadastros/tipos-de-midia/6");
+    render(<RegistryEntityWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
+    expect(screen.getByLabelText("Tipo principal")).toHaveValue("graphics");
+    expect(screen.getByLabelText("Subtipo pai")).toHaveValue("5");
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    expect(updateType).toHaveBeenCalledWith({ id: 6, kind: "media", name: "Impressão em lona", operationCategory: "graphics", parentMediaTypeId: 5 });
   });
 });
