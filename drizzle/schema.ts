@@ -107,6 +107,19 @@ export const providers = pgTable("providers", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const providerDocuments = pgTable("provider_documents", {
+  id: serial("id").primaryKey(),
+  providerId: integer("providerId").notNull().references(() => providers.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 180 }).notNull(),
+  storageKey: varchar("storageKey", { length: 512 }).notNull().unique(),
+  url: text("url").notNull(),
+  originalName: varchar("originalName", { length: 255 }).notNull(),
+  mimeType: varchar("mimeType", { length: 120 }).notNull(),
+  sizeBytes: integer("sizeBytes").notNull(),
+  uploadedByUserId: integer("uploadedByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const appSettings = pgTable("app_settings", {
   key: varchar("key", { length: 120 }).primaryKey(),
   value: text("value").notNull(),

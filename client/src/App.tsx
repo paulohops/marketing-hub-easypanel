@@ -37,6 +37,7 @@ function Router() {
     <Route path="/cadastros/operacionais">{() => <ProtectedModule module="cadastros" />}</Route>
     <Route path="/cadastros">{() => <Redirect to="/cadastros/operacionais" replace />}</Route>
     <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
+    <Route path="/empresas/:providerId">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/trello">{() => <ProtectedModule module="trello" />}</Route>
     <Route path="/importar-dados">{() => <ProtectedModule module="importacao" />}</Route>

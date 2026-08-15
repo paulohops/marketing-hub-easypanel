@@ -39,6 +39,11 @@
 - [x] Adicionar testes integrados de persistência para cidade-matriz e paleta de cores de Empresas.
 - [x] Adicionar testes de upload seguro para Cartão CNPJ e Manual da marca.
 - [x] Adicionar teste da ficha individual de Empresa para matriz, paleta e documentos institucionais.
+- [x] Reestruturar a listagem de Empresas em itens separados, com foto, dados essenciais e estado de informação ausente.
+- [x] Recriar a ficha de Empresa no padrão detalhado de Ações, exibindo dados não preenchidos como “Não informado”.
+- [x] Diagnosticar e corrigir o salvamento de alterações de Empresas, com atualização visível da ficha e da lista.
+- [x] Criar documentos complementares de Empresa em área independente dos documentos institucionais.
+- [x] Cobrir a listagem, o salvamento e os documentos complementares com testes e validação responsiva.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.

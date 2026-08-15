@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, campaignSectors, campaignTypes, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
+import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, campaignSectors, campaignTypes, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providerDocuments, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -74,7 +74,7 @@ export const settingsRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, campaignTypeRows, campaignSectorRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows] = await Promise.all([
+    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, campaignTypeRows, campaignSectorRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows, providerDocumentRows] = await Promise.all([
       database.select().from(providers).orderBy(asc(providers.name)),
       database.select().from(regionals).orderBy(asc(regionals.name)),
       database.select().from(cities).orderBy(asc(cities.name)),
@@ -98,8 +98,9 @@ export const settingsRouter = router({
       database.select({ mediaPointId: mediaCampaigns.mediaPointId }).from(mediaCampaigns),
       database.select({ actionId: actionSuppliers.actionId, supplierId: actionSuppliers.supplierId }).from(actionSuppliers),
       database.select({ eventId: eventSuppliers.eventId, supplierId: eventSuppliers.supplierId }).from(eventSuppliers),
+      database.select().from(providerDocuments).orderBy(asc(providerDocuments.createdAt)),
     ]);
-    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
+    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, providerDocuments: providerDocumentRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
   }),
 
   createProvider: protectedProcedure.input(providerInputSchema).mutation(async ({ ctx, input }) => {
@@ -155,6 +156,29 @@ export const settingsRouter = router({
     const [updated] = await database.update(providers).set({ brandManualStorageKey: stored.key, brandManualUrl: stored.url, updatedAt: new Date() }).where(eq(providers.id, provider.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: provider.id, action: "upload_brand_manual", beforeData: { brandManualStorageKey: provider.brandManualStorageKey }, afterData: { brandManualStorageKey: updated.brandManualStorageKey } });
     return updated;
+  }),
+
+  uploadProviderDocument: protectedProcedure.input(z.object({ providerId: z.number().int().positive(), title: z.string().trim().min(2).max(180), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(contractMimeTypes), dataBase64: z.string().min(1).max(14_000_000) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [provider] = await database.select({ id: providers.id }).from(providers).where(eq(providers.id, input.providerId)).limit(1);
+    if (!provider) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada." });
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 10 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O documento complementar deve ter até 10 MB." });
+    const stored = await storagePut(`trade/providers/${provider.id}/documents/${Date.now()}-${safeContractName(input.originalName)}`, bytes, input.mimeType);
+    const [created] = await database.insert(providerDocuments).values({ providerId: provider.id, title: input.title, storageKey: stored.key, url: stored.url, originalName: input.originalName, mimeType: input.mimeType, sizeBytes: bytes.length, uploadedByUserId: ctx.user.id }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: provider.id, action: "upload_document", afterData: { documentId: created.id, title: created.title, originalName: created.originalName } });
+    return created;
+  }),
+
+  deleteProviderDocument: protectedProcedure.input(z.object({ providerId: z.number().int().positive(), documentId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [document] = await database.select().from(providerDocuments).where(and(eq(providerDocuments.id, input.documentId), eq(providerDocuments.providerId, input.providerId))).limit(1);
+    if (!document) throw new TRPCError({ code: "NOT_FOUND", message: "Documento complementar não encontrado para esta empresa." });
+    await database.delete(providerDocuments).where(eq(providerDocuments.id, document.id));
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: input.providerId, action: "delete_document", beforeData: { documentId: document.id, title: document.title, originalName: document.originalName } });
+    return { id: document.id };
   }),
 
   createRegional: protectedProcedure.input(z.object({ providerId: z.number().int().positive().nullable(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).toUpperCase() })).mutation(async ({ ctx, input }) => {

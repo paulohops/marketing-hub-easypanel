@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "../_core/context";
-import { actionTypes, campaignSectors, campaignTypes, cities, commercialSupervisors, eventTypes, financialCategories, mediaTypes, partners, providers, regionals, serviceTypes, stores, supplierOfferings, suppliers } from "../../drizzle/schema";
+import { actionTypes, campaignSectors, campaignTypes, cities, commercialSupervisors, eventTypes, financialCategories, mediaTypes, partners, providerDocuments, providers, regionals, serviceTypes, stores, supplierOfferings, suppliers } from "../../drizzle/schema";
 
 const getDbMock = vi.hoisted(() => vi.fn());
 const assertPermissionMock = vi.hoisted(() => vi.fn());
@@ -151,5 +151,33 @@ describe("settingsRouter via tRPC", () => {
     expect(storagePutMock).toHaveBeenNthCalledWith(2, expect.stringMatching(/^trade\/providers\/7\/brand-manual-/), expect.any(Buffer), "application/pdf");
     expect(updateCnpj).toHaveBeenCalledWith(expect.objectContaining({ cnpjCardStorageKey: cnpjUpdated.cnpjCardStorageKey, cnpjCardUrl: cnpjUpdated.cnpjCardUrl }));
     expect(updateManual).toHaveBeenCalledWith(expect.objectContaining({ brandManualStorageKey: manualUpdated.brandManualStorageKey, brandManualUrl: manualUpdated.brandManualUrl }));
+  });
+
+  it("armazena e remove documento complementar exclusivamente dentro da Empresa informada", async () => {
+    const provider = { id: 8, name: "Sempre Internet" };
+    const document = { id: 12, providerId: 8, title: "Certidão municipal", storageKey: "trade/providers/8/documents/certidao.pdf", url: "https://files.example/certidao.pdf", originalName: "certidao.pdf", mimeType: "application/pdf", sizeBytes: 10 };
+    const selectProvider = vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [provider]) })) })) }));
+    const selectDocument = vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [document]) })) })) }));
+    const insertValues = vi.fn(() => ({ returning: vi.fn(() => [document]) }));
+    const deleteWhere = vi.fn();
+    const database = {
+      select: vi.fn().mockReturnValueOnce(selectProvider()).mockReturnValueOnce(selectDocument()),
+      insert: vi.fn(() => ({ values: insertValues })),
+      delete: vi.fn(() => ({ where: deleteWhere })),
+    };
+    getDbMock.mockResolvedValue(database);
+    storagePutMock.mockResolvedValue({ key: document.storageKey, url: document.url });
+    const caller = appRouter.createCaller(createContext());
+    const dataBase64 = Buffer.from("documento").toString("base64");
+
+    await expect(caller.settings.uploadProviderDocument({ providerId: 8, title: "Certidão municipal", originalName: "certidao.pdf", mimeType: "application/pdf", dataBase64 })).resolves.toEqual(document);
+    await expect(caller.settings.deleteProviderDocument({ providerId: 8, documentId: 12 })).resolves.toEqual({ id: 12 });
+    expect(database.insert).toHaveBeenCalledWith(providerDocuments);
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ providerId: 8, title: "Certidão municipal", storageKey: document.storageKey }));
+    expect(storagePutMock).toHaveBeenCalledWith(expect.stringMatching(/^trade\/providers\/8\/documents\//), expect.any(Buffer), "application/pdf");
+    expect(database.delete).toHaveBeenCalledWith(providerDocuments);
+    expect(deleteWhere).toHaveBeenCalled();
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "provider", entityId: 8, action: "upload_document" }));
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "provider", entityId: 8, action: "delete_document" }));
   });
 });
