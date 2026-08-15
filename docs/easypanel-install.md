@@ -2,7 +2,7 @@
 
 ## 1. Pré-requisitos
 
-A instalação precisa de um serviço PostgreSQL persistente e de um serviço de aplicação que consiga construir o `Dockerfile` deste repositório. O serviço de aplicação deve expor a porta interna **3000**. Não é necessário configurar Node, pnpm ou Nginx manualmente no host: o Dockerfile já contém Node.js 22, instala as dependências, executa a checagem TypeScript e cria o artefato de produção.
+A instalação precisa de um serviço PostgreSQL persistente e de um serviço de aplicação que consiga construir o `Dockerfile` deste repositório. O serviço de aplicação deve expor a porta interna **8978**. Não é necessário configurar Node, pnpm ou Nginx manualmente no host: o Dockerfile já contém Node.js 22, instala as dependências, executa a checagem TypeScript e cria o artefato de produção.
 
 O banco pode ser um serviço PostgreSQL dentro do próprio EasyPanel ou um PostgreSQL gerenciado externo. Quando os serviços estão na mesma rede do EasyPanel, use o nome DNS interno do serviço no `DATABASE_URL`; não use `localhost`, pois dentro do container `localhost` aponta para o próprio container da aplicação.
 
@@ -10,7 +10,7 @@ O banco pode ser um serviço PostgreSQL dentro do próprio EasyPanel ou um Postg
 
 No EasyPanel, crie um novo projeto e adicione um serviço do tipo aplicação conectado ao GitHub. Selecione o repositório privado `paulohops/marketing-hub-easypanel`, a branch `main` e o contexto raiz do projeto. Escolha **Dockerfile** como método de build; o arquivo já está na raiz do repositório.
 
-Configure a porta interna como `3000` e, se o painel permitir health check, use o caminho `GET /health`. A resposta esperada é um JSON semelhante a `{"ok":true,"service":"trade-hub"}`. O processo já faz bind em `0.0.0.0`, portanto não deve ser configurado para `127.0.0.1`.
+Configure a porta interna como `8978` e, se o painel permitir health check, use o caminho `GET /health`. A resposta esperada é um JSON semelhante a `{"ok":true,"service":"trade-hub"}`. O processo já faz bind em `0.0.0.0`, portanto não deve ser configurado para `127.0.0.1`.
 
 ## 3. Configurar o volume persistente
 
@@ -27,7 +27,7 @@ Adicione as variáveis abaixo na área de Environment do serviço. O arquivo [`.
 | Variável | Obrigatória | Valor recomendado ou finalidade |
 |---|---:|---|
 | `NODE_ENV` | Sim | `production` |
-| `PORT` | Sim | `3000` |
+| `PORT` | Sim | `8978` |
 | `APP_ID` | Não | `marketing-hub-easypanel` |
 | `PUBLIC_APP_URL` | Não | URL pública HTTPS da aplicação; por exemplo `https://marketing.seu-dominio.com` |
 | `DATABASE_URL` | Sim | URL completa do PostgreSQL |
@@ -51,7 +51,7 @@ A instalação standalone **não precisa** de `OAUTH_SERVER_URL`, `VITE_OAUTH_PO
 
 ## 5. Publicar a primeira versão
 
-Depois de salvar as variáveis e o volume, faça o primeiro deploy. O container deve construir o frontend, gerar `dist/index.js` e iniciar com `node dist/index.js`. Verifique o log até aparecer `Trade HUB running on port 3000`.
+Depois de salvar as variáveis e o volume, faça o primeiro deploy. O container deve construir o frontend, gerar `dist/index.js` e iniciar com `node dist/index.js`. Verifique o log até aparecer `Trade HUB running on port 8978`.
 
 Antes de executar migrações, confirme que o serviço PostgreSQL está acessível a partir do container. Se o banco usar TLS, defina `DATABASE_SSL=true`; para uma conexão interna sem TLS, deixe `DATABASE_SSL=false` e, se necessário, inclua os parâmetros exigidos pelo próprio `DATABASE_URL`.
 
@@ -99,10 +99,10 @@ O volume `/data/storage` e o serviço PostgreSQL devem ser preservados durante a
 | Container reinicia dizendo `DATABASE_URL` ausente | Configure a URL completa do PostgreSQL. |
 | Login informa banco indisponível | Verifique DNS interno, porta, usuário, senha, firewall e `DATABASE_SSL`. |
 | `ERR_MODULE_NOT_FOUND: Cannot find package 'vite' imported from /app/dist/index.js` | O serviço está usando um commit antigo ou um bundle antigo que importava Vite. Faça redeploy do commit corrigido mais recente; o entrypoint de produção agora não importa Vite. |
-| Health check falha | Use porta `3000`, caminho `/health` e protocolo HTTP interno. |
+| Health check falha | Use porta `8978`, caminho `/health` e protocolo HTTP interno. |
 | Upload retorna 404 | Confirme o volume em `/data/storage` e a variável `STORAGE_DIR`. |
 | Upload funciona, mas arquivo some após redeploy | O volume não está persistente ou está montado em caminho diferente. |
-| Tela abre, mas assets não carregam | Verifique o log de build e se o serviço está entregando a porta `3000`. |
+| Tela abre, mas assets não carregam | Verifique o log de build e se o serviço está entregando a porta `8978`. |
 | Integração Trello informa não configurada | Adicione `TRELLO_API_KEY` e `TRELLO_TOKEN`; o núcleo da aplicação não depende dessas chaves. |
 
 ## 11. Segurança operacional

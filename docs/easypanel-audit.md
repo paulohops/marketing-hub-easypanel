@@ -18,7 +18,7 @@ O projeto é uma aplicação full-stack Vite + React + Express + tRPC + Drizzle/
 
 ## Variáveis esperadas na versão standalone
 
-Obrigatórias em produção: `NODE_ENV=production`, `PORT=3000`, `DATABASE_URL`, `JWT_SECRET`.
+Obrigatórias em produção: `NODE_ENV=production`, `PORT=8978`, `DATABASE_URL`, `JWT_SECRET`.
 
 Bootstrap administrativo: `OWNER_OPEN_ID` opcional, `ADMIN_EMAIL` e `ADMIN_PASSWORD` recomendados para criação/atualização do primeiro administrador via script seguro.
 

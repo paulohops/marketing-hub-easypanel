@@ -14,7 +14,7 @@ pnpm bootstrap:admin
 pnpm dev
 ```
 
-Para produção, use o `Dockerfile` incluído. A imagem escuta em `0.0.0.0:3000`, expõe `GET /health` e monta o armazenamento em `/data/storage`.
+Para produção, use o `Dockerfile` incluído. A imagem escuta em `0.0.0.0:8978`, expõe `GET /health` e monta o armazenamento em `/data/storage`.
 
 ## Comandos principais
 
