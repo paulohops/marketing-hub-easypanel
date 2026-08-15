@@ -14,7 +14,7 @@ pnpm bootstrap:admin
 pnpm dev
 ```
 
-Para produção, use o `Dockerfile` incluído. A imagem escuta em `0.0.0.0:8978`, expõe `GET /health` e monta o armazenamento em `/data/storage`.
+Para produção, use o `Dockerfile` incluído. A imagem escuta em `0.0.0.0:8978`, expõe `GET /health` e monta o armazenamento em `/data/storage`. O entrypoint verifica o estado do PostgreSQL, cria o schema no primeiro deploy quando o banco está vazio e aplica apenas migrations pendentes nos deploys seguintes. A reinstalação de dependências durante o build ocorre dentro da imagem e não apaga o banco nem o volume persistente.
 
 ## Comandos principais
 
@@ -23,7 +23,8 @@ Para produção, use o `Dockerfile` incluído. A imagem escuta em `0.0.0.0:8978`
 | `pnpm check` | Verifica os tipos TypeScript. |
 | `pnpm build` | Compila o frontend e empacota o servidor. |
 | `pnpm test` | Executa a suíte de testes. Integrações externas são puladas sem credenciais. |
-| `pnpm db:migrate` | Aplica as migrações SQL existentes no PostgreSQL. |
+| `pnpm db:migrate` | Aplica somente as migrations SQL versionadas que ainda não foram executadas. |
+| `pnpm db:ensure` | Verifica o estado do banco e executa o mesmo fluxo seguro usado pelo entrypoint. |
 | `pnpm bootstrap:admin` | Cria ou atualiza o primeiro administrador local a partir das variáveis `ADMIN_*`. |
 | `pnpm start` | Inicia o artefato compilado em modo produção. |
 

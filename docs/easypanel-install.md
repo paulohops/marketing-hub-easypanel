@@ -36,6 +36,8 @@ Adicione as variáveis abaixo na área de Environment do serviço. O arquivo [`.
 | `DATABASE_POOL_MAX` | Não | `8` |
 | `JWT_SECRET` | Sim | Segredo aleatório longo, preferencialmente com pelo menos 32 caracteres |
 | `STORAGE_DIR` | Sim | `/data/storage` |
+| `RUN_MIGRATIONS` | Não | `true`; executa migrations pendentes antes de iniciar o servidor |
+| `RUN_ADMIN_BOOTSTRAP` | Não | `true`; executa bootstrap quando `ADMIN_EMAIL` e `ADMIN_PASSWORD` estiverem preenchidos |
 | `ADMIN_EMAIL` | Para bootstrap | E-mail do primeiro administrador |
 | `ADMIN_PASSWORD` | Para bootstrap | Senha com pelo menos 12 caracteres, minúscula, maiúscula e número |
 | `ADMIN_NAME` | Não | Nome exibido para o administrador |
@@ -51,31 +53,33 @@ A instalação standalone **não precisa** de `OAUTH_SERVER_URL`, `VITE_OAUTH_PO
 
 ## 5. Publicar a primeira versão
 
-Depois de salvar as variáveis e o volume, faça o primeiro deploy. O container deve construir o frontend, gerar `dist/index.js` e iniciar com `node dist/index.js`. Verifique o log até aparecer `Trade HUB running on port 8978`.
+Depois de salvar as variáveis e o volume, faça o primeiro deploy. O container deve construir o frontend, gerar `dist/index.js` e iniciar o entrypoint `scripts/entrypoint.sh`. Verifique o log até aparecer `Trade HUB running on port 8978`.
 
-Antes de executar migrações, confirme que o serviço PostgreSQL está acessível a partir do container. Se o banco usar TLS, defina `DATABASE_SSL=true`; para uma conexão interna sem TLS, deixe `DATABASE_SSL=false` e, se necessário, inclua os parâmetros exigidos pelo próprio `DATABASE_URL`.
+Antes do deploy, confirme que o serviço PostgreSQL está acessível a partir do container. Se o banco usar TLS, defina `DATABASE_SSL=true`; para uma conexão interna sem TLS, deixe `DATABASE_SSL=false` e, se necessário, inclua os parâmetros exigidos pelo próprio `DATABASE_URL`.
 
-## 6. Executar as migrações
+## 6. Primeiro deploy e atualizações do banco
 
-Abra o console ou terminal do serviço da aplicação no EasyPanel e execute:
+O entrypoint executa automaticamente `node scripts/ensure-schema.mjs` antes de iniciar a aplicação. Esse script consulta o PostgreSQL e segue este fluxo seguro:
+
+| Estado encontrado | Ação |
+|---|---|
+| A tabela `users` não existe | Trata como primeiro deploy e executa todas as migrations versionadas para criar o schema. |
+| A tabela `users` e `__drizzle_migrations` existem | Executa somente as migrations pendentes; as já aplicadas não são repetidas. |
+| `users` existe, mas não existe histórico `__drizzle_migrations` | Interrompe o deploy sem alterar o banco, evitando recriar ou sobrescrever um schema não rastreado. |
+
+Portanto, no fluxo normal do EasyPanel, **não é necessário executar manualmente `pnpm db:migrate` em cada deploy**. O container roda a verificação automaticamente. O comando manual equivalente, disponível para manutenção, é:
 
 ```bash
-pnpm db:migrate
+pnpm db:ensure
 ```
 
-O Dockerfile mantém o Drizzle Kit e as migrações SQL na imagem para que esse comando funcione no ambiente de produção. O comando é idempotente: migrações já aplicadas não são reaplicadas.
-
-Se o seu fluxo de deploy permitir um comando de release separado, execute `pnpm db:migrate` nesse estágio antes de disponibilizar o serviço. Não coloque a senha do administrador diretamente no comando do shell; use as variáveis de ambiente do painel.
+O comando `db:push` foi removido da versão publicada para impedir geração de migrations dentro do container. As alterações de schema devem ser criadas e revisadas no ambiente de desenvolvimento, versionadas na pasta `drizzle/` e então aplicadas automaticamente no próximo deploy.
 
 ## 7. Criar o primeiro administrador
 
-Com as variáveis `ADMIN_EMAIL`, `ADMIN_PASSWORD` e, opcionalmente, `ADMIN_NAME` configuradas, execute uma vez:
+Com `ADMIN_EMAIL`, `ADMIN_PASSWORD` e, opcionalmente, `ADMIN_NAME` configurados, o entrypoint executa automaticamente `node scripts/bootstrap-admin.mjs`. O script cria a conta local com role `admin`, hash bcrypt e identificador estável. Se a conta já existir, ele a ativa e mantém a senha atual, a menos que `ADMIN_RESET_PASSWORD=true` esteja configurado.
 
-```bash
-pnpm bootstrap:admin
-```
-
-O script cria uma conta local com role `admin`, hash bcrypt e identificador estável. Se a conta já existir, ele a ativa e mantém a senha atual, a menos que `ADMIN_RESET_PASSWORD=true` esteja configurado. Após redefinir uma senha, volte esse valor para `false` e faça um novo deploy ou remova-o do ambiente.
+Depois do primeiro acesso, mantenha `RUN_ADMIN_BOOTSTRAP=true` ou altere para `false` conforme sua política operacional. A rotina não remove usuários nem dados; ela apenas garante a conta administrativa configurada. Para redefinir uma senha, defina `ADMIN_RESET_PASSWORD=true` durante um deploy e depois retorne o valor para `false`.
 
 Em seguida, acesse a URL pública e entre pela tela local com e-mail e senha. O botão de OAuth institucional foi removido da edição standalone.
 
@@ -87,9 +91,9 @@ Use o domínio público também em `PUBLIC_APP_URL` para manter a configuração
 
 ## 9. Atualizações
 
-Para atualizar, envie as alterações para a branch `main` do repositório e acione um novo deploy no EasyPanel. O Dockerfile reinstala dependências, executa `pnpm check` e `pnpm build`. Depois do deploy, execute `pnpm db:migrate` caso existam novas migrações no repositório.
+Para atualizar, envie as alterações para a branch `main` do repositório e acione um novo deploy no EasyPanel. O Dockerfile usa camadas: enquanto `package.json` e `pnpm-lock.yaml` não mudarem, a camada de dependências pode ser reutilizada pelo cache do builder. Mesmo quando uma nova imagem instala dependências novamente, isso ocorre dentro do container e não apaga dados externos.
 
-O volume `/data/storage` e o serviço PostgreSQL devem ser preservados durante atualizações. Não use uma estratégia de deploy que apague esses recursos.
+O entrypoint aplica automaticamente somente migrations pendentes antes de iniciar o servidor. O volume `/data/storage` e o serviço PostgreSQL devem ser preservados durante atualizações. Não use uma estratégia de deploy que apague esses recursos nem altere `DATABASE_URL` para apontar para um banco novo.
 
 ## 10. Diagnóstico
 

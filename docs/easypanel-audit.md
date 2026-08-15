@@ -15,6 +15,8 @@ O projeto é uma aplicação full-stack Vite + React + Express + tRPC + Drizzle/
 7. A imagem do login usa `/manus-storage/cluster-mg-logo_947e1614.png`, que será substituída por asset local ou fallback.
 8. O storage standalone será implementado em filesystem local configurável por `STORAGE_DIR`, servido por uma rota protegida contra path traversal. O EasyPanel deverá montar um volume persistente nesse diretório.
 9. A build deve incluir Dockerfile e documentação de variáveis de ambiente para EasyPanel.
+10. O entrypoint `scripts/ensure-schema.mjs` verifica se `users` e `__drizzle_migrations` existem; em banco vazio aplica o schema versionado e, em atualizações, executa apenas migrations pendentes. Se houver schema sem histórico de migrations, o deploy falha sem modificar os dados.
+11. O build da imagem pode reinstalar dependências sem tocar no PostgreSQL ou no volume `/data/storage`; esses recursos ficam fora da camada efêmera do container.
 
 ## Variáveis esperadas na versão standalone
 
