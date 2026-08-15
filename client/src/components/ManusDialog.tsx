@@ -51,7 +51,7 @@ export function ManusDialog({
       open={onOpenChange ? open : internalOpen}
       onOpenChange={handleOpenChange}
     >
-      <DialogContent className="w-[400px] gap-0 rounded-[20px] border border-border bg-card p-0 py-5 text-center shadow-[0px_4px_11px_0px_rgba(0,0,0,0.08)] backdrop-blur-2xl">
+      <DialogContent className="w-[400px] gap-0 rounded-[10px] border border-border bg-card p-0 py-5 text-center shadow-[0px_4px_11px_0px_rgba(0,0,0,0.08)] backdrop-blur-2xl">
         <div className="flex flex-col items-center gap-2 p-5 pt-12">
           {logo ? (
             <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-background">

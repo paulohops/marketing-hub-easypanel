@@ -10,7 +10,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full border-separate border-spacing-y-2 caption-bottom text-sm", className)}
         {...props}
       />
     </div>
@@ -31,7 +31,10 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0", className)}
+      className={cn(
+        "[&_tr>td]:border-y [&_tr>td]:border-border [&_tr>td]:bg-card [&_tr>td:first-child]:rounded-l-[10px] [&_tr>td:first-child]:border-l [&_tr>td:last-child]:rounded-r-[10px] [&_tr>td:last-child]:border-r [&_tr:hover>td]:border-primary/25 [&_tr:hover>td]:bg-secondary/45",
+        className
+      )}
       {...props}
     />
   );

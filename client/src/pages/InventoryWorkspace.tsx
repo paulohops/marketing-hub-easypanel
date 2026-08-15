@@ -889,7 +889,7 @@ export default function InventoryWorkspace() {
               const isHistoryOpen = historyItemId === item.id;
               const isEditing = editingItemId === item.id;
               return (
-                <div key={item.id} className="px-5 py-4">
+                <div key={item.id} className="overflow-hidden px-5 py-4">
                   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex min-w-0 items-center gap-3">
                       <ImageViewer
@@ -929,8 +929,8 @@ export default function InventoryWorkspace() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <div className="mr-2 text-right">
+                    <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
+                      <div className="col-span-2 text-left sm:mr-2 sm:text-right">
                         <p className="text-lg font-semibold text-foreground">
                           {item.balance.toLocaleString("pt-BR", {
                             maximumFractionDigits: 2,
@@ -947,16 +947,18 @@ export default function InventoryWorkspace() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 rounded-lg border-border text-xs"
+                        className="h-8 w-full min-w-0 overflow-hidden rounded-lg border-border text-xs sm:w-auto"
                         onClick={() => selectHistory(item.id)}
                       >
-                        <History className="mr-1.5 h-3.5 w-3.5" /> Ver ficha
+                        <History className="mr-1.5 h-3.5 w-3.5" />
+                        <span className="sm:hidden">Ficha</span>
+                        <span className="hidden sm:inline">Ver ficha</span>
                       </Button>
                       {canWrite && (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 rounded-lg border-border text-xs"
+                          className="h-8 w-full min-w-0 overflow-hidden rounded-lg border-border text-xs sm:w-auto"
                           onClick={() => openEditItem(item)}
                         >
                           <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
@@ -966,22 +968,23 @@ export default function InventoryWorkspace() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 rounded-lg border-border text-xs"
+                          className="h-8 w-full min-w-0 overflow-hidden rounded-lg border-border text-xs sm:w-auto"
                           onClick={() =>
                             setMovementItemId(
                               movementItemId === item.id ? null : item.id
                             )
                           }
                         >
-                          <ArrowUpFromLine className="mr-1.5 h-3.5 w-3.5" />{" "}
-                          Movimentar
+                          <ArrowUpFromLine className="mr-1.5 h-3.5 w-3.5" />
+                          <span className="sm:hidden">Mov.</span>
+                          <span className="hidden sm:inline">Movimentar</span>
                         </Button>
                       )}
                       {canWrite && item.cityId && (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 rounded-lg border-border text-xs"
+                          className="h-8 w-full min-w-0 overflow-hidden rounded-lg border-border text-xs sm:w-auto"
                           onClick={() => {
                             setTransferSourceId(
                               transferSourceId === item.id ? null : item.id
@@ -995,8 +998,9 @@ export default function InventoryWorkspace() {
                             });
                           }}
                         >
-                          <ArrowLeftRight className="mr-1.5 h-3.5 w-3.5" />{" "}
-                          Transferir
+                          <ArrowLeftRight className="mr-1.5 h-3.5 w-3.5" />
+                          <span className="sm:hidden">Transf.</span>
+                          <span className="hidden sm:inline">Transferir</span>
                         </Button>
                       )}
                     </div>

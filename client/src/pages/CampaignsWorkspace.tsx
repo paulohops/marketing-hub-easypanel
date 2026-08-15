@@ -1339,12 +1339,12 @@ export default function CampaignsWorkspace() {
       {isLoading ? (
         <p className="text-muted-foreground">Carregando campanhas...</p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="space-y-3">
           {visible.map(item => (
             <button
               key={item.id}
               onClick={() => setLocation(`/campanhas/${item.id}`)}
-              className="grid w-full min-h-[150px] grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.2fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.2fr)_minmax(178px,.9fr)_minmax(164px,.8fr)_minmax(180px,.86fr)_62px] xl:gap-x-3"
+              className="grid min-h-[150px] w-full grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-[10px] border border-border bg-card px-4 py-5 text-left shadow-[0_2px_8px_rgba(19,53,35,0.025)] transition hover:border-primary/30 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.2fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.2fr)_minmax(178px,.9fr)_minmax(164px,.8fr)_minmax(180px,.86fr)_62px] xl:gap-x-3"
             >
               <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-sm font-bold text-primary md:h-[76px] md:w-[76px] xl:row-span-1">
                 {item.logoUrl || item.providerLogoUrl ? (
@@ -1376,7 +1376,7 @@ export default function CampaignsWorkspace() {
             </button>
           ))}
           {!visible.length && (
-            <p className="p-8 text-center text-muted-foreground">
+            <p className="rounded-[10px] border border-border bg-card p-8 text-center text-muted-foreground">
               Nenhuma campanha encontrada neste recorte.
             </p>
           )}

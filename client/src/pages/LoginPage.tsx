@@ -20,7 +20,7 @@ export default function LoginPage() {
 
   return (
     <div className="trade-login cluster-grid min-h-screen bg-background p-4 sm:p-7">
-      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[1440px] overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_32px_80px_rgba(14,114,59,0.12)] sm:min-h-[calc(100vh-3.5rem)] lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[1440px] overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_32px_80px_rgba(14,114,59,0.12)] sm:min-h-[calc(100vh-3.5rem)] lg:grid-cols-[1.1fr_0.9fr]">
         <section className="relative overflow-hidden bg-primary px-7 py-8 text-white sm:px-12 sm:py-12">
           <div className="pointer-events-none absolute -left-24 top-1/4 h-72 w-72 rounded-full border border-white/20" />
           <div className="pointer-events-none absolute bottom-[-25%] right-[-15%] h-[34rem] w-[34rem] rounded-full border-[40px] border-sidebar-primary opacity-90" />

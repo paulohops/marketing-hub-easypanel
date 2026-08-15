@@ -4,10 +4,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -44,7 +46,7 @@
 
 :root {
   --primary: #0e723b; --primary-foreground: #ffffff; --sidebar-primary: #f45103; --sidebar-primary-foreground: #ffffff;
-  --chart-1: #0e723b; --chart-2: #f45103; --chart-3: #3d9362; --chart-4: #cc3e00; --chart-5: #75b38a; --radius: 0.75rem;
+  --chart-1: #0e723b; --chart-2: #f45103; --chart-3: #3d9362; --chart-4: #cc3e00; --chart-5: #75b38a; --radius: 10px;
   --background: #f7faf7; --foreground: #133523; --card: #ffffff; --card-foreground: #133523; --popover: #ffffff; --popover-foreground: #133523;
   --secondary: #e9f5ed; --secondary-foreground: #0e723b; --muted: #eef4ef; --muted-foreground: #557064; --accent: #fff0e9; --accent-foreground: #b63c03;
   --destructive: #c73710; --destructive-foreground: #ffffff; --border: #d8e8dc; --input: #d1e2d5; --ring: #f45103;
@@ -167,6 +169,61 @@
     pointer-events: none;
     opacity: 0.5;
     background: radial-gradient(circle at 70% 30%, rgba(244, 81, 3, 0.12), transparent 38%), radial-gradient(circle at 35% 55%, rgba(14, 114, 59, 0.1), transparent 54%);
+  }
+
+  /* Padrão visual de listas: cada registro é um cartão independente, nunca uma linha contínua. */
+  .hub-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .hub-list-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    transition: border-color 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), transform 160ms var(--ease-out, ease-out);
+  }
+
+  .hub-list-item:hover {
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    box-shadow: 0 8px 18px rgba(19, 53, 35, 0.07);
+  }
+
+  .hub-list-item:has(button:hover),
+  .hub-list-item:has(a:hover) {
+    transform: translateY(-1px);
+  }
+
+  .hub-list--compact {
+    gap: 0.5rem;
+  }
+
+  /* Compatibilidade: módulos antigos que ainda usam divisórias são exibidos como itens independentes. */
+  .divide-y.divide-border {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .divide-y.divide-border > :not([hidden]) {
+    border: 1px solid var(--border) !important;
+    border-radius: 10px;
+    background: var(--card);
+    padding: 1rem !important;
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+  }
+
+  .divide-y.divide-border > button:not([hidden]),
+  .divide-y.divide-border > a:not([hidden]) {
+    text-align: left;
+    transition: border-color 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), transform 160ms var(--ease-out, ease-out);
+  }
+
+  .divide-y.divide-border > button:not([hidden]):hover,
+  .divide-y.divide-border > a:not([hidden]):hover {
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border)) !important;
+    box-shadow: 0 8px 18px rgba(19, 53, 35, 0.07);
+    transform: translateY(-1px);
   }
 
   @media (min-width: 640px) {

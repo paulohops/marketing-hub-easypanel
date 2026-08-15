@@ -22,7 +22,7 @@ export default function DashboardPage() {
   ].filter(item => new Date(item.date).getTime() >= Date.now() - 86_400_000).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5);
   return (
     <div className="mx-auto max-w-[1480px]">
-      <section className="cluster-grid relative overflow-hidden rounded-[22px] bg-primary px-6 py-7 text-white shadow-[0_16px_42px_rgba(14,114,59,0.18)] sm:px-8 sm:py-9">
+      <section className="cluster-grid relative overflow-hidden rounded-[10px] bg-primary px-6 py-7 text-white shadow-[0_16px_42px_rgba(14,114,59,0.18)] sm:px-8 sm:py-9">
         <div className="absolute -right-10 -top-20 h-64 w-64 rounded-full border-[26px] border-sidebar-primary opacity-90" />
         <div className="absolute bottom-[-75px] right-[18%] h-40 w-40 rounded-full border border-white/20" />
         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">

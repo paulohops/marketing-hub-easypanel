@@ -44,6 +44,16 @@
 - [x] Diagnosticar e corrigir o salvamento de alterações de Empresas, com atualização visível da ficha e da lista.
 - [x] Criar documentos complementares de Empresa em área independente dos documentos institucionais.
 - [x] Cobrir a listagem, o salvamento e os documentos complementares com testes e validação responsiva.
+- [x] Auditar os tokens globais, cantos e padrões de listas dos módulos existentes.
+- [x] Definir bordas de 10 px como padrão visual global para cards, painéis, campos, diálogos e listas.
+- [x] Padronizar listas dos módulos em itens separados, com hierarquia visual, metadados e ações organizadas.
+- [x] Revisar os módulos já criados para aplicar o padrão visual sem prejudicar os fluxos funcionais existentes.
+- [x] Validar a padronização de interface em desktop e celular, cobrindo consistência e regressões visuais.
+- [x] Aplicar e comprovar o padrão de itens separados nas listas restantes dos módulos não validados explicitamente.
+- [x] Executar uma revisão visual documentada, rota por rota, dos principais módulos afetados em desktop e celular.
+- [x] Registrar evidência explícita de que os cantos de 10 px e as listas revisadas não causaram regressões fora de Campanhas, Ações, Eventos e Empresas.
+- [x] Auditar por código as listas de Gestão, Mídias, Cadastros e Configurações, registrando os arquivos que adotam o padrão de itens separados.
+- [x] Registrar uma matriz de validação visual por rota e breakpoint, com os ajustes aplicados em cada módulo analisado.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.

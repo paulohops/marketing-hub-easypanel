@@ -674,19 +674,19 @@ export default function ActionsWorkspace() {
           </div>
         </div>
       </section>}
-      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <section className="space-y-3">
         {actionList.isLoading ? (
           <p className="p-10 text-center text-sm text-muted-foreground">
             Carregando ações…
           </p>
         ) : visibleActions.length ? (
-          <div>
+          <div className="space-y-3">
             {visibleActions.map((row: any) => (
               <button
                 key={row.action.id}
                 type="button"
                 onClick={() => setLocation(`/acoes/${row.action.id}`)}
-                className="grid min-h-[150px] w-full grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border px-4 py-5 text-left transition last:border-b-0 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.15fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.15fr)_minmax(165px,.76fr)_minmax(180px,.86fr)_minmax(190px,.9fr)_62px] xl:gap-x-3"
+                className="grid min-h-[150px] w-full grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-[10px] border border-border bg-card px-4 py-5 text-left shadow-[0_2px_8px_rgba(19,53,35,0.025)] transition hover:border-primary/30 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.15fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.15fr)_minmax(165px,.76fr)_minmax(180px,.86fr)_minmax(190px,.9fr)_62px] xl:gap-x-3"
               >
                 <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-primary md:h-[76px] md:w-[76px] xl:row-span-1">
                   {row.action.coverImageUrl || row.coverImageUrl ? <img src={row.action.coverImageUrl || row.coverImageUrl} alt="" className="h-full w-full object-contain" /> : <CalendarClock className="h-6 w-6" />}
@@ -706,7 +706,7 @@ export default function ActionsWorkspace() {
             ))}
           </div>
         ) : (
-          <p className="p-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-[10px] border border-border bg-card p-10 text-center text-sm text-muted-foreground">
             Nenhuma ação encontrada para os filtros selecionados.
           </p>
         )}
