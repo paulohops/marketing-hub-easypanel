@@ -54,6 +54,9 @@ type Panel =
   | "action_point";
 type Row = { id: number; name: string; active: boolean; detail?: string };
 type RegistryGroup = "Território" | "Parceiros" | "Operação" | "Categorias" | "Financeiro" | "Modelos";
+const registryGroups: RegistryGroup[] = ["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"];
+const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorio", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
+const registryGroupFromQuery: Record<string, RegistryGroup> = { territorio: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
 
 const cards: Array<{
   key: Panel;
@@ -111,6 +114,7 @@ async function fileToBase64(file: File) {
 
 export default function OperationalRegistriesPanel() {
   const [location, setLocation] = useLocation();
+  const [activeGroup, setActiveGroup] = useState<RegistryGroup | null>(() => registryGroupFromQuery[new URLSearchParams(window.location.search).get("grupo") ?? ""] ?? null);
   const utils = trpc.useUtils();
   const overview = trpc.settings.overview.useQuery();
   const coverage = trpc.settings.supplierCoverage.useQuery();
@@ -359,6 +363,10 @@ export default function OperationalRegistriesPanel() {
     handledCreateIntent.current = requested;
     reset();
     setPanel(target);
+  }, [location]);
+  useEffect(() => {
+    const requestedGroup = new URLSearchParams(window.location.search).get("grupo") ?? "";
+    setActiveGroup(registryGroupFromQuery[requestedGroup] ?? null);
   }, [location]);
   const toggle = (
     id: number,
@@ -788,8 +796,9 @@ export default function OperationalRegistriesPanel() {
           Centro configurável
         </Badge>
       </div>
-      <div className="mt-6 space-y-8">
-        {(["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
+      <div className="mt-6 space-y-6">
+        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registryGroups.map(group => { const count = group === "Financeiro" ? 0 : group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => { setActiveGroup(group); setLocation(`/cadastros/operacionais?grupo=${registryGroupQuery[group]}`); }} className="rounded-xl border border-border bg-background p-5 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><p className="mt-4 font-semibold text-foreground">{group}</p><p className="mt-1 text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</p><span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Abrir opções <Plus className="ml-1 h-3.5 w-3.5" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div><Button type="button" variant="outline" size="sm" onClick={() => { setActiveGroup(null); setLocation("/cadastros/operacionais"); }}>Todos os grupos</Button></div>
+        {([activeGroup] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
           <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {group === "Financeiro" ? <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-5 sm:col-span-2 xl:col-span-3"><p className="font-semibold text-foreground">Planejamento financeiro</p><p className="mt-1 text-sm text-muted-foreground">Os cadastros e parâmetros financeiros serão estruturados na próxima etapa do Marketing HUB.</p></div> : cards.filter(card => card.group === group).map(card => {
@@ -858,7 +867,7 @@ export default function OperationalRegistriesPanel() {
           </>
         )}
         </div>
-        </section>)}
+        </section>)}</>}
       </div>
       <Dialog
         open={panel !== null}

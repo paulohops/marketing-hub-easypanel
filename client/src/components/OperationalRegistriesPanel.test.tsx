@@ -34,22 +34,27 @@ afterEach(() => {
 });
 
 describe("centro de cadastros operacionais", () => {
-  it("organiza os domínios configuráveis em cartões de acesso às telas próprias", () => {
+  it("apresenta os seis grupos antes de exibir suas opções de cadastro", () => {
     render(<OperationalRegistriesPanel />);
 
     expect(screen.getByRole("heading", { name: "Cadastros operacionais" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /empresas/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Território" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Parceiros" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Operação" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Categorias" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Financeiro" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Modelos" })).toBeInTheDocument();
-    expect(screen.getByText(/serão estruturados na próxima etapa/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /lojas/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^fornecedores/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /tipos de ação/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Território/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Parceiros/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Operação/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Categorias/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Financeiro/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Modelos/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /empresas/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("exibe somente as opções do grupo selecionado", () => {
+    render(<OperationalRegistriesPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /^Território/i }));
+    expect(screen.getByRole("button", { name: /empresas/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /lojas/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^fornecedores/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Todos os grupos" })).toBeInTheDocument();
   });
 
   it.each([
@@ -71,7 +76,8 @@ describe("centro de cadastros operacionais", () => {
     ["Modelos de campanha", "/cadastros/modelos"],
     ["Modelos de ações", "/cadastros/modelos-acoes"],
   ])("direciona %s para %s", (cardTitle, expectedPath) => {
-    window.history.replaceState({}, "", "/cadastros/operacionais");
+    const group = ["Empresas", "Regionais", "Cidades", "Lojas", "Pontos de ação"].includes(cardTitle) ? "territorio" : ["Fornecedores", "Parceiros comerciais", "Supervisores comerciais", "Influencers"].includes(cardTitle) ? "parceiros" : ["Atuação", "Setores", "Serviços"].includes(cardTitle) ? "operacao" : ["Tipos de ação", "Tipos de evento", "Tipos de mídia"].includes(cardTitle) ? "categorias" : "modelos";
+    window.history.replaceState({}, "", `/cadastros/operacionais?grupo=${group}`);
     render(<OperationalRegistriesPanel />);
 
     fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${cardTitle}`) }));

@@ -390,25 +390,27 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const now = new Date();
+    let updated: { id: number; active: boolean } | undefined;
     switch (input.kind) {
-      case "provider": await database.update(providers).set({ active: input.active }).where(eq(providers.id, input.id)); break;
-      case "regional": await database.update(regionals).set({ active: input.active }).where(eq(regionals.id, input.id)); break;
-      case "city": await database.update(cities).set({ active: input.active }).where(eq(cities.id, input.id)); break;
-      case "store": await database.update(stores).set({ active: input.active, updatedAt: now }).where(eq(stores.id, input.id)); break;
-      case "supplier": await database.update(suppliers).set({ active: input.active, updatedAt: now }).where(eq(suppliers.id, input.id)); break;
-      case "partner": await database.update(partners).set({ active: input.active }).where(eq(partners.id, input.id)); break;
-      case "supervisor": await database.update(commercialSupervisors).set({ active: input.active, updatedAt: now }).where(eq(commercialSupervisors.id, input.id)); break;
-      case "service": await database.update(serviceTypes).set({ active: input.active }).where(eq(serviceTypes.id, input.id)); break;
-      case "media": await database.update(mediaTypes).set({ active: input.active }).where(eq(mediaTypes.id, input.id)); break;
-      case "action": await database.update(actionTypes).set({ active: input.active }).where(eq(actionTypes.id, input.id)); break;
-      case "event": await database.update(eventTypes).set({ active: input.active }).where(eq(eventTypes.id, input.id)); break;
-      case "campaign": await database.update(campaignTypes).set({ active: input.active }).where(eq(campaignTypes.id, input.id)); break;
-      case "campaign_sector": await database.update(campaignSectors).set({ active: input.active }).where(eq(campaignSectors.id, input.id)); break;
-      case "financial_category": await database.update(financialCategories).set({ active: input.active, updatedAt: now }).where(eq(financialCategories.id, input.id)); break;
-      case "supplier_offering": await database.update(supplierOfferings).set({ active: input.active, updatedAt: now }).where(eq(supplierOfferings.id, input.id)); break;
+      case "provider": [updated] = await database.update(providers).set({ active: input.active }).where(eq(providers.id, input.id)).returning({ id: providers.id, active: providers.active }); break;
+      case "regional": [updated] = await database.update(regionals).set({ active: input.active }).where(eq(regionals.id, input.id)).returning({ id: regionals.id, active: regionals.active }); break;
+      case "city": [updated] = await database.update(cities).set({ active: input.active }).where(eq(cities.id, input.id)).returning({ id: cities.id, active: cities.active }); break;
+      case "store": [updated] = await database.update(stores).set({ active: input.active, updatedAt: now }).where(eq(stores.id, input.id)).returning({ id: stores.id, active: stores.active }); break;
+      case "supplier": [updated] = await database.update(suppliers).set({ active: input.active, updatedAt: now }).where(eq(suppliers.id, input.id)).returning({ id: suppliers.id, active: suppliers.active }); break;
+      case "partner": [updated] = await database.update(partners).set({ active: input.active }).where(eq(partners.id, input.id)).returning({ id: partners.id, active: partners.active }); break;
+      case "supervisor": [updated] = await database.update(commercialSupervisors).set({ active: input.active, updatedAt: now }).where(eq(commercialSupervisors.id, input.id)).returning({ id: commercialSupervisors.id, active: commercialSupervisors.active }); break;
+      case "service": [updated] = await database.update(serviceTypes).set({ active: input.active }).where(eq(serviceTypes.id, input.id)).returning({ id: serviceTypes.id, active: serviceTypes.active }); break;
+      case "media": [updated] = await database.update(mediaTypes).set({ active: input.active }).where(eq(mediaTypes.id, input.id)).returning({ id: mediaTypes.id, active: mediaTypes.active }); break;
+      case "action": [updated] = await database.update(actionTypes).set({ active: input.active }).where(eq(actionTypes.id, input.id)).returning({ id: actionTypes.id, active: actionTypes.active }); break;
+      case "event": [updated] = await database.update(eventTypes).set({ active: input.active }).where(eq(eventTypes.id, input.id)).returning({ id: eventTypes.id, active: eventTypes.active }); break;
+      case "campaign": [updated] = await database.update(campaignTypes).set({ active: input.active }).where(eq(campaignTypes.id, input.id)).returning({ id: campaignTypes.id, active: campaignTypes.active }); break;
+      case "campaign_sector": [updated] = await database.update(campaignSectors).set({ active: input.active }).where(eq(campaignSectors.id, input.id)).returning({ id: campaignSectors.id, active: campaignSectors.active }); break;
+      case "financial_category": [updated] = await database.update(financialCategories).set({ active: input.active, updatedAt: now }).where(eq(financialCategories.id, input.id)).returning({ id: financialCategories.id, active: financialCategories.active }); break;
+      case "supplier_offering": [updated] = await database.update(supplierOfferings).set({ active: input.active, updatedAt: now }).where(eq(supplierOfferings.id, input.id)).returning({ id: supplierOfferings.id, active: supplierOfferings.active }); break;
     }
-    await writeAuditLog({ actorUserId: ctx.user.id, entityType: input.kind, entityId: input.id, action: input.active ? "activate" : "deactivate", afterData: { active: input.active } });
-    return { success: true } as const;
+    if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: input.kind, entityId: input.id, action: input.active ? "activate" : "deactivate", afterData: { active: updated.active } });
+    return { success: true, active: updated.active } as const;
   }),
 
   deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "store", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
@@ -419,6 +421,19 @@ export const settingsRouter = router({
     const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
     try {
+      if (input.kind === "provider") {
+        const [linkedRegionals, linkedSuppliers] = await Promise.all([
+          database.select({ id: regionals.id, name: regionals.name }).from(regionals).where(eq(regionals.providerId, input.id)),
+          database.select({ id: suppliers.id, name: suppliers.displayName }).from(suppliers).where(eq(suppliers.providerId, input.id)),
+        ]);
+        await database.transaction(async tx => {
+          if (linkedRegionals.length) await tx.update(regionals).set({ providerId: null }).where(eq(regionals.providerId, input.id));
+          if (linkedSuppliers.length) await tx.update(suppliers).set({ providerId: null, updatedAt: new Date() }).where(eq(suppliers.providerId, input.id));
+          await tx.delete(providers).where(eq(providers.id, input.id));
+        });
+        await writeAuditLog({ actorUserId: ctx.user.id, entityType: input.kind, entityId: input.id, action: "delete", beforeData: { ...before, detachedRegionalIds: linkedRegionals.map(item => item.id), detachedSupplierIds: linkedSuppliers.map(item => item.id) } });
+        return { success: true } as const;
+      }
       await database.delete(table).where(eq(table.id, input.id));
     } catch (error) {
       const details = error instanceof Error ? error.message.toLowerCase() : "";

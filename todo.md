@@ -15,6 +15,21 @@
 - [x] Validar a exclusão segura de Lojas na ficha individual, incluindo o endpoint de remoção protegido.
 - [x] Auditar os procedimentos de criação dos demais domínios de Cadastros e corrigir eventuais falhas de rota ou endpoint.
 - [x] Ampliar a cobertura automatizada de criação, edição e navegação para cada domínio ativo de Cadastros.
+- [x] Reiniciar o servidor de desenvolvimento após indisponibilidade relatada e confirmar a retomada do ambiente.
+- [x] Corrigir a exclusão da empresa Paulo quando não houver vínculos operacionais dependentes.
+- [x] Separar a central de Cadastros por grupo selecionado, exibindo somente os itens de Território, Parceiros, Operação, Categorias, Financeiro ou Modelos conforme o acesso escolhido.
+- [x] Corrigir a edição de status ativo/inativo em todos os cadastros aplicáveis e validar sua persistência.
+- [x] Cobrir exclusão, segmentação e alteração de status com testes automatizados e revisão visual.
+- [x] Cobrir em teste e validar pelo fluxo do sistema a exclusão de Empresa, incluindo o caso Paulo com desvinculação segura de vínculos cadastrais diretos.
+- [x] Ampliar os testes de ativo/inativo para os demais cadastros aplicáveis, comprovando a persistência do status além de Lojas.
+- [x] Revisar visualmente os fluxos de exclusão de Empresa e alteração de status nos cadastros afetados antes da publicação.
+- [x] Validar a exclusão de Empresa pelo fluxo real, cobrindo confirmação, endpoint, desvinculação segura e estado persistido após a operação.
+- [x] Adicionar testes integrados de backend para exclusão de Empresa sem apagar regionais e fornecedores associados.
+- [x] Adicionar testes integrados de persistência do status ativo/inativo para Empresa, Fornecedor e demais cadastros aplicáveis.
+- [x] Registrar evidência visual explícita dos controles de exclusão e status antes e depois da operação.
+- [x] Validar no componente real da ficha de Cadastro o fluxo completo de exclusão de Empresa, incluindo confirmação, mutation e retorno à lista após o sucesso.
+- [x] Ampliar o teste integrado de status para todos os domínios de Cadastro que aceitam ativo/inativo.
+- [x] Registrar evidência visual dos controles de exclusão e status na ficha individual e do estado final da listagem de Empresas após remover Paulo.
 - [x] Localizar e analisar a planilha de referência enviada para identificar cadastros reutilizáveis e relações territoriais.
 - [x] Popular Cadastros com os dados validados da planilha e estruturar a empresa/regional OnNet com suas cidades relacionadas.
 - [x] Diagnosticar e corrigir cadastros e vínculos que não estejam funcionando no ambiente de teste.
