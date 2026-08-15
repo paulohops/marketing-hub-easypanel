@@ -27,6 +27,6 @@ COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=build /app/scripts/bootstrap-admin.mjs ./scripts/bootstrap-admin.mjs
 
 VOLUME ["/data/storage"]
-EXPOSE 3000
+EXPOSE 8978
 
 CMD ["node", "dist/index.js"]
