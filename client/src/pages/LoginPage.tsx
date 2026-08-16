@@ -58,7 +58,7 @@ export default function LoginPage() {
           <div className="w-full max-w-sm">
             <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[11px] font-bold tracking-wide text-primary">ACESSO RESTRITO</span>
             <h2 className="mt-6 font-display text-3xl font-extrabold tracking-tight text-foreground">Acesse sua operação</h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">Entre com sua conta local cadastrada no {branding.appName}.</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Entre com Google ou use a conta local cadastrada no {branding.appName}. O e-mail precisa estar previamente autorizado.</p>
             <form className="mt-7 space-y-4" onSubmit={submit}>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-email">E-mail</label><Input id="local-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="nome@empresa.com" /></div>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-password">Senha</label><Input id="local-password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} placeholder="Sua senha local" /></div>
@@ -66,9 +66,11 @@ export default function LoginPage() {
                 {login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}Entrar com e-mail e senha
               </Button>
             </form>
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
+            <Button type="button" variant="outline" className="h-12 w-full rounded-xl border-border text-sm font-bold" onClick={() => window.location.assign("/api/oauth/google")}><span className="mr-2 grid h-5 w-5 place-items-center rounded-full bg-white/100 text-xs font-black text-[#4285F4]">G</span>Entrar com Google</Button>
             <div className="mt-6 flex items-start gap-3 rounded-xl border border-border bg-background p-4">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-sidebar-primary" />
-              <p className="text-xs leading-5 text-muted-foreground">As contas locais usam senhas protegidas por hash e sessões assinadas pelo próprio servidor. Nenhum login externo é necessário.</p>
+              <p className="text-xs leading-5 text-muted-foreground">Você pode usar Google ou e-mail e senha. Quando o e-mail for o mesmo, os dois métodos entram na mesma conta.</p>
             </div>
           </div>
         </section>

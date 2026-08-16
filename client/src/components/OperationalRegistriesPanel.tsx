@@ -161,7 +161,7 @@ export default function OperationalRegistriesPanel() {
   const [supervisorStoreIds, setSupervisorStoreIds] = useState<number[]>([]);
   const [offerName, setOfferName] = useState("");
   const [offerKind, setOfferKind] = useState<
-    "service" | "media" | "action" | "event" | "other"
+    "product" | "service" | "media" | "action" | "event" | "other"
   >("service");
   const [offerUnit, setOfferUnit] = useState("unidade");
   const [offerPrice, setOfferPrice] = useState("");
@@ -760,7 +760,7 @@ export default function OperationalRegistriesPanel() {
   const beginOfferingEdit = (item: {
     id: number;
     name: string;
-    kind: "service" | "media" | "action" | "event" | "other";
+    kind: "product" | "service" | "media" | "action" | "event" | "other";
     unit: string;
     unitPrice: string;
     notes?: string | null;
@@ -1461,11 +1461,11 @@ function RegistryForm(props: {
           <Field label="Telefone" id="registry-phone" value={props.phone} setValue={props.setPhone} />
           <section className="rounded-xl border border-border bg-secondary/20 p-3 sm:col-span-2">
             <p className="text-sm font-semibold text-foreground">Lojas supervisionadas</p>
-            <p className="mt-1 text-xs text-muted-foreground">Selecione todas as lojas sob responsabilidade deste supervisor.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Selecione a única loja sob responsabilidade deste supervisor.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {props.stores.filter(store => store.active).length ? props.stores.filter(store => store.active).map(store => {
                 const city = props.cities.find(item => item.id === store.cityId);
-                return <label key={store.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"><input type="checkbox" checked={props.supervisorStoreIds.includes(store.id)} onChange={() => props.onToggleSupervisorStore(store.id)} className="h-4 w-4 accent-primary" /><span>{store.name}{city ? ` · ${city.name}/${city.state}` : ""}</span></label>;
+                return <label key={store.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"><input type="radio" name="supervisor-store" checked={props.supervisorStoreIds.includes(store.id)} onChange={() => { if (!props.supervisorStoreIds.includes(store.id)) props.onToggleSupervisorStore(store.id); }} className="h-4 w-4 accent-primary" /><span>{store.name}{city ? ` · ${city.name}/${city.state}` : ""}</span></label>;
               }) : <p className="text-sm text-muted-foreground">Nenhuma loja ativa cadastrada.</p>}
             </div>
           </section>
@@ -1558,8 +1558,8 @@ function SupplierPanel(props: {
   onSaveCoverage: () => void;
   offerName: string;
   setOfferName: (v: string) => void;
-  offerKind: "service" | "media" | "action" | "event" | "other";
-  setOfferKind: (v: "service" | "media" | "action" | "event" | "other") => void;
+  offerKind: "product" | "service" | "media" | "action" | "event" | "other";
+  setOfferKind: (v: "product" | "service" | "media" | "action" | "event" | "other") => void;
   offerUnit: string;
   setOfferUnit: (v: string) => void;
   offerPrice: string;
@@ -1568,7 +1568,7 @@ function SupplierPanel(props: {
   setOfferNotes: (v: string) => void;
   editingOffering: boolean;
   onCreateOffer: () => void;
-  onBeginOfferingEdit: (item: { id: number; name: string; kind: "service" | "media" | "action" | "event" | "other"; unit: string; unitPrice: string; notes?: string | null }) => void;
+  onBeginOfferingEdit: (item: { id: number; name: string; kind: "product" | "service" | "media" | "action" | "event" | "other"; unit: string; unitPrice: string; notes?: string | null }) => void;
   onCancelOfferingEdit: () => void;
   onToggleOffering: (id: number, active: boolean) => void;
   saving: boolean;
@@ -1711,7 +1711,7 @@ function SupplierPanel(props: {
               Salvar cobertura e capacidades
             </Button>
             <div className="border-t border-border pt-5">
-              <p className="font-semibold text-foreground">{props.editingOffering ? "Editar oferta e preço" : "Oferta e preço"}</p>
+              <p className="font-semibold text-foreground">{props.editingOffering ? "Editar produto ou serviço" : "Produtos ou serviços"}</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Field
                   label="Oferta"
@@ -1721,12 +1721,13 @@ function SupplierPanel(props: {
                 />
                 <SelectField
                   id="offer-kind"
-                  label="Categoria"
+                  label="Tipo"
                   value={props.offerKind}
                   onChange={value =>
                     props.setOfferKind(value as typeof props.offerKind)
                   }
                   options={[
+                    { value: "product", label: "Produto" },
                     { value: "service", label: "Serviço" },
                     { value: "media", label: "Mídia" },
                     { value: "action", label: "Ação" },
@@ -1781,7 +1782,7 @@ function SupplierPanel(props: {
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <p className="text-sm font-semibold text-primary">R$ {Number(item.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                         <StatusBadge active={item.active} />
-                        <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => props.onBeginOfferingEdit({ ...item, kind: item.kind as "service" | "media" | "action" | "event" | "other" })}><Pencil className="h-3.5 w-3.5" /><span className="sr-only">Editar oferta</span></Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => props.onBeginOfferingEdit({ ...item, kind: item.kind as "product" | "service" | "media" | "action" | "event" | "other" })}><Pencil className="h-3.5 w-3.5" /><span className="sr-only">Editar oferta</span></Button>
                         <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-xs" disabled={props.saving} onClick={() => props.onToggleOffering(item.id, item.active)}>{item.active ? "Inativar" : "Ativar"}</Button>
                       </div>
                     </div>

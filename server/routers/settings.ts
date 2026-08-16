@@ -430,7 +430,7 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createSupplierOffering: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), kind: z.enum(["service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+  createSupplierOffering: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const [supplier] = await database.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.id, input.supplierId)).limit(1);
@@ -493,7 +493,7 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [created] = await database.insert(commercialSupervisors).values({ ...input, email: input.email || null, phone: input.phone || null }).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "commercial_supervisor", entityId: created.id, action: "create", afterData: created }); return created;
   }),
 
-  setCommercialSupervisorStores: protectedProcedure.input(z.object({ commercialSupervisorId: z.number().int().positive(), storeIds: z.array(z.number().int().positive()).max(300) })).mutation(async ({ ctx, input }) => {
+  setCommercialSupervisorStores: protectedProcedure.input(z.object({ commercialSupervisorId: z.number().int().positive(), storeIds: z.array(z.number().int().positive()).max(1) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const storeIds = uniqueIds(input.storeIds);
@@ -579,7 +579,7 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(financialCategories).where(eq(financialCategories.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Categoria financeira não encontrada." }); const [updated] = await database.update(financialCategories).set({ name: input.name, description: input.description || null, updatedAt: new Date() }).where(eq(financialCategories.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "financial_category", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  updateSupplierOffering: protectedProcedure.input(z.object({ id: z.number().int().positive(), kind: z.enum(["service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+  updateSupplierOffering: protectedProcedure.input(z.object({ id: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(supplierOfferings).where(eq(supplierOfferings.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Oferta não encontrada." }); const [updated] = await database.update(supplierOfferings).set({ kind: input.kind, name: input.name, unit: input.unit, unitPrice: input.unitPrice.toFixed(2), notes: input.notes || null, updatedAt: new Date() }).where(eq(supplierOfferings.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_offering", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 

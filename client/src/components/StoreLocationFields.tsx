@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parseCoordinates } from "@shared/location";
+import { MapView } from "@/components/Map";
 import { STORE_WEEKDAYS, parseStoreHours, serializeStoreHours, type StoreDayHours, type StoreHours, type StoreWeekday } from "@shared/storeHours";
 
 type CoordinatesFieldProps = {
@@ -54,6 +55,7 @@ export function CoordinatesField({ latitude, longitude, setLatitude, setLongitud
       </div>
       {message ? <p className="mt-2 text-xs text-muted-foreground">{message}</p> : null}
       <p className="mt-2 text-xs text-muted-foreground">Cole latitude e longitude na mesma linha. O sistema salva os valores separadamente para mapas e relatórios.</p>
+      {(() => { const point = parseCoordinates(currentCoordinates); return point ? <div className="mt-4 overflow-hidden rounded-xl border border-border"><MapView className="h-64" initialCenter={{ lat: Number(point.latitude), lng: Number(point.longitude) }} initialZoom={16} onMapReady={map => { const position = { lat: Number(point.latitude), lng: Number(point.longitude) }; if (window.google?.maps?.marker?.AdvancedMarkerElement) new window.google.maps.marker.AdvancedMarkerElement({ map, position, title: "Local da loja" }); }} /></div> : null; })()}
     </div>
   );
 }
