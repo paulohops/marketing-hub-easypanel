@@ -128,9 +128,17 @@ export default function OperationalRegistriesPanel() {
   };
   const resolvedGroup = activeGroup ?? groupFromPath(window.location.pathname) ?? (window.location.pathname === "/" ? "Território" : null);
   const utils = trpc.useUtils();
-  const overview = trpc.settings.overview.useQuery();
-  const coverage = trpc.settings.supplierCoverage.useQuery();
+  const overview = trpc.settings.overview.useQuery(undefined, {
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [editingSupplierId, setEditingSupplierId] = useState<number | null>(null);
+  const coverage = trpc.settings.supplierCoverage.useQuery(undefined, {
+    enabled: panel === "supplier" && editingSupplierId !== null,
+  });
   const handledCreateIntent = useRef<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState("");
@@ -175,9 +183,7 @@ export default function OperationalRegistriesPanel() {
   const [editingOfferingId, setEditingOfferingId] = useState<number | null>(
     null
   );
-  const [editingSupplierId, setEditingSupplierId] = useState<number | null>(
-    null
-  );
+
   const refresh = () => {
     utils.settings.overview.invalidate();
     utils.settings.supplierCoverage.invalidate();
@@ -796,7 +802,7 @@ export default function OperationalRegistriesPanel() {
       ? updateOffering.mutate({ id: editingOfferingId, ...payload })
       : createOffering.mutate({ supplierId: Number(selectedSupplierId), ...payload });
   };
-  if (overview.isLoading || coverage.isLoading)
+  if (overview.isLoading)
     return (
       <section className="mt-6 grid min-h-48 place-items-center rounded-2xl border border-border bg-card">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
