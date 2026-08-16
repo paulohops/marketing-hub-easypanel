@@ -17,7 +17,7 @@ const categoryLabels = {
 } as const;
 
 type FilterState = { userId?: number; regionalId?: number; cityId?: number; category?: keyof typeof categoryLabels; unreadOnly: boolean };
-const initialFilters: FilterState = { unreadOnly: false };
+const initialFilters: FilterState = { unreadOnly: true };
 
 function selectedNumber(value: string) { return value === "all" ? undefined : Number(value); }
 

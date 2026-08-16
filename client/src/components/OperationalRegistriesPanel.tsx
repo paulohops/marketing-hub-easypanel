@@ -124,8 +124,8 @@ export default function OperationalRegistriesPanel() {
   };
   const [activeGroup, setActiveGroup] = useState<RegistryGroup | null>(() => registryGroupFromPath[window.location.pathname.split("/").filter(Boolean).at(-1) ?? ""] ?? "Território");
   const utils = trpc.useUtils();
-  const overview = trpc.settings.overview.useQuery();
-  const coverage = trpc.settings.supplierCoverage.useQuery();
+  const overview = trpc.settings.overview.useQuery(undefined, { staleTime: 60_000, refetchOnWindowFocus: false });
+  const coverage = trpc.settings.supplierCoverage.useQuery(undefined, { enabled: activeGroup === "Parceiros", staleTime: 60_000, refetchOnWindowFocus: false });
   const [panel, setPanel] = useState<Panel | null>(null);
   const handledCreateIntent = useRef<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -160,6 +160,7 @@ export default function OperationalRegistriesPanel() {
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [mediaIds, setMediaIds] = useState<number[]>([]);
+  const [serviceMediaLinks, setServiceMediaLinks] = useState<Array<{ serviceTypeId: number; mediaTypeId: number | null }>>([]);
   const [supervisorStoreIds, setSupervisorStoreIds] = useState<number[]>([]);
   const [offerName, setOfferName] = useState("");
   const [offerKind, setOfferKind] = useState<
@@ -327,11 +328,9 @@ export default function OperationalRegistriesPanel() {
         .filter(item => item.supplierId === id)
         .map(item => item.cityId)
     );
-    setServiceIds(
-      coverage.data.servicesBySupplier
-        .filter(item => item.supplierId === id)
-        .map(item => item.serviceTypeId)
-    );
+    const supplierServices = coverage.data.servicesBySupplier.filter(item => item.supplierId === id);
+    setServiceIds(supplierServices.map(item => item.serviceTypeId));
+    setServiceMediaLinks(supplierServices.map(item => ({ serviceTypeId: item.serviceTypeId, mediaTypeId: item.mediaTypeId ?? null })));
     setMediaIds(
       coverage.data.mediaBySupplier
         .filter(item => item.supplierId === id)
@@ -792,7 +791,7 @@ export default function OperationalRegistriesPanel() {
       ? updateOffering.mutate({ id: editingOfferingId, ...payload })
       : createOffering.mutate({ supplierId: Number(selectedSupplierId), ...payload });
   };
-  if (overview.isLoading || coverage.isLoading)
+  if (overview.isLoading || (activeGroup === "Parceiros" && coverage.isLoading))
     return (
       <section className="mt-6 grid min-h-48 place-items-center rounded-2xl border border-border bg-card">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -950,8 +949,13 @@ export default function OperationalRegistriesPanel() {
               serviceIds={serviceIds}
               mediaIds={mediaIds}
               onToggleCity={id => toggle(id, cityIds, setCityIds)}
-              onToggleService={id => toggle(id, serviceIds, setServiceIds)}
+              onToggleService={id => {
+                toggle(id, serviceIds, setServiceIds);
+                setServiceMediaLinks(current => current.some(link => link.serviceTypeId === id) ? current : [...current, { serviceTypeId: id, mediaTypeId: null }]);
+              }}
               onToggleMedia={id => toggle(id, mediaIds, setMediaIds)}
+              serviceMediaLinks={serviceMediaLinks}
+              onSetServiceMediaLink={(serviceTypeId, mediaTypeId) => setServiceMediaLinks(current => [...current.filter(link => link.serviceTypeId !== serviceTypeId), { serviceTypeId, mediaTypeId }])}
               onCreate={() =>
                 saveSupplier()
               }
@@ -991,6 +995,7 @@ export default function OperationalRegistriesPanel() {
                   cityIds,
                   serviceTypeIds: serviceIds,
                   mediaTypeIds: mediaIds,
+                  serviceMediaLinks: serviceMediaLinks.filter(link => serviceIds.includes(link.serviceTypeId)),
                 })
               }
               offerName={offerName}
@@ -1543,6 +1548,8 @@ function SupplierPanel(props: {
   cityIds: number[];
   serviceIds: number[];
   mediaIds: number[];
+  serviceMediaLinks: Array<{ serviceTypeId: number; mediaTypeId: number | null }>;
+  onSetServiceMediaLink: (serviceTypeId: number, mediaTypeId: number | null) => void;
   onToggleCity: (id: number) => void;
   onToggleService: (id: number) => void;
   onToggleMedia: (id: number) => void;
@@ -1694,6 +1701,7 @@ function SupplierPanel(props: {
               selected={props.mediaIds}
               toggle={props.onToggleMedia}
             />
+            {props.serviceIds.length > 0 ? <div className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold text-foreground">Vínculo entre serviços e tipos de mídia</p><p className="mt-1 text-xs text-muted-foreground">Defina a mídia correspondente a cada serviço. Se ficar sem mídia, o serviço será tratado como independente.</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{props.serviceIds.map(serviceId => { const service = props.services.find(item => item.id === serviceId); const link = props.serviceMediaLinks.find(item => item.serviceTypeId === serviceId); return <SelectField key={serviceId} id={`supplier-service-media-${serviceId}`} label={service?.name ?? `Serviço #${serviceId}`} value={link?.mediaTypeId ? String(link.mediaTypeId) : "none"} onChange={value => props.onSetServiceMediaLink(serviceId, value === "none" ? null : Number(value))} options={[{ value: "none", label: "Serviço independente" }, ...props.media.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))]} />; })}</div></div> : null}
             <Button
               type="button"
               variant="outline"
