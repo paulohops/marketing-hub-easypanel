@@ -208,7 +208,7 @@ export const commercialSupervisorStores = pgTable("commercial_supervisor_stores"
   id: serial("id").primaryKey(),
   commercialSupervisorId: integer("commercialSupervisorId").notNull().references(() => commercialSupervisors.id, { onDelete: "cascade" }),
   storeId: integer("storeId").notNull().references(() => stores.id, { onDelete: "restrict" }),
-}, table => [uniqueIndex("commercial_supervisor_stores_uq").on(table.commercialSupervisorId, table.storeId)]);
+}, table => [uniqueIndex("commercial_supervisor_stores_store_uq").on(table.storeId)]);
 
 export const actionPoints = pgTable("action_points", {
   id: serial("id").primaryKey(),

@@ -1461,11 +1461,11 @@ function RegistryForm(props: {
           <Field label="Telefone" id="registry-phone" value={props.phone} setValue={props.setPhone} />
           <section className="rounded-xl border border-border bg-secondary/20 p-3 sm:col-span-2">
             <p className="text-sm font-semibold text-foreground">Lojas supervisionadas</p>
-            <p className="mt-1 text-xs text-muted-foreground">Selecione a única loja sob responsabilidade deste supervisor.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Selecione todas as lojas sob responsabilidade deste supervisor. Cada loja pode ter apenas um supervisor.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {props.stores.filter(store => store.active).length ? props.stores.filter(store => store.active).map(store => {
                 const city = props.cities.find(item => item.id === store.cityId);
-                return <label key={store.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"><input type="radio" name="supervisor-store" checked={props.supervisorStoreIds.includes(store.id)} onChange={() => { if (!props.supervisorStoreIds.includes(store.id)) props.onToggleSupervisorStore(store.id); }} className="h-4 w-4 accent-primary" /><span>{store.name}{city ? ` · ${city.name}/${city.state}` : ""}</span></label>;
+                return <label key={store.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"><input type="checkbox" checked={props.supervisorStoreIds.includes(store.id)} onChange={() => props.onToggleSupervisorStore(store.id)} className="h-4 w-4 accent-primary" /><span>{store.name}{city ? ` · ${city.name}/${city.state}` : ""}</span></label>;
               }) : <p className="text-sm text-muted-foreground">Nenhuma loja ativa cadastrada.</p>}
             </div>
           </section>
@@ -1621,15 +1621,7 @@ function SupplierPanel(props: {
             optional
             options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))}
           />
-          <SelectField
-            id="supplier-partnership-type"
-            label="Modalidade"
-            value={props.partnershipType}
-            onChange={value => props.setPartnershipType(value as "paid" | "barter" | "mixed")}
-            options={[{ value: "paid", label: "Pago" }, { value: "barter", label: "Permuta" }, { value: "mixed", label: "Misto" }]}
-          />
-          <Field label="Forma de pagamento" id="supplier-payment-method" value={props.paymentMethod} setValue={props.setPaymentMethod} />
-          <Field label="Recorrência do pagamento" id="supplier-payment-recurrence" value={props.paymentRecurrence} setValue={props.setPaymentRecurrence} />
+          {!props.editingSupplier ? <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold text-foreground">Opções de pagamento do fornecedor</p><p className="mt-1 text-xs text-muted-foreground">Defina estas condições no cadastro inicial do fornecedor.</p><div className="mt-3 grid gap-4 sm:grid-cols-3"><SelectField id="supplier-partnership-type" label="Tipo de pagamento" value={props.partnershipType} onChange={value => props.setPartnershipType(value as "paid" | "barter" | "mixed")} options={[{ value: "paid", label: "Pago" }, { value: "barter", label: "Permuta" }, { value: "mixed", label: "Misto" }]} /><Field label="Dia ou condição" id="supplier-payment-recurrence" value={props.paymentRecurrence} setValue={props.setPaymentRecurrence} placeholder="Ex.: dia 10" /><Field label="Forma de pagamento" id="supplier-payment-method" value={props.paymentMethod} setValue={props.setPaymentMethod} placeholder="Ex.: Pix, boleto" /></div></div> : null}
           <label className="flex min-h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground sm:col-span-2">
             <input type="checkbox" checked={props.hasContract} onChange={event => props.setHasContract(event.target.checked)} className="h-4 w-4 accent-primary" />
             Possuímos contrato com este fornecedor
@@ -1684,11 +1676,14 @@ function SupplierPanel(props: {
                 </div>
               </div>
             </div>
-            <RegistryChecks
-              title="Cidades atendidas"
-              options={props.cities.filter(item => item.active)}
-              selected={props.cityIds}
-              toggle={props.onToggleCity}
+            <SearchableMultiSelect
+              id="supplier-covered-cities"
+              label="Cidades atendidas"
+              options={props.cities.filter(item => item.active).map(item => ({ id: item.id, label: item.name }))}
+              values={props.cityIds}
+              onChange={values => { const next = new Set(values); props.cityIds.filter(id => !next.has(id)).forEach(id => props.onToggleCity(id)); values.filter(id => !props.cityIds.includes(id)).forEach(id => props.onToggleCity(id)); }}
+              placeholder="Selecionar cidades atendidas"
+              emptyMessage="Nenhuma cidade ativa cadastrada"
             />
             <RegistryChecks
               title="Serviços oferecidos"
@@ -1713,12 +1708,7 @@ function SupplierPanel(props: {
             <div className="border-t border-border pt-5">
               <p className="font-semibold text-foreground">{props.editingOffering ? "Editar produto ou serviço" : "Produtos ou serviços"}</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field
-                  label="Oferta"
-                  id="offer-name"
-                  value={props.offerName}
-                  setValue={props.setOfferName}
-                />
+                {props.offerKind === "service" ? <SelectField id="offer-service-type" label="Tipo de serviço" value={props.offerName} onChange={props.setOfferName} options={props.services.filter(item => item.active).map(item => ({ value: item.name, label: item.name }))} /> : <Field label="Produto" id="offer-name" value={props.offerName} setValue={props.setOfferName} placeholder="Nome do produto" />}
                 <SelectField
                   id="offer-kind"
                   label="Tipo"
@@ -1729,18 +1719,13 @@ function SupplierPanel(props: {
                   options={[
                     { value: "product", label: "Produto" },
                     { value: "service", label: "Serviço" },
-                    { value: "media", label: "Mídia" },
-                    { value: "action", label: "Ação" },
-                    { value: "event", label: "Evento" },
+                    { value: "media", label: "Mídia (legado)" },
+                    { value: "action", label: "Ação (legado)" },
+                    { value: "event", label: "Evento (legado)" },
                     { value: "other", label: "Outro" },
                   ]}
                 />
-                <Field
-                  label="Unidade"
-                  id="offer-unit"
-                  value={props.offerUnit}
-                  setValue={props.setOfferUnit}
-                />
+                <Field label={props.offerKind === "service" ? "Unidade de cobrança" : "Unidades"} id="offer-unit" value={props.offerUnit} setValue={props.setOfferUnit} placeholder={props.offerKind === "service" ? "Ex.: diária, hora" : "Ex.: caixa, unidade"} />
                 <Field
                   label="Preço unitário (R$)"
                   id="offer-price"

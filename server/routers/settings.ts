@@ -493,7 +493,7 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [created] = await database.insert(commercialSupervisors).values({ ...input, email: input.email || null, phone: input.phone || null }).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "commercial_supervisor", entityId: created.id, action: "create", afterData: created }); return created;
   }),
 
-  setCommercialSupervisorStores: protectedProcedure.input(z.object({ commercialSupervisorId: z.number().int().positive(), storeIds: z.array(z.number().int().positive()).max(1) })).mutation(async ({ ctx, input }) => {
+  setCommercialSupervisorStores: protectedProcedure.input(z.object({ commercialSupervisorId: z.number().int().positive(), storeIds: z.array(z.number().int().positive()).max(300) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const storeIds = uniqueIds(input.storeIds);
@@ -502,6 +502,8 @@ export const settingsRouter = router({
     if (storeIds.length) {
       const existingStores = await database.select({ id: stores.id }).from(stores).where(inArray(stores.id, storeIds));
       if (existingStores.length !== storeIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Uma ou mais lojas selecionadas não existem." });
+      const conflictingLinks = await database.select({ storeId: commercialSupervisorStores.storeId, commercialSupervisorId: commercialSupervisorStores.commercialSupervisorId }).from(commercialSupervisorStores).where(inArray(commercialSupervisorStores.storeId, storeIds));
+      if (conflictingLinks.some(link => link.commercialSupervisorId !== input.commercialSupervisorId)) throw new TRPCError({ code: "CONFLICT", message: "Cada loja pode ter apenas um supervisor responsável." });
     }
     await database.transaction(async transaction => {
       await transaction.delete(commercialSupervisorStores).where(eq(commercialSupervisorStores.commercialSupervisorId, input.commercialSupervisorId));
