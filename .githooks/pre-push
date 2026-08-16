@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+set -eu
+
+if [ "${SKIP_DATABASE_CHECK:-false}" = "true" ]; then
+  echo "[Database] SKIP_DATABASE_CHECK=true; verificação ignorada explicitamente."
+  exit 0
+fi
+
+if [ -z "${DATABASE_URL:-}" ] && [ -z "${POSTGRES_URL:-}" ]; then
+  echo "[Database] DATABASE_URL ou POSTGRES_URL é obrigatória antes do push."
+  echo "Defina a conexão do banco ou use SKIP_DATABASE_CHECK=true somente em uma exceção consciente."
+  exit 1
+fi
+
+pnpm db:ensure
+pnpm check

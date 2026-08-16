@@ -12,6 +12,8 @@
     "test": "vitest run",
     "db:migrate": "drizzle-kit migrate",
     "db:ensure": "node scripts/ensure-schema.mjs",
+    "db:verify": "node scripts/ensure-schema.mjs",
+    "prepare": "node scripts/install-git-hooks.mjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs"
   },
   "dependencies": {

@@ -192,6 +192,10 @@ export default function OperationalRegistriesPanel() {
   >("service");
   const [offerUnit, setOfferUnit] = useState("unidade");
   const [offerPrice, setOfferPrice] = useState("");
+  const [offerAveragePrice, setOfferAveragePrice] = useState("");
+  const [offerProductTypeId, setOfferProductTypeId] = useState("");
+  const [offerMediaTypeId, setOfferMediaTypeId] = useState("");
+  const [offerServiceTypeId, setOfferServiceTypeId] = useState("");
   const [offerNotes, setOfferNotes] = useState("");
   const [editingOfferingId, setEditingOfferingId] = useState<number | null>(
     null
@@ -298,6 +302,10 @@ export default function OperationalRegistriesPanel() {
       toast.success("Oferta e preço cadastrados.");
       setOfferName("");
       setOfferPrice("");
+      setOfferAveragePrice("");
+      setOfferProductTypeId("");
+      setOfferMediaTypeId("");
+      setOfferServiceTypeId("");
       setOfferNotes("");
       refresh();
     },
@@ -309,6 +317,10 @@ export default function OperationalRegistriesPanel() {
       setEditingOfferingId(null);
       setOfferName("");
       setOfferPrice("");
+      setOfferAveragePrice("");
+      setOfferProductTypeId("");
+      setOfferMediaTypeId("");
+      setOfferServiceTypeId("");
       setOfferNotes("");
       refresh();
     },
@@ -799,14 +811,21 @@ export default function OperationalRegistriesPanel() {
     setHasContract(selectedSupplier.hasContract);
   };
   const saveSupplier = () => {
+    const documentDigits = document.replace(/\D/g, "");
+    if (name.trim().length < 2) { toast.error("Informe o nome do fornecedor."); return; }
+    if (legalName.trim().length < 2) { toast.error("Informe a razão social do fornecedor."); return; }
+    if (documentDigits.length !== 14) { toast.error("Informe um CNPJ válido com 14 dígitos."); return; }
+    if (supplierContactName.trim().length < 2) { toast.error("Informe o responsável do fornecedor."); return; }
+    if (phone.trim().length < 8) { toast.error("Informe um telefone válido com pelo menos 8 caracteres."); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast.error("Informe um e-mail válido do representante."); return; }
     const payload = {
       displayName: name,
       legalName: legalName || undefined,
       address: supplierAddress || undefined,
       contactName: supplierContactName || undefined,
-      document,
-      email,
-      phone,
+      document: documentDigits,
+      email: email.trim(),
+      phone: phone.trim(),
       providerId: providerId ? Number(providerId) : null,
       cityId: registryCityId ? Number(registryCityId) : null,
       partnershipType,
@@ -820,9 +839,10 @@ export default function OperationalRegistriesPanel() {
       contractEndsOn: contractEndsOn || null,
       hasContract,
     };
+    const syncCoverage = (supplierId: number) => setCoverage.mutate({ supplierId, cityIds, serviceTypeIds: serviceIds, mediaTypeIds: mediaIds, serviceMediaLinks });
     return editingSupplierId
-      ? updateSupplier.mutate({ id: editingSupplierId, ...payload })
-      : createSupplier.mutate(payload);
+      ? updateSupplier.mutate({ id: editingSupplierId, ...payload }, { onSuccess: () => syncCoverage(editingSupplierId) })
+      : createSupplier.mutate(payload, { onSuccess: item => syncCoverage(item.id) });
   };
   const beginOfferingEdit = (item: {
     id: number;
@@ -837,6 +857,10 @@ export default function OperationalRegistriesPanel() {
     setOfferKind(item.kind);
     setOfferUnit(item.unit);
     setOfferPrice(toStringValue(item.unitPrice));
+    setOfferAveragePrice(toStringValue((item as { averageUnitPrice?: string | null }).averageUnitPrice));
+    setOfferProductTypeId(String((item as { productTypeId?: number | null }).productTypeId ?? ""));
+    setOfferMediaTypeId(String((item as { mediaTypeId?: number | null }).mediaTypeId ?? ""));
+    setOfferServiceTypeId(String((item as { serviceTypeId?: number | null }).serviceTypeId ?? ""));
     setOfferNotes(item.notes ?? "");
   };
   const saveOffering = () => {
@@ -846,6 +870,10 @@ export default function OperationalRegistriesPanel() {
       name: offerName,
       unit: offerUnit,
       unitPrice: Number(offerPrice.replace(",", ".")),
+      averageUnitPrice: offerAveragePrice ? Number(offerAveragePrice.replace(",", ".")) : null,
+      productTypeId: offerKind === "product" && offerProductTypeId ? Number(offerProductTypeId) : null,
+      mediaTypeId: offerKind === "service" && offerMediaTypeId ? Number(offerMediaTypeId) : null,
+      serviceTypeId: offerKind === "service" && offerServiceTypeId ? Number(offerServiceTypeId) : null,
       notes: offerNotes || undefined,
     };
     return editingOfferingId
@@ -980,6 +1008,7 @@ export default function OperationalRegistriesPanel() {
               cities={overview.data?.cities ?? []}
               services={overview.data?.serviceTypes ?? []}
               media={overview.data?.mediaTypes ?? []}
+              productTypes={overview.data?.productTypes ?? []}
               offerings={overview.data?.supplierOfferings ?? []}
               selectedSupplierId={selectedSupplierId}
               setSelectedSupplierId={setSelectedSupplierId}
@@ -1084,6 +1113,14 @@ export default function OperationalRegistriesPanel() {
               setOfferUnit={setOfferUnit}
               offerPrice={offerPrice}
               setOfferPrice={setOfferPrice}
+              offerAveragePrice={offerAveragePrice}
+              setOfferAveragePrice={setOfferAveragePrice}
+              offerProductTypeId={offerProductTypeId}
+              setOfferProductTypeId={setOfferProductTypeId}
+              offerMediaTypeId={offerMediaTypeId}
+              setOfferMediaTypeId={setOfferMediaTypeId}
+              offerServiceTypeId={offerServiceTypeId}
+              setOfferServiceTypeId={setOfferServiceTypeId}
               offerNotes={offerNotes}
               setOfferNotes={setOfferNotes}
               editingOffering={editingOfferingId !== null}
@@ -1588,6 +1625,7 @@ function SupplierPanel(props: {
   cities: Array<{ id: number; name: string; active: boolean }>;
   services: Array<{ id: number; name: string; active: boolean }>;
   media: Array<{ id: number; name: string; active: boolean }>;
+  productTypes: Array<{ id: number; name: string; active: boolean }>;
   offerings: Array<{
     id: number;
     supplierId: number;
@@ -1595,6 +1633,10 @@ function SupplierPanel(props: {
     name: string;
     unit: string;
     unitPrice: string;
+    averageUnitPrice?: string | null;
+    productTypeId?: number | null;
+    mediaTypeId?: number | null;
+    serviceTypeId?: number | null;
     notes?: string | null;
     active: boolean;
   }>;
@@ -1668,11 +1710,19 @@ function SupplierPanel(props: {
   setOfferUnit: (v: string) => void;
   offerPrice: string;
   setOfferPrice: (v: string) => void;
+  offerAveragePrice: string;
+  setOfferAveragePrice: (v: string) => void;
+  offerProductTypeId: string;
+  setOfferProductTypeId: (v: string) => void;
+  offerMediaTypeId: string;
+  setOfferMediaTypeId: (v: string) => void;
+  offerServiceTypeId: string;
+  setOfferServiceTypeId: (v: string) => void;
   offerNotes: string;
   setOfferNotes: (v: string) => void;
   editingOffering: boolean;
   onCreateOffer: () => void;
-  onBeginOfferingEdit: (item: { id: number; name: string; kind: "product" | "service" | "media" | "action" | "event" | "other"; unit: string; unitPrice: string; notes?: string | null }) => void;
+  onBeginOfferingEdit: (item: { id: number; name: string; kind: "product" | "service" | "media" | "action" | "event" | "other"; unit: string; unitPrice: string; averageUnitPrice?: string | null; productTypeId?: number | null; mediaTypeId?: number | null; serviceTypeId?: number | null; notes?: string | null }) => void;
   onCancelOfferingEdit: () => void;
   onToggleOffering: (id: number, active: boolean) => void;
   saving: boolean;
@@ -1714,158 +1764,33 @@ function SupplierPanel(props: {
             <SelectField id="supplier-city" label="Cidade-base" value={props.registryCityId} onChange={props.setRegistryCityId} optional options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} />
             <div className="sm:col-span-2"><SearchableMultiSelect id="supplier-covered-cities-wizard" label="Cidades atendidas" options={props.cities.filter(item => item.active).map(item => ({ id: item.id, label: item.name }))} values={props.cityIds} onChange={values => { const next = new Set(values); props.cityIds.filter(id => !next.has(id)).forEach(id => props.onToggleCity(id)); values.filter(id => !props.cityIds.includes(id)).forEach(id => props.onToggleCity(id)); }} placeholder="Selecionar cidades atendidas" emptyMessage="Nenhuma cidade ativa cadastrada" /></div>
           </>}
-          {step === 5 && <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold text-foreground">Serviços, mídias e produtos</p><p className="mt-1 text-xs text-muted-foreground">Após salvar o fornecedor, use a seção abaixo para vincular serviços com mídia e cadastrar produtos ou serviços com preço.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><p className="text-xs text-muted-foreground">{props.serviceIds.length} serviços selecionados</p><p className="text-xs text-muted-foreground">{props.mediaIds.length} tipos de mídia selecionados</p></div></div>}
+          {step === 5 && <div className="sm:col-span-2 space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Serviços, mídias e produtos</p>
+              <p className="mt-1 text-xs text-muted-foreground">Selecione o que este fornecedor oferece. Para serviços, escolha primeiro a mídia quando houver vínculo; para produtos, escolha o tipo de produto.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <RegistryChecks title="Serviços oferecidos" options={props.services.filter(item => item.active)} selected={props.serviceIds} toggle={props.onToggleService} />
+              <RegistryChecks title="Mídias oferecidas" options={props.media.filter(item => item.active)} selected={props.mediaIds} toggle={props.onToggleMedia} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectField id="supplier-offer-kind" label="Tipo" value={props.offerKind === "product" ? "product" : "service"} onChange={value => { props.setOfferKind(value as "product" | "service"); props.setOfferName(""); props.setOfferProductTypeId(""); props.setOfferMediaTypeId(""); props.setOfferServiceTypeId(""); }} options={[{ value: "product", label: "Produto" }, { value: "service", label: "Serviço" }]} />
+              {props.offerKind === "product" ? <SelectField id="supplier-offer-product-type" label="Tipo de produto" value={props.offerProductTypeId} onChange={props.setOfferProductTypeId} options={props.productTypes.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} optional /> : <SelectField id="supplier-offer-media-type" label="Tipo de mídia" value={props.offerMediaTypeId} onChange={value => { props.setOfferMediaTypeId(value); props.setOfferServiceTypeId(""); }} options={props.media.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} optional />}
+              {props.offerKind === "service" ? <SelectField id="supplier-offer-service-type" label="Serviço" value={props.offerServiceTypeId} onChange={value => { props.setOfferServiceTypeId(value); const service = props.services.find(item => String(item.id) === value); props.setOfferName(service?.name ?? ""); }} options={props.services.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} optional /> : <Field label="Produto" id="supplier-offer-name" value={props.offerName} setValue={props.setOfferName} placeholder="Nome do produto" />}
+              <Field label={props.offerKind === "service" ? "Unidade de cobrança" : "Unidade"} id="supplier-offer-unit" value={props.offerUnit} setValue={props.setOfferUnit} placeholder={props.offerKind === "service" ? "Ex.: diária, hora" : "Ex.: caixa, unidade"} />
+              <Field label="Valor unitário (R$)" id="supplier-offer-price" value={props.offerPrice} setValue={props.setOfferPrice} inputMode="decimal" />
+              <Field label="Preço médio (un) (R$)" id="supplier-offer-average-price" value={props.offerAveragePrice} setValue={props.setOfferAveragePrice} inputMode="decimal" />
+              <Field label="Observações" id="supplier-offer-notes" value={props.offerNotes} setValue={props.setOfferNotes} />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-muted-foreground">{props.serviceIds.length} serviços e {props.mediaIds.length} mídias selecionados</div>
+              <Button type="button" variant="outline" disabled={props.saving} onClick={props.onCreateOffer}>{props.editingOffering ? <Pencil className="mr-2 h-4 w-4" /> : <PackagePlus className="mr-2 h-4 w-4" />}{props.editingOffering ? "Salvar oferta" : "Adicionar oferta"}</Button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {props.offerings.filter(item => item.supplierId === props.selectedSupplier?.id).map(item => <div key={item.id} className="rounded-lg border border-border bg-background px-3 py-2"><div className="flex items-center justify-between gap-2"><div><p className="text-sm font-medium text-foreground">{item.name}</p><p className="text-xs text-muted-foreground">{item.kind} · {item.unit}</p></div><div className="flex items-center gap-2"><p className="text-sm font-semibold text-primary">R$ {Number(item.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => props.onBeginOfferingEdit({ ...item, kind: item.kind as "product" | "service" | "media" | "action" | "event" | "other" })}><Pencil className="h-3.5 w-3.5" /><span className="sr-only">Editar oferta</span></Button></div></div></div>)}
+            </div>
+          </div>}
         </div>
-        <div className="mt-5 flex flex-wrap justify-between gap-2"><Button type="button" variant="outline" disabled={step === 1} onClick={() => setStep(value => Math.max(1, value - 1))}>Anterior</Button><div className="flex gap-2">{props.editingSupplier ? <Button type="button" variant="ghost" onClick={props.onCancelSupplierEdit}>Cancelar</Button> : null}{canAdvance ? <Button type="button" onClick={() => setStep(value => Math.min(5, value + 1))}>Próxima etapa</Button> : <Button type="button" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={props.saving} onClick={props.onCreate}>{props.editingSupplier ? <Pencil className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}{props.editingSupplier ? "Salvar fornecedor" : "Cadastrar fornecedor"}</Button>}</div></div>
-      </section>
-      <section className="rounded-xl border border-border p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-semibold text-foreground">
-              Cobertura, capacidades e preços
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Selecione um fornecedor para definir atendimento e ofertas.
-            </p>
-          </div>
-          <div className="min-w-52">
-            <SelectField
-              id="supplier-select"
-              label="Fornecedor"
-              value={props.selectedSupplierId}
-              onChange={props.setSelectedSupplierId}
-              options={props.suppliers.map(item => ({
-                value: String(item.id),
-                label: item.displayName,
-              }))}
-            />
-          </div>
-        </div>
-        {props.selectedSupplier ? (
-          <div className="mt-4 space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/30 p-3">
-              <div><p className="text-sm font-semibold text-foreground">{props.selectedSupplier.displayName}</p><p className="text-xs text-muted-foreground">Atualize os dados cadastrais, a cobertura, as capacidades e os preços.</p></div>
-              <div className="flex items-center gap-2"><StatusBadge active={props.selectedSupplier.active} /><Button type="button" size="sm" variant="outline" onClick={props.onBeginSupplierEdit}><Pencil className="mr-1 h-3.5 w-3.5" />Editar</Button><Button type="button" size="sm" variant="outline" disabled={props.saving} onClick={props.onToggleSupplier}>{props.selectedSupplier.active ? "Inativar" : "Ativar"}</Button></div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /><div><p className="text-sm font-medium text-foreground">Contrato</p><p className="text-xs text-muted-foreground">Envie PDF, JPG, PNG ou WEBP de até 5 MB.</p></div></div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {props.selectedSupplier.contractUrl ? <a href={props.selectedSupplier.contractUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary underline-offset-4 hover:underline">Abrir contrato</a> : <span className="text-xs text-muted-foreground">Nenhum arquivo enviado</span>}
-                  <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground hover:bg-accent"><Upload className="mr-1.5 h-3.5 w-3.5" />Enviar<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" onChange={event => { const file = event.target.files?.[0]; if (file) props.onUploadContract(file); event.currentTarget.value = ""; }} /></label>
-                </div>
-              </div>
-            </div>
-            <SearchableMultiSelect
-              id="supplier-covered-cities"
-              label="Cidades atendidas"
-              options={props.cities.filter(item => item.active).map(item => ({ id: item.id, label: item.name }))}
-              values={props.cityIds}
-              onChange={values => { const next = new Set(values); props.cityIds.filter(id => !next.has(id)).forEach(id => props.onToggleCity(id)); values.filter(id => !props.cityIds.includes(id)).forEach(id => props.onToggleCity(id)); }}
-              placeholder="Selecionar cidades atendidas"
-              emptyMessage="Nenhuma cidade ativa cadastrada"
-            />
-            <RegistryChecks
-              title="Serviços oferecidos"
-              options={props.services.filter(item => item.active)}
-              selected={props.serviceIds}
-              toggle={props.onToggleService}
-            />
-            <RegistryChecks
-              title="Mídias oferecidas"
-              options={props.media.filter(item => item.active)}
-              selected={props.mediaIds}
-              toggle={props.onToggleMedia}
-            />
-            <div className="grid gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:grid-cols-2">
-              <SelectField id="supplier-link-media" label="Tipo de mídia" value={props.selectedLinkMediaId ? String(props.selectedLinkMediaId) : ""} onChange={value => props.setSelectedLinkMediaId(Number(value))} optional options={props.media.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} />
-              <SelectField id="supplier-link-service" label="Serviço" value={props.selectedLinkServiceId ? String(props.selectedLinkServiceId) : ""} onChange={value => props.setSelectedLinkServiceId(Number(value))} optional options={props.selectedLinkMediaId ? props.services.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name })) : []} />
-              <div className="sm:col-span-2 flex justify-end"><Button type="button" variant="outline" disabled={!props.selectedLinkMediaId || !props.selectedLinkServiceId} onClick={props.onAddServiceMediaLink}>Adicionar vínculo</Button></div>
-              <div className="sm:col-span-2 flex flex-wrap gap-2">{props.serviceMediaLinks.map(link => { const media = props.media.find(item => item.id === link.mediaTypeId); const service = props.services.find(item => item.id === link.serviceTypeId); return <span key={`${link.mediaTypeId}-${link.serviceTypeId}`} className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-foreground">{media?.name ?? "Mídia"} → {service?.name ?? "Serviço"}</span>; })}</div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={props.saving}
-              onClick={props.onSaveCoverage}
-            >
-              Salvar cobertura e capacidades
-            </Button>
-            <div className="border-t border-border pt-5">
-              <p className="font-semibold text-foreground">{props.editingOffering ? "Editar produto ou serviço" : "Produtos ou serviços"}</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {props.offerKind === "service" ? <SelectField id="offer-service-type" label="Tipo de serviço" value={props.offerName} onChange={props.setOfferName} options={props.services.filter(item => item.active).map(item => ({ value: item.name, label: item.name }))} /> : <Field label="Produto" id="offer-name" value={props.offerName} setValue={props.setOfferName} placeholder="Nome do produto" />}
-                <SelectField
-                  id="offer-kind"
-                  label="Tipo"
-                  value={props.offerKind}
-                  onChange={value =>
-                    props.setOfferKind(value as typeof props.offerKind)
-                  }
-                  options={[
-                    { value: "product", label: "Produto" },
-                    { value: "service", label: "Serviço" },
-                    { value: "media", label: "Mídia (legado)" },
-                    { value: "action", label: "Ação (legado)" },
-                    { value: "event", label: "Evento (legado)" },
-                    { value: "other", label: "Outro" },
-                  ]}
-                />
-                <Field label={props.offerKind === "service" ? "Unidade de cobrança" : "Unidades"} id="offer-unit" value={props.offerUnit} setValue={props.setOfferUnit} placeholder={props.offerKind === "service" ? "Ex.: diária, hora" : "Ex.: caixa, unidade"} />
-                <Field
-                  label="Preço unitário (R$)"
-                  id="offer-price"
-                  value={props.offerPrice}
-                  setValue={props.setOfferPrice}
-                  inputMode="decimal"
-                />
-                <Field label="Observações" id="offer-notes" value={props.offerNotes} setValue={props.setOfferNotes} />
-              </div>
-              <Button
-                type="button"
-                className="mt-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                disabled={props.saving}
-                onClick={props.onCreateOffer}
-              >
-                {props.editingOffering ? <Pencil className="mr-2 h-4 w-4" /> : <PackagePlus className="mr-2 h-4 w-4" />}
-                {props.editingOffering ? "Salvar oferta" : "Adicionar oferta"}
-              </Button>
-              {props.editingOffering ? <Button type="button" variant="ghost" className="ml-2" onClick={props.onCancelOfferingEdit}>Cancelar</Button> : null}
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {props.offerings
-                  .filter(
-                    item => item.supplierId === props.selectedSupplier?.id
-                  )
-                  .map(item => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.kind} · {item.unit}
-                        </p>
-                        {item.notes ? <p className="mt-1 text-xs text-muted-foreground">{item.notes}</p> : null}
-                      </div>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <p className="text-sm font-semibold text-primary">R$ {Number(item.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                        <StatusBadge active={item.active} />
-                        <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => props.onBeginOfferingEdit({ ...item, kind: item.kind as "product" | "service" | "media" | "action" | "event" | "other" })}><Pencil className="h-3.5 w-3.5" /><span className="sr-only">Editar oferta</span></Button>
-                        <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-xs" disabled={props.saving} onClick={() => props.onToggleOffering(item.id, item.active)}>{item.active ? "Inativar" : "Ativar"}</Button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
-            Cadastre ou selecione um fornecedor para definir cobertura e preços.
-          </p>
-        )}
       </section>
     </div>
   );
