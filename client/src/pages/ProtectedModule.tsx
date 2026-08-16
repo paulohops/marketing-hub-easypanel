@@ -27,6 +27,7 @@ import TrelloWorkspace from "./TrelloWorkspace";
 import DataImportWorkspace from "./DataImportWorkspace";
 import ReportExportWorkspace from "./ReportExportWorkspace";
 import DesignWorkspace from "./DesignWorkspace";
+import SystemWorkspace from "./SystemWorkspace";
 import DataCenterWorkspace from "./DataCenterWorkspace";
 import CampaignsWorkspace from "./CampaignsWorkspace";
 import CampaignTemplatesWorkspace from "./CampaignTemplatesWorkspace";
@@ -70,6 +71,7 @@ const definitions = {
   notificacoes: { permission: "dashboard.read", eyebrow: "Acompanhamento operacional", title: "Notificações", description: "Acompanhe alertas direcionados a pessoas, regionais e cidades.", icon: BellRing, resources: [], accent: "var(--primary)" },
   "central-de-dados": { permission: "settings.read", eyebrow: "Administração do sistema", title: "Central de Dados", description: "Importe cadastros e exporte relatórios.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
   design: { permission: "settings.read", eyebrow: "Identidade visual", title: "Design", description: "Personalize o tema e a identidade visual.", icon: Settings2, resources: [], accent: "var(--primary)" },
+  sistema: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Sistema", description: "Configure SMTP, notificações por e-mail e chaves de integrações.", icon: Settings2, resources: [], accent: "var(--primary)" },
 } as const;
 
 export default function ProtectedModule({ module }: { module: keyof typeof definitions }) {
@@ -91,6 +93,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "configuracoes") return <DashboardLayout><div className="cluster-workspace"><SettingsWorkspace /></div></DashboardLayout>;
   if (module === "central-de-dados") return <DashboardLayout><div className="cluster-workspace"><DataCenterWorkspace /></div></DashboardLayout>;
   if (module === "design") return <DashboardLayout><div className="cluster-workspace"><DesignWorkspace /></div></DashboardLayout>;
+  if (module === "sistema") return <DashboardLayout><div className="cluster-workspace"><SystemWorkspace /></div></DashboardLayout>;
   if (module === "cadastros") return <DashboardLayout><div className="cluster-workspace"><OperationalRegistriesWorkspace /></div></DashboardLayout>;
   if (module === "modelos-campanha") return <DashboardLayout><div className="cluster-workspace"><CampaignTemplatesWorkspace /></div></DashboardLayout>;
   if (module === "modelos-acao") return <DashboardLayout><div className="cluster-workspace"><ActionTemplatesWorkspace /></div></DashboardLayout>;

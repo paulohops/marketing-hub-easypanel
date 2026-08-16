@@ -95,6 +95,7 @@ const brandingInputSchema = z.object({
   cardColor: hexColorSchema,
   foregroundColor: hexColorSchema,
   fontFamily: z.enum(brandingFontIds),
+  faviconUrl: z.string().trim().max(1000).optional(),
 });
 
 function isHexColor(value: unknown): value is string {
@@ -122,6 +123,7 @@ export function normalizeAppBranding(value: unknown): AppBranding {
     foregroundColor: isHexColor(source.foregroundColor) ? source.foregroundColor.toUpperCase() : DEFAULT_APP_BRANDING.foregroundColor,
     fontFamily: isBrandingFont(source.fontFamily) ? source.fontFamily : DEFAULT_APP_BRANDING.fontFamily,
     logoUrl,
+    faviconUrl: typeof source.faviconUrl === "string" && (source.faviconUrl.startsWith("/") || /^https?:\/\//i.test(source.faviconUrl)) ? source.faviconUrl : DEFAULT_APP_BRANDING.faviconUrl,
   };
 }
 
@@ -179,12 +181,65 @@ export const settingsRouter = router({
     return parseBrandingValue(updated.value);
   }),
 
+  uploadAppFavicon: protectedProcedure.input(z.object({ originalName: z.string().trim().min(1).max(255), mimeType: z.enum(["image/png", "image/x-icon", "image/vnd.microsoft.icon", "image/svg+xml"]), dataBase64: z.string().min(1).max(1_500_000) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O favicon deve ter até 1 MB." });
+    const stored = await storagePut(`trade/app-branding/favicon-${Date.now()}-${safeBrandingName(input.originalName)}`, bytes, input.mimeType);
+    const [currentSetting] = await database.select().from(appSettings).where(eq(appSettings.key, "app_branding")).limit(1);
+    const current = currentSetting ? parseBrandingValue(currentSetting.value) : DEFAULT_APP_BRANDING;
+    const next = { ...current, faviconUrl: stored.url };
+    const [updated] = await database.insert(appSettings).values({ key: "app_branding", value: JSON.stringify(next), updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(next), updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "app_setting", entityId: 0, action: "upload_branding_favicon", afterData: { storageKey: stored.key } });
+    return parseBrandingValue(updated.value);
+  }),
+
   resetBranding: protectedProcedure.mutation(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const [updated] = await database.insert(appSettings).values({ key: "app_branding", value: JSON.stringify(DEFAULT_APP_BRANDING), updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(DEFAULT_APP_BRANDING), updatedAt: new Date() } }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "app_setting", entityId: 0, action: "reset_branding", afterData: { restoredDefaults: true } });
     return parseBrandingValue(updated.value);
+  }),
+
+  system: protectedProcedure.query(async ({ ctx }) => {
+    await assertPermission(ctx.user, "settings.read");
+    const database = await requireDatabase();
+    const [setting] = await database.select().from(appSettings).where(eq(appSettings.key, "app_system")).limit(1);
+    const source = setting?.value ? JSON.parse(setting.value) as Record<string, unknown> : {};
+    return {
+      smtpHost: typeof source.smtpHost === "string" ? source.smtpHost : "",
+      smtpPort: typeof source.smtpPort === "string" ? source.smtpPort : "587",
+      smtpUser: typeof source.smtpUser === "string" ? source.smtpUser : "",
+      smtpPassword: "",
+      smtpFrom: typeof source.smtpFrom === "string" ? source.smtpFrom : "",
+      notificationEmailEnabled: source.notificationEmailEnabled === true,
+      openAiApiKey: source.openAiApiKey ? "********" : "",
+      googleMapsApiKey: source.googleMapsApiKey ? "********" : "",
+    };
+  }),
+
+  updateSystem: protectedProcedure.input(z.object({ smtpHost: z.string().trim().max(255), smtpPort: z.string().trim().max(8), smtpUser: z.string().trim().max(255), smtpPassword: z.string().max(500).optional(), smtpFrom: z.string().trim().email().or(z.literal("")), notificationEmailEnabled: z.boolean(), openAiApiKey: z.string().max(500).optional(), googleMapsApiKey: z.string().max(500).optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [currentSetting] = await database.select().from(appSettings).where(eq(appSettings.key, "app_system")).limit(1);
+    let current: Record<string, unknown> = {};
+    if (currentSetting?.value) { try { current = JSON.parse(currentSetting.value) as Record<string, unknown>; } catch { current = {}; } }
+    const next = {
+      ...current,
+      smtpHost: input.smtpHost,
+      smtpPort: input.smtpPort,
+      smtpUser: input.smtpUser,
+      smtpFrom: input.smtpFrom,
+      notificationEmailEnabled: input.notificationEmailEnabled,
+      ...(input.smtpPassword ? { smtpPassword: input.smtpPassword } : {}),
+      ...(input.openAiApiKey && input.openAiApiKey !== "********" ? { openAiApiKey: input.openAiApiKey } : {}),
+      ...(input.googleMapsApiKey && input.googleMapsApiKey !== "********" ? { googleMapsApiKey: input.googleMapsApiKey } : {}),
+    };
+    const [updated] = await database.insert(appSettings).values({ key: "app_system", value: JSON.stringify(next), updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(next), updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "app_setting", entityId: 0, action: "update_system_settings", afterData: { smtpHost: next.smtpHost, smtpFrom: next.smtpFrom, notificationEmailEnabled: next.notificationEmailEnabled, hasApiKeys: Boolean(next.openAiApiKey || next.googleMapsApiKey) } });
+    return { smtpHost: String(next.smtpHost ?? ""), smtpPort: String(next.smtpPort ?? "587"), smtpUser: String(next.smtpUser ?? ""), smtpPassword: "", smtpFrom: String(next.smtpFrom ?? ""), notificationEmailEnabled: next.notificationEmailEnabled === true, openAiApiKey: next.openAiApiKey ? "********" : "", googleMapsApiKey: next.googleMapsApiKey ? "********" : "" };
   }),
 
   overview: protectedProcedure.query(async ({ ctx }) => {
@@ -335,24 +390,24 @@ export const settingsRouter = router({
   supplierCoverage: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [citiesBySupplier, servicesBySupplier, mediaBySupplier] = await Promise.all([database.select().from(supplierCities), database.select().from(supplierServiceTypes), database.select().from(supplierMediaTypes)]);
-    return { citiesBySupplier, servicesBySupplier, mediaBySupplier };
+    const [citiesBySupplier, servicesBySupplier, mediaBySupplier, serviceRows, mediaRows] = await Promise.all([database.select().from(supplierCities), database.select().from(supplierServiceTypes), database.select().from(supplierMediaTypes), database.select().from(serviceTypes).where(eq(serviceTypes.active, true)).orderBy(asc(serviceTypes.name)), database.select().from(mediaTypes).where(eq(mediaTypes.active, true)).orderBy(asc(mediaTypes.name))]);
+    return { citiesBySupplier, servicesBySupplier, mediaBySupplier, serviceTypes: serviceRows, mediaTypes: mediaRows };
   }),
 
-  setSupplierCoverage: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), cityIds: z.array(z.number().int().positive()).max(150), serviceTypeIds: z.array(z.number().int().positive()).max(150), mediaTypeIds: z.array(z.number().int().positive()).max(150) })).mutation(async ({ ctx, input }) => {
+  setSupplierCoverage: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), cityIds: z.array(z.number().int().positive()).max(150), serviceTypeIds: z.array(z.number().int().positive()).max(150), mediaTypeIds: z.array(z.number().int().positive()).max(150), serviceMediaLinks: z.array(z.object({ serviceTypeId: z.number().int().positive(), mediaTypeId: z.number().int().positive().nullable().optional() })).max(300).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
-    const cityIds = uniqueIds(input.cityIds), serviceTypeIds = uniqueIds(input.serviceTypeIds), mediaTypeIds = uniqueIds(input.mediaTypeIds);
+    const cityIds = uniqueIds(input.cityIds), serviceTypeIds = uniqueIds(input.serviceTypeIds), mediaTypeIds = uniqueIds(input.mediaTypeIds), serviceMediaLinks = (input.serviceMediaLinks ?? serviceTypeIds.map(serviceTypeId => ({ serviceTypeId, mediaTypeId: null }))).filter((link, index, all) => all.findIndex(candidate => candidate.serviceTypeId === link.serviceTypeId && candidate.mediaTypeId === link.mediaTypeId) === index);
     await database.transaction(async transaction => {
       await transaction.delete(supplierCities).where(eq(supplierCities.supplierId, input.supplierId));
       await transaction.delete(supplierServiceTypes).where(eq(supplierServiceTypes.supplierId, input.supplierId));
       await transaction.delete(supplierMediaTypes).where(eq(supplierMediaTypes.supplierId, input.supplierId));
       if (cityIds.length) await transaction.insert(supplierCities).values(cityIds.map(cityId => ({ supplierId: input.supplierId, cityId })));
-      if (serviceTypeIds.length) await transaction.insert(supplierServiceTypes).values(serviceTypeIds.map(serviceTypeId => ({ supplierId: input.supplierId, serviceTypeId })));
+      if (serviceMediaLinks.length) await transaction.insert(supplierServiceTypes).values(serviceMediaLinks.map(link => ({ supplierId: input.supplierId, serviceTypeId: link.serviceTypeId, mediaTypeId: link.mediaTypeId ?? null })));
       if (mediaTypeIds.length) await transaction.insert(supplierMediaTypes).values(mediaTypeIds.map(mediaTypeId => ({ supplierId: input.supplierId, mediaTypeId })));
     });
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier", entityId: input.supplierId, action: "set_coverage", afterData: { cityIds, serviceTypeIds, mediaTypeIds } });
-    return { supplierId: input.supplierId, cityIds, serviceTypeIds, mediaTypeIds };
+    return { supplierId: input.supplierId, cityIds, serviceTypeIds, mediaTypeIds, serviceMediaLinks };
   }),
 
   createStore: protectedProcedure.input(z.object({ cityId: z.number().int().positive(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).toUpperCase(), address: z.string().trim().max(1000).optional(), referencePoint: z.string().trim().max(240).optional(), zipCode: z.string().trim().max(16).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), openingHours: z.string().trim().max(1000).optional(), latitude: z.number().min(-90).max(90).nullable().optional(), longitude: z.number().min(-180).max(180).nullable().optional() })).mutation(async ({ ctx, input }) => {
@@ -400,9 +455,18 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
+  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), parentServiceTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
+    if (input.kind === "service") {
+      const parentServiceTypeId = input.parentServiceTypeId ?? null;
+      const parent = parentServiceTypeId ? (await database.select().from(serviceTypes).where(eq(serviceTypes.id, parentServiceTypeId)).limit(1))[0] : null;
+      if (parentServiceTypeId && !parent) throw new TRPCError({ code: "BAD_REQUEST", message: "O serviço pai informado não existe." });
+      const mediaTypeId = input.mediaTypeId ?? parent?.mediaTypeId ?? null;
+      const [created] = await database.insert(serviceTypes).values({ name: input.name, mediaTypeId, parentServiceTypeId }).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "service_type", entityId: created.id, action: "create", afterData: created });
+      return created;
+    }
     if (input.kind === "media") {
       const parentId = input.parentMediaTypeId ?? null;
       const [parent] = parentId ? await database.select().from(mediaTypes).where(eq(mediaTypes.id, parentId)).limit(1) : [null];
@@ -430,14 +494,14 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createSupplierOffering: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+  createSupplierOffering: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), mediaTypeId: z.number().int().positive().nullable().optional(), serviceTypeId: z.number().int().positive().nullable().optional(), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const [supplier] = await database.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.id, input.supplierId)).limit(1);
     if (!supplier) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." });
     const [existing] = await database.select({ id: supplierOfferings.id }).from(supplierOfferings).where(and(eq(supplierOfferings.supplierId, input.supplierId), eq(supplierOfferings.kind, input.kind), sql`lower(${supplierOfferings.name}) = lower(${input.name})`)).limit(1);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "Este fornecedor já possui uma oferta com a mesma categoria e nome." });
-    const [created] = await database.insert(supplierOfferings).values({ ...input, unitPrice: input.unitPrice.toFixed(2), notes: input.notes || null }).returning();
+    const [created] = await database.insert(supplierOfferings).values({ ...input, mediaTypeId: input.mediaTypeId ?? null, serviceTypeId: input.serviceTypeId ?? null, unitPrice: input.unitPrice.toFixed(2), notes: input.notes || null }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_offering", entityId: created.id, action: "create", afterData: created });
     return created;
   }),

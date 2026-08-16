@@ -32,8 +32,7 @@ describe("cadastro de pontos de ação", () => {
     fireEvent.change(screen.getByLabelText("Nome do ponto"), { target: { value: "Praça Central" } });
     fireEvent.change(screen.getByLabelText("Cidade"), { target: { value: "8" } });
     fireEvent.change(screen.getByLabelText("Endereço"), { target: { value: "Av. Floriano Peixoto, 100" } });
-    fireEvent.change(screen.getByLabelText("Latitude"), { target: { value: "-18,9186" } });
-    fireEvent.change(screen.getByLabelText("Longitude"), { target: { value: "-48,2772" } });
+    fireEvent.change(screen.getByLabelText("Latitude e longitude"), { target: { value: "-18,9186, -48,2772" } });
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar ponto" }));
 
     expect(createActionPoint).toHaveBeenCalledWith({

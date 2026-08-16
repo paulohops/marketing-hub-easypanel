@@ -254,6 +254,8 @@ export const mediaTypes = pgTable("media_types", {
 export const serviceTypes = pgTable("service_types", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),
+  mediaTypeId: integer("mediaTypeId").references(() => mediaTypes.id, { onDelete: "set null" }),
+  parentServiceTypeId: integer("parentServiceTypeId").references((): AnyPgColumn => serviceTypes.id, { onDelete: "set null" }),
   active: boolean("active").default(true).notNull(),
 });
 
@@ -370,12 +372,15 @@ export const supplierServiceTypes = pgTable("supplier_service_types", {
   id: serial("id").primaryKey(),
   supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "cascade" }),
   serviceTypeId: integer("serviceTypeId").notNull().references(() => serviceTypes.id, { onDelete: "restrict" }),
-}, table => [uniqueIndex("supplier_service_types_uq").on(table.supplierId, table.serviceTypeId)]);
+  mediaTypeId: integer("mediaTypeId").references(() => mediaTypes.id, { onDelete: "set null" }),
+}, table => [uniqueIndex("supplier_service_types_uq").on(table.supplierId, table.serviceTypeId, table.mediaTypeId)]);
 
 export const supplierOfferings = pgTable("supplier_offerings", {
   id: serial("id").primaryKey(),
   supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "cascade" }),
   kind: supplierOfferingKindEnum("kind").notNull(),
+  mediaTypeId: integer("mediaTypeId").references(() => mediaTypes.id, { onDelete: "set null" }),
+  serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, { onDelete: "set null" }),
   name: varchar("name", { length: 180 }).notNull(),
   unit: varchar("unit", { length: 64 }).default("unidade").notNull(),
   unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).notNull(),

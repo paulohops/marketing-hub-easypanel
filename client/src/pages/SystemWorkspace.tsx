@@ -1,0 +1,28 @@
+import { ArrowLeft, Mail, KeyRound, Save, Settings2 } from "lucide-react";
+import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+
+export default function SystemWorkspace() {
+  const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
+  const system = trpc.settings.system.useQuery();
+  const save = trpc.settings.updateSystem.useMutation({ onSuccess: value => { utils.settings.system.setData(undefined, value); toast.success("Configurações do sistema salvas."); }, onError: error => toast.error(error.message) });
+  const [form, setForm] = useState({ smtpHost: "", smtpPort: "587", smtpUser: "", smtpPassword: "", smtpFrom: "", openAiApiKey: "", googleMapsApiKey: "", notificationEmailEnabled: false });
+  useEffect(() => { if (system.data) setForm(current => ({ ...current, ...system.data })); }, [system.data]);
+  const update = (key: keyof typeof form, value: string | boolean) => setForm(current => ({ ...current, [key]: value }));
+  return <div className="mx-auto max-w-5xl">
+    <Button type="button" variant="outline" className="mb-5 border-border" onClick={() => setLocation("/configuracoes")}><ArrowLeft className="mr-2 h-4 w-4" />Voltar para Configurações</Button>
+    <div className="mb-5 flex gap-4 border-b border-border pb-6"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white"><Settings2 className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">Administração do sistema</p><h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-foreground">Sistema</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Configure SMTP, notificações por e-mail e chaves de integrações. Os valores salvos aqui têm prioridade sobre os valores padrão do ambiente.</p></div></div>
+    <form className="grid gap-5" onSubmit={event => { event.preventDefault(); save.mutate(form); }}>
+      <Card className="border-border bg-card"><CardHeader><CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5 text-primary" />SMTP para notificações</CardTitle><CardDescription>Use uma conta de envio dedicada. A senha nunca é exibida novamente.</CardDescription></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="smtp-host">Servidor SMTP</Label><Input id="smtp-host" required={form.notificationEmailEnabled} value={form.smtpHost} onChange={e => update("smtpHost", e.target.value)} /></div><div><Label htmlFor="smtp-port">Porta</Label><Input id="smtp-port" type="number" value={form.smtpPort} onChange={e => update("smtpPort", e.target.value)} /></div><div><Label htmlFor="smtp-user">Usuário</Label><Input id="smtp-user" value={form.smtpUser} onChange={e => update("smtpUser", e.target.value)} /></div><div><Label htmlFor="smtp-password">Senha</Label><Input id="smtp-password" type="password" value={form.smtpPassword} onChange={e => update("smtpPassword", e.target.value)} placeholder="Deixe em branco para manter" /></div><div className="sm:col-span-2"><Label htmlFor="smtp-from">Remetente</Label><Input id="smtp-from" type="email" required={form.notificationEmailEnabled} value={form.smtpFrom} onChange={e => update("smtpFrom", e.target.value)} placeholder="notificacoes@empresa.com.br" /></div><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.notificationEmailEnabled} onChange={e => update("notificationEmailEnabled", e.target.checked)} />Ativar notificações por e-mail</label></CardContent></Card>
+      <Card className="border-border bg-card"><CardHeader><CardTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-primary" />Chaves de API</CardTitle><CardDescription>As chaves cadastradas substituem o fallback do ambiente para as integrações correspondentes.</CardDescription></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="openai-key">OpenAI</Label><Input id="openai-key" type="password" value={form.openAiApiKey} onChange={e => update("openAiApiKey", e.target.value)} placeholder="Deixe em branco para manter" /></div><div><Label htmlFor="google-maps-key">Google Maps</Label><Input id="google-maps-key" type="password" value={form.googleMapsApiKey} onChange={e => update("googleMapsApiKey", e.target.value)} placeholder="Deixe em branco para manter" /></div></CardContent></Card>
+      <div className="flex justify-end"><Button type="submit" disabled={save.isPending}><Save className="mr-2 h-4 w-4" />{save.isPending ? "Salvando…" : "Salvar configurações"}</Button></div>
+    </form>
+  </div>;
+}

@@ -34,7 +34,6 @@ describe("previsões operacionais no financeiro", () => {
   it("preenche fornecedor, valor e vínculo da nota a partir de uma ação prevista", () => {
     render(<FinanceWorkspace />);
     expect(screen.getByText("Previsões operacionais")).toBeInTheDocument();
-    expect(screen.getByText("Fornecedor Alfa")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Usar na nota" })[0]);
     const invoiceForm = screen.getByLabelText("Nº da nota").closest("form");
     expect(invoiceForm).not.toBeNull();

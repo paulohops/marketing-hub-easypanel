@@ -85,7 +85,7 @@ describe("centro de cadastros operacionais", () => {
     ["Modelos de campanha", "/cadastros/modelos"],
     ["Modelos de ações", "/cadastros/modelos-acoes"],
   ])("direciona %s para %s", (cardTitle, expectedPath) => {
-    const group = ["Empresas", "Regionais", "Cidades", "Lojas", "Pontos de ação"].includes(cardTitle) ? "territorio" : ["Fornecedores", "Parceiros comerciais", "Supervisores comerciais", "Influencers"].includes(cardTitle) ? "parceiros" : ["Atuação", "Setores", "Serviços"].includes(cardTitle) ? "operacao" : ["Tipos de ação", "Tipos de evento", "Tipos de mídia"].includes(cardTitle) ? "categorias" : "modelos";
+    const group = ["Empresas", "Regionais", "Cidades", "Lojas", "Pontos de ação"].includes(cardTitle) ? "territorio" : ["Fornecedores", "Parceiros comerciais", "Supervisores comerciais", "Influencers", "Serviços"].includes(cardTitle) ? "parceiros" : ["Atuação", "Setores"].includes(cardTitle) ? "operacao" : ["Tipos de ação", "Tipos de evento", "Tipos de mídia"].includes(cardTitle) ? "categorias" : "modelos";
     window.history.replaceState({}, "", `/cadastros/operacionais?grupo=${group}`);
     render(<OperationalRegistriesPanel />);
 

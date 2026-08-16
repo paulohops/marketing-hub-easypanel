@@ -39,6 +39,7 @@ function fileToBase64(file: File) {
 }
 
 const allowedLogoMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+const allowedFaviconMimeTypes = ["image/png", "image/x-icon", "image/vnd.microsoft.icon", "image/svg+xml"] as const;
 
 function isHex(value: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(value);
@@ -81,6 +82,14 @@ export default function BrandingSettingsPanel() {
     },
     onError: error => toast.error(error.message),
   });
+  const uploadFavicon = trpc.settings.uploadAppFavicon.useMutation({
+    onSuccess: next => {
+      setForm(next);
+      utils.settings.branding.setData(undefined, next);
+      toast.success("Favicon atualizado.");
+    },
+    onError: error => toast.error(error.message),
+  });
   const resetBranding = trpc.settings.resetBranding.useMutation({
     onSuccess: next => {
       setForm(next);
@@ -115,7 +124,21 @@ export default function BrandingSettingsPanel() {
       cardColor: form.cardColor,
       foregroundColor: form.foregroundColor,
       fontFamily: form.fontFamily,
+      faviconUrl: form.faviconUrl,
     });
+  };
+
+  const chooseFavicon = async (file: File | undefined) => {
+    if (!file) return;
+    if (!(allowedFaviconMimeTypes as readonly string[]).includes(file.type)) {
+      toast.error("Envie um favicon PNG, ICO ou SVG.");
+      return;
+    }
+    try {
+      uploadFavicon.mutate({ originalName: file.name, mimeType: file.type as typeof allowedFaviconMimeTypes[number], dataBase64: await fileToBase64(file) });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível preparar o favicon.");
+    }
   };
 
   const chooseLogo = async (file: File | undefined) => {
@@ -351,6 +374,24 @@ export default function BrandingSettingsPanel() {
                     : "Logo personalizada"}
                 </p>
               </div>
+            </div>
+          </section>
+
+          <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-foreground">Favicon do site</h3>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">Use PNG, ICO ou SVG. O ícone será aplicado na aba do navegador.</p>
+              </div>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-primary transition hover:bg-secondary has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+                <ImagePlus className="h-4 w-4" />
+                {uploadFavicon.isPending ? "Enviando…" : "Enviar favicon"}
+                <input type="file" accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml" className="hidden" disabled={!canWrite || uploadFavicon.isPending} onChange={event => { void chooseFavicon(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+              </label>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+              <img src={form.faviconUrl || DEFAULT_APP_BRANDING.faviconUrl} alt="Favicon atual" className="h-10 w-10 rounded-lg border border-border bg-card object-contain p-1" />
+              <div><p className="text-sm font-semibold text-foreground">Ícone da aba</p><p className="text-xs text-muted-foreground">{form.faviconUrl === DEFAULT_APP_BRANDING.faviconUrl ? "Favicon padrão" : "Favicon personalizado"}</p></div>
             </div>
           </section>
 

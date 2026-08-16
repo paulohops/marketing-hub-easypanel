@@ -68,6 +68,7 @@ function Router() {
     <Route path="/configuracoes/equipes">{() => <ProtectedModule module="equipes" />}</Route>
     <Route path="/configuracoes/central-de-dados">{() => <ProtectedModule module="central-de-dados" />}</Route>
     <Route path="/configuracoes/design">{() => <ProtectedModule module="design" />}</Route>
+    <Route path="/configuracoes/sistema">{() => <ProtectedModule module="sistema" />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
     <Route path="/administracao-usuarios">{() => <ProtectedModule module="usuarios" />}</Route>

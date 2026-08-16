@@ -46,6 +46,7 @@ export type AppBranding = {
   foregroundColor: string;
   fontFamily: BrandingFontId;
   logoUrl: string;
+  faviconUrl: string;
 };
 
 export const DEFAULT_APP_BRANDING: AppBranding = {
@@ -59,6 +60,7 @@ export const DEFAULT_APP_BRANDING: AppBranding = {
   foregroundColor: "#133523",
   fontFamily: "montserrat",
   logoUrl: "/brand/logo.svg",
+  faviconUrl: "/favicon.ico",
 };
 
 export function getBrandingFont(fontFamily: BrandingFontId) {

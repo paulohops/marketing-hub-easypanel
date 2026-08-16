@@ -36,6 +36,15 @@ function applyBranding(branding: AppBranding) {
     ? `${branding.appName} — ${branding.appSubtitle}`
     : branding.appName;
 
+  let faviconLink = document.getElementById("app-branding-favicon") as HTMLLinkElement | null;
+  if (!faviconLink) {
+    faviconLink = document.createElement("link");
+    faviconLink.id = "app-branding-favicon";
+    faviconLink.rel = "icon";
+    document.head.appendChild(faviconLink);
+  }
+  faviconLink.href = branding.faviconUrl || "/favicon.ico";
+
   let fontLink = document.getElementById(
     "app-branding-font"
   ) as HTMLLinkElement | null;

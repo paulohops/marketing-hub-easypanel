@@ -21,6 +21,9 @@ vi.mock("@/lib/trpc", () => ({
       uploadAppLogo: {
         useMutation: () => ({ mutate: vi.fn(), isPending: false }),
       },
+      uploadAppFavicon: {
+        useMutation: () => ({ mutate: vi.fn(), isPending: false }),
+      },
       resetBranding: {
         useMutation: () => ({ mutate: vi.fn(), isPending: false }),
       },
