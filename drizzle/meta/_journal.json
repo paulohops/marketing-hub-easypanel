@@ -281,6 +281,13 @@
       "when": 1786841615746,
       "tag": "0039_wise_firedrake",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1786890000000,
+      "tag": "0043_email_auth_and_notification_completion",
+      "breakpoints": true
     }
   ]
 }

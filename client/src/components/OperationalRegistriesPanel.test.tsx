@@ -29,37 +29,32 @@ import OperationalRegistriesPanel from "./OperationalRegistriesPanel";
 
 afterEach(() => {
   cleanup();
-  window.history.replaceState({}, "", "/cadastros/operacionais");
+  window.history.replaceState({}, "", "/cadastros/territorio");
   vi.clearAllMocks();
 });
 
 describe("centro de cadastros operacionais", () => {
-  it("apresenta os seis grupos antes de exibir suas opções de cadastro", () => {
+  it("apresenta diretamente as opções do grupo Território", () => {
     render(<OperationalRegistriesPanel />);
 
     expect(screen.getByRole("heading", { name: "Cadastros operacionais" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Território/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Parceiros/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Operação/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Categorias/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Financeiro/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Modelos/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /empresas/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /empresas/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /lojas/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /fornecedores/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("exibe somente as opções do grupo selecionado", () => {
+    window.history.replaceState({}, "", "/cadastros/territorio");
     render(<OperationalRegistriesPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /^Território/i }));
     expect(screen.getByRole("button", { name: /empresas/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /lojas/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^fornecedores/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Todos os grupos" })).toBeInTheDocument();
   });
 
   it("exibe somente as opções do grupo Parceiros", () => {
+    window.history.replaceState({}, "", "/cadastros/parceiros");
     render(<OperationalRegistriesPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /^Parceiros/i }));
     expect(screen.getByRole("button", { name: /fornecedores/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /parceiros comerciais/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /empresas/i })).not.toBeInTheDocument();
@@ -86,7 +81,8 @@ describe("centro de cadastros operacionais", () => {
     ["Modelos de ações", "/cadastros/modelos-acoes"],
   ])("direciona %s para %s", (cardTitle, expectedPath) => {
     const group = ["Empresas", "Regionais", "Cidades", "Lojas", "Pontos de ação"].includes(cardTitle) ? "territorio" : ["Fornecedores", "Parceiros comerciais", "Supervisores comerciais", "Influencers", "Serviços"].includes(cardTitle) ? "parceiros" : ["Atuação", "Setores"].includes(cardTitle) ? "operacao" : ["Tipos de ação", "Tipos de evento", "Tipos de mídia"].includes(cardTitle) ? "categorias" : "modelos";
-    window.history.replaceState({}, "", `/cadastros/operacionais?grupo=${group}`);
+    const groupPath = group === "territorio" ? "territorio" : group;
+    window.history.replaceState({}, "", `/cadastros/${groupPath}`);
     render(<OperationalRegistriesPanel />);
 
     fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${cardTitle}`) }));
@@ -95,7 +91,7 @@ describe("centro de cadastros operacionais", () => {
   });
 
   it("abre Lojas pela intenção de criação e envia os dados ao endpoint específico", async () => {
-    window.history.replaceState({}, "", "/cadastros/operacionais?novo=lojas");
+    window.history.replaceState({}, "", "/cadastros/territorio?novo=lojas");
     render(<OperationalRegistriesPanel />);
 
     await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
@@ -127,12 +123,13 @@ describe("centro de cadastros operacionais", () => {
     ["tipos-de-evento", "Tipos de evento"],
     ["tipos-de-midia", "Tipos de mídia"],
   ])("abre %s na intenção de criação, sem retornar ao início", async (slug, title) => {
-    window.history.replaceState({}, "", `/cadastros/operacionais?novo=${slug}`);
+    const directGroup = ["empresas", "regionais", "cidades", "lojas"].includes(slug) ? "territorio" : ["fornecedores", "parceiros", "supervisores", "servicos"].includes(slug) ? "parceiros" : ["tipos-de-campanha", "setores-de-campanha"].includes(slug) ? "operacao" : ["tipos-de-acao", "tipos-de-evento", "tipos-de-midia"].includes(slug) ? "categorias" : "modelos";
+    window.history.replaceState({}, "", `/cadastros/${directGroup}?novo=${slug}`);
     render(<OperationalRegistriesPanel />);
 
     await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/cadastros/operacionais");
+    expect(window.location.pathname).not.toBe("/cadastros/operacionais");
   });
 
   it.each([
@@ -148,7 +145,8 @@ describe("centro de cadastros operacionais", () => {
     ["tipos-de-evento", "createType", { kind: "event" }],
     ["tipos-de-midia", "createType", { kind: "media", operationCategory: "graphics" }],
   ])("envia %s ao endpoint %s", async (slug, endpoint, expectedPayload) => {
-    window.history.replaceState({}, "", `/cadastros/operacionais?novo=${slug}`);
+    const directGroup = ["empresas", "regionais", "cidades", "lojas"].includes(slug) ? "territorio" : ["fornecedores", "parceiros", "supervisores", "servicos"].includes(slug) ? "parceiros" : ["tipos-de-campanha", "setores-de-campanha"].includes(slug) ? "operacao" : ["tipos-de-acao", "tipos-de-evento", "tipos-de-midia"].includes(slug) ? "categorias" : "modelos";
+    window.history.replaceState({}, "", `/cadastros/${directGroup}?novo=${slug}`);
     render(<OperationalRegistriesPanel />);
 
     await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());

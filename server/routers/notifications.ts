@@ -4,6 +4,7 @@ import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
+import { alias } from "drizzle-orm/pg-core";
 
 async function requireDatabase() { const database = await getDb(); if (!database) throw new Error("Banco de dados indisponível."); return database; }
 
@@ -17,6 +18,7 @@ const listInput = z.object({
   limit: z.number().int().min(1).max(100).optional(),
 }).optional();
 
+const completedUsers = alias(users, "completed_notification_users");
 const notificationSelect = {
   id: notifications.id,
   userId: notifications.userId,
@@ -28,6 +30,11 @@ const notificationSelect = {
   entityType: notifications.entityType,
   entityId: notifications.entityId,
   readAt: notifications.readAt,
+  completedAt: notifications.completedAt,
+  completedByUserId: notifications.completedByUserId,
+  completedByUserName: completedUsers.name,
+  actionUrl: notifications.actionUrl,
+  actionLabel: notifications.actionLabel,
   createdAt: notifications.createdAt,
   userName: users.name,
   userEmail: users.email,
@@ -42,6 +49,13 @@ async function notificationScope(database: Awaited<ReturnType<typeof requireData
     database.select({ cityId: userCities.cityId }).from(userCities).where(eq(userCities.userId, userId)),
   ]);
   return { regionalIds: regionalAssignments.map(item => item.regionalId), cityIds: cityAssignments.map(item => item.cityId) };
+}
+
+function notificationDestination(entityType: string | null, entityId: number | null, storedUrl: string | null) {
+  if (storedUrl) return storedUrl;
+  if (!entityId) return null;
+  const routes: Record<string, string> = { campaign: `/campanhas/${entityId}`, trade_campaign: `/campanhas/${entityId}`, action: `/acoes/${entityId}`, event: `/eventos/${entityId}`, media_point: `/midias/${entityId}`, invoice: `/financeiro?invoice=${entityId}`, stock_item: `/estoque?item=${entityId}` };
+  return routes[entityType || ""] || null;
 }
 
 function notificationScopeCondition(userId: number, regionalIds: number[], cityIds: number[]) {
@@ -64,13 +78,15 @@ export const notificationsRouter = router({
       conditions.push(notificationScopeCondition(ctx.user.id, regionalIds, cityIds));
     }
     if (input?.category) conditions.push(eq(notifications.category, input.category));
-    if (input?.unreadOnly) conditions.push(isNull(notifications.readAt));
-    return database.select(notificationSelect).from(notifications)
+    if (input?.unreadOnly) conditions.push(isNull(notifications.completedAt));
+    const rows = await database.select(notificationSelect).from(notifications)
       .leftJoin(users, eq(notifications.userId, users.id))
+      .leftJoin(completedUsers, eq(notifications.completedByUserId, completedUsers.id))
       .leftJoin(regionals, eq(notifications.regionalId, regionals.id))
       .leftJoin(cities, eq(notifications.cityId, cities.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(notifications.createdAt)).limit(input?.limit ?? 100);
+    return rows.map(row => ({ ...row, actionUrl: notificationDestination(row.entityType, row.entityId, row.actionUrl) }));
   }),
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
@@ -82,7 +98,7 @@ export const notificationsRouter = router({
     ]);
     return { users: userRows, regionals: regionalRows, cities: cityRows, categories: notificationCategories };
   }),
-  markRead: protectedProcedure.input(z.object({ notificationId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+  complete: protectedProcedure.input(z.object({ notificationId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
     const [notification] = await database.select().from(notifications).where(eq(notifications.id, input.notificationId)).limit(1);
     if (!notification) throw new Error("Notificação não encontrada.");
@@ -93,6 +109,10 @@ export const notificationsRouter = router({
       const isAssignedCity = notification.cityId !== null && cityIds.includes(notification.cityId);
       if (notification.userId !== ctx.user.id && !isGlobal && !isAssignedRegional && !isAssignedCity) throw new Error("Sem acesso à notificação.");
     }
+    const [updated] = await database.update(notifications).set({ readAt: new Date(), completedAt: new Date(), completedByUserId: ctx.user.id }).where(eq(notifications.id, input.notificationId)).returning(); return updated;
+  }),
+  markRead: protectedProcedure.input(z.object({ notificationId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
     const [updated] = await database.update(notifications).set({ readAt: new Date() }).where(eq(notifications.id, input.notificationId)).returning(); return updated;
   }),
 });

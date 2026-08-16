@@ -62,9 +62,9 @@ As rotas abaixo são a fonte de verdade atual. Ao adicionar uma rota, a IA deve 
 | Mídias | `/midias/:mediaPointId` | `midias-graficas` | `MediaWorkspace` em ponto selecionado | `media.read` |
 | Gestão | `/estoque` | `estoque` | `InventoryWorkspace` | `inventory.read` |
 | Gestão | `/financeiro` | `financeiro` | `FinanceWorkspace` | `finance.read` |
-| Gestão | `/cadastros` | — | Redireciona para `/cadastros/operacionais` | `settings.read` |
-| Gestão | `/cadastros/operacionais` | `cadastros` | `OperationalRegistriesWorkspace` | `settings.read` |
-| Gestão | `/cadastros/operacionais?grupo=...` | `cadastros` | Mesmo workspace com grupo selecionado | `settings.read` |
+| Gestão | `/cadastros` | — | Redireciona para `/cadastros/territorio` | `settings.read` |
+| Gestão | `/cadastros/territorio` | `cadastros` | Seleção do grupo Território | `settings.read` |
+| Gestão | `/cadastros/{entidade}` | `cadastro-entidade` | Workspace direto da entidade selecionada | `settings.read` |
 | Gestão | `/cadastros/modelos` | `modelos-campanha` | `CampaignTemplatesWorkspace` | `settings.read` |
 | Gestão | `/cadastros/modelos-acoes` | `modelos-acao` | `ActionTemplatesWorkspace` | `settings.read` |
 | Gestão | `/cadastros/empresas` | `empresas` | `CompaniesWorkspace` | `settings.read` |

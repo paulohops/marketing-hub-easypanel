@@ -30,7 +30,7 @@ describe("rotas protegidas", () => {
   it.each([
     ["/usuarios", "usuarios"],
     ["/administracao-usuarios", "usuarios"],
-    ["/cadastros/operacionais", "cadastros"],
+    ["/cadastros/territorio", "cadastros"],
     ["/cadastros/empresas", "empresas"],
     ["/cadastros/empresas/1", "empresas"],
     ["/cadastros/regionais", "cadastro-entidade"],
@@ -63,7 +63,7 @@ describe("rotas protegidas", () => {
 
   it.each([
     ["/midias", "/midias/graficas", "midias-graficas"],
-    ["/cadastros", "/cadastros/operacionais", "cadastros"],
+    ["/cadastros", "/cadastros/territorio", "cadastros"],
   ])("redireciona a rota-pai %s para %s", async (path, destination, module) => {
     window.history.pushState({}, "", path);
     render(<App />);

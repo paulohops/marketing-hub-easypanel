@@ -4,6 +4,7 @@ import type { TrpcContext } from "../_core/context";
 const getDbMock = vi.hoisted(() => vi.fn());
 const verifyPasswordMock = vi.hoisted(() => vi.fn());
 const createSessionTokenMock = vi.hoisted(() => vi.fn());
+const sendAuthCodeEmailMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../db", () => ({ getDb: getDbMock }));
 vi.mock("../auth/localPasswords", async importOriginal => {
@@ -11,6 +12,7 @@ vi.mock("../auth/localPasswords", async importOriginal => {
   return { ...actual, verifyLocalPassword: verifyPasswordMock };
 });
 vi.mock("../_core/sdk", () => ({ sdk: { createSessionToken: createSessionTokenMock } }));
+vi.mock("../_core/notification", () => ({ sendAuthCodeEmail: sendAuthCodeEmailMock }));
 vi.mock("../_core/cookies", () => ({ getSessionCookieOptions: () => ({ httpOnly: true, sameSite: "lax", secure: true }) }));
 
 import { appRouter } from "../routers";
@@ -40,12 +42,13 @@ describe("localAuthRouter", () => {
     getDbMock.mockResolvedValue(accountDatabase({ id: 8, openId: "local:8", name: "Marina Trade", email: "marina@cluster.com", passwordHash: "hash", isActive: true }));
     verifyPasswordMock.mockResolvedValue(true);
     createSessionTokenMock.mockResolvedValue("sessao-local-assinada");
+    sendAuthCodeEmailMock.mockResolvedValue(true);
     const caller = appRouter.createCaller(context);
 
-    await expect(caller.auth.local.login({ email: "MARINA@CLUSTER.COM", password: "SenhaSegura123" })).resolves.toEqual({ success: true });
+    await expect(caller.auth.local.login({ email: "MARINA@CLUSTER.COM", password: "SenhaSegura123" })).resolves.toEqual({ success: true, requiresCode: true });
     expect(verifyPasswordMock).toHaveBeenCalledWith("SenhaSegura123", "hash");
-    expect(createSessionTokenMock).toHaveBeenCalledWith("local:8", expect.objectContaining({ name: "Marina Trade" }));
-    expect((context.res.cookie as unknown as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(expect.any(String), "sessao-local-assinada", expect.objectContaining({ httpOnly: true, secure: true }));
+    const database = getDbMock.mock.results[0]?.value;
+    await expect(caller.auth.local.verifyLoginCode({ email: "MARINA@CLUSTER.COM", code: "000000" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
   it("não autentica uma conta inativa mesmo quando a senha está correta", async () => {
