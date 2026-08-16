@@ -316,6 +316,13 @@
       "when": 1786923063000,
       "tag": "0044_supplier_wizard_and_product_types",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1786924000000,
+      "tag": "0045_repair_supplier_relationship_columns",
+      "breakpoints": true
     }
   ]
 }
