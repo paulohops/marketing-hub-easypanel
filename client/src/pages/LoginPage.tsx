@@ -66,11 +66,9 @@ export default function LoginPage() {
                 {login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}Entrar com e-mail e senha
               </Button>
             </form>
-            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
-            <Button type="button" variant="outline" className="h-12 w-full rounded-xl border-border text-sm font-bold" onClick={() => window.location.assign("/api/oauth/google")}><span className="mr-2 grid h-5 w-5 place-items-center rounded-full bg-white/100 text-xs font-black text-[#4285F4]">G</span>Entrar com Google</Button>
             <div className="mt-6 flex items-start gap-3 rounded-xl border border-border bg-background p-4">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-sidebar-primary" />
-              <p className="text-xs leading-5 text-muted-foreground">Você pode usar Google ou e-mail e senha. Quando o e-mail for o mesmo, os dois métodos entram na mesma conta.</p>
+              <p className="text-xs leading-5 text-muted-foreground">O acesso está disponível temporariamente apenas por e-mail e senha.</p>
             </div>
           </div>
         </section>

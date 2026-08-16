@@ -10,6 +10,7 @@ import { sdk } from "./sdk";
 import { getDb } from "../db";
 
 const STATE_COOKIE = "trade_hub_google_oauth_state";
+const GOOGLE_LOGIN_ENABLED = false;
 
 function redirectUri(req: any) {
   return ENV.googleRedirectUri || `${ENV.publicAppUrl || `${req.protocol}://${req.get("host")}`}/api/oauth/google/callback`;
@@ -21,7 +22,7 @@ function unavailable(res: any) {
 
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/google", (req, res) => {
-    if (!ENV.googleClientId || !ENV.googleClientSecret) return unavailable(res);
+    if (!GOOGLE_LOGIN_ENABLED || !ENV.googleClientId || !ENV.googleClientSecret) return unavailable(res);
     const state = randomUUID();
     res.cookie(STATE_COOKIE, state, { ...getSessionCookieOptions(req), maxAge: 10 * 60 * 1000 });
     const params = new URLSearchParams({ client_id: ENV.googleClientId, redirect_uri: redirectUri(req), response_type: "code", scope: "openid email profile", state, access_type: "online", prompt: "select_account" });
@@ -29,7 +30,7 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   app.get("/api/oauth/google/callback", async (req, res) => {
-    if (!ENV.googleClientId || !ENV.googleClientSecret) return unavailable(res);
+    if (!GOOGLE_LOGIN_ENABLED || !ENV.googleClientId || !ENV.googleClientSecret) return unavailable(res);
     const code = typeof req.query.code === "string" ? req.query.code : "";
     const state = typeof req.query.state === "string" ? req.query.state : "";
     const cookies = parseCookie(req.headers.cookie ?? "");

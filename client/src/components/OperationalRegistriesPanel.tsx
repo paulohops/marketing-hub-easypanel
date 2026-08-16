@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { CoordinatesField, StoreHoursField } from "@/components/StoreLocationFields";
+import { MapView } from "@/components/Map";
 
 type Panel =
   | "provider"
@@ -53,7 +54,7 @@ type Panel =
   | "campaign_sector"
   | "financial_category"
   | "action_point";
-type Row = { id: number; name: string; active: boolean; detail?: string };
+type Row = { id: number; name: string; active: boolean; detail?: string; address?: string | null; openingHours?: string | null; photoUrl?: string | null; latitude?: string | number | null; longitude?: string | number | null };
 type RegistryGroup = "Território" | "Parceiros" | "Operação" | "Categorias" | "Financeiro" | "Modelos";
 const registryGroups: RegistryGroup[] = ["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"];
 const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorio", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
@@ -449,6 +450,11 @@ export default function OperationalRegistriesPanel() {
           name: item.name,
           active: item.active,
           detail: `${item.code}${city ? ` · ${city.name}/${city.state}` : ""}`,
+          address: item.address,
+          openingHours: item.openingHours,
+          photoUrl: item.photoUrl,
+          latitude: item.latitude,
+          longitude: item.longitude,
         };
       });
     if (panel === "supplier")
@@ -831,6 +837,9 @@ export default function OperationalRegistriesPanel() {
                   return;
                 }
                 const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
+                setActiveGroup(group);
+                reset();
+                setPanel(card.key);
                 setLocation(`/cadastros/${paths[card.key] ?? ""}`);
               }}
               className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -1332,9 +1341,9 @@ function RegistryForm(props: {
       ) : null}
       {props.panel === "store" ? (
         <>
-          <Field label="Código" id="store-code" value={props.code} setValue={value => props.setCode(value.toUpperCase())} />
-          <SelectField id="store-city" label="Cidade" value={props.registryCityId} onChange={props.setRegistryCityId} options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: `${item.name} · ${item.state}` }))} />
-          <Field label="Endereço" id="store-address" value={props.address} setValue={props.setAddress} />
+          <Field label="Código" id="store-code" value={props.code} setValue={value => props.setCode(value.toUpperCase())} required />
+          <SelectField id="store-city" label="Cidade" value={props.registryCityId} onChange={props.setRegistryCityId} required options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: `${item.name} · ${item.state}` }))} />
+          <Field label="Endereço" id="store-address" value={props.address} setValue={props.setAddress} required />
           <Field label="Ponto de referência" id="store-reference-point" value={props.locationNotes} setValue={props.setLocationNotes} />
           <Field label="CEP" id="store-zip" value={props.zipCode} setValue={props.setZipCode} />
           <Field label="Telefone" id="store-phone" value={props.phone} setValue={props.setPhone} />
@@ -1806,20 +1815,26 @@ function RegistryList({
           rows.map(row => (
             <div
               key={row.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+              className="overflow-hidden rounded-xl border border-border bg-background"
             >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {row.name}
-                </p>
-                {row.detail ? (
-                  <p className="truncate text-xs text-muted-foreground">
-                    {row.detail}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <StatusBadge active={row.active} />
+              <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex min-w-0 gap-4">
+                  {row.photoUrl ? <img src={row.photoUrl} alt={`Foto da loja ${row.name}`} className="h-24 w-32 shrink-0 rounded-xl border border-border object-cover shadow-sm" /> : <div className="grid h-24 w-32 shrink-0 place-items-center rounded-xl border border-dashed border-border bg-muted text-xs text-muted-foreground">Sem foto</div>}
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-foreground">{row.name}</p>
+                    {row.detail ? <p className="mt-1 text-xs text-muted-foreground">{row.detail}</p> : null}
+                    <div className="mt-3 rounded-lg bg-muted/40 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Endereço</p>
+                      <p className="mt-1 text-sm text-foreground">{row.address || "Endereço não informado"}</p>
+                    </div>
+                    <div className="mt-2 rounded-lg border border-border px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Horário de funcionamento</p>
+                      <p className="mt-1 whitespace-pre-line text-sm leading-6 text-foreground">{row.openingHours || "Horário não informado"}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <StatusBadge active={row.active} />
                 <Button
                   type="button"
                   size="sm"
@@ -1850,7 +1865,9 @@ function RegistryList({
                 >
                   Excluir
                 </Button>
+                </div>
               </div>
+              {row.latitude && row.longitude ? <div className="border-t border-border px-4 pb-4 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Localização da loja</p><div className="overflow-hidden rounded-xl border border-border"><MapView className="h-56" initialCenter={{ lat: Number(row.latitude), lng: Number(row.longitude) }} initialZoom={16} onMapReady={map => { const position = { lat: Number(row.latitude), lng: Number(row.longitude) }; if (window.google?.maps?.marker?.AdvancedMarkerElement) new window.google.maps.marker.AdvancedMarkerElement({ map, position, title: row.name }); }} /></div></div> : null}
             </div>
           ))
         ) : (
@@ -1869,6 +1886,7 @@ function SelectField({
   onChange,
   options,
   optional = false,
+  required = false,
 }: {
   id: string;
   label: string;
@@ -1876,12 +1894,15 @@ function SelectField({
   onChange: (v: string) => void;
   options: Array<{ value: string; label: string }>;
   optional?: boolean;
+  required?: boolean;
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className={required ? "required-field" : undefined}>{label}</Label>
       <select
         id={id}
+        required={required}
+        aria-required={required}
         value={value}
         onChange={event => onChange(event.target.value)}
         className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
@@ -1904,6 +1925,7 @@ function Field({
   type = "text",
   inputMode,
   placeholder,
+  required = false,
 }: {
   label: string;
   id: string;
@@ -1912,13 +1934,16 @@ function Field({
   type?: string;
   inputMode?: "decimal";
   placeholder?: string;
+  required?: boolean;
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className={required ? "required-field" : undefined}>{label}</Label>
       <Input
         id={id}
         type={type}
+        required={required}
+        aria-required={required}
         inputMode={inputMode}
         value={value}
         placeholder={placeholder}
