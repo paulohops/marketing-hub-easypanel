@@ -16,6 +16,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Building2,
   CalendarDays,
+  ChevronRight,
   FileText,
   Handshake,
   Landmark,
@@ -837,10 +838,10 @@ export default function OperationalRegistriesPanel() {
         </Badge>
       </div>
       <div className="mt-6 space-y-6">
-        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registryGroups.map(group => { const count = group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="rounded-xl border border-border bg-background p-5 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><p className="mt-4 font-semibold text-foreground">{group}</p><p className="mt-1 text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</p><span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Abrir opções <Plus className="ml-1 h-3.5 w-3.5" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div></div>
+        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">{registryGroups.map(group => { const count = group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block font-semibold text-foreground">{group}</span><span className="mt-1 block text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</span></span><span className="inline-flex shrink-0 items-center text-xs font-semibold text-primary">Abrir <ChevronRight className="ml-1 h-4 w-4" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div></div>
         {([activeGroup] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
           <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
         {cards.filter(card => card.group === group).map(card => {
           const Icon = card.icon;
           return (
@@ -856,20 +857,13 @@ export default function OperationalRegistriesPanel() {
                 setActiveGroup(group);
                 reset();
                 setPanel(card.key);
-                setLocation(`/cadastros/${paths[card.key] ?? ""}?novo=${paths[card.key] ?? ""}`);
+                setLocation(`/cadastros/${paths[card.key] ?? ""}`);
               }}
-              className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-secondary text-primary">
-                <Icon className="h-4 w-4" />
-              </span>
-              <p className="mt-4 font-semibold text-foreground">{card.title}</p>
-              <p className="mt-1 min-h-10 text-xs leading-5 text-muted-foreground">
-                {card.description}
-              </p>
-              <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">
-                Ver cadastros <Plus className="ml-1 h-3.5 w-3.5" />
-              </span>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-secondary text-primary"><Icon className="h-4 w-4" /></span>
+              <span className="min-w-0 flex-1"><span className="block font-semibold text-foreground">{card.title}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{card.description}</span></span>
+              <span className="inline-flex shrink-0 items-center text-xs font-semibold text-primary">Adicionar <Plus className="ml-1 h-3.5 w-3.5" /></span>
             </button>
           );
         })}
