@@ -25,7 +25,12 @@ export function appError(message: string, error: unknown, context?: Record<strin
   appLog("ERROR", message, { ...context, error: serializeError(error) });
 }
 
+const PROCESS_LOGGING_REGISTERED = Symbol.for("marketing-hub.process-logging-registered");
+
 export function registerProcessLogging() {
+  const processWithMarker = process as NodeJS.Process & { [PROCESS_LOGGING_REGISTERED]?: boolean };
+  if (processWithMarker[PROCESS_LOGGING_REGISTERED]) return;
+  processWithMarker[PROCESS_LOGGING_REGISTERED] = true;
   process.on("uncaughtException", error => {
     appError("Exceção não tratada no processo", error);
   });
