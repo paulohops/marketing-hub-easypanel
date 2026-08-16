@@ -73,10 +73,12 @@ export const eventsRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "events.read");
     const database = await requireDatabase();
-    const [rows, teamRows, stockRows, invoiceRows, paymentRows] = await Promise.all([
+    const [rows, teamRows, stockRows, supplierRows, serviceRows, invoiceRows, paymentRows] = await Promise.all([
       database.select({ event: events, cityName: cities.name, eventTypeName: eventTypes.name, campaignName: tradeCampaigns.name, supervisorName: commercialSupervisors.name }).from(events).innerJoin(cities, eq(events.cityId, cities.id)).innerJoin(eventTypes, eq(events.eventTypeId, eventTypes.id)).leftJoin(tradeCampaigns, eq(events.tradeCampaignId, tradeCampaigns.id)).leftJoin(commercialSupervisors, eq(events.commercialSupervisorId, commercialSupervisors.id)).orderBy(asc(events.startsAt)),
       database.select({ eventId: eventTeamMembers.eventId, userId: users.id, name: users.name, jobTitle: users.jobTitle }).from(eventTeamMembers).innerJoin(users, eq(eventTeamMembers.userId, users.id)),
       database.select({ eventId: eventStockItems.eventId, stockItemId: stockItems.id, name: stockItems.name, unit: stockItems.unit, plannedQuantity: eventStockItems.plannedQuantity }).from(eventStockItems).innerJoin(stockItems, eq(eventStockItems.stockItemId, stockItems.id)),
+      database.select({ eventId: eventSuppliers.eventId, supplierId: suppliers.id, name: suppliers.displayName, photoUrl: suppliers.photoUrl, mainService: suppliers.mainService }).from(eventSuppliers).innerJoin(suppliers, eq(eventSuppliers.supplierId, suppliers.id)),
+      database.select({ eventId: eventServices.eventId, serviceTypeId: serviceTypes.id, name: serviceTypes.name }).from(eventServices).innerJoin(serviceTypes, eq(eventServices.serviceTypeId, serviceTypes.id)),
       database.select({ id: invoices.id, operationId: invoices.operationId, amount: invoices.amount, status: invoices.status }).from(invoices).where(eq(invoices.operationType, "event")),
       database.select({ invoiceId: payments.invoiceId, amount: payments.amount }).from(payments),
     ]);
@@ -84,7 +86,7 @@ export const eventsRouter = router({
       const linkedInvoices = invoiceRows.filter(invoice => invoice.operationId === row.event.id && invoice.status !== "cancelled");
       const paidAmount = linkedInvoices.reduce((total, invoice) => total + paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((subtotal, payment) => subtotal + Number(payment.amount), 0), 0);
       const estimatedAmount = Number(row.event.estimatedCost);
-      return { ...row, finance: { estimatedAmount, invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount }, teamMembers: teamRows.filter(member => member.eventId === row.event.id), stockItems: stockRows.filter(item => item.eventId === row.event.id) };
+      return { ...row, finance: { estimatedAmount, invoicedAmount: linkedInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount }, teamMembers: teamRows.filter(member => member.eventId === row.event.id), stockItems: stockRows.filter(item => item.eventId === row.event.id), suppliers: supplierRows.filter(supplier => supplier.eventId === row.event.id), services: serviceRows.filter(service => service.eventId === row.event.id) };
     });
   }),
   create: protectedProcedure.input(z.object({
