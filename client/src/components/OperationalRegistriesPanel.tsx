@@ -388,10 +388,6 @@ export default function OperationalRegistriesPanel() {
     reset();
     setPanel(target);
   }, [location]);
-  useEffect(() => {
-    const requestedGroup = new URLSearchParams(window.location.search).get("grupo") ?? "";
-    setActiveGroup(registryGroupFromQuery[requestedGroup] ?? null);
-  }, [location]);
   const toggle = (
     id: number,
     values: number[],

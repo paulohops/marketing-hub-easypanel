@@ -21,6 +21,17 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, errorInfo: { componentStack: string }) {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: "ERROR",
+      service: "marketing-hub-web",
+      message: "Erro não tratado na interface",
+      context: { path: window.location.pathname, componentStack: errorInfo.componentStack },
+      error: { name: error.name, message: error.message, stack: error.stack },
+    }));
+  }
+
   render() {
     if (this.state.hasError) {
       return (

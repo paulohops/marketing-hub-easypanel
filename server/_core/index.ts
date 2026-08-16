@@ -9,6 +9,9 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { serveStatic } from "./static";
 import { ensureStorageDir } from "../storage";
+import { appError, appLog, registerProcessLogging } from "./logger";
+
+registerProcessLogging();
 
 async function startServer() {
   assertRuntimeEnvironment();
@@ -43,11 +46,11 @@ async function startServer() {
   }
 
   server.listen(port, "0.0.0.0", () => {
-    console.log(`Trade HUB running on port ${port}`);
+    appLog("INFO", "Servidor iniciado", { port });
   });
 }
 
 startServer().catch(error => {
-  console.error("[Server] Startup failed", error);
+  appError("Falha ao iniciar o servidor", error);
   process.exitCode = 1;
 });

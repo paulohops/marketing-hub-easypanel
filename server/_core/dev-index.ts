@@ -9,6 +9,9 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { setupVite } from "./vite";
 import { ensureStorageDir } from "../storage";
+import { appError, appLog, registerProcessLogging } from "./logger";
+
+registerProcessLogging();
 
 async function startDevelopmentServer() {
   assertRuntimeEnvironment();
@@ -28,10 +31,10 @@ async function startDevelopmentServer() {
 
   const port = Number.parseInt(process.env.PORT ?? "3000", 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`PORT inválida: ${process.env.PORT ?? ""}`);
-  server.listen(port, "0.0.0.0", () => console.log(`Trade HUB development server running on port ${port}`));
+  server.listen(port, "0.0.0.0", () => appLog("INFO", "Servidor de desenvolvimento iniciado", { port }));
 }
 
 startDevelopmentServer().catch(error => {
-  console.error("[DevServer] Startup failed", error);
+  appError("Falha ao iniciar o servidor de desenvolvimento", error);
   process.exitCode = 1;
 });
