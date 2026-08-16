@@ -56,7 +56,7 @@ type Panel =
 type Row = { id: number; name: string; active: boolean; detail?: string; address?: string | null; openingHours?: string | null; photoUrl?: string | null; latitude?: string | number | null; longitude?: string | number | null };
 type RegistryGroup = "Território" | "Parceiros" | "Operação" | "Categorias" | "Financeiro" | "Modelos";
 const registryGroups: RegistryGroup[] = ["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"];
-const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorios", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
+const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorio", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
 const registryGroupFromQuery: Record<string, RegistryGroup> = { territorio: "Território", territorios: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
 
 const cards: Array<{
@@ -115,7 +115,7 @@ async function fileToBase64(file: File) {
 
 export default function OperationalRegistriesPanel() {
   const [location, setLocation] = useLocation();
-  const groupFromPath = (pathname: string) => registryGroupFromQuery[pathname.split("/").filter(Boolean).pop() ?? ""] ?? null;
+  const groupFromPath = (pathname: string) => { const cleanPath = pathname.split("?")[0]; return registryGroupFromQuery[cleanPath.split("/").filter(Boolean).pop() ?? ""] ?? null; };
   const [activeGroup, setActiveGroup] = useState<RegistryGroup | null>(() => groupFromPath(window.location.pathname) ?? registryGroupFromQuery[new URLSearchParams(window.location.search).get("grupo") ?? ""] ?? null);
   useEffect(() => {
     const nextGroup = groupFromPath(location) ?? registryGroupFromQuery[new URLSearchParams(window.location.search).get("grupo") ?? ""] ?? null;
@@ -172,6 +172,9 @@ export default function OperationalRegistriesPanel() {
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [mediaIds, setMediaIds] = useState<number[]>([]);
+  const [serviceMediaLinks, setServiceMediaLinks] = useState<Array<{ mediaTypeId: number; serviceTypeId: number }>>([]);
+  const [selectedLinkMediaId, setSelectedLinkMediaId] = useState(0);
+  const [selectedLinkServiceId, setSelectedLinkServiceId] = useState(0);
   const [supervisorStoreIds, setSupervisorStoreIds] = useState<number[]>([]);
   const [offerName, setOfferName] = useState("");
   const [offerKind, setOfferKind] = useState<
@@ -347,6 +350,7 @@ export default function OperationalRegistriesPanel() {
         .filter(item => item.supplierId === id)
         .map(item => item.mediaTypeId)
     );
+    setServiceMediaLinks(coverage.data.servicesBySupplier.filter(item => item.supplierId === id && item.mediaTypeId != null).map(item => ({ mediaTypeId: Number(item.mediaTypeId), serviceTypeId: item.serviceTypeId })));
   }, [selectedSupplierId, coverage.data]);
   const reset = () => {
     setEditingId(null);
@@ -377,12 +381,19 @@ export default function OperationalRegistriesPanel() {
     setHasContract(false);
     setMediaOperationCategory("graphics");
     setParentMediaTypeId("");
+    setSelectedLinkMediaId(0);
+    setSelectedLinkServiceId(0);
     setSupervisorStoreIds([]);
   };
   useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("novo");
+    const currentUrl = location.includes("?") ? location : `${window.location.pathname}${window.location.search}`;
+    const requested = new URLSearchParams(currentUrl.split("?")[1] ?? "").get("novo");
     const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", lojas: "store", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "tipos-de-campanha": "campaign", "setores-de-campanha": "campaign_sector", "categorias-financeiras": "financial_category" };
-    const target = requested ? panelBySlug[requested] : undefined;
+    if (!requested) {
+      handledCreateIntent.current = null;
+      return;
+    }
+    const target = panelBySlug[requested];
     if (!target || handledCreateIntent.current === requested) return;
     handledCreateIntent.current = requested;
     reset();
@@ -956,6 +967,12 @@ export default function OperationalRegistriesPanel() {
               onToggleCity={id => toggle(id, cityIds, setCityIds)}
               onToggleService={id => toggle(id, serviceIds, setServiceIds)}
               onToggleMedia={id => toggle(id, mediaIds, setMediaIds)}
+              serviceMediaLinks={serviceMediaLinks}
+              selectedLinkMediaId={selectedLinkMediaId}
+              setSelectedLinkMediaId={id => { setSelectedLinkMediaId(id); setSelectedLinkServiceId(0); }}
+              selectedLinkServiceId={selectedLinkServiceId}
+              setSelectedLinkServiceId={setSelectedLinkServiceId}
+              onAddServiceMediaLink={() => { if (selectedLinkMediaId > 0 && selectedLinkServiceId > 0) { setServiceMediaLinks(current => current.some(link => link.mediaTypeId === selectedLinkMediaId && link.serviceTypeId === selectedLinkServiceId) ? current : [...current, { mediaTypeId: selectedLinkMediaId, serviceTypeId: selectedLinkServiceId }]); setSelectedLinkServiceId(0); } }}
               onCreate={() =>
                 saveSupplier()
               }
@@ -995,6 +1012,7 @@ export default function OperationalRegistriesPanel() {
                   cityIds,
                   serviceTypeIds: serviceIds,
                   mediaTypeIds: mediaIds,
+                  serviceMediaLinks,
                 })
               }
               offerName={offerName}
@@ -1547,6 +1565,12 @@ function SupplierPanel(props: {
   cityIds: number[];
   serviceIds: number[];
   mediaIds: number[];
+  serviceMediaLinks: Array<{ mediaTypeId: number; serviceTypeId: number }>;
+  selectedLinkMediaId: number;
+  setSelectedLinkMediaId: (id: number) => void;
+  selectedLinkServiceId: number;
+  setSelectedLinkServiceId: (id: number) => void;
+  onAddServiceMediaLink: () => void;
   onToggleCity: (id: number) => void;
   onToggleService: (id: number) => void;
   onToggleMedia: (id: number) => void;
@@ -1698,6 +1722,12 @@ function SupplierPanel(props: {
               selected={props.mediaIds}
               toggle={props.onToggleMedia}
             />
+            <div className="grid gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:grid-cols-2">
+              <SelectField id="supplier-link-media" label="Tipo de mídia" value={props.selectedLinkMediaId ? String(props.selectedLinkMediaId) : ""} onChange={value => props.setSelectedLinkMediaId(Number(value))} optional options={props.media.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} />
+              <SelectField id="supplier-link-service" label="Serviço" value={props.selectedLinkServiceId ? String(props.selectedLinkServiceId) : ""} onChange={value => props.setSelectedLinkServiceId(Number(value))} optional options={props.selectedLinkMediaId ? props.services.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name })) : []} />
+              <div className="sm:col-span-2 flex justify-end"><Button type="button" variant="outline" disabled={!props.selectedLinkMediaId || !props.selectedLinkServiceId} onClick={props.onAddServiceMediaLink}>Adicionar vínculo</Button></div>
+              <div className="sm:col-span-2 flex flex-wrap gap-2">{props.serviceMediaLinks.map(link => { const media = props.media.find(item => item.id === link.mediaTypeId); const service = props.services.find(item => item.id === link.serviceTypeId); return <span key={`${link.mediaTypeId}-${link.serviceTypeId}`} className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-foreground">{media?.name ?? "Mídia"} → {service?.name ?? "Serviço"}</span>; })}</div>
+            </div>
             <Button
               type="button"
               variant="outline"
