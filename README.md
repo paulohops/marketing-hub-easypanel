@@ -34,6 +34,10 @@ Copie `.env.example` para `.env` em desenvolvimento. No EasyPanel, configure as 
 
 O procedimento completo, incluindo PostgreSQL, volume persistente, domínio, migrações, bootstrap e diagnóstico, está em [`docs/easypanel-install.md`](docs/easypanel-install.md). A auditoria de compatibilidade está em [`docs/easypanel-audit.md`](docs/easypanel-audit.md).
 
+## Orientação para agentes de código
+
+As instruções de arquitetura, rotas, permissões, padrão visual e regras para evitar implementações improvisadas estão em [`AGENTS.md`](AGENTS.md) e no guia completo [`docs/ai-system-guide.md`](docs/ai-system-guide.md). O módulo de campanhas e ações é a referência canônica para novas telas operacionais.
+
 ## Licença
 
 MIT.
