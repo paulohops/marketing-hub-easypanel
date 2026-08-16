@@ -9,6 +9,10 @@ vi.mock("./components/ErrorBoundary", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+vi.mock("./contexts/BrandingContext", () => ({
+  BrandingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 import App from "./App";
 
 describe("rotas protegidas", () => {

@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useBranding } from "@/contexts/BrandingContext";
 import { AlertCircle, Home } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function NotFound() {
+  const { branding } = useBranding();
   const [, setLocation] = useLocation();
 
   const handleGoHome = () => {
@@ -15,8 +17,8 @@ export default function NotFound() {
       <Card className="mx-4 w-full max-w-lg overflow-hidden border-border bg-card shadow-[0_20px_50px_rgba(14,114,59,0.12)] backdrop-blur-sm">
         <CardContent className="pt-8 pb-8 text-center">
           <div className="mb-6 flex items-center justify-center gap-2">
-            <img src="/brand/logo.svg" alt="Cluster MG" className="h-8 w-8 rounded-lg bg-background object-contain p-0.5" />
-            <span className="font-display text-sm font-extrabold tracking-tight text-foreground">MARKETING HUB <span className="text-primary">— CLUSTER MG</span></span>
+            <img src={branding.logoUrl} alt={branding.appName} className="h-8 w-8 rounded-lg bg-background object-contain p-0.5" />
+            <span className="font-display text-sm font-extrabold tracking-tight text-foreground">{branding.appName} {branding.appSubtitle && <span className="text-primary">— {branding.appSubtitle}</span>}</span>
           </div>
           <div className="flex justify-center mb-6">
             <div className="relative">

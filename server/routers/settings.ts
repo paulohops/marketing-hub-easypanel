@@ -4,9 +4,10 @@ import { z } from "zod";
 import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, campaignSectors, campaignTypes, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providerDocuments, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
-import { protectedProcedure, router } from "../_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 import { storagePut } from "../storage";
+import { BRANDING_FONT_OPTIONS, DEFAULT_APP_BRANDING, type AppBranding, type BrandingFontId } from "../../shared/branding";
 
 const paymentKinds = ["paid", "barter", "mixed"] as const;
 const mediaOperationCategories = ["graphics", "audio_video", "leafleting", "sound_car", "influencers"] as const;
@@ -83,6 +84,58 @@ export function normalizeSpreadsheetKey(value: string) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR");
 }
 
+const brandingFontIds = BRANDING_FONT_OPTIONS.map(option => option.id) as [BrandingFontId, ...BrandingFontId[]];
+const brandingInputSchema = z.object({
+  appName: z.string().trim().min(2).max(80),
+  appSubtitle: z.string().trim().max(80),
+  primaryColor: hexColorSchema,
+  accentColor: hexColorSchema,
+  backgroundColor: hexColorSchema,
+  cardColor: hexColorSchema,
+  foregroundColor: hexColorSchema,
+  fontFamily: z.enum(brandingFontIds),
+});
+
+function isHexColor(value: unknown): value is string {
+  return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value);
+}
+
+function isBrandingFont(value: unknown): value is BrandingFontId {
+  return typeof value === "string" && brandingFontIds.includes(value as BrandingFontId);
+}
+
+export function normalizeAppBranding(value: unknown): AppBranding {
+  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const appName = typeof source.appName === "string" && source.appName.trim().length >= 2 ? source.appName.trim().slice(0, 80) : DEFAULT_APP_BRANDING.appName;
+  const appSubtitle = typeof source.appSubtitle === "string" ? source.appSubtitle.trim().slice(0, 80) : DEFAULT_APP_BRANDING.appSubtitle;
+  const isLocalLogo = typeof source.logoUrl === "string" && source.logoUrl.startsWith("/") && !source.logoUrl.startsWith("//");
+  const logoUrl = typeof source.logoUrl === "string" && (isLocalLogo || /^https?:\/\//i.test(source.logoUrl)) ? source.logoUrl : DEFAULT_APP_BRANDING.logoUrl;
+  return {
+    appName,
+    appSubtitle,
+    primaryColor: isHexColor(source.primaryColor) ? source.primaryColor.toUpperCase() : DEFAULT_APP_BRANDING.primaryColor,
+    accentColor: isHexColor(source.accentColor) ? source.accentColor.toUpperCase() : DEFAULT_APP_BRANDING.accentColor,
+    backgroundColor: isHexColor(source.backgroundColor) ? source.backgroundColor.toUpperCase() : DEFAULT_APP_BRANDING.backgroundColor,
+    cardColor: isHexColor(source.cardColor) ? source.cardColor.toUpperCase() : DEFAULT_APP_BRANDING.cardColor,
+    foregroundColor: isHexColor(source.foregroundColor) ? source.foregroundColor.toUpperCase() : DEFAULT_APP_BRANDING.foregroundColor,
+    fontFamily: isBrandingFont(source.fontFamily) ? source.fontFamily : DEFAULT_APP_BRANDING.fontFamily,
+    logoUrl,
+  };
+}
+
+function parseBrandingValue(value: string | null | undefined): AppBranding {
+  if (!value) return DEFAULT_APP_BRANDING;
+  try {
+    return normalizeAppBranding(JSON.parse(value));
+  } catch {
+    return DEFAULT_APP_BRANDING;
+  }
+}
+
+function safeBrandingName(name: string) {
+  return name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(0, 160) || "logo-aplicativo";
+}
+
 const spreadsheetImportSchema = z.object({
   providers: z.array(z.object({ name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), website: z.string().trim().max(1000).optional(), address: z.string().trim().max(1000).optional() })).max(300),
   regionals: z.array(z.object({ providerName: z.string().trim().max(160).optional(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).transform(value => value.toUpperCase()) })).max(300),
@@ -91,6 +144,47 @@ const spreadsheetImportSchema = z.object({
 });
 
 export const settingsRouter = router({
+  branding: publicProcedure.query(async () => {
+    const database = await getDb();
+    if (!database) return DEFAULT_APP_BRANDING;
+    const [setting] = await database.select().from(appSettings).where(eq(appSettings.key, "app_branding")).limit(1);
+    return parseBrandingValue(setting?.value);
+  }),
+
+  updateBranding: protectedProcedure.input(brandingInputSchema).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [currentSetting] = await database.select().from(appSettings).where(eq(appSettings.key, "app_branding")).limit(1);
+    let current: AppBranding = DEFAULT_APP_BRANDING;
+    if (currentSetting) current = parseBrandingValue(currentSetting.value);
+    const next = normalizeAppBranding({ ...current, ...input });
+    const [updated] = await database.insert(appSettings).values({ key: "app_branding", value: JSON.stringify(next), updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(next), updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "app_setting", entityId: 0, action: "update_branding", afterData: { ...next, logoUrl: Boolean(next.logoUrl) } });
+    return parseBrandingValue(updated.value);
+  }),
+
+  uploadAppLogo: protectedProcedure.input(z.object({ originalName: z.string().trim().min(1).max(255), mimeType: z.enum(imageMimeTypes), dataBase64: z.string().min(1).max(4_200_000) })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 3 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A logo do aplicativo deve ter até 3 MB." });
+    const stored = await storagePut(`trade/app-branding/logo-${Date.now()}-${safeBrandingName(input.originalName)}`, bytes, input.mimeType);
+    const [currentSetting] = await database.select().from(appSettings).where(eq(appSettings.key, "app_branding")).limit(1);
+    const current = currentSetting ? parseBrandingValue(currentSetting.value) : DEFAULT_APP_BRANDING;
+    const next = { ...current, logoUrl: stored.url };
+    const [updated] = await database.insert(appSettings).values({ key: "app_branding", value: JSON.stringify(next), updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(next), updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "app_setting", entityId: 0, action: "upload_branding_logo", afterData: { storageKey: stored.key } });
+    return parseBrandingValue(updated.value);
+  }),
+
+  resetBranding: protectedProcedure.mutation(async ({ ctx }) => {
+    await assertPermission(ctx.user, "settings.write");
+    const database = await requireDatabase();
+    const [updated] = await database.insert(appSettings).values({ key: "app_branding", value: JSON.stringify(DEFAULT_APP_BRANDING), updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(DEFAULT_APP_BRANDING), updatedAt: new Date() } }).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "app_setting", entityId: 0, action: "reset_branding", afterData: { restoredDefaults: true } });
+    return parseBrandingValue(updated.value);
+  }),
+
   overview: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();

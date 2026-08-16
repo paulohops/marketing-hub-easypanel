@@ -25,6 +25,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useBranding } from "@/contexts/BrandingContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import {
@@ -145,6 +146,7 @@ const roleNames: Record<string, string> = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { branding } = useBranding();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(() => !document.cookie.includes("sidebar_state=false"));
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
@@ -198,11 +200,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarHeader className="flex-row items-center gap-1 px-3 pb-3 pt-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <button onClick={() => setLocation("/")} className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden">
           <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-sidebar-accent p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
-            <img src="/brand/logo.svg" alt="Cluster MG" className="h-full w-full object-contain" />
+            <img src={branding.logoUrl} alt={branding.appName} className="h-full w-full object-contain" />
           </span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="block whitespace-nowrap font-display text-[0.9rem] font-extrabold leading-tight tracking-tight">MARKETING HUB</span>
-            <span className="block whitespace-nowrap text-[9px] font-bold tracking-[0.14em] text-sidebar-foreground">CLUSTER MG</span>
+            <span className="block max-w-[165px] truncate whitespace-nowrap font-display text-[0.9rem] font-extrabold leading-tight tracking-tight">{branding.appName}</span>
+            <span className="block max-w-[165px] truncate whitespace-nowrap text-[9px] font-bold tracking-[0.14em] text-sidebar-foreground">{branding.appSubtitle}</span>
           </span>
         </button>
         <SidebarTrigger aria-label="Recolher ou expandir menu" className="h-8 w-8 shrink-0 rounded-lg text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:mx-auto" />

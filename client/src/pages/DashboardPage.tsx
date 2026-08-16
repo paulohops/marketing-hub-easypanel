@@ -1,10 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { useBranding } from "@/contexts/BrandingContext";
 import { ArrowRight, BellRing, CalendarDays, ChevronRight, CircleHelp, ClipboardList, Megaphone, TriangleAlert } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function DashboardPage() {
+  const { branding } = useBranding();
   const [, setLocation] = useLocation();
   const month = new Date().toISOString().slice(0, 7);
   const media = trpc.media.list.useQuery();
@@ -27,9 +29,9 @@ export default function DashboardPage() {
         <div className="absolute bottom-[-75px] right-[18%] h-40 w-40 rounded-full border border-white/20" />
         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
-            <Badge className="border-0 bg-sidebar-primary px-3 py-1 text-[10px] font-bold tracking-[0.12em] text-white">CLUSTER MG</Badge>
-            <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Marketing HUB em movimento</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-sidebar-foreground">A central de gestão do Cluster MG para conectar território, campanhas, fornecedores e resultados.</p>
+            <Badge className="border-0 bg-sidebar-primary px-3 py-1 text-[10px] font-bold tracking-[0.12em] text-white">{branding.appSubtitle || branding.appName}</Badge>
+            <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{branding.appName} em movimento</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-sidebar-foreground">A central de gestão do {branding.appSubtitle || branding.appName} para conectar território, campanhas, fornecedores e resultados.</p>
           </div>
           <Button onClick={() => setLocation("/ajuda")} className="h-10 rounded-xl bg-sidebar-primary px-4 text-xs font-bold text-white hover:bg-accent-foreground"><CircleHelp className="mr-1.5 h-4 w-4" /> Ver ajuda e suporte</Button>
         </div>

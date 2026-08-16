@@ -1,6 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsWorkspace, { digitsOnly, hasDuplicateRegistryValue, normalizeRegistryValue } from "./SettingsWorkspace";
+
+vi.mock("@/components/BrandingSettingsPanel", () => ({ default: () => null }));
+vi.mock("@/contexts/BrandingContext", () => ({ useBranding: () => ({ branding: { appName: "MARKETING HUB", appSubtitle: "CLUSTER MG" } }) }));
 
 afterEach(cleanup);
 

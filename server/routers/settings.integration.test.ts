@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "../_core/context";
-import { actionTypes, campaignSectors, campaignTypes, cities, commercialSupervisors, eventTypes, financialCategories, mediaTypes, partners, providerDocuments, providers, regionals, serviceTypes, stores, supplierOfferings, suppliers } from "../../drizzle/schema";
+import { actionTypes, appSettings, campaignSectors, campaignTypes, cities, commercialSupervisors, eventTypes, financialCategories, mediaTypes, partners, providerDocuments, providers, regionals, serviceTypes, stores, supplierOfferings, suppliers } from "../../drizzle/schema";
 
 const getDbMock = vi.hoisted(() => vi.fn());
 const assertPermissionMock = vi.hoisted(() => vi.fn());
@@ -34,6 +34,43 @@ beforeEach(() => {
 });
 
 describe("settingsRouter via tRPC", () => {
+  it("persiste a identidade visual global em uma configuração chave/valor", async () => {
+    const current = { key: "app_branding", value: JSON.stringify({ appName: "MARKETING HUB" }) };
+    const next = { key: "app_branding", value: JSON.stringify({ appName: "OPERAÇÃO HUB", appSubtitle: "NORTE", primaryColor: "#123456", accentColor: "#654321", backgroundColor: "#F7FAF7", cardColor: "#FFFFFF", foregroundColor: "#133523", fontFamily: "inter", logoUrl: "/brand/logo.svg" }) };
+    const select = vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [current]) })) })) }));
+    const returning = vi.fn(() => [next]);
+    const onConflictDoUpdate = vi.fn(() => ({ returning }));
+    const values = vi.fn(() => ({ onConflictDoUpdate }));
+    const database = { select, insert: vi.fn(() => ({ values })) };
+    getDbMock.mockResolvedValue(database);
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.settings.updateBranding({ appName: "OPERAÇÃO HUB", appSubtitle: "NORTE", primaryColor: "#123456", accentColor: "#654321", backgroundColor: "#f7faf7", cardColor: "#ffffff", foregroundColor: "#133523", fontFamily: "inter" })).resolves.toMatchObject({ appName: "OPERAÇÃO HUB", fontFamily: "inter" });
+    expect(database.insert).toHaveBeenCalledWith(appSettings);
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ key: "app_branding" }));
+    expect(onConflictDoUpdate).toHaveBeenCalledWith(expect.objectContaining({ target: appSettings.key }));
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "app_setting", action: "update_branding" }));
+  });
+
+  it("armazena uma logo global fora do bundle e atualiza o endereço salvo", async () => {
+    const current = { key: "app_branding", value: JSON.stringify({ appName: "MARKETING HUB", logoUrl: "/brand/logo.svg" }) };
+    const stored = { key: "trade/app-branding/logo-1-logo.png", url: "https://files.example/logo.png" };
+    const updated = { key: "app_branding", value: JSON.stringify({ appName: "MARKETING HUB", appSubtitle: "CLUSTER MG", primaryColor: "#0E723B", accentColor: "#F45103", backgroundColor: "#F7FAF7", cardColor: "#FFFFFF", foregroundColor: "#133523", fontFamily: "montserrat", logoUrl: stored.url }) };
+    const select = vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [current]) })) })) }));
+    const returning = vi.fn(() => [updated]);
+    const onConflictDoUpdate = vi.fn(() => ({ returning }));
+    const values = vi.fn(() => ({ onConflictDoUpdate }));
+    const database = { select, insert: vi.fn(() => ({ values })) };
+    storagePutMock.mockResolvedValue(stored);
+    getDbMock.mockResolvedValue(database);
+    const caller = appRouter.createCaller(createContext());
+    const dataBase64 = Buffer.from("logo").toString("base64");
+
+    await expect(caller.settings.uploadAppLogo({ originalName: "logo.png", mimeType: "image/png", dataBase64 })).resolves.toMatchObject({ logoUrl: stored.url });
+    expect(storagePutMock).toHaveBeenCalledWith(expect.stringMatching(/^trade\/app-branding\/logo-/), expect.any(Buffer), "image/png");
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "app_setting", action: "upload_branding_logo" }));
+  });
+
   it("exclui Empresa por transação, preservando regionais e fornecedores com desvinculação segura", async () => {
     const provider = { id: 51, name: "Paulo", active: true };
     const linkedRegionals = [{ id: 12, name: "Triângulo" }];

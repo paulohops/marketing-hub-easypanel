@@ -45,21 +45,21 @@
 }
 
 :root {
-  --primary: #0e723b; --primary-foreground: #ffffff; --sidebar-primary: #f45103; --sidebar-primary-foreground: #ffffff;
-  --chart-1: #0e723b; --chart-2: #f45103; --chart-3: #3d9362; --chart-4: #cc3e00; --chart-5: #75b38a; --radius: 10px;
-  --background: #f7faf7; --foreground: #133523; --card: #ffffff; --card-foreground: #133523; --popover: #ffffff; --popover-foreground: #133523;
-  --secondary: #e9f5ed; --secondary-foreground: #0e723b; --muted: #eef4ef; --muted-foreground: #557064; --accent: #fff0e9; --accent-foreground: #b63c03;
-  --destructive: #c73710; --destructive-foreground: #ffffff; --border: #d8e8dc; --input: #d1e2d5; --ring: #f45103;
-  --sidebar: #0e723b; --sidebar-foreground: #ecf8f0; --sidebar-accent: #126b3e; --sidebar-accent-foreground: #ffffff; --sidebar-border: #2b8a54; --sidebar-ring: #f45103;
+  --primary: var(--app-primary, #0e723b); --primary-foreground: #ffffff; --sidebar-primary: var(--app-accent, #f45103); --sidebar-primary-foreground: #ffffff;
+  --chart-1: var(--app-primary, #0e723b); --chart-2: var(--app-accent, #f45103); --chart-3: color-mix(in srgb, var(--app-primary, #0e723b) 72%, #ffffff); --chart-4: color-mix(in srgb, var(--app-accent, #f45103) 82%, #000000); --chart-5: color-mix(in srgb, var(--app-primary, #0e723b) 45%, #ffffff); --radius: 10px;
+  --background: var(--app-background, #f7faf7); --foreground: var(--app-foreground, #133523); --card: var(--app-card, #ffffff); --card-foreground: var(--app-foreground, #133523); --popover: var(--app-card, #ffffff); --popover-foreground: var(--app-foreground, #133523);
+  --secondary: color-mix(in srgb, var(--app-primary, #0e723b) 10%, #ffffff); --secondary-foreground: var(--app-primary, #0e723b); --muted: color-mix(in srgb, var(--app-primary, #0e723b) 7%, #ffffff); --muted-foreground: color-mix(in srgb, var(--app-foreground, #133523) 64%, #ffffff); --accent: color-mix(in srgb, var(--app-accent, #f45103) 10%, #ffffff); --accent-foreground: color-mix(in srgb, var(--app-accent, #f45103) 78%, #000000);
+  --destructive: #c73710; --destructive-foreground: #ffffff; --border: color-mix(in srgb, var(--app-primary, #0e723b) 16%, #ffffff); --input: color-mix(in srgb, var(--app-primary, #0e723b) 22%, #ffffff); --ring: var(--app-accent, #f45103);
+  --sidebar: var(--app-primary, #0e723b); --sidebar-foreground: #ecf8f0; --sidebar-accent: color-mix(in srgb, var(--app-primary, #0e723b) 88%, #000000); --sidebar-accent-foreground: #ffffff; --sidebar-border: color-mix(in srgb, var(--app-primary, #0e723b) 70%, #ffffff); --sidebar-ring: var(--app-accent, #f45103);
 }
 
 .dark {
-  --primary: #47ad71; --primary-foreground: #062613; --sidebar-primary: #f46b2a; --sidebar-primary-foreground: #ffffff;
-  --background: #0a1710; --foreground: #eef8f1; --card: #10251a; --card-foreground: #eef8f1; --popover: #12291c; --popover-foreground: #eef8f1;
-  --secondary: #183825; --secondary-foreground: #9bd7b0; --muted: #173222; --muted-foreground: #aac3b2; --accent: #3a281e; --accent-foreground: #ffd4bd;
-  --destructive: #f47f57; --destructive-foreground: #301007; --border: #28513a; --input: #315b43; --ring: #f46b2a;
-  --chart-1: #71ce95; --chart-2: #f46b2a; --chart-3: #acdcb5; --chart-4: #ffb08b; --chart-5: #2f8c55;
-  --sidebar: #0d512a; --sidebar-foreground: #ecf8f0; --sidebar-accent: #146a38; --sidebar-accent-foreground: #ffffff; --sidebar-border: #287044; --sidebar-ring: #f46b2a;
+  --primary: color-mix(in srgb, var(--app-primary, #0e723b) 72%, #ffffff); --primary-foreground: #062613; --sidebar-primary: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff); --sidebar-primary-foreground: #ffffff;
+  --background: color-mix(in srgb, var(--app-primary, #0e723b) 92%, #06110a); --foreground: #eef8f1; --card: color-mix(in srgb, var(--app-primary, #0e723b) 80%, #07120b); --card-foreground: #eef8f1; --popover: color-mix(in srgb, var(--app-primary, #0e723b) 76%, #07120b); --popover-foreground: #eef8f1;
+  --secondary: color-mix(in srgb, var(--app-primary, #0e723b) 34%, #0b1b11); --secondary-foreground: color-mix(in srgb, var(--app-primary, #0e723b) 64%, #ffffff); --muted: color-mix(in srgb, var(--app-primary, #0e723b) 28%, #0b1b11); --muted-foreground: #aac3b2; --accent: color-mix(in srgb, var(--app-accent, #f45103) 26%, #1d160f); --accent-foreground: color-mix(in srgb, var(--app-accent, #f45103) 55%, #ffffff);
+  --destructive: #f47f57; --destructive-foreground: #301007; --border: color-mix(in srgb, var(--app-primary, #0e723b) 48%, #14291b); --input: color-mix(in srgb, var(--app-primary, #0e723b) 56%, #14291b); --ring: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff);
+  --chart-1: color-mix(in srgb, var(--app-primary, #0e723b) 62%, #ffffff); --chart-2: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff); --chart-3: color-mix(in srgb, var(--app-primary, #0e723b) 38%, #ffffff); --chart-4: color-mix(in srgb, var(--app-accent, #f45103) 55%, #ffffff); --chart-5: color-mix(in srgb, var(--app-primary, #0e723b) 42%, #000000);
+  --sidebar: color-mix(in srgb, var(--app-primary, #0e723b) 78%, #041009); --sidebar-foreground: #ecf8f0; --sidebar-accent: color-mix(in srgb, var(--app-primary, #0e723b) 72%, #07140b); --sidebar-accent-foreground: #ffffff; --sidebar-border: color-mix(in srgb, var(--app-primary, #0e723b) 50%, #174025); --sidebar-ring: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff);
 }
 
 .dark .bg-white {
@@ -95,7 +95,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--app-font-family, "Montserrat"), ui-sans-serif, system-ui, sans-serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -138,7 +138,7 @@
   }
 
   .font-display {
-    font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--app-font-family, "Montserrat"), ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.035em;
   }
 

@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useBranding } from "@/contexts/BrandingContext";
 import { BookOpenCheck, ChevronLeft, ChevronRight, CircleHelp, LayoutDashboard, MapPinned, Settings2, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const onboardingStorageKey = "trade_hub_onboarding_done";
 
-const steps = [
-  { title: "Bem-vindo ao Marketing HUB", description: "Você está na central de gestão do Cluster MG. Aqui, a operação e os investimentos ficam reunidos em uma única visão.", icon: Sparkles, accent: "bg-accent text-sidebar-primary" },
+const createSteps = (appName: string, appSubtitle: string) => [
+  { title: `Bem-vindo ao ${appName}`, description: `Você está na central de gestão do ${appSubtitle || appName}. Aqui, a operação e os investimentos ficam reunidos em uma única visão.`, icon: Sparkles, accent: "bg-accent text-sidebar-primary" },
   { title: "Acompanhe a operação", description: "Planeje ações, mídias e eventos, registre responsáveis, fornecedores, custos e decisões pós-execução.", icon: MapPinned, accent: "bg-secondary text-primary" },
   { title: "Administre a gestão", description: "Controle materiais, orçamento, notas fiscais e pagamentos com os vínculos originados pela operação.", icon: LayoutDashboard, accent: "bg-secondary text-primary" },
   { title: "Mantenha os cadastros organizados", description: "Em Gestão > Cadastros, configure empresas, territórios, fornecedores, parceiros, serviços e parâmetros que abastecem os módulos.", icon: Settings2, accent: "bg-secondary text-primary" },
@@ -14,6 +15,7 @@ const steps = [
 ] as const;
 
 export default function OnboardingTutorial() {
+  const { branding } = useBranding();
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -25,7 +27,8 @@ export default function OnboardingTutorial() {
     if (remember) window.localStorage.setItem(onboardingStorageKey, "true");
     setOpen(false);
   };
-  const step = steps[stepIndex];
+  const steps = createSteps(branding.appName, branding.appSubtitle);
+  const step = steps[stepIndex] ?? steps[0];
   const StepIcon = step.icon;
   const isLastStep = stepIndex === steps.length - 1;
 

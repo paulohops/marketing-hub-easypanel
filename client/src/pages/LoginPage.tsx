@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useBranding } from "@/contexts/BrandingContext";
 import { CheckCircle2, KeyRound, Loader2, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
+  const { branding } = useBranding();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const login = trpc.auth.local.login.useMutation({
@@ -29,11 +31,11 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center gap-3">
                 <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-card p-1.5 shadow-[0_10px_30px_rgba(7,63,31,0.24)]">
-                  <img src="/brand/logo.svg" alt="Trade HUB" className="h-full w-full object-contain" />
+                  <img src={branding.logoUrl} alt={branding.appName} className="h-full w-full object-contain" />
                 </span>
                 <span>
-                  <span className="block font-display text-lg font-extrabold tracking-tight">MARKETING HUB</span>
-                  <span className="block text-[10px] font-bold tracking-[0.2em] text-sidebar-foreground">CLUSTER MG</span>
+                  <span className="block max-w-[180px] truncate font-display text-lg font-extrabold tracking-tight">{branding.appName}</span>
+                  <span className="block max-w-[180px] truncate text-[10px] font-bold tracking-[0.2em] text-sidebar-foreground">{branding.appSubtitle}</span>
                 </span>
               </div>
               <div className="mt-20 max-w-xl sm:mt-28">
@@ -56,7 +58,7 @@ export default function LoginPage() {
           <div className="w-full max-w-sm">
             <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[11px] font-bold tracking-wide text-primary">ACESSO RESTRITO</span>
             <h2 className="mt-6 font-display text-3xl font-extrabold tracking-tight text-foreground">Acesse sua operação</h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">Entre com sua conta local cadastrada no Trade HUB.</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Entre com sua conta local cadastrada no {branding.appName}.</p>
             <form className="mt-7 space-y-4" onSubmit={submit}>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-email">E-mail</label><Input id="local-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="nome@empresa.com" /></div>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-password">Senha</label><Input id="local-password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} placeholder="Sua senha local" /></div>

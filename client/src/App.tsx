@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { BrandingProvider } from "./contexts/BrandingContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import LoginPage from "./pages/LoginPage";
@@ -58,5 +59,5 @@ function Router() {
 }
 
 export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><Toaster position="top-right" richColors /><Router /></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><BrandingProvider><ThemeProvider defaultTheme="light" switchable><TooltipProvider><Toaster position="top-right" richColors /><Router /></TooltipProvider></ThemeProvider></BrandingProvider></ErrorBoundary>;
 }

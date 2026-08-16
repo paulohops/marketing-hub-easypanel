@@ -228,6 +228,24 @@ Todo procedimento protegido deve chamar `assertPermission` no backend. O fronten
 
 Mensagens de erro do backend devem ser utilizáveis pelo usuário. O frontend deve exibi-las com `toast.error`, e mutations com duração ou upload devem refletir `isPending` no controle que iniciou a operação. Após sucesso, a mensagem deve ser curta e específica, a query deve ser invalidada e o estado local temporário deve ser limpo.
 
+### 8.1 Branding e personalização visual
+
+A identidade visual global é persistida na tabela chave/valor `app_settings` com a chave `app_branding`. O contrato está em `server/routers/settings.ts`, os tipos e defaults em `shared/branding.ts`, a aplicação global em `client/src/contexts/BrandingContext.tsx` e a edição em `client/src/components/BrandingSettingsPanel.tsx`.
+
+| Configuração | Aplicação |
+|---|---|
+| Nome do aplicativo | Sidebar, login, home, 404, tutorial e `document.title`. |
+| Subtítulo/organização | Sidebar, login, home, 404, tutorial e `document.title`. |
+| Logo | Storage persistente, sidebar, login, 404, preview e identidade visual. |
+| Cor primária | Tokens `primary`, sidebar, botões e indicadores principais. |
+| Cor de destaque | Tokens `sidebar-primary`, `ring`, destaques e estados acentuados. |
+| Fundo, cartões e texto | Tokens globais de superfície e tipografia. |
+| Fonte | Seleção segura entre famílias permitidas, carregada dinamicamente e aplicada ao corpo e aos títulos. |
+
+A leitura do branding é pública para permitir que a tela de login carregue a marca antes da autenticação. A escrita exige `settings.write`, valida cores hexadecimais, limita fontes a uma lista permitida, valida MIME/tamanho da logo e registra auditoria. Não inserir bytes da imagem em `app_settings`, não usar URL fornecida diretamente pelo cliente e não criar estilos fixos por página para contornar os tokens globais.
+
+Ao criar novos componentes, use `useBranding()` quando o nome, a logo ou o subtítulo forem exibidos. Para novas cores, prefira os tokens semânticos derivados do branding; não leia `appSettings` diretamente no componente e não invente uma segunda fonte de verdade.
+
 ## 9. Anti-gambiarra: regras que a IA deve obedecer
 
 > **Princípio central:** uma solução é considerada inadequada quando funciona apenas para um caso visual ou de dados, mas ignora o padrão de navegação, os tokens, as permissões, as validações do servidor ou a manutenção futura.
