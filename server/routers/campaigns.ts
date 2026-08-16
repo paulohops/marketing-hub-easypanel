@@ -157,11 +157,11 @@ export const campaignsRouter = router({
     await assertPermission(ctx.user, "actions.read");
     const database = await requireDatabase();
     const [regionalRows, cityRows, providerRows, campaignTypeRows, campaignSectorRows] = await Promise.all([
-      database.select({ id: regionals.id, name: regionals.name, providerId: regionals.providerId }).from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
-      database.select({ id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId, regionalName: regionals.name, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(cities.name)),
-      database.select({ id: providers.id, name: providers.name, logoUrl: providers.logoUrl }).from(providers).where(eq(providers.active, true)).orderBy(asc(providers.name)),
-      database.select({ id: campaignTypes.id, name: campaignTypes.name }).from(campaignTypes).where(eq(campaignTypes.active, true)).orderBy(asc(campaignTypes.name)),
-      database.select({ id: campaignSectors.id, name: campaignSectors.name }).from(campaignSectors).where(eq(campaignSectors.active, true)).orderBy(asc(campaignSectors.name)),
+      database.select({ id: regionals.id, name: regionals.name, providerId: regionals.providerId }).from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)).catch(() => []),
+      database.select({ id: cities.id, name: cities.name, state: cities.state, regionalId: cities.regionalId, regionalName: regionals.name, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(cities.name)).catch(() => []),
+      database.select({ id: providers.id, name: providers.name, logoUrl: providers.logoUrl }).from(providers).where(eq(providers.active, true)).orderBy(asc(providers.name)).catch(() => []),
+      database.select({ id: campaignTypes.id, name: campaignTypes.name }).from(campaignTypes).where(eq(campaignTypes.active, true)).orderBy(asc(campaignTypes.name)).catch(() => []),
+      database.select({ id: campaignSectors.id, name: campaignSectors.name }).from(campaignSectors).where(eq(campaignSectors.active, true)).orderBy(asc(campaignSectors.name)).catch(() => []),
     ]);
     return { regionals: regionalRows, cities: cityRows, providers: providerRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows };
   }),

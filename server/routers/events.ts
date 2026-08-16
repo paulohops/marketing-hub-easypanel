@@ -57,16 +57,16 @@ export const eventsRouter = router({
     await assertPermission(ctx.user, "events.read");
     const database = await requireDatabase();
     const [cityRows, typeRows, campaignRows, supplierRows, serviceRows, supervisorRows, teamRows, stockRows, actionPointRows, supplierCityRows] = await Promise.all([
-      database.select({ city: cities, regionalName: regionals.name }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(regionals.name), asc(cities.name)),
-      database.select().from(eventTypes).where(eq(eventTypes.active, true)).orderBy(asc(eventTypes.name)),
-      database.select({ id: tradeCampaigns.id, name: tradeCampaigns.name, regionalId: tradeCampaigns.regionalId, status: tradeCampaigns.status }).from(tradeCampaigns).orderBy(asc(tradeCampaigns.name)),
-      database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName)),
-      database.select().from(serviceTypes).where(eq(serviceTypes.active, true)).orderBy(asc(serviceTypes.name)),
-      database.select().from(commercialSupervisors).where(eq(commercialSupervisors.active, true)).orderBy(asc(commercialSupervisors.name)),
-      database.select({ id: users.id, name: users.name, email: users.email, jobTitle: users.jobTitle }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)),
-      database.select({ id: stockItems.id, name: stockItems.name, sku: stockItems.sku, unit: stockItems.unit, cityId: stockItems.cityId, regionalId: stockItems.regionalId }).from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)),
-      database.select().from(actionPoints).where(eq(actionPoints.active, true)).orderBy(asc(actionPoints.name)),
-      database.select({ supplierId: supplierCities.supplierId, cityId: supplierCities.cityId }).from(supplierCities),
+      database.select({ city: cities, regionalName: regionals.name }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(regionals.name), asc(cities.name)).catch(() => []),
+      database.select().from(eventTypes).where(eq(eventTypes.active, true)).orderBy(asc(eventTypes.name)).catch(() => []),
+      database.select({ id: tradeCampaigns.id, name: tradeCampaigns.name, regionalId: tradeCampaigns.regionalId, status: tradeCampaigns.status }).from(tradeCampaigns).orderBy(asc(tradeCampaigns.name)).catch(() => []),
+      database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName)).catch(() => []),
+      database.select().from(serviceTypes).where(eq(serviceTypes.active, true)).orderBy(asc(serviceTypes.name)).catch(() => []),
+      database.select().from(commercialSupervisors).where(eq(commercialSupervisors.active, true)).orderBy(asc(commercialSupervisors.name)).catch(() => []),
+      database.select({ id: users.id, name: users.name, email: users.email, jobTitle: users.jobTitle }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)).catch(() => []),
+      database.select({ id: stockItems.id, name: stockItems.name, sku: stockItems.sku, unit: stockItems.unit, cityId: stockItems.cityId, regionalId: stockItems.regionalId }).from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)).catch(() => []),
+      database.select().from(actionPoints).where(eq(actionPoints.active, true)).orderBy(asc(actionPoints.name)).catch(() => []),
+      database.select({ supplierId: supplierCities.supplierId, cityId: supplierCities.cityId }).from(supplierCities).catch(() => []),
     ]);
     return { cities: cityRows, eventTypes: typeRows, campaigns: campaignRows, suppliers: supplierRows, serviceTypes: serviceRows, supervisors: supervisorRows, teamUsers: teamRows, stockItems: stockRows, actionPoints: actionPointRows, supplierCities: supplierCityRows };
   }),

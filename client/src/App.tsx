@@ -9,9 +9,12 @@ import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import ProtectedModule from "./pages/ProtectedModule";
 
+function renderRegistries() {
+  return <ProtectedModule module="cadastros" />;
+}
+
 function renderOperationalAlias() {
-  const params = new URLSearchParams(window.location.search);
-  return <ProtectedModule module={params.has("grupo") || params.has("novo") ? "cadastros" : "cadastro-entidade"} />;
+  return <ProtectedModule module="cadastro-entidade" />;
 }
 
 function Router() {
@@ -38,11 +41,16 @@ function Router() {
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
     <Route path="/cadastros/empresas/:providerId">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/cadastros/empresas">{() => <ProtectedModule module="empresas" />}</Route>
+    <Route path="/cadastros/territorio">{renderRegistries}</Route>
+    <Route path="/cadastros/operacao">{renderRegistries}</Route>
+    <Route path="/cadastros/parceiros">{renderRegistries}</Route>
+    <Route path="/cadastros/categorias">{renderRegistries}</Route>
+    <Route path="/cadastros/financeiro">{renderRegistries}</Route>
+    <Route path="/cadastros/modelos">{renderRegistries}</Route>
     <Route path="/cadastros/regionais">{renderOperationalAlias}</Route>
     <Route path="/cadastros/cidades">{renderOperationalAlias}</Route>
     <Route path="/cadastros/lojas">{renderOperationalAlias}</Route>
     <Route path="/cadastros/fornecedores">{renderOperationalAlias}</Route>
-    <Route path="/cadastros/parceiros">{renderOperationalAlias}</Route>
     <Route path="/cadastros/supervisores">{renderOperationalAlias}</Route>
     <Route path="/cadastros/servicos">{renderOperationalAlias}</Route>
     <Route path="/cadastros/tipos-de-midia">{renderOperationalAlias}</Route>
@@ -53,10 +61,9 @@ function Router() {
     <Route path="/cadastros/categorias-financeiras">{renderOperationalAlias}</Route>
     <Route path="/cadastros/:entity/:id">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros/modelos-acoes">{() => <ProtectedModule module="modelos-acao" />}</Route>
-    <Route path="/cadastros/modelos">{() => <ProtectedModule module="modelos-campanha" />}</Route>
     <Route path="/cadastros/influencers">{() => <ProtectedModule module="cadastro-influencers" />}</Route>
-    <Route path="/cadastros/operacionais">{() => <ProtectedModule module="cadastros" />}</Route>
-    <Route path="/cadastros">{() => <Redirect to="/cadastros/operacionais" replace />}</Route>
+    <Route path="/cadastros/operacionais">{() => <Redirect to="/cadastros/territorio" replace />}</Route>
+    <Route path="/cadastros">{() => <Redirect to="/cadastros/territorio" replace />}</Route>
     <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/empresas/:providerId">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
