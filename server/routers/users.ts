@@ -131,6 +131,18 @@ export const usersRouter = router({
     return { avatarUrl: updated.avatarUrl };
   }),
 
+  adminUploadAvatar: adminProcedure.input(z.object({ userId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(avatarMimeTypes), dataBase64: z.string().min(1).max(4_000_000) })).mutation(async ({ ctx, input }) => {
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A foto de perfil deve ter até 2 MB." });
+    const target = await findUserOrFail(await requireDatabase(), input.userId);
+    const extension = input.mimeType === "image/jpeg" ? "jpg" : input.mimeType === "image/png" ? "png" : "webp";
+    const stored = await storagePut(`trade/profiles/${target.id}/avatar-${Date.now()}.${extension}`, bytes, input.mimeType);
+    const database = await requireDatabase();
+    const [updated] = await database.update(users).set({ avatarStorageKey: stored.key, avatarUrl: stored.url, updatedAt: new Date() }).where(eq(users.id, target.id)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_profile", entityId: target.id, action: "admin_upload_avatar", beforeData: { avatarStorageKey: target.avatarStorageKey, avatarUrl: target.avatarUrl }, afterData: { avatarStorageKey: updated.avatarStorageKey, avatarUrl: updated.avatarUrl } });
+    return { avatarUrl: updated.avatarUrl };
+  }),
+
   passwordPolicy: protectedProcedure.query(({ ctx }) => ({
     providerManaged: !ctx.user.passwordHash,
     canChangePasswordHere: Boolean(ctx.user.passwordHash),
