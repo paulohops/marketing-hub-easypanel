@@ -9,6 +9,11 @@ import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import ProtectedModule from "./pages/ProtectedModule";
 
+function renderOperationalAlias() {
+  const params = new URLSearchParams(window.location.search);
+  return <ProtectedModule module={params.has("grupo") || params.has("novo") ? "cadastros" : "cadastro-entidade"} />;
+}
+
 function Router() {
   return <Switch>
     <Route path="/" component={Home} />
@@ -33,6 +38,19 @@ function Router() {
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
     <Route path="/cadastros/empresas/:providerId">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/cadastros/empresas">{() => <ProtectedModule module="empresas" />}</Route>
+    <Route path="/cadastros/regionais">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/cidades">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/lojas">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/fornecedores">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/parceiros">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/supervisores">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/servicos">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/tipos-de-midia">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/tipos-de-acao">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/tipos-de-evento">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/tipos-de-campanha">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/setores-de-campanha">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/categorias-financeiras">{renderOperationalAlias}</Route>
     <Route path="/cadastros/:entity/:id">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros/modelos-acoes">{() => <ProtectedModule module="modelos-acao" />}</Route>
     <Route path="/cadastros/modelos">{() => <ProtectedModule module="modelos-campanha" />}</Route>

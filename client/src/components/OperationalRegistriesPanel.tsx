@@ -57,8 +57,8 @@ type Panel =
 type Row = { id: number; name: string; active: boolean; detail?: string; address?: string | null; openingHours?: string | null; photoUrl?: string | null; latitude?: string | number | null; longitude?: string | number | null };
 type RegistryGroup = "Território" | "Parceiros" | "Operação" | "Categorias" | "Financeiro" | "Modelos";
 const registryGroups: RegistryGroup[] = ["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"];
-const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorio", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
-const registryGroupFromQuery: Record<string, RegistryGroup> = { territorio: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
+const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorios", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
+const registryGroupFromQuery: Record<string, RegistryGroup> = { territorio: "Território", territorios: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
 
 const cards: Array<{
   key: Panel;
@@ -77,7 +77,7 @@ const cards: Array<{
   { key: "supervisor", title: "Supervisores comerciais", description: "Pessoas disponíveis para liderar ações e eventos no território.", icon: Store, group: "Parceiros" },
   { key: "campaign", title: "Atuação", description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.", icon: Megaphone, group: "Operação" },
   { key: "campaign_sector", title: "Setores", description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.", icon: Settings2, group: "Operação" },
-  { key: "service", title: "Serviços", description: "Serviços contratáveis de fornecedores e parceiros.", icon: Wrench, group: "Operação" },
+  { key: "service", title: "Serviços", description: "Serviços contratáveis para parceiros.", icon: Wrench, group: "Parceiros" },
   { key: "action", title: "Tipos de ação", description: "Categorias configuráveis para ações de trade.", icon: Megaphone, group: "Categorias" },
   { key: "event", title: "Tipos de evento", description: "Categorias configuráveis para a agenda de eventos.", icon: CalendarDays, group: "Categorias" },
   { key: "media", title: "Tipos de mídia", description: "Canais e formatos de mídia usados no território.", icon: Radio, group: "Categorias" },
@@ -840,7 +840,8 @@ export default function OperationalRegistriesPanel() {
                 setActiveGroup(group);
                 reset();
                 setPanel(card.key);
-                setLocation(`/cadastros/${paths[card.key] ?? ""}`);
+                const groupQuery = registryGroupQuery[group];
+                setLocation(`/cadastros/${paths[card.key] ?? ""}?grupo=${groupQuery}&novo=${paths[card.key] ?? ""}`);
               }}
               className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -1317,20 +1318,7 @@ function RegistryForm(props: {
             value={props.zipCode}
             setValue={props.setZipCode}
           />
-          <Field
-            label="Latitude"
-            id="registry-latitude"
-            value={props.latitude}
-            setValue={props.setLatitude}
-            inputMode="decimal"
-          />
-          <Field
-            label="Longitude"
-            id="registry-longitude"
-            value={props.longitude}
-            setValue={props.setLongitude}
-            inputMode="decimal"
-          />
+          <CoordinatesField latitude={props.latitude} longitude={props.longitude} setLatitude={props.setLatitude} setLongitude={props.setLongitude} />
           <Field
             label="Referência da localização"
             id="registry-location"

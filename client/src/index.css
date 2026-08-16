@@ -123,6 +123,18 @@
 }
 
 @layer components {
+  select:not([class*="sr-only"]) {
+    @apply h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition-colors;
+  }
+
+  select:not([class*="sr-only"]):focus {
+    @apply border-ring ring-2 ring-ring/20;
+  }
+
+  select:not([class*="sr-only"]):disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+
   /**
    * Custom container utility that centers content and adds responsive padding.
    *
