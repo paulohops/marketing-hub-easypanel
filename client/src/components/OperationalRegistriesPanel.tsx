@@ -57,8 +57,8 @@ type Panel =
 type Row = { id: number; name: string; active: boolean; detail?: string; address?: string | null; openingHours?: string | null; photoUrl?: string | null; latitude?: string | number | null; longitude?: string | number | null };
 type RegistryGroup = "Território" | "Parceiros" | "Operação" | "Categorias" | "Financeiro" | "Modelos";
 const registryGroups: RegistryGroup[] = ["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"];
-const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorios", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
-const registryGroupFromQuery: Record<string, RegistryGroup> = { territorio: "Território", territorios: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
+const registryGroupPath: Record<RegistryGroup, string> = { "Território": "territorio", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
+const registryGroupFromPath: Record<string, RegistryGroup> = { territorio: "Território", territorios: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
 
 const cards: Array<{
   key: Panel;
@@ -116,12 +116,11 @@ async function fileToBase64(file: File) {
 
 export default function OperationalRegistriesPanel() {
   const [location, setLocation] = useLocation();
-  const navigateToGroup = (group: RegistryGroup | null) => {
-    const query = group ? `?grupo=${registryGroupQuery[group]}` : "";
+  const navigateToGroup = (group: RegistryGroup) => {
     setActiveGroup(group);
-    setLocation(`/cadastros/operacionais${query}`);
+    setLocation(`/cadastros/${registryGroupPath[group]}`);
   };
-  const [activeGroup, setActiveGroup] = useState<RegistryGroup | null>(() => registryGroupFromQuery[new URLSearchParams(window.location.search).get("grupo") ?? ""] ?? null);
+  const [activeGroup, setActiveGroup] = useState<RegistryGroup | null>(() => registryGroupFromPath[window.location.pathname.split("/").filter(Boolean).at(-1) ?? ""] ?? "Território");
   const utils = trpc.useUtils();
   const overview = trpc.settings.overview.useQuery();
   const coverage = trpc.settings.supplierCoverage.useQuery();
@@ -378,8 +377,8 @@ export default function OperationalRegistriesPanel() {
     setPanel(target);
   }, [location]);
   useEffect(() => {
-    const requestedGroup = new URLSearchParams(window.location.search).get("grupo") ?? "";
-    setActiveGroup(registryGroupFromQuery[requestedGroup] ?? null);
+    const requestedGroup = window.location.pathname.split("/").filter(Boolean).at(-1) ?? "";
+    setActiveGroup(registryGroupFromPath[requestedGroup] ?? "Território");
   }, [location]);
   const toggle = (
     id: number,
@@ -821,7 +820,7 @@ export default function OperationalRegistriesPanel() {
         </Badge>
       </div>
       <div className="mt-6 space-y-6">
-        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registryGroups.map(group => { const count = group === "Financeiro" ? 0 : group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="rounded-xl border border-border bg-background p-5 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><p className="mt-4 font-semibold text-foreground">{group}</p><p className="mt-1 text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</p><span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Abrir opções <Plus className="ml-1 h-3.5 w-3.5" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div><Button type="button" variant="outline" size="sm" onClick={() => { setActiveGroup(null); setLocation("/cadastros/operacionais"); }}>Todos os grupos</Button></div>
+        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registryGroups.map(group => { const count = group === "Financeiro" ? 0 : group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="rounded-xl border border-border bg-background p-5 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><p className="mt-4 font-semibold text-foreground">{group}</p><p className="mt-1 text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</p><span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Abrir opções <Plus className="ml-1 h-3.5 w-3.5" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div></div>
         {([activeGroup] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
           <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -840,8 +839,7 @@ export default function OperationalRegistriesPanel() {
                 setActiveGroup(group);
                 reset();
                 setPanel(card.key);
-                const groupQuery = registryGroupQuery[group];
-                setLocation(`/cadastros/${paths[card.key] ?? ""}?grupo=${groupQuery}&novo=${paths[card.key] ?? ""}`);
+                setLocation(`/cadastros/${paths[card.key] ?? ""}?novo=${paths[card.key] ?? ""}`);
               }}
               className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >

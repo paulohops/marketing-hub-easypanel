@@ -57,6 +57,9 @@ export const users = pgTable("users", {
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn", { withTimezone: true }).defaultNow().notNull(),
+  authCodeHash: varchar("authCodeHash", { length: 128 }),
+  authCodePurpose: varchar("authCodePurpose", { length: 32 }),
+  authCodeExpiresAt: timestamp("authCodeExpiresAt", { withTimezone: true }),
 });
 
 export const rolePermissions = pgTable("role_permissions", {
@@ -915,6 +918,10 @@ export const notifications = pgTable("notifications", {
   entityType: varchar("entityType", { length: 64 }),
   entityId: integer("entityId"),
   readAt: timestamp("readAt", { withTimezone: true }),
+  completedAt: timestamp("completedAt", { withTimezone: true }),
+  completedByUserId: integer("completedByUserId").references(() => users.id, { onDelete: "set null" }),
+  actionUrl: text("actionUrl"),
+  actionLabel: varchar("actionLabel", { length: 120 }),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
 

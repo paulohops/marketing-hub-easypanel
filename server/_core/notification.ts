@@ -8,6 +8,8 @@ import { ENV } from "./env";
 export type NotificationPayload = { title: string; content: string };
 
 type SystemSettings = {
+  appName?: string;
+  logoUrl?: string;
   smtpHost?: string;
   smtpPort?: string;
   smtpUser?: string;
@@ -34,6 +36,34 @@ async function loadSystemSettings(): Promise<SystemSettings> {
   try { return JSON.parse(setting.value) as SystemSettings; } catch { return {}; }
 }
 
+async function createTransporter(settings: SystemSettings) {
+  if (!settings.smtpHost || !settings.smtpFrom) return null;
+  const port = Number(settings.smtpPort || 587);
+  return nodemailer.createTransport({ host: settings.smtpHost, port, secure: port === 465, auth: settings.smtpUser ? { user: settings.smtpUser, pass: settings.smtpPassword || "" } : undefined });
+}
+
+function escapeHtml(value: string) { return value.replace(/[&<>\"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[character] ?? character)); }
+
+export async function sendAuthCodeEmail(input: { to: string; code: string; purpose: "login" | "password_reset"; expiresInMinutes: number }) {
+  const settings = await loadSystemSettings();
+  const transporter = await createTransporter(settings);
+  if (!transporter) return false;
+  const appName = settings.appName || "Marketing Hub";
+  const isReset = input.purpose === "password_reset";
+  const title = isReset ? `Código para redefinir sua senha · ${appName}` : `Código de acesso · ${appName}`;
+  const intro = isReset ? "Recebemos uma solicitação para redefinir sua senha." : "Use o código abaixo para concluir seu acesso ao sistema.";
+  const safeAppName = escapeHtml(appName);
+  const safeCode = escapeHtml(input.code);
+  await transporter.sendMail({
+    from: settings.smtpFrom,
+    to: input.to,
+    subject: title,
+    text: `${intro}\n\nCódigo: ${input.code}\n\nEste código expira em ${input.expiresInMinutes} minutos. Se você não solicitou esta ação, ignore este e-mail.`,
+    html: `<div style="background:#f4f7f5;padding:32px 16px;font-family:Arial,sans-serif;color:#183329"><div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #dce8df;border-radius:18px;overflow:hidden"><div style="background:#0e723b;padding:28px 32px;color:#fff"><div style="font-size:20px;font-weight:700">${safeAppName}</div><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.8;margin-top:6px">Acesso seguro</div></div><div style="padding:32px"><h1 style="font-size:22px;margin:0 0 14px">${isReset ? "Redefinição de senha" : "Confirme seu acesso"}</h1><p style="font-size:15px;line-height:1.6;margin:0 0 24px">${escapeHtml(intro)}</p><div style="background:#eef8f1;border:1px solid #bfe3c9;border-radius:14px;text-align:center;padding:22px"><div style="font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#54715f">Seu código</div><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#0e723b;margin-top:10px">${safeCode}</div></div><p style="font-size:13px;line-height:1.6;color:#64746b;margin:24px 0 0">O código expira em ${input.expiresInMinutes} minutos. Se você não solicitou esta ação, ignore este e-mail.</p></div></div></div>`,
+  });
+  return true;
+}
+
 async function sendEmail(settings: SystemSettings, payload: NotificationPayload): Promise<boolean> {
   if (!settings.notificationEmailEnabled || !settings.smtpHost || !settings.smtpFrom) return false;
   const database = await getDb();
@@ -41,13 +71,8 @@ async function sendEmail(settings: SystemSettings, payload: NotificationPayload)
   const rows = await database.select({ email: users.email }).from(users).where(and(eq(users.isActive, true), eq(users.role, "admin")));
   const recipients = rows.map(row => row.email?.trim()).filter((email): email is string => Boolean(email));
   if (!recipients.length) return false;
-  const port = Number(settings.smtpPort || 587);
-  const transporter = nodemailer.createTransport({
-    host: settings.smtpHost,
-    port,
-    secure: port === 465,
-    auth: settings.smtpUser ? { user: settings.smtpUser, pass: settings.smtpPassword || "" } : undefined,
-  });
+  const transporter = await createTransporter(settings);
+  if (!transporter) return false;
   await transporter.sendMail({
     from: settings.smtpFrom,
     to: recipients,
