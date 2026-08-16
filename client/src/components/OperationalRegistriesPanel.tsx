@@ -16,10 +16,8 @@ import { trpc } from "@/lib/trpc";
 import {
   Building2,
   CalendarDays,
-  ChevronRight,
   FileText,
   Handshake,
-  Landmark,
   Loader2,
   MapPinned,
   Megaphone,
@@ -59,8 +57,8 @@ type Panel =
 type Row = { id: number; name: string; active: boolean; detail?: string; address?: string | null; openingHours?: string | null; photoUrl?: string | null; latitude?: string | number | null; longitude?: string | number | null };
 type RegistryGroup = "Território" | "Parceiros" | "Operação" | "Categorias" | "Financeiro" | "Modelos";
 const registryGroups: RegistryGroup[] = ["Território", "Parceiros", "Operação", "Categorias", "Financeiro", "Modelos"];
-const registryGroupPath: Record<RegistryGroup, string> = { "Território": "territorio", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
-const registryGroupFromPath: Record<string, RegistryGroup> = { territorio: "Território", territorios: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
+const registryGroupQuery: Record<RegistryGroup, string> = { "Território": "territorios", "Parceiros": "parceiros", "Operação": "operacao", "Categorias": "categorias", "Financeiro": "financeiro", "Modelos": "modelos" };
+const registryGroupFromQuery: Record<string, RegistryGroup> = { territorio: "Território", territorios: "Território", parceiros: "Parceiros", operacao: "Operação", categorias: "Categorias", financeiro: "Financeiro", modelos: "Modelos" };
 
 const cards: Array<{
   key: Panel;
@@ -79,7 +77,6 @@ const cards: Array<{
   { key: "supervisor", title: "Supervisores comerciais", description: "Pessoas disponíveis para liderar ações e eventos no território.", icon: Store, group: "Parceiros" },
   { key: "campaign", title: "Atuação", description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.", icon: Megaphone, group: "Operação" },
   { key: "campaign_sector", title: "Setores", description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.", icon: Settings2, group: "Operação" },
-  { key: "financial_category", title: "Categorias financeiras", description: "Classificações para orçamento, custos, notas e pagamentos.", icon: Landmark, group: "Financeiro" },
   { key: "service", title: "Serviços", description: "Serviços contratáveis para parceiros.", icon: Wrench, group: "Parceiros" },
   { key: "action", title: "Tipos de ação", description: "Categorias configuráveis para ações de trade.", icon: Megaphone, group: "Categorias" },
   { key: "event", title: "Tipos de evento", description: "Categorias configuráveis para a agenda de eventos.", icon: CalendarDays, group: "Categorias" },
@@ -119,14 +116,15 @@ async function fileToBase64(file: File) {
 
 export default function OperationalRegistriesPanel() {
   const [location, setLocation] = useLocation();
-  const navigateToGroup = (group: RegistryGroup) => {
+  const navigateToGroup = (group: RegistryGroup | null) => {
+    const query = group ? `?grupo=${registryGroupQuery[group]}` : "";
     setActiveGroup(group);
-    setLocation(`/cadastros/${registryGroupPath[group]}`);
+    setLocation(`/cadastros/operacionais${query}`);
   };
-  const [activeGroup, setActiveGroup] = useState<RegistryGroup | null>(() => registryGroupFromPath[window.location.pathname.split("/").filter(Boolean).at(-1) ?? ""] ?? "Território");
+  const [activeGroup, setActiveGroup] = useState<RegistryGroup | null>(() => registryGroupFromQuery[new URLSearchParams(window.location.search).get("grupo") ?? ""] ?? null);
   const utils = trpc.useUtils();
-  const overview = trpc.settings.overview.useQuery(undefined, { staleTime: 60_000, refetchOnWindowFocus: false });
-  const coverage = trpc.settings.supplierCoverage.useQuery(undefined, { enabled: activeGroup === "Parceiros", staleTime: 60_000, refetchOnWindowFocus: false });
+  const overview = trpc.settings.overview.useQuery();
+  const coverage = trpc.settings.supplierCoverage.useQuery();
   const [panel, setPanel] = useState<Panel | null>(null);
   const handledCreateIntent = useRef<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -157,12 +155,10 @@ export default function OperationalRegistriesPanel() {
   const [hasContract, setHasContract] = useState(false);
   const [mediaOperationCategory, setMediaOperationCategory] = useState<"graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers">("graphics");
   const [parentMediaTypeId, setParentMediaTypeId] = useState("");
-  const [parentServiceTypeId, setParentServiceTypeId] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [mediaIds, setMediaIds] = useState<number[]>([]);
-  const [serviceMediaLinks, setServiceMediaLinks] = useState<Array<{ serviceTypeId: number; mediaTypeId: number | null }>>([]);
   const [supervisorStoreIds, setSupervisorStoreIds] = useState<number[]>([]);
   const [offerName, setOfferName] = useState("");
   const [offerKind, setOfferKind] = useState<
@@ -330,9 +326,11 @@ export default function OperationalRegistriesPanel() {
         .filter(item => item.supplierId === id)
         .map(item => item.cityId)
     );
-    const supplierServices = coverage.data.servicesBySupplier.filter(item => item.supplierId === id);
-    setServiceIds(supplierServices.map(item => item.serviceTypeId));
-    setServiceMediaLinks(supplierServices.map(item => ({ serviceTypeId: item.serviceTypeId, mediaTypeId: item.mediaTypeId ?? null })));
+    setServiceIds(
+      coverage.data.servicesBySupplier
+        .filter(item => item.supplierId === id)
+        .map(item => item.serviceTypeId)
+    );
     setMediaIds(
       coverage.data.mediaBySupplier
         .filter(item => item.supplierId === id)
@@ -368,7 +366,6 @@ export default function OperationalRegistriesPanel() {
     setHasContract(false);
     setMediaOperationCategory("graphics");
     setParentMediaTypeId("");
-    setParentServiceTypeId("");
     setSupervisorStoreIds([]);
   };
   useEffect(() => {
@@ -381,8 +378,8 @@ export default function OperationalRegistriesPanel() {
     setPanel(target);
   }, [location]);
   useEffect(() => {
-    const requestedGroup = window.location.pathname.split("/").filter(Boolean).at(-1) ?? "";
-    setActiveGroup(registryGroupFromPath[requestedGroup] ?? "Território");
+    const requestedGroup = new URLSearchParams(window.location.search).get("grupo") ?? "";
+    setActiveGroup(registryGroupFromQuery[requestedGroup] ?? null);
   }, [location]);
   const toggle = (
     id: number,
@@ -618,10 +615,6 @@ export default function OperationalRegistriesPanel() {
         setMediaOperationCategory((mediaItem.operationCategory ?? "graphics") as "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers");
         setParentMediaTypeId(mediaItem.parentMediaTypeId ? String(mediaItem.parentMediaTypeId) : "");
       }
-      if (panel === "service") {
-        const serviceItem = data.serviceTypes.find(row => row.id === id);
-        setParentServiceTypeId(serviceItem?.parentServiceTypeId ? String(serviceItem.parentServiceTypeId) : "");
-      }
     }
   };
   const submit = () => {
@@ -734,20 +727,10 @@ export default function OperationalRegistriesPanel() {
       panel === "service" ||
       panel === "campaign" ||
       panel === "campaign_sector"
-    ) {
-      const typeKind = panel as "service" | "media" | "action" | "event" | "campaign" | "campaign_sector";
-      if (panel === "media") {
-        const payload = { kind: typeKind, name, operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null };
-        return editingId ? updateType.mutate({ id: editingId, ...payload }) : createType.mutate(payload);
-      }
-      if (panel === "service") {
-        const payload = { kind: typeKind, name, parentServiceTypeId: parentServiceTypeId ? Number(parentServiceTypeId) : null };
-        return editingId ? updateType.mutate({ id: editingId, ...payload }) : createType.mutate(payload);
-      }
+    )
       return editingId
-        ? updateType.mutate({ kind: typeKind, id: editingId, name })
-        : createType.mutate({ kind: typeKind, name });
-    }
+        ? updateType.mutate({ kind: panel, id: editingId, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) })
+        : createType.mutate({ kind: panel, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) });
   };
   const beginSupplierEdit = () => {
     if (!selectedSupplier) return;
@@ -808,7 +791,7 @@ export default function OperationalRegistriesPanel() {
       ? updateOffering.mutate({ id: editingOfferingId, ...payload })
       : createOffering.mutate({ supplierId: Number(selectedSupplierId), ...payload });
   };
-  if (overview.isLoading || (activeGroup === "Parceiros" && coverage.isLoading))
+  if (overview.isLoading || coverage.isLoading)
     return (
       <section className="mt-6 grid min-h-48 place-items-center rounded-2xl border border-border bg-card">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -838,11 +821,11 @@ export default function OperationalRegistriesPanel() {
         </Badge>
       </div>
       <div className="mt-6 space-y-6">
-        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">{registryGroups.map(group => { const count = group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block font-semibold text-foreground">{group}</span><span className="mt-1 block text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</span></span><span className="inline-flex shrink-0 items-center text-xs font-semibold text-primary">Abrir <ChevronRight className="ml-1 h-4 w-4" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div></div>
+        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registryGroups.map(group => { const count = group === "Financeiro" ? 0 : group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="rounded-xl border border-border bg-background p-5 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><p className="mt-4 font-semibold text-foreground">{group}</p><p className="mt-1 text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</p><span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Abrir opções <Plus className="ml-1 h-3.5 w-3.5" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div><Button type="button" variant="outline" size="sm" onClick={() => { setActiveGroup(null); setLocation("/cadastros/operacionais"); }}>Todos os grupos</Button></div>
         {([activeGroup] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
           <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
-          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
-        {cards.filter(card => card.group === group).map(card => {
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {group === "Financeiro" ? <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-5 sm:col-span-2 xl:col-span-3"><p className="font-semibold text-foreground">Planejamento financeiro</p><p className="mt-1 text-sm text-muted-foreground">Os cadastros e parâmetros financeiros serão estruturados na próxima etapa do Marketing HUB.</p></div> : cards.filter(card => card.group === group).map(card => {
           const Icon = card.icon;
           return (
             <button
@@ -857,13 +840,21 @@ export default function OperationalRegistriesPanel() {
                 setActiveGroup(group);
                 reset();
                 setPanel(card.key);
-                setLocation(`/cadastros/${paths[card.key] ?? ""}`);
+                const groupQuery = registryGroupQuery[group];
+                setLocation(`/cadastros/${paths[card.key] ?? ""}?grupo=${groupQuery}&novo=${paths[card.key] ?? ""}`);
               }}
-              className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-secondary text-primary"><Icon className="h-4 w-4" /></span>
-              <span className="min-w-0 flex-1"><span className="block font-semibold text-foreground">{card.title}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{card.description}</span></span>
-              <span className="inline-flex shrink-0 items-center text-xs font-semibold text-primary">Adicionar <Plus className="ml-1 h-3.5 w-3.5" /></span>
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-secondary text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+              <p className="mt-4 font-semibold text-foreground">{card.title}</p>
+              <p className="mt-1 min-h-10 text-xs leading-5 text-muted-foreground">
+                {card.description}
+              </p>
+              <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">
+                Ver cadastros <Plus className="ml-1 h-3.5 w-3.5" />
+              </span>
             </button>
           );
         })}
@@ -959,13 +950,8 @@ export default function OperationalRegistriesPanel() {
               serviceIds={serviceIds}
               mediaIds={mediaIds}
               onToggleCity={id => toggle(id, cityIds, setCityIds)}
-              onToggleService={id => {
-                toggle(id, serviceIds, setServiceIds);
-                setServiceMediaLinks(current => current.some(link => link.serviceTypeId === id) ? current : [...current, { serviceTypeId: id, mediaTypeId: null }]);
-              }}
+              onToggleService={id => toggle(id, serviceIds, setServiceIds)}
               onToggleMedia={id => toggle(id, mediaIds, setMediaIds)}
-              serviceMediaLinks={serviceMediaLinks}
-              onSetServiceMediaLink={(serviceTypeId, mediaTypeId) => setServiceMediaLinks(current => [...current.filter(link => link.serviceTypeId !== serviceTypeId), { serviceTypeId, mediaTypeId }])}
               onCreate={() =>
                 saveSupplier()
               }
@@ -1005,7 +991,6 @@ export default function OperationalRegistriesPanel() {
                   cityIds,
                   serviceTypeIds: serviceIds,
                   mediaTypeIds: mediaIds,
-                  serviceMediaLinks: serviceMediaLinks.filter(link => serviceIds.includes(link.serviceTypeId)),
                 })
               }
               offerName={offerName}
@@ -1098,9 +1083,6 @@ export default function OperationalRegistriesPanel() {
                 setMediaOperationCategory={setMediaOperationCategory}
                 parentMediaTypeId={parentMediaTypeId}
                 setParentMediaTypeId={setParentMediaTypeId}
-                parentServiceTypeId={parentServiceTypeId}
-                setParentServiceTypeId={setParentServiceTypeId}
-                serviceTypes={overview.data?.serviceTypes ?? []}
                 mediaTypes={overview.data?.mediaTypes ?? []}
                 editingId={editingId}
                 onUploadContract={async file => {
@@ -1237,9 +1219,6 @@ function RegistryForm(props: {
   setMediaOperationCategory: (v: "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers") => void;
   parentMediaTypeId: string;
   setParentMediaTypeId: (v: string) => void;
-  parentServiceTypeId: string;
-  setParentServiceTypeId: (v: string) => void;
-  serviceTypes: Array<{ id: number; name: string; active: boolean; mediaTypeId?: number | null; parentServiceTypeId?: number | null }>;
   mediaTypes: Array<{ id: number; name: string; active: boolean; operationCategory?: string | null; parentMediaTypeId?: number | null }>;
   editingId: number | null;
   onUploadContract: (file: File) => void;
@@ -1286,21 +1265,6 @@ function RegistryForm(props: {
             emptyMessage="Nenhum subtipo cadastrado nesta categoria"
           />
           <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Deixe o subtipo pai vazio para criar um subtipo, como <strong>Outdoor</strong>. Selecione-o para criar uma variação, como <strong>Impressão de papel</strong>.</p>
-        </>
-      ) : null}
-      {props.panel === "service" ? (
-        <>
-          <SearchableMultiSelect
-            id="registry-service-parent"
-            label="Serviço pai"
-            options={props.serviceTypes.filter(item => item.active && item.id !== props.editingId && !item.parentServiceTypeId).map(item => ({ id: item.id, label: item.name, description: item.mediaTypeId ? "Serviço vinculado a um tipo de mídia" : "Serviço independente" }))}
-            values={props.parentServiceTypeId ? [Number(props.parentServiceTypeId)] : []}
-            onChange={values => props.setParentServiceTypeId(values[0] ? String(values[0]) : "")}
-            maxSelections={1}
-            placeholder="Sem pai: serviço independente"
-            emptyMessage="Nenhum serviço pai cadastrado"
-          />
-          <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Selecione um serviço pai para criar um subserviço. O vínculo com o tipo de mídia será herdado do serviço pai.</p>
         </>
       ) : null}
       {props.panel === "regional" ? (
@@ -1579,8 +1543,6 @@ function SupplierPanel(props: {
   cityIds: number[];
   serviceIds: number[];
   mediaIds: number[];
-  serviceMediaLinks: Array<{ serviceTypeId: number; mediaTypeId: number | null }>;
-  onSetServiceMediaLink: (serviceTypeId: number, mediaTypeId: number | null) => void;
   onToggleCity: (id: number) => void;
   onToggleService: (id: number) => void;
   onToggleMedia: (id: number) => void;
@@ -1732,7 +1694,6 @@ function SupplierPanel(props: {
               selected={props.mediaIds}
               toggle={props.onToggleMedia}
             />
-            {props.serviceIds.length > 0 ? <div className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold text-foreground">Vínculo entre serviços e tipos de mídia</p><p className="mt-1 text-xs text-muted-foreground">Defina a mídia correspondente a cada serviço. Se ficar sem mídia, o serviço será tratado como independente.</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{props.serviceIds.map(serviceId => { const service = props.services.find(item => item.id === serviceId); const link = props.serviceMediaLinks.find(item => item.serviceTypeId === serviceId); return <SelectField key={serviceId} id={`supplier-service-media-${serviceId}`} label={service?.name ?? `Serviço #${serviceId}`} value={link?.mediaTypeId ? String(link.mediaTypeId) : "none"} onChange={value => props.onSetServiceMediaLink(serviceId, value === "none" ? null : Number(value))} options={[{ value: "none", label: "Serviço independente" }, ...props.media.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))]} />; })}</div></div> : null}
             <Button
               type="button"
               variant="outline"
