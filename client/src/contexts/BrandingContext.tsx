@@ -23,6 +23,7 @@ function applyBranding(branding: AppBranding) {
     "--app-primary": branding.primaryColor,
     "--app-accent": branding.accentColor,
     "--app-background": branding.backgroundColor,
+    "--app-dark-background": branding.darkBackgroundColor,
     "--app-card": branding.cardColor,
     "--app-foreground": branding.foregroundColor,
     "--app-font-family": `"${font.family}"`,

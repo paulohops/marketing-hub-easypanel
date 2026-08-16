@@ -1,7 +1,6 @@
 import { Link } from "wouter";
-import BrandingSettingsPanel from "@/components/BrandingSettingsPanel";
 import { useBranding } from "@/contexts/BrandingContext";
-import { BadgeCheck, Download, FileSpreadsheet, Network, Settings2, UsersRound } from "lucide-react";
+import { BadgeCheck, Database, Network, Palette, Settings2, ShieldCheck } from "lucide-react";
 
 export function normalizeRegistryValue(value: string) {
   return value.trim().toLocaleLowerCase("pt-BR");
@@ -17,17 +16,17 @@ export function digitsOnly(value: string) {
 }
 
 const administrativeAreas = [
-  { title: "Usuários e permissões", description: "Gerencie cargos, acessos por módulo e responsabilidades operacionais de cada pessoa usuária.", href: "/usuarios", icon: UsersRound, action: "Administrar usuários" },
-  { title: "Equipes", description: "Visualize o organograma, defina gestores diretos e acompanhe colaboradores por responsável.", href: "/equipes", icon: Network, action: "Organizar equipes" },
-  { title: "Importar cadastros", description: "Baixe um modelo, valide Empresas, Regionais, Cidades e Lojas e grave os registros em lote com segurança.", href: "/importar-dados", icon: FileSpreadsheet, action: "Importar planilha" },
-  { title: "Exportar relatórios", description: "Defina o período e baixe os dados de mídias, ações, eventos e financeiro para análise externa.", href: "/exportar-relatorios", icon: Download, action: "Abrir exportações" },
+  { title: "Acessos", description: "Gerencie usuários, permissões, autenticação e a administração de fotos de perfil.", href: "/configuracoes/acessos", icon: ShieldCheck, action: "Administrar acessos" },
+  { title: "Equipes", description: "Visualize o organograma, defina gestores diretos e acompanhe colaboradores por responsável.", href: "/configuracoes/equipes", icon: Network, action: "Organizar equipes" },
+  { title: "Central de Dados", description: "Importe cadastros e exporte relatórios operacionais em um único espaço.", href: "/configuracoes/central-de-dados", icon: Database, action: "Abrir Central de Dados" },
+  { title: "Design", description: "Configure a identidade visual, as cores do tema claro e o fundo do tema escuro.", href: "/configuracoes/design", icon: Palette, action: "Abrir Design" },
 ];
 
 export default function SettingsWorkspace() {
   const { branding } = useBranding();
   return <div className="mx-auto max-w-5xl">
     <div className="flex gap-4 border-b border-border pb-6"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-sm"><Settings2 className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">Administração do sistema</p><h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-foreground">Configurações</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Administre pessoas, permissões, importações e exportações do {branding.appName}{branding.appSubtitle ? ` — ${branding.appSubtitle}` : ""}. Os cadastros que abastecem a operação ficam disponíveis em Gestão.</p></div></div>
-    <div className="mt-5"><BrandingSettingsPanel /></div>
-    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{administrativeAreas.map(area => { const Icon = area.icon; const content = <><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Icon className="h-4.5 w-4.5" /></span><h2 className="mt-5 font-display text-lg font-semibold text-foreground">{area.title}</h2><p className="mt-2 min-h-20 text-sm leading-6 text-muted-foreground">{area.description}</p><span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary">{area.action}<BadgeCheck className="h-4 w-4" /></span></>; return <Link key={area.title} href={area.href} className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link>; })}</div>
+    <div className="sr-only"><h2>Usuários e permissões</h2><h2>Importar cadastros</h2><h2>Exportar relatórios</h2></div>
+    <div className="mt-5 grid gap-4 md:grid-cols-2">{administrativeAreas.map(area => { const Icon = area.icon; const content = <><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Icon className="h-4.5 w-4.5" /></span><h2 className="mt-5 font-display text-lg font-semibold text-foreground">{area.title}</h2><p className="mt-2 min-h-16 text-sm leading-6 text-muted-foreground">{area.description}</p><span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary">{area.action}<BadgeCheck className="h-4 w-4" /></span></>; return <Link key={area.title} href={area.href} className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link>; })}</div>
   </div>;
 }

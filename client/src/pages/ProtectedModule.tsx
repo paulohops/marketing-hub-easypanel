@@ -26,6 +26,8 @@ import RegistryEntityWorkspace from "./RegistryEntityWorkspace";
 import TrelloWorkspace from "./TrelloWorkspace";
 import DataImportWorkspace from "./DataImportWorkspace";
 import ReportExportWorkspace from "./ReportExportWorkspace";
+import DesignWorkspace from "./DesignWorkspace";
+import DataCenterWorkspace from "./DataCenterWorkspace";
 import CampaignsWorkspace from "./CampaignsWorkspace";
 import CampaignTemplatesWorkspace from "./CampaignTemplatesWorkspace";
 import ActionTemplatesWorkspace from "./ActionTemplatesWorkspace";
@@ -50,7 +52,7 @@ const definitions = {
   acoes: { permission: "actions.read", eyebrow: "Ativação de marca", title: "Ações de trade", description: "Planeje, execute e documente ações, serviços, fornecedores e debriefings.", icon: CalendarDays, resources: [{ title: "Planejamento", description: "Objetivo, agenda e fornecedores envolvidos." }, { title: "Execução", description: "Status, evidências e acompanhamento." }, { title: "Debriefing", description: "Nota, resultado, pontos positivos e negativos." }], accent: "var(--primary)" },
   eventos: { permission: "events.read", eyebrow: "Experiências presenciais", title: "Eventos", description: "Centralize etapas de pré-evento, execução, avaliação e histórico operacional.", icon: MapPinned, resources: [{ title: "Pré-evento", description: "Planejamento, fornecedores e entregáveis." }, { title: "Acompanhamento", description: "Status, localização e registros." }, { title: "Pós-evento", description: "Avaliação e resultados alcançados." }], accent: "var(--primary)" },
   indicadores: { permission: "dashboard.read", eyebrow: "Business intelligence", title: "Indicadores", description: "Acompanhe indicadores de fornecedores, mídias, ações e eventos para tomada de decisão.", icon: BarChart3, resources: [{ title: "Performance", description: "Indicadores comparativos por fornecedor." }, { title: "Investimento", description: "Leitura de custos e pagamentos por operação." }, { title: "Mapa analítico", description: "Cobertura e resultados por localidade." }], accent: "var(--primary)" },
-  configuracoes: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Cadastros", description: "Gerencie cadastros operacionais, usuários, segurança e a governança que abastece cada módulo.", icon: Settings2, resources: [{ title: "Segurança", description: "Papéis, permissões e rastreabilidade." }, { title: "Usuários", description: "Acessos e administração da equipe." }, { title: "Cadastros operacionais", description: "Empresas, territórios, fornecedores, serviços, mídias e parâmetros financeiros." }], accent: "var(--primary)" },
+  configuracoes: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Configurações", description: "Gerencie cadastros operacionais, usuários, segurança e a governança que abastece cada módulo.", icon: Settings2, resources: [{ title: "Segurança", description: "Papéis, permissões e rastreabilidade." }, { title: "Usuários", description: "Acessos e administração da equipe." }, { title: "Cadastros operacionais", description: "Empresas, territórios, fornecedores, serviços, mídias e parâmetros financeiros." }], accent: "var(--primary)" },
   cadastros: { permission: "settings.read", eyebrow: "Gestão operacional", title: "Cadastros operacionais", description: "Organize os cadastros mestres que sustentam a operação do Marketing HUB.", icon: Settings2, resources: [], accent: "var(--primary)" },
   "modelos-campanha": { permission: "settings.read", eyebrow: "Gestão operacional", title: "Modelos de campanha", description: "Padronize estruturas reutilizáveis para os planejamentos de campanha.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
   "modelos-acao": { permission: "settings.read", eyebrow: "Gestão operacional", title: "Modelos de ações", description: "Padronize informações reutilizáveis para o planejamento de ações.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
@@ -66,6 +68,8 @@ const definitions = {
   "pontos-de-acao": { permission: "settings.read", eyebrow: "Cadastros operacionais", title: "Pontos de ação", description: "Gerencie locais recorrentes para ações de trade.", icon: MapPinned, resources: [], accent: "var(--primary)" },
   ajuda: { permission: "dashboard.read", eyebrow: "Central de conhecimento", title: "Ajuda e suporte", description: "Consulte os fluxos do sistema e envie solicitações de suporte.", icon: CircleHelp, resources: [], accent: "var(--primary)" },
   notificacoes: { permission: "dashboard.read", eyebrow: "Acompanhamento operacional", title: "Notificações", description: "Acompanhe alertas direcionados a pessoas, regionais e cidades.", icon: BellRing, resources: [], accent: "var(--primary)" },
+  "central-de-dados": { permission: "settings.read", eyebrow: "Administração do sistema", title: "Central de Dados", description: "Importe cadastros e exporte relatórios.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
+  design: { permission: "settings.read", eyebrow: "Identidade visual", title: "Design", description: "Personalize o tema e a identidade visual.", icon: Settings2, resources: [], accent: "var(--primary)" },
 } as const;
 
 export default function ProtectedModule({ module }: { module: keyof typeof definitions }) {
@@ -85,10 +89,12 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "operacoes") return <DashboardLayout><div className="cluster-workspace"><TradeOperationsWorkspace /></div></DashboardLayout>;
   if (module === "campanhas") return <DashboardLayout><div className="cluster-workspace"><CampaignsWorkspace /></div></DashboardLayout>;
   if (module === "configuracoes") return <DashboardLayout><div className="cluster-workspace"><SettingsWorkspace /></div></DashboardLayout>;
+  if (module === "central-de-dados") return <DashboardLayout><div className="cluster-workspace"><DataCenterWorkspace /></div></DashboardLayout>;
+  if (module === "design") return <DashboardLayout><div className="cluster-workspace"><DesignWorkspace /></div></DashboardLayout>;
   if (module === "cadastros") return <DashboardLayout><div className="cluster-workspace"><OperationalRegistriesWorkspace /></div></DashboardLayout>;
   if (module === "modelos-campanha") return <DashboardLayout><div className="cluster-workspace"><CampaignTemplatesWorkspace /></div></DashboardLayout>;
   if (module === "modelos-acao") return <DashboardLayout><div className="cluster-workspace"><ActionTemplatesWorkspace /></div></DashboardLayout>;
-  if (module === "cadastro-influencers") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="influencers" /></div></DashboardLayout>;
+  if (module === "cadastro-influencers") return <DashboardLayout><div className="cluster-workspace"><div className="mx-auto max-w-3xl rounded-2xl border border-dashed border-border bg-card p-10 text-center"><h1 className="font-display text-2xl font-semibold text-foreground">Influencers</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Este módulo está disponível no menu, mas permanece desativado temporariamente.</p><Button type="button" variant="outline" className="mt-6 border-border" onClick={() => setLocation("/")}><ArrowLeft className="mr-2 h-4 w-4" />Voltar ao início</Button></div></div></DashboardLayout>;
   if (module === "cadastro-entidade") return <DashboardLayout><div className="cluster-workspace"><RegistryEntityWorkspace /></div></DashboardLayout>;
   if (module === "empresas") return <DashboardLayout><div className="cluster-workspace"><CompaniesWorkspace /></div></DashboardLayout>;
   if (module === "trello") return <DashboardLayout><div className="cluster-workspace"><TrelloWorkspace /></div></DashboardLayout>;
@@ -100,7 +106,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "midias-audio-video") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="audio_video" /></div></DashboardLayout>;
   if (module === "midias-panfletagem") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="leafleting" /></div></DashboardLayout>;
   if (module === "midias-carro-som") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="sound_car" /></div></DashboardLayout>;
-  if (module === "midias-influencers") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="influencers" /></div></DashboardLayout>;
+  if (module === "midias-influencers") return <DashboardLayout><div className="cluster-workspace"><div className="mx-auto max-w-3xl rounded-2xl border border-dashed border-border bg-card p-10 text-center"><h1 className="font-display text-2xl font-semibold text-foreground">Influencers</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Este módulo está disponível no menu, mas permanece desativado temporariamente.</p><Button type="button" variant="outline" className="mt-6 border-border" onClick={() => setLocation("/")}><ArrowLeft className="mr-2 h-4 w-4" />Voltar ao início</Button></div></div></DashboardLayout>;
   if (module === "midias-veiculacao") return <DashboardLayout><div className="cluster-workspace"><UrbanVeiculationPage /></div></DashboardLayout>;
   if (module === "acoes") return <DashboardLayout><div className="cluster-workspace"><ActionsWorkspace /></div></DashboardLayout>;
   if (module === "eventos") return <DashboardLayout><div className="cluster-workspace"><EventsWorkspace /></div></DashboardLayout>;

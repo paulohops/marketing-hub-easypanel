@@ -46,6 +46,10 @@ function Router() {
     <Route path="/importar-dados">{() => <ProtectedModule module="importacao" />}</Route>
     <Route path="/exportar-relatorios">{() => <ProtectedModule module="exportacao" />}</Route>
     <Route path="/configuracoes">{() => <ProtectedModule module="configuracoes" />}</Route>
+    <Route path="/configuracoes/acessos">{() => <ProtectedModule module="usuarios" />}</Route>
+    <Route path="/configuracoes/equipes">{() => <ProtectedModule module="equipes" />}</Route>
+    <Route path="/configuracoes/central-de-dados">{() => <ProtectedModule module="central-de-dados" />}</Route>
+    <Route path="/configuracoes/design">{() => <ProtectedModule module="design" />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
     <Route path="/administracao-usuarios">{() => <ProtectedModule module="usuarios" />}</Route>

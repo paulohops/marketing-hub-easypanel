@@ -41,6 +41,7 @@ export type AppBranding = {
   primaryColor: string;
   accentColor: string;
   backgroundColor: string;
+  darkBackgroundColor: string;
   cardColor: string;
   foregroundColor: string;
   fontFamily: BrandingFontId;
@@ -53,6 +54,7 @@ export const DEFAULT_APP_BRANDING: AppBranding = {
   primaryColor: "#0E723B",
   accentColor: "#F45103",
   backgroundColor: "#F7FAF7",
+  darkBackgroundColor: "#07100A",
   cardColor: "#FFFFFF",
   foregroundColor: "#133523",
   fontFamily: "montserrat",

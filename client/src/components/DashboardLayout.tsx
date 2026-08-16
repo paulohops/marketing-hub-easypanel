@@ -129,7 +129,12 @@ const navigationGroups: NavGroup[] = [
   {
     label: "Configurações",
     items: [
-      { label: "Configurações", path: "/configuracoes", icon: Settings2, permission: "settings.read" },
+      { label: "Configurações", path: "/configuracoes", icon: Settings2, permission: "settings.read", children: [
+        { label: "Acessos", path: "/configuracoes/acessos", icon: UserRound, permission: "settings.read" },
+        { label: "Equipes", path: "/configuracoes/equipes", icon: Network, permission: "settings.read" },
+        { label: "Central de Dados", path: "/configuracoes/central-de-dados", icon: Database, permission: "settings.read" },
+        { label: "Design", path: "/configuracoes/design", icon: PanelsTopLeft, permission: "settings.read" },
+      ] },
     ],
   },
 ];
@@ -226,7 +231,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarFooter className="border-t border-white/20 p-3 group-data-[collapsible=icon]:px-1">
         <SidebarMenu className="mb-2 gap-1">
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} onClick={toggleTheme} className="h-10 rounded-lg px-3 text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <SidebarMenuButton tooltip={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} onClick={toggleTheme} className="h-10 rounded-lg px-3 text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}<span>{theme === "dark" ? "Tema claro" : "Tema escuro"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

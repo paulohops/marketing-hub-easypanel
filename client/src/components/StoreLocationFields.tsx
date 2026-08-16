@@ -28,6 +28,17 @@ export function CoordinatesField({ latitude, longitude, setLatitude, setLongitud
     setMessage("Latitude e longitude preenchidas.");
   };
 
+  const currentCoordinates = latitude && longitude ? `${latitude}, ${longitude}` : "";
+  const handleCoordinatesChange = (value: string) => {
+    setCoordinatesText(value);
+    setMessage("");
+    const parsed = parseCoordinates(value);
+    if (parsed) {
+      setLatitude(parsed.latitude);
+      setLongitude(parsed.longitude);
+    }
+  };
+
   return (
     <div className="sm:col-span-2 rounded-xl border border-border bg-secondary/20 p-3">
       <div className="flex items-center gap-2">
@@ -38,14 +49,11 @@ export function CoordinatesField({ latitude, longitude, setLatitude, setLongitud
         </div>
       </div>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <Input aria-label="Colar coordenadas do Google Maps" value={coordinatesText} onChange={event => { setCoordinatesText(event.target.value); setMessage(""); }} placeholder="Ex.: -18.5921, -46.5142" />
-        <Button type="button" variant="outline" onClick={fillCoordinates} className="shrink-0"><ClipboardPaste className="mr-2 h-4 w-4" />Preencher</Button>
+        <Input aria-label="Latitude e longitude" value={coordinatesText || currentCoordinates} onChange={event => handleCoordinatesChange(event.target.value)} placeholder="Ex.: -18.5921, -46.5142" />
+        <Button type="button" variant="outline" onClick={fillCoordinates} className="shrink-0"><ClipboardPaste className="mr-2 h-4 w-4" />Validar</Button>
       </div>
       {message ? <p className="mt-2 text-xs text-muted-foreground">{message}</p> : null}
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div className="space-y-2"><Label htmlFor="store-latitude">Latitude</Label><Input id="store-latitude" value={latitude} onChange={event => setLatitude(event.target.value)} inputMode="decimal" placeholder="-18.5921000" /></div>
-        <div className="space-y-2"><Label htmlFor="store-longitude">Longitude</Label><Input id="store-longitude" value={longitude} onChange={event => setLongitude(event.target.value)} inputMode="decimal" placeholder="-46.5142000" /></div>
-      </div>
+      <p className="mt-2 text-xs text-muted-foreground">Cole latitude e longitude na mesma linha. O sistema salva os valores separadamente para mapas e relatórios.</p>
     </div>
   );
 }

@@ -96,6 +96,7 @@ export default function BrandingSettingsPanel() {
       !isHex(form.primaryColor) ||
       !isHex(form.accentColor) ||
       !isHex(form.backgroundColor) ||
+      !isHex(form.darkBackgroundColor) ||
       !isHex(form.cardColor) ||
       !isHex(form.foregroundColor)
     ) {
@@ -110,6 +111,7 @@ export default function BrandingSettingsPanel() {
       primaryColor: form.primaryColor,
       accentColor: form.accentColor,
       backgroundColor: form.backgroundColor,
+      darkBackgroundColor: form.darkBackgroundColor,
       cardColor: form.cardColor,
       foregroundColor: form.foregroundColor,
       fontFamily: form.fontFamily,
@@ -151,6 +153,7 @@ export default function BrandingSettingsPanel() {
     "--preview-primary": form.primaryColor,
     "--preview-accent": form.accentColor,
     "--preview-background": form.backgroundColor,
+    "--preview-dark-background": form.darkBackgroundColor,
     "--preview-card": form.cardColor,
     "--preview-foreground": form.foregroundColor,
     fontFamily: `"${selectedFont.family}", ui-sans-serif, system-ui, sans-serif`,
@@ -252,6 +255,7 @@ export default function BrandingSettingsPanel() {
                   "primaryColor",
                   "accentColor",
                   "backgroundColor",
+                  "darkBackgroundColor",
                   "cardColor",
                   "foregroundColor",
                 ] as const
@@ -260,6 +264,7 @@ export default function BrandingSettingsPanel() {
                   primaryColor: "Cor primária",
                   accentColor: "Cor de destaque",
                   backgroundColor: "Fundo da aplicação",
+                  darkBackgroundColor: "Fundo do tema escuro",
                   cardColor: "Superfícies e cartões",
                   foregroundColor: "Texto principal",
                 };
