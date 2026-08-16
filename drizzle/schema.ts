@@ -262,6 +262,15 @@ export const serviceTypes = pgTable("service_types", {
   active: boolean("active").default(true).notNull(),
 });
 
+export const productTypes = pgTable("product_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull().unique(),
+  description: text("description"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const actionTypes = pgTable("action_types", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),
@@ -338,6 +347,7 @@ export const suppliers = pgTable("suppliers", {
   providerId: integer("providerId").references(() => providers.id, { onDelete: "restrict" }),
   cityId: integer("cityId").references(() => cities.id, { onDelete: "restrict" }),
   displayName: varchar("displayName", { length: 180 }).notNull(),
+  address: text("address"),
   legalName: varchar("legalName", { length: 220 }),
   document: varchar("document", { length: 32 }).unique(),
   contactName: varchar("contactName", { length: 160 }),
@@ -351,6 +361,11 @@ export const suppliers = pgTable("suppliers", {
   paymentRecurrence: varchar("paymentRecurrence", { length: 80 }),
   pixKey: varchar("pixKey", { length: 220 }),
   paymentDay: integer("paymentDay"),
+  paymentBarterValue: numeric("paymentBarterValue", { precision: 14, scale: 2 }),
+  paymentBarterService: text("paymentBarterService"),
+  paymentNotes: text("paymentNotes"),
+  contractStartsOn: date("contractStartsOn"),
+  contractEndsOn: date("contractEndsOn"),
   hasContract: boolean("hasContract").default(false).notNull(),
   contractStorageKey: varchar("contractStorageKey", { length: 512 }),
   contractUrl: text("contractUrl"),
@@ -384,9 +399,11 @@ export const supplierOfferings = pgTable("supplier_offerings", {
   kind: supplierOfferingKindEnum("kind").notNull(),
   mediaTypeId: integer("mediaTypeId").references(() => mediaTypes.id, { onDelete: "set null" }),
   serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, { onDelete: "set null" }),
+  productTypeId: integer("productTypeId").references(() => productTypes.id, { onDelete: "set null" }),
   name: varchar("name", { length: 180 }).notNull(),
   unit: varchar("unit", { length: 64 }).default("unidade").notNull(),
   unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).notNull(),
+  averageUnitPrice: numeric("averageUnitPrice", { precision: 14, scale: 2 }),
   notes: text("notes"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),

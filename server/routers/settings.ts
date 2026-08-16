@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, campaignSectors, campaignTypes, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providerDocuments, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
+import { actionPoints, actions, actionSuppliers, actionTypes, appSettings, campaignSectors, campaignTypes, cities, commercialSupervisorStores, commercialSupervisors, events, eventSuppliers, eventTypes, financialCategories, mediaCampaigns, mediaPoints, mediaTypes, partners, providerDocuments, productTypes, providers, regionals, serviceTypes, stores, supplierCities, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, userTrelloBoards } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
@@ -14,6 +14,30 @@ const mediaOperationCategories = ["graphics", "audio_video", "leafleting", "soun
 const contractMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
 const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 const hexColorSchema = z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/, "Informe uma cor no formato hexadecimal #RRGGBB.").transform(value => value.toUpperCase());
+const supplierInputSchema = z.object({
+  providerId: z.number().int().positive().nullable(),
+  cityId: z.number().int().positive().nullable().optional(),
+  displayName: z.string().trim().min(2).max(180),
+  address: z.string().trim().max(1000).optional(),
+  legalName: z.string().trim().max(220).optional(),
+  document: z.string().trim().min(14).max(32),
+  contactName: z.string().trim().max(160).optional(),
+  phone: z.string().trim().min(8).max(32),
+  email: z.string().trim().email().max(320),
+  mainService: z.string().trim().max(180).optional(),
+  partnershipType: z.enum(paymentKinds).optional(),
+  paymentMethod: z.string().trim().max(80).optional(),
+  paymentRecurrence: z.string().trim().max(80).optional(),
+  pixKey: z.string().trim().max(220).optional(),
+  paymentDay: z.number().int().min(1).max(31).nullable().optional(),
+  paymentBarterValue: z.number().nonnegative().max(99_999_999).nullable().optional(),
+  paymentBarterService: z.string().trim().max(1000).optional(),
+  paymentNotes: z.string().trim().max(1000).optional(),
+  contractStartsOn: z.string().date().nullable().optional(),
+  contractEndsOn: z.string().date().nullable().optional(),
+  hasContract: z.boolean().optional(),
+});
+
 const providerInputSchema = z.object({
   name: z.string().trim().min(2).max(160),
   legalName: z.string().trim().max(220).optional(),
@@ -255,7 +279,7 @@ export const settingsRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, actionTypeRows, eventTypeRows, campaignTypeRows, campaignSectorRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows, providerDocumentRows] = await Promise.all([
+    const [providerRows, regionalRows, cityRows, supplierRows, storeRows, partnerRows, serviceRows, mediaTypeRows, productTypeRows, actionTypeRows, eventTypeRows, campaignTypeRows, campaignSectorRows, financialCategoryRows, supplierOfferingRows, supervisorRows, actionPointRows, supervisorStoreRows, actionRows, eventRows, mediaPointRows, mediaCampaignRows, actionSupplierRows, eventSupplierRows, providerDocumentRows] = await Promise.all([
       database.select().from(providers).orderBy(asc(providers.name)).catch(() => []),
       database.select().from(regionals).orderBy(asc(regionals.name)).catch(() => []),
       database.select().from(cities).orderBy(asc(cities.name)).catch(() => []),
@@ -264,6 +288,7 @@ export const settingsRouter = router({
       database.select().from(partners).orderBy(asc(partners.name)).catch(() => []),
       database.select().from(serviceTypes).orderBy(asc(serviceTypes.name)).catch(() => []),
       database.select().from(mediaTypes).orderBy(asc(mediaTypes.name)).catch(() => []),
+      database.select().from(productTypes).orderBy(asc(productTypes.name)).catch(() => []),
       database.select().from(actionTypes).orderBy(asc(actionTypes.name)).catch(() => []),
       database.select().from(eventTypes).orderBy(asc(eventTypes.name)).catch(() => []),
       database.select().from(campaignTypes).orderBy(asc(campaignTypes.name)).catch(() => []),
@@ -281,7 +306,7 @@ export const settingsRouter = router({
       database.select({ eventId: eventSuppliers.eventId, supplierId: eventSuppliers.supplierId }).from(eventSuppliers).catch(() => []),
       database.select().from(providerDocuments).orderBy(asc(providerDocuments.createdAt)).catch(() => []),
     ]);
-    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, providerDocuments: providerDocumentRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
+    return { providers: providerRows, regionals: regionalRows, cities: cityRows, suppliers: supplierRows, stores: storeRows, partners: partnerRows, serviceTypes: serviceRows, mediaTypes: mediaTypeRows, productTypes: productTypeRows, actionTypes: actionTypeRows, eventTypes: eventTypeRows, campaignTypes: campaignTypeRows, campaignSectors: campaignSectorRows, financialCategories: financialCategoryRows, supplierOfferings: supplierOfferingRows, commercialSupervisors: supervisorRows, actionPoints: actionPointRows, commercialSupervisorStores: supervisorStoreRows, providerDocuments: providerDocumentRows, operationalFootprint: { actions: actionRows, events: eventRows, mediaPoints: mediaPointRows, mediaCampaigns: mediaCampaignRows, actionSuppliers: actionSupplierRows, eventSuppliers: eventSupplierRows } };
   }),
 
   createProvider: protectedProcedure.input(providerInputSchema).mutation(async ({ ctx, input }) => {
@@ -383,7 +408,7 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createSupplier: protectedProcedure.input(z.object({ providerId: z.number().int().positive().nullable(), cityId: z.number().int().positive().nullable().optional(), displayName: z.string().trim().min(2).max(180), legalName: z.string().trim().max(220).optional(), document: z.string().trim().min(14).max(32), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().min(8).max(32), email: z.string().trim().email().max(320), mainService: z.string().trim().max(180).optional(), partnershipType: z.enum(paymentKinds).optional(), paymentMethod: z.string().trim().max(80).optional(), paymentRecurrence: z.string().trim().max(80).optional(), hasContract: z.boolean().optional() })).mutation(async ({ ctx, input }) => {
+  createSupplier: protectedProcedure.input(supplierInputSchema).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const document = normalizeCnpj(input.document);
@@ -392,7 +417,7 @@ export const settingsRouter = router({
     if (sameName) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor com este nome de exibição." });
     const [sameDocument] = await database.select({ id: suppliers.id }).from(suppliers).where(sql`regexp_replace(coalesce(${suppliers.document}, ''), '[^0-9]', '', 'g') = ${document}`).limit(1);
     if (sameDocument) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor cadastrado com este CNPJ." });
-    const [created] = await database.insert(suppliers).values({ ...input, cityId: input.cityId ?? null, document, legalName: input.legalName || null, contactName: input.contactName || null, mainService: input.mainService || null, partnershipType: input.partnershipType ?? null, paymentMethod: input.paymentMethod || null, paymentRecurrence: input.paymentRecurrence || null, hasContract: input.hasContract ?? false }).returning();
+    const [created] = await database.insert(suppliers).values({ providerId: input.providerId, cityId: input.cityId ?? null, displayName: input.displayName, address: input.address || null, document, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone, email: input.email, mainService: input.mainService || null, partnershipType: input.partnershipType ?? null, paymentMethod: input.paymentMethod || null, paymentRecurrence: input.paymentRecurrence || null, pixKey: input.pixKey || null, paymentDay: input.paymentDay ?? null, paymentBarterValue: input.paymentBarterValue == null ? null : input.paymentBarterValue.toFixed(2), paymentBarterService: input.paymentBarterService || null, paymentNotes: input.paymentNotes || null, contractStartsOn: input.contractStartsOn ?? null, contractEndsOn: input.contractEndsOn ?? null, hasContract: input.hasContract ?? false }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier", entityId: created.id, action: "create", afterData: created });
     return created;
   }),
@@ -465,9 +490,14 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), parentServiceTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
+  createType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "product", "action", "event", "campaign", "campaign_sector"]), name: z.string().trim().min(2).max(160), description: z.string().trim().max(600).optional(), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), parentServiceTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
+    if (input.kind === "product") {
+      const [created] = await database.insert(productTypes).values({ name: input.name, description: input.description || null }).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "product_type", entityId: created.id, action: "create", afterData: created });
+      return created;
+    }
     if (input.kind === "service") {
       const parentServiceTypeId = input.parentServiceTypeId ?? null;
       const parent = parentServiceTypeId ? (await database.select().from(serviceTypes).where(eq(serviceTypes.id, parentServiceTypeId)).limit(1))[0] : null;
@@ -488,7 +518,8 @@ export const settingsRouter = router({
       await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_type", entityId: created.id, action: "create", afterData: created });
       return created;
     }
-    const table = { service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind];
+    const table = { action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind as "action" | "event" | "campaign" | "campaign_sector"];
+    if (!table) throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de cadastro inválido." });
     const [created] = await database.insert(table).values({ name: input.name }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: created.id, action: "create", afterData: created });
     return created;
@@ -504,14 +535,14 @@ export const settingsRouter = router({
     return created;
   }),
 
-  createSupplierOffering: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), mediaTypeId: z.number().int().positive().nullable().optional(), serviceTypeId: z.number().int().positive().nullable().optional(), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+  createSupplierOffering: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), averageUnitPrice: z.number().nonnegative().max(99_999_999).nullable().optional(), productTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), serviceTypeId: z.number().int().positive().nullable().optional(), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const [supplier] = await database.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.id, input.supplierId)).limit(1);
     if (!supplier) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." });
     const [existing] = await database.select({ id: supplierOfferings.id }).from(supplierOfferings).where(and(eq(supplierOfferings.supplierId, input.supplierId), eq(supplierOfferings.kind, input.kind), sql`lower(${supplierOfferings.name}) = lower(${input.name})`)).limit(1);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "Este fornecedor já possui uma oferta com a mesma categoria e nome." });
-    const [created] = await database.insert(supplierOfferings).values({ ...input, mediaTypeId: input.mediaTypeId ?? null, serviceTypeId: input.serviceTypeId ?? null, unitPrice: input.unitPrice.toFixed(2), notes: input.notes || null }).returning();
+    const [created] = await database.insert(supplierOfferings).values({ ...input, mediaTypeId: input.mediaTypeId ?? null, serviceTypeId: input.serviceTypeId ?? null, productTypeId: input.productTypeId ?? null, unitPrice: input.unitPrice.toFixed(2), averageUnitPrice: input.averageUnitPrice == null ? null : input.averageUnitPrice.toFixed(2), notes: input.notes || null }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_offering", entityId: created.id, action: "create", afterData: created });
     return created;
   }),
@@ -542,9 +573,16 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(cities).where(eq(cities.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cidade não encontrada." }); const [updated] = await database.update(cities).set({ ...input, ibgeCode: input.ibgeCode || null, address: input.address || null, zipCode: input.zipCode || null, latitude: input.latitude?.toFixed(7), longitude: input.longitude?.toFixed(7), locationNotes: input.locationNotes || null, updatedAt: new Date() }).where(eq(cities.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId, entityType: "city", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), parentServiceTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
+  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "product", "action", "event", "campaign", "campaign_sector"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160), description: z.string().trim().max(600).optional(), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), parentServiceTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
+    if (input.kind === "product") {
+      const [before] = await database.select().from(productTypes).where(eq(productTypes.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo de produto não encontrado." });
+      const [updated] = await database.update(productTypes).set({ name: input.name, description: input.description || null, updatedAt: new Date() }).where(eq(productTypes.id, input.id)).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "product_type", entityId: input.id, action: "update", beforeData: before, afterData: updated });
+      return updated;
+    }
     if (input.kind === "media") {
       const [before] = await database.select().from(mediaTypes).where(eq(mediaTypes.id, input.id)).limit(1);
       if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo de mídia não encontrado." });
@@ -623,8 +661,8 @@ export const settingsRouter = router({
     return updated;
   }),
 
-  updateSupplier: protectedProcedure.input(z.object({ id: z.number().int().positive(), providerId: z.number().int().positive().nullable(), cityId: z.number().int().positive().nullable().optional(), displayName: z.string().trim().min(2).max(180), legalName: z.string().trim().max(220).optional(), document: z.string().trim().min(14).max(32), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().min(8).max(32), email: z.string().trim().email().max(320), mainService: z.string().trim().max(180).optional(), partnershipType: z.enum(paymentKinds).optional(), paymentMethod: z.string().trim().max(80).optional(), paymentRecurrence: z.string().trim().max(80).optional(), hasContract: z.boolean().optional() })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(suppliers).where(eq(suppliers.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." }); const document = normalizeCnpj(input.document); if (document.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ com 14 dígitos." }); const [sameName, sameDocument] = await Promise.all([database.select({ id: suppliers.id }).from(suppliers).where(sql`lower(${suppliers.displayName}) = lower(${input.displayName})`), database.select({ id: suppliers.id }).from(suppliers).where(sql`regexp_replace(coalesce(${suppliers.document}, ''), '[^0-9]', '', 'g') = ${document}`)]); if (sameName.some(row => row.id !== input.id)) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor com este nome de exibição." }); if (sameDocument.some(row => row.id !== input.id)) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor cadastrado com este CNPJ." }); const [updated] = await database.update(suppliers).set({ ...input, cityId: input.cityId ?? null, document, legalName: input.legalName || null, contactName: input.contactName || null, mainService: input.mainService || null, partnershipType: input.partnershipType ?? null, paymentMethod: input.paymentMethod || null, paymentRecurrence: input.paymentRecurrence || null, hasContract: input.hasContract ?? before.hasContract, updatedAt: new Date() }).where(eq(suppliers.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
+  updateSupplier: protectedProcedure.input(supplierInputSchema.extend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(suppliers).where(eq(suppliers.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." }); const document = normalizeCnpj(input.document); if (document.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ com 14 dígitos." }); const [sameName, sameDocument] = await Promise.all([database.select({ id: suppliers.id }).from(suppliers).where(sql`lower(${suppliers.displayName}) = lower(${input.displayName})`), database.select({ id: suppliers.id }).from(suppliers).where(sql`regexp_replace(coalesce(${suppliers.document}, ''), '[^0-9]', '', 'g') = ${document}`)]); if (sameName.some(row => row.id !== input.id)) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor com este nome de exibição." }); if (sameDocument.some(row => row.id !== input.id)) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor cadastrado com este CNPJ." }); const [updated] = await database.update(suppliers).set({ providerId: input.providerId, cityId: input.cityId ?? null, displayName: input.displayName, address: input.address || null, document, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone, email: input.email, mainService: input.mainService || null, partnershipType: input.partnershipType ?? null, paymentMethod: input.paymentMethod || null, paymentRecurrence: input.paymentRecurrence || null, pixKey: input.pixKey || null, paymentDay: input.paymentDay ?? null, paymentBarterValue: input.paymentBarterValue == null ? null : input.paymentBarterValue.toFixed(2), paymentBarterService: input.paymentBarterService || null, paymentNotes: input.paymentNotes || null, contractStartsOn: input.contractStartsOn ?? null, contractEndsOn: input.contractEndsOn ?? null, hasContract: input.hasContract ?? before.hasContract, updatedAt: new Date() }).where(eq(suppliers.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
   uploadSupplierPhoto: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(imageMimeTypes), dataBase64: z.string().min(1).max(7_000_000) })).mutation(async ({ ctx, input }) => {
@@ -667,16 +705,21 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(financialCategories).where(eq(financialCategories.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Categoria financeira não encontrada." }); const [updated] = await database.update(financialCategories).set({ name: input.name, description: input.description || null, updatedAt: new Date() }).where(eq(financialCategories.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "financial_category", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  updateSupplierOffering: protectedProcedure.input(z.object({ id: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(supplierOfferings).where(eq(supplierOfferings.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Oferta não encontrada." }); const [updated] = await database.update(supplierOfferings).set({ kind: input.kind, name: input.name, unit: input.unit, unitPrice: input.unitPrice.toFixed(2), notes: input.notes || null, updatedAt: new Date() }).where(eq(supplierOfferings.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_offering", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
+  updateSupplierOffering: protectedProcedure.input(z.object({ id: z.number().int().positive(), kind: z.enum(["product", "service", "media", "action", "event", "other"]), name: z.string().trim().min(2).max(180), unit: z.string().trim().min(1).max(64), unitPrice: z.number().nonnegative().max(99_999_999), averageUnitPrice: z.number().nonnegative().max(99_999_999).nullable().optional(), productTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), serviceTypeId: z.number().int().positive().nullable().optional(), notes: z.string().trim().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(supplierOfferings).where(eq(supplierOfferings.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Oferta não encontrada." }); const [updated] = await database.update(supplierOfferings).set({ kind: input.kind, name: input.name, productTypeId: input.productTypeId ?? null, mediaTypeId: input.mediaTypeId ?? null, serviceTypeId: input.serviceTypeId ?? null, unit: input.unit, unitPrice: input.unitPrice.toFixed(2), averageUnitPrice: input.averageUnitPrice == null ? null : input.averageUnitPrice.toFixed(2), notes: input.notes || null, updatedAt: new Date() }).where(eq(supplierOfferings.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_offering", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  setRegistryActive: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "store", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive(), active: z.boolean() })).mutation(async ({ ctx, input }) => {
+  setRegistryActive: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "store", "supplier", "partner", "supervisor", "service", "product", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive(), active: z.boolean() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const now = new Date();
     let updated: { id: number; active: boolean } | undefined;
     switch (input.kind) {
+      case "product": {
+        const [row] = await database.update(productTypes).set({ active: input.active, updatedAt: now }).where(eq(productTypes.id, input.id)).returning({ id: productTypes.id, active: productTypes.active });
+        updated = row;
+        break;
+      }
       case "provider": [updated] = await database.update(providers).set({ active: input.active }).where(eq(providers.id, input.id)).returning({ id: providers.id, active: providers.active }); break;
       case "regional": [updated] = await database.update(regionals).set({ active: input.active }).where(eq(regionals.id, input.id)).returning({ id: regionals.id, active: regionals.active }); break;
       case "city": [updated] = await database.update(cities).set({ active: input.active }).where(eq(cities.id, input.id)).returning({ id: cities.id, active: cities.active }); break;
@@ -698,10 +741,10 @@ export const settingsRouter = router({
     return { success: true, active: updated.active } as const;
   }),
 
-  deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "store", "supplier", "partner", "supervisor", "service", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+  deleteRegistry: protectedProcedure.input(z.object({ kind: z.enum(["provider", "regional", "city", "store", "supplier", "partner", "supervisor", "service", "product", "media", "action", "event", "campaign", "campaign_sector", "financial_category", "supplier_offering"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
-    const tables = { provider: providers, regional: regionals, city: cities, store: stores, supplier: suppliers, partner: partners, supervisor: commercialSupervisors, service: serviceTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors, financial_category: financialCategories, supplier_offering: supplierOfferings } as const;
+    const tables = { provider: providers, regional: regionals, city: cities, store: stores, supplier: suppliers, partner: partners, supervisor: commercialSupervisors, service: serviceTypes, product: productTypes, media: mediaTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors, financial_category: financialCategories, supplier_offering: supplierOfferings } as const;
     const table = tables[input.kind];
     const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });

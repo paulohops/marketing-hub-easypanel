@@ -25,6 +25,7 @@ const entities: Record<string, EntityConfig> = {
   parceiros: { singular: "Parceiro", plural: "Parceiros", collection: "partners", kind: "partner", description: "Contatos, contratos e condições de parceria.", icon: Building2 },
   supervisores: { singular: "Supervisor comercial", plural: "Supervisores comerciais", collection: "commercialSupervisors", kind: "supervisor", description: "Pessoas responsáveis e lojas sob supervisão comercial.", icon: Building2 },
   servicos: { singular: "Serviço", plural: "Serviços", collection: "serviceTypes", kind: "service", description: "Serviços disponíveis para contratação e configuração da operação.", icon: Building2 },
+  "tipos-de-produto": { singular: "Tipo de produto", plural: "Tipos de produto", collection: "productTypes", kind: "product", description: "Categorias de produtos para composição das ofertas de fornecedores.", icon: Building2 },
   "tipos-de-midia": { singular: "Tipo de mídia", plural: "Tipos de mídia", collection: "mediaTypes", kind: "media", description: "Canais e formatos para planejamento de mídia.", icon: Building2 },
   "tipos-de-acao": { singular: "Tipo de ação", plural: "Tipos de ação", collection: "actionTypes", kind: "action", description: "Classificações usadas no planejamento de ações.", icon: Building2 },
   "tipos-de-evento": { singular: "Tipo de evento", plural: "Tipos de evento", collection: "eventTypes", kind: "event", description: "Classificações usadas no planejamento de eventos.", icon: Building2 },
@@ -33,8 +34,8 @@ const entities: Record<string, EntityConfig> = {
   "categorias-financeiras": { singular: "Categoria financeira", plural: "Categorias financeiras", collection: "financialCategories", kind: "financial_category", description: "Classificações de estimativas, verbas e controles financeiros.", icon: Building2 },
 };
 
-const registryPaths: Record<string, string> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
-const registryGroups: Record<string, string> = { provider: "territorio", regional: "territorio", city: "territorio", store: "territorio", supplier: "parceiros", partner: "parceiros", supervisor: "parceiros", service: "parceiros", media: "categorias", action: "categorias", event: "categorias", campaign: "operacao", campaign_sector: "operacao", financial_category: "financeiro" };
+const registryPaths: Record<string, string> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", product: "tipos-de-produto", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
+const registryGroups: Record<string, string> = { provider: "territorio", regional: "territorio", city: "territorio", store: "territorio", supplier: "parceiros", partner: "parceiros", supervisor: "parceiros", service: "parceiros", product: "parceiros", media: "categorias", action: "categorias", event: "categorias", campaign: "operacao", campaign_sector: "operacao", financial_category: "financeiro" };
 
 function recordName(record: RegistryRecord) { return String(record.displayName ?? record.name ?? "Sem identificação"); }
 function digits(value?: string | null) { return String(value ?? "").replace(/\D/g, ""); }

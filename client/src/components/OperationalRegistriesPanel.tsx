@@ -46,6 +46,7 @@ type Panel =
   | "partner"
   | "supervisor"
   | "service"
+  | "product"
   | "media"
   | "action"
   | "event"
@@ -77,6 +78,7 @@ const cards: Array<{
   { key: "campaign", title: "Atuação", description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.", icon: Megaphone, group: "Operação" },
   { key: "campaign_sector", title: "Setores", description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.", icon: Settings2, group: "Operação" },
   { key: "service", title: "Serviços", description: "Serviços contratáveis para parceiros.", icon: Wrench, group: "Parceiros" },
+  { key: "product", title: "Tipos de produto", description: "Categorias de produtos oferecidos pelos parceiros.", icon: PackagePlus, group: "Parceiros" },
   { key: "action", title: "Tipos de ação", description: "Categorias configuráveis para ações de trade.", icon: Megaphone, group: "Categorias" },
   { key: "event", title: "Tipos de evento", description: "Categorias configuráveis para a agenda de eventos.", icon: CalendarDays, group: "Categorias" },
   { key: "media", title: "Tipos de mídia", description: "Canais e formatos de mídia usados no território.", icon: Radio, group: "Categorias" },
@@ -148,6 +150,14 @@ export default function OperationalRegistriesPanel() {
   const [regionalId, setRegionalId] = useState("");
   const [legalName, setLegalName] = useState("");
   const [billingCnpj, setBillingCnpj] = useState("");
+  const [supplierAddress, setSupplierAddress] = useState("");
+  const [supplierContactName, setSupplierContactName] = useState("");
+  const [paymentDay, setPaymentDay] = useState("");
+  const [paymentBarterValue, setPaymentBarterValue] = useState("");
+  const [paymentBarterService, setPaymentBarterService] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
+  const [contractStartsOn, setContractStartsOn] = useState("");
+  const [contractEndsOn, setContractEndsOn] = useState("");
   const [headquartersCityId, setHeadquartersCityId] = useState("");
   const [brandColors, setBrandColors] = useState("");
   const [email, setEmail] = useState("");
@@ -361,6 +371,14 @@ export default function OperationalRegistriesPanel() {
     setRegionalId("");
     setLegalName("");
     setBillingCnpj("");
+    setSupplierAddress("");
+    setSupplierContactName("");
+    setPaymentDay("");
+    setPaymentBarterValue("");
+    setPaymentBarterService("");
+    setPaymentNotes("");
+    setContractStartsOn("");
+    setContractEndsOn("");
     setHeadquartersCityId("");
     setBrandColors("");
     setEmail("");
@@ -388,7 +406,7 @@ export default function OperationalRegistriesPanel() {
   useEffect(() => {
     const currentUrl = location.includes("?") ? location : `${window.location.pathname}${window.location.search}`;
     const requested = new URLSearchParams(currentUrl.split("?")[1] ?? "").get("novo");
-    const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", lojas: "store", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "tipos-de-campanha": "campaign", "setores-de-campanha": "campaign_sector", "categorias-financeiras": "financial_category" };
+    const panelBySlug: Record<string, Panel> = { empresas: "provider", regionais: "regional", cidades: "city", lojas: "store", fornecedores: "supplier", parceiros: "partner", supervisores: "supervisor", servicos: "service", "tipos-de-produto": "product", "tipos-de-midia": "media", "tipos-de-acao": "action", "tipos-de-evento": "event", "tipos-de-campanha": "campaign", "setores-de-campanha": "campaign_sector", "categorias-financeiras": "financial_category" };
     if (!requested) {
       handledCreateIntent.current = null;
       return;
@@ -496,6 +514,8 @@ export default function OperationalRegistriesPanel() {
         active: item.active,
         detail: item.email ?? item.phone ?? undefined,
       }));
+    if (panel === "product")
+      return data.productTypes.map(item => ({ id: item.id, name: item.name, active: item.active, detail: item.description ?? undefined }));
     if (panel === "financial_category")
       return data.financialCategories.map(item => ({
         id: item.id,
@@ -509,7 +529,7 @@ export default function OperationalRegistriesPanel() {
         : panel === "media"
           ? data.mediaTypes
           : panel === "action"
-            ? data.actionTypes
+              ? data.actionTypes
             : panel === "event"
               ? data.eventTypes
               : panel === "campaign"
@@ -611,6 +631,7 @@ export default function OperationalRegistriesPanel() {
       panel === "event" ||
       panel === "media" ||
       panel === "service" ||
+      panel === "product" ||
       panel === "campaign" ||
       panel === "campaign_sector"
     ) {
@@ -623,9 +644,9 @@ export default function OperationalRegistriesPanel() {
               ? data.mediaTypes
               : panel === "campaign"
                 ? data.campaignTypes
-                : panel === "campaign_sector"
-                  ? data.campaignSectors
-                  : data.serviceTypes;
+                  : panel === "campaign_sector"
+                    ? data.campaignSectors
+                    : data.serviceTypes;
       const item = items.find(item => item.id === id);
       setName(item?.name ?? "");
       const mediaItem = panel === "media" ? data.mediaTypes.find(row => row.id === id) : undefined;
@@ -727,6 +748,10 @@ export default function OperationalRegistriesPanel() {
       }
       return createCommercialSupervisor.mutate({ userId: null, ...payload }, { onSuccess: item => setCommercialSupervisorStores.mutate({ commercialSupervisorId: item.id, storeIds: supervisorStoreIds }) });
     }
+    if (panel === "product")
+      return editingId
+        ? updateType.mutate({ kind: "product", id: editingId, name, description: description || undefined })
+        : createType.mutate({ kind: "product", name, description: description || undefined });
     if (panel === "financial_category")
       return editingId
         ? updateFinancialCategory.mutate({
@@ -755,6 +780,9 @@ export default function OperationalRegistriesPanel() {
     setEditingSupplierId(selectedSupplier.id);
     setName(selectedSupplier.displayName);
     setDocument(selectedSupplier.document ?? "");
+    setLegalName(selectedSupplier.legalName ?? "");
+    setSupplierAddress(selectedSupplier.address ?? "");
+    setSupplierContactName(selectedSupplier.contactName ?? "");
     setEmail(selectedSupplier.email ?? "");
     setPhone(selectedSupplier.phone ?? "");
     setProviderId(selectedSupplier.providerId ? String(selectedSupplier.providerId) : "");
@@ -762,11 +790,20 @@ export default function OperationalRegistriesPanel() {
     setPartnershipType(selectedSupplier.partnershipType ?? "paid");
     setPaymentMethod(selectedSupplier.paymentMethod ?? "");
     setPaymentRecurrence(selectedSupplier.paymentRecurrence ?? "");
+    setPaymentDay(selectedSupplier.paymentDay ? String(selectedSupplier.paymentDay) : "");
+    setPaymentBarterValue(selectedSupplier.paymentBarterValue ? String(selectedSupplier.paymentBarterValue) : "");
+    setPaymentBarterService(selectedSupplier.paymentBarterService ?? "");
+    setPaymentNotes(selectedSupplier.paymentNotes ?? "");
+    setContractStartsOn(selectedSupplier.contractStartsOn ?? "");
+    setContractEndsOn(selectedSupplier.contractEndsOn ?? "");
     setHasContract(selectedSupplier.hasContract);
   };
   const saveSupplier = () => {
     const payload = {
       displayName: name,
+      legalName: legalName || undefined,
+      address: supplierAddress || undefined,
+      contactName: supplierContactName || undefined,
       document,
       email,
       phone,
@@ -775,6 +812,12 @@ export default function OperationalRegistriesPanel() {
       partnershipType,
       paymentMethod: paymentMethod || undefined,
       paymentRecurrence: paymentRecurrence || undefined,
+      paymentDay: paymentDay ? Number(paymentDay) : null,
+      paymentBarterValue: paymentBarterValue ? Number(paymentBarterValue.replace(",", ".")) : null,
+      paymentBarterService: paymentBarterService || undefined,
+      paymentNotes: paymentNotes || undefined,
+      contractStartsOn: contractStartsOn || null,
+      contractEndsOn: contractEndsOn || null,
       hasContract,
     };
     return editingSupplierId
@@ -854,7 +897,7 @@ export default function OperationalRegistriesPanel() {
                   setLocation("/pontos-de-acao");
                   return;
                 }
-                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
+                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", product: "tipos-de-produto", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
                 const target = paths[card.key];
                 if (target) setLocation(`/cadastros/${target}`);
               }}
@@ -945,6 +988,24 @@ export default function OperationalRegistriesPanel() {
               setName={setName}
               document={document}
               setDocument={setDocument}
+              legalName={legalName}
+              setLegalName={setLegalName}
+              supplierAddress={supplierAddress}
+              setSupplierAddress={setSupplierAddress}
+              supplierContactName={supplierContactName}
+              setSupplierContactName={setSupplierContactName}
+              contractStartsOn={contractStartsOn}
+              setContractStartsOn={setContractStartsOn}
+              contractEndsOn={contractEndsOn}
+              setContractEndsOn={setContractEndsOn}
+              paymentDay={paymentDay}
+              setPaymentDay={setPaymentDay}
+              paymentBarterValue={paymentBarterValue}
+              setPaymentBarterValue={setPaymentBarterValue}
+              paymentBarterService={paymentBarterService}
+              setPaymentBarterService={setPaymentBarterService}
+              paymentNotes={paymentNotes}
+              setPaymentNotes={setPaymentNotes}
               email={email}
               setEmail={setEmail}
               phone={phone}
@@ -1546,6 +1607,24 @@ function SupplierPanel(props: {
   setName: (v: string) => void;
   document: string;
   setDocument: (v: string) => void;
+  legalName: string;
+  setLegalName: (v: string) => void;
+  supplierAddress: string;
+  setSupplierAddress: (v: string) => void;
+  supplierContactName: string;
+  setSupplierContactName: (v: string) => void;
+  contractStartsOn: string;
+  setContractStartsOn: (v: string) => void;
+  contractEndsOn: string;
+  setContractEndsOn: (v: string) => void;
+  paymentDay: string;
+  setPaymentDay: (v: string) => void;
+  paymentBarterValue: string;
+  setPaymentBarterValue: (v: string) => void;
+  paymentBarterService: string;
+  setPaymentBarterService: (v: string) => void;
+  paymentNotes: string;
+  setPaymentNotes: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
   phone: string;
@@ -1598,70 +1677,46 @@ function SupplierPanel(props: {
   onToggleOffering: (id: number, active: boolean) => void;
   saving: boolean;
 }) {
+  const [step, setStep] = useState(1);
+  const steps = ["Dados do fornecedor", "Dados de pagamento", "Dados do representante", "Localidade", "Serviços e produtos"];
+  const canAdvance = step < steps.length;
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-border p-4">
-        <p className="font-semibold text-foreground">{props.editingSupplier ? "Editar fornecedor" : "Novo fornecedor"}</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Nome de exibição"
-            id="supplier-name"
-            value={props.name}
-            setValue={props.setName}
-          />
-          <Field
-            label="CNPJ"
-            id="supplier-document"
-            value={props.document}
-            setValue={props.setDocument}
-          />
-          <Field
-            label="Telefone"
-            id="supplier-phone"
-            value={props.phone}
-            setValue={props.setPhone}
-          />
-          <Field
-            label="E-mail"
-            id="supplier-email"
-            value={props.email}
-            setValue={props.setEmail}
-            type="email"
-          />
-          <SelectField
-            id="supplier-provider"
-            label="Empresa"
-            value={props.providerId}
-            onChange={props.setProviderId}
-            optional
-            options={props.providers
-              .filter(item => item.active)
-              .map(item => ({ value: String(item.id), label: item.name }))}
-          />
-          <SelectField
-            id="supplier-city"
-            label="Cidade-base"
-            value={props.registryCityId}
-            onChange={props.setRegistryCityId}
-            optional
-            options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))}
-          />
-          {!props.editingSupplier ? <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold text-foreground">Opções de pagamento do fornecedor</p><p className="mt-1 text-xs text-muted-foreground">Defina estas condições no cadastro inicial do fornecedor.</p><div className="mt-3 grid gap-4 sm:grid-cols-3"><SelectField id="supplier-partnership-type" label="Tipo de pagamento" value={props.partnershipType} onChange={value => props.setPartnershipType(value as "paid" | "barter" | "mixed")} options={[{ value: "paid", label: "Pago" }, { value: "barter", label: "Permuta" }, { value: "mixed", label: "Misto" }]} /><Field label="Dia ou condição" id="supplier-payment-recurrence" value={props.paymentRecurrence} setValue={props.setPaymentRecurrence} placeholder="Ex.: dia 10" /><Field label="Forma de pagamento" id="supplier-payment-method" value={props.paymentMethod} setValue={props.setPaymentMethod} placeholder="Ex.: Pix, boleto" /></div></div> : null}
-          <label className="flex min-h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground sm:col-span-2">
-            <input type="checkbox" checked={props.hasContract} onChange={event => props.setHasContract(event.target.checked)} className="h-4 w-4 accent-primary" />
-            Possuímos contrato com este fornecedor
-          </label>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><p className="font-semibold text-foreground">{props.editingSupplier ? "Editar fornecedor" : "Novo fornecedor"}</p><p className="mt-1 text-xs text-muted-foreground">Preencha o cadastro na sequência. A edição usa o mesmo fluxo da criação.</p></div>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">Etapa {step} de 5</span>
         </div>
-        <Button
-          type="button"
-          className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
-          disabled={props.saving}
-          onClick={props.onCreate}
-        >
-          {props.editingSupplier ? <Pencil className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
-          {props.editingSupplier ? "Salvar fornecedor" : "Cadastrar fornecedor"}
-        </Button>
-        {props.editingSupplier ? <Button type="button" variant="ghost" className="ml-2" onClick={props.onCancelSupplierEdit}>Cancelar</Button> : null}
+        <div className="mt-4 grid gap-2 sm:grid-cols-5">{steps.map((label, index) => <button key={label} type="button" onClick={() => setStep(index + 1)} className={`rounded-lg border px-2 py-2 text-left text-[11px] font-semibold transition ${step === index + 1 ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}><span className="mr-1">{index + 1}.</span>{label}</button>)}</div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {step === 1 && <>
+            <Field label="Nome" id="supplier-name" value={props.name} setValue={props.setName} />
+            <Field label="Razão social" id="supplier-legal-name" value={props.legalName} setValue={props.setLegalName} />
+            <Field label="CNPJ" id="supplier-document" value={props.document} setValue={props.setDocument} />
+            <Field label="Endereço da empresa" id="supplier-address" value={props.supplierAddress} setValue={props.setSupplierAddress} />
+            <Field label="Início do contrato" id="supplier-contract-start" value={props.contractStartsOn} setValue={props.setContractStartsOn} type="date" />
+            <Field label="Fim do contrato" id="supplier-contract-end" value={props.contractEndsOn} setValue={props.setContractEndsOn} type="date" />
+            <label className="flex min-h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground sm:col-span-2"><input type="checkbox" checked={props.hasContract} onChange={event => props.setHasContract(event.target.checked)} className="h-4 w-4 accent-primary" />Possuímos contrato com este fornecedor</label>
+          </>}
+          {step === 2 && <>
+            <SelectField id="supplier-partnership-type" label="Tipo de pagamento" value={props.partnershipType} onChange={value => props.setPartnershipType(value as "paid" | "barter" | "mixed")} options={[{ value: "paid", label: "Pago" }, { value: "barter", label: "Permuta" }, { value: "mixed", label: "Misto" }]} />
+            {(props.partnershipType === "paid" || props.partnershipType === "mixed") && <><Field label="Dia de pagamento" id="supplier-payment-day" value={props.paymentDay} setValue={props.setPaymentDay} type="number" /><Field label="Forma de pagamento" id="supplier-payment-method" value={props.paymentMethod} setValue={props.setPaymentMethod} placeholder="Pix, boleto ou transferência" /><Field label="Condição/recorrência" id="supplier-payment-recurrence" value={props.paymentRecurrence} setValue={props.setPaymentRecurrence} /></>}
+            {(props.partnershipType === "barter" || props.partnershipType === "mixed") && <><Field label="Valor da permuta" id="supplier-barter-value" value={props.paymentBarterValue} setValue={props.setPaymentBarterValue} inputMode="decimal" /><Field label="Serviço oferecido na permuta" id="supplier-barter-service" value={props.paymentBarterService} setValue={props.setPaymentBarterService} /></>}
+            <Field label="Observações de pagamento" id="supplier-payment-notes" value={props.paymentNotes} setValue={props.setPaymentNotes} />
+          </>}
+          {step === 3 && <>
+            <Field label="Responsável" id="supplier-contact" value={props.supplierContactName} setValue={props.setSupplierContactName} />
+            <Field label="Telefone" id="supplier-phone" value={props.phone} setValue={props.setPhone} />
+            <Field label="E-mail" id="supplier-email" value={props.email} setValue={props.setEmail} type="email" />
+          </>}
+          {step === 4 && <>
+            <SelectField id="supplier-provider" label="Empresa" value={props.providerId} onChange={props.setProviderId} optional options={props.providers.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} />
+            <SelectField id="supplier-city" label="Cidade-base" value={props.registryCityId} onChange={props.setRegistryCityId} optional options={props.cities.filter(item => item.active).map(item => ({ value: String(item.id), label: item.name }))} />
+            <div className="sm:col-span-2"><SearchableMultiSelect id="supplier-covered-cities-wizard" label="Cidades atendidas" options={props.cities.filter(item => item.active).map(item => ({ id: item.id, label: item.name }))} values={props.cityIds} onChange={values => { const next = new Set(values); props.cityIds.filter(id => !next.has(id)).forEach(id => props.onToggleCity(id)); values.filter(id => !props.cityIds.includes(id)).forEach(id => props.onToggleCity(id)); }} placeholder="Selecionar cidades atendidas" emptyMessage="Nenhuma cidade ativa cadastrada" /></div>
+          </>}
+          {step === 5 && <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold text-foreground">Serviços, mídias e produtos</p><p className="mt-1 text-xs text-muted-foreground">Após salvar o fornecedor, use a seção abaixo para vincular serviços com mídia e cadastrar produtos ou serviços com preço.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><p className="text-xs text-muted-foreground">{props.serviceIds.length} serviços selecionados</p><p className="text-xs text-muted-foreground">{props.mediaIds.length} tipos de mídia selecionados</p></div></div>}
+        </div>
+        <div className="mt-5 flex flex-wrap justify-between gap-2"><Button type="button" variant="outline" disabled={step === 1} onClick={() => setStep(value => Math.max(1, value - 1))}>Anterior</Button><div className="flex gap-2">{props.editingSupplier ? <Button type="button" variant="ghost" onClick={props.onCancelSupplierEdit}>Cancelar</Button> : null}{canAdvance ? <Button type="button" onClick={() => setStep(value => Math.min(5, value + 1))}>Próxima etapa</Button> : <Button type="button" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={props.saving} onClick={props.onCreate}>{props.editingSupplier ? <Pencil className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}{props.editingSupplier ? "Salvar fornecedor" : "Cadastrar fornecedor"}</Button>}</div></div>
       </section>
       <section className="rounded-xl border border-border p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
