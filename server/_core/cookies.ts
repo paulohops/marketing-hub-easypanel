@@ -39,10 +39,15 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const secure = isSecureRequest(req);
+
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // SameSite=None is valid only together with Secure. On local HTTP or
+    // when a reverse proxy omits X-Forwarded-Proto, Lax keeps the session
+    // cookie usable without weakening the HTTPS production policy.
+    sameSite: secure ? "none" : "lax",
+    secure,
   };
 }
