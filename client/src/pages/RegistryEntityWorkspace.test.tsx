@@ -71,10 +71,14 @@ describe("fichas de cadastros", () => {
     fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
     expect(screen.getByLabelText("Cidade")).toHaveValue("3");
     expect(screen.getByLabelText("Endereço")).toHaveValue("Av. Central, 100");
-    expect(screen.getByLabelText("Horário de funcionamento")).toHaveValue("08h às 18h");
-    fireEvent.change(screen.getByLabelText("Horário de funcionamento"), { target: { value: "09h às 19h" } });
+    expect(screen.getByRole("heading", { name: "Horário de funcionamento" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Segunda-feira" }));
+    fireEvent.change(screen.getByLabelText("Segunda-feira - abertura"), { target: { value: "09:00" } });
+    fireEvent.change(screen.getByLabelText("Segunda-feira - fechamento"), { target: { value: "19:00" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
-    expect(updateStore).toHaveBeenCalledWith(expect.objectContaining({ id: 2, cityId: 3, openingHours: "09h às 19h" }));
+    const storePayload = updateStore.mock.calls.at(-1)?.[0];
+    expect(storePayload).toEqual(expect.objectContaining({ id: 2, cityId: 3 }));
+    expect(JSON.parse(storePayload.openingHours).monday).toEqual({ enabled: true, open: "09:00", close: "19:00" });
     fireEvent.click(screen.getByRole("button", { name: "Desvincular" }));
     expect(setCommercialSupervisorStores).toHaveBeenCalledWith({ commercialSupervisorId: 21, storeIds: [] });
   });

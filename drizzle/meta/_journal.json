@@ -274,6 +274,13 @@
       "when": 1786835291237,
       "tag": "0038_seed_operations_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1786841615746,
+      "tag": "0039_wise_firedrake",
+      "breakpoints": true
     }
   ]
 }

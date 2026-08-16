@@ -93,6 +93,7 @@ export const providers = pgTable("providers", {
   contactName: varchar("contactName", { length: 160 }),
   phone: varchar("phone", { length: 32 }),
   email: varchar("email", { length: 320 }),
+  website: text("website"),
   address: text("address"),
   logoStorageKey: varchar("logoStorageKey", { length: 512 }),
   logoUrl: text("logoUrl"),

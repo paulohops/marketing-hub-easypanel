@@ -57,6 +57,15 @@ describe("centro de cadastros operacionais", () => {
     expect(screen.getByRole("button", { name: "Todos os grupos" })).toBeInTheDocument();
   });
 
+  it("exibe somente as opções do grupo Parceiros", () => {
+    render(<OperationalRegistriesPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /^Parceiros/i }));
+    expect(screen.getByRole("button", { name: /fornecedores/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /parceiros comerciais/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /empresas/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /lojas/i })).not.toBeInTheDocument();
+  });
+
   it.each([
     ["Empresas", "/cadastros/empresas"],
     ["Regionais", "/cadastros/regionais"],

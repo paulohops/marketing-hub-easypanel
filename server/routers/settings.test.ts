@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getTrelloEmbedUrl, normalizeCnpj, normalizeSpreadsheetKey, normalizeTrelloUrl, uniqueIds } from "./settings";
+import { getTrelloEmbedUrl, normalizeCnpj, normalizeSpreadsheetKey, normalizeTrelloUrl, normalizeWebsiteUrl, uniqueIds } from "./settings";
 
 describe("uniqueIds", () => {
   it("remove vínculos repetidos antes da persistência N:N", () => {
@@ -10,6 +10,16 @@ describe("uniqueIds", () => {
 describe("normalizeCnpj", () => {
   it("remove a formatação e preserva os 14 dígitos do CNPJ", () => {
     expect(normalizeCnpj("12.345.678/0001-95")).toBe("12345678000195");
+  });
+});
+
+describe("normalizeWebsiteUrl", () => {
+  it("adiciona HTTPS quando o usuário informa apenas o domínio", () => {
+    expect(normalizeWebsiteUrl("www.cluster.com.br")).toBe("https://www.cluster.com.br/");
+  });
+
+  it("rejeita protocolos que não são HTTP ou HTTPS", () => {
+    expect(() => normalizeWebsiteUrl("javascript:alert(1)")).toThrow("O site deve usar uma URL HTTP ou HTTPS válida.");
   });
 });
 

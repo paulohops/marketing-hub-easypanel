@@ -8,7 +8,7 @@ const uploadProviderBrandManual = vi.hoisted(() => vi.fn());
 const uploadProviderDocument = vi.hoisted(() => vi.fn());
 const deleteProviderDocument = vi.hoisted(() => vi.fn());
 const updateProvider = vi.hoisted(() => vi.fn());
-const provider = { id: 1, name: "Cluster MG", legalName: "Cluster MG LTDA", billingCnpj: "12345678000195", contactName: "Paulo", email: "contato@cluster.com", phone: "3133333333", address: "Av. Central, 1", logoStorageKey: null, logoUrl: null, headquartersCityId: 3, brandColors: ["#0E723B", "#F45103"], cnpjCardStorageKey: null, cnpjCardUrl: "https://example.com/cnpj.pdf", brandManualStorageKey: null, brandManualUrl: null, active: true, createdAt: new Date(), updatedAt: new Date() };
+const provider = { id: 1, name: "Cluster MG", legalName: "Cluster MG LTDA", billingCnpj: "12345678000195", contactName: "Paulo", email: "contato@cluster.com", website: "https://cluster.com.br/", phone: "3133333333", address: "Av. Central, 1", logoStorageKey: null, logoUrl: null, headquartersCityId: 3, brandColors: ["#0E723B", "#F45103"], cnpjCardStorageKey: null, cnpjCardUrl: "https://example.com/cnpj.pdf", brandManualStorageKey: null, brandManualUrl: null, active: true, createdAt: new Date(), updatedAt: new Date() };
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ settings: { overview: { invalidate: invalidateOverview, setData: setOverview } } }),
   settings: {
@@ -38,6 +38,7 @@ describe("workspace Empresas", () => {
     expect(screen.getByRole("heading", { name: "Cluster MG" })).toBeInTheDocument();
     expect(screen.getByText("Cluster MG LTDA")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Abrir ficha completa/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Criar empresa/i })).toHaveAttribute("href", "/cadastros/operacionais?novo=empresas");
   });
 
   it("lê a preferência compacta no primeiro render da lista de Empresas", () => {
@@ -59,6 +60,7 @@ describe("workspace Empresas", () => {
     expect(screen.getByText("Documentos institucionais")).toBeInTheDocument();
     expect(screen.getAllByText("Não informado").length).toBeGreaterThan(0);
     expect(screen.getByText("Cartão CNPJ")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Abrir site da empresa/i })).toHaveAttribute("href", "https://cluster.com.br/");
     expect(screen.getByText("Demais documentos")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Central · MG-C/i })).toHaveAttribute("href", "/cadastros/regionais/2");
     fireEvent.click(screen.getByRole("button", { name: /Cidades atendidas/i }));

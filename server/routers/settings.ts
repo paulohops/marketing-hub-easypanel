@@ -20,6 +20,7 @@ const providerInputSchema = z.object({
   contactName: z.string().trim().max(160).optional(),
   phone: z.string().trim().max(32).optional(),
   email: z.string().trim().email().max(320).optional(),
+  website: z.string().trim().max(1000).optional(),
   address: z.string().trim().max(1000).optional(),
   headquartersCityId: z.number().int().positive().nullable().optional(),
   brandColors: z.array(hexColorSchema).max(10).optional(),
@@ -44,6 +45,25 @@ export function normalizeCnpj(value: string) {
   return value.replace(/\D/g, "");
 }
 
+export function normalizeWebsiteUrl(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed) && !/^https?:\/\//i.test(trimmed)) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "O site deve usar uma URL HTTP ou HTTPS válida." });
+  }
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um site válido, como https://empresa.com.br." });
+  }
+  if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "O site deve usar uma URL HTTP ou HTTPS válida." });
+  }
+  return parsed.toString();
+}
+
 export function normalizeTrelloUrl(value: string) {
   if (!value) return "";
   let parsed: URL;
@@ -64,7 +84,7 @@ export function normalizeSpreadsheetKey(value: string) {
 }
 
 const spreadsheetImportSchema = z.object({
-  providers: z.array(z.object({ name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), address: z.string().trim().max(1000).optional() })).max(300),
+  providers: z.array(z.object({ name: z.string().trim().min(2).max(160), legalName: z.string().trim().max(220).optional(), billingCnpj: z.string().trim().max(32).optional(), contactName: z.string().trim().max(160).optional(), phone: z.string().trim().max(32).optional(), email: z.string().trim().email().max(320).optional(), website: z.string().trim().max(1000).optional(), address: z.string().trim().max(1000).optional() })).max(300),
   regionals: z.array(z.object({ providerName: z.string().trim().max(160).optional(), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).transform(value => value.toUpperCase()) })).max(300),
   cities: z.array(z.object({ regionalCode: z.string().trim().min(2).max(32).transform(value => value.toUpperCase()), name: z.string().trim().min(2).max(160), state: z.string().trim().length(2).transform(value => value.toUpperCase()), ibgeCode: z.string().trim().max(16).optional(), address: z.string().trim().max(1000).optional(), zipCode: z.string().trim().max(16).optional(), latitude: z.coerce.number().min(-90).max(90).optional(), longitude: z.coerce.number().min(-180).max(180).optional(), locationNotes: z.string().trim().max(1000).optional() })).max(500),
   stores: z.array(z.object({ regionalCode: z.string().trim().min(2).max(32).transform(value => value.toUpperCase()), cityName: z.string().trim().min(2).max(160), name: z.string().trim().min(2).max(160), code: z.string().trim().min(2).max(32).transform(value => value.toUpperCase()), address: z.string().trim().max(1000).optional() })).max(500),
@@ -109,12 +129,13 @@ export const settingsRouter = router({
     const [existing] = await database.select({ id: providers.id }).from(providers).where(sql`lower(${providers.name}) = lower(${input.name})`).limit(1);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já existe um fornecedor de origem com este nome." });
     const billingCnpj = input.billingCnpj ? normalizeCnpj(input.billingCnpj) : null;
+    const website = normalizeWebsiteUrl(input.website);
     if (billingCnpj && billingCnpj.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ de faturamento com 14 dígitos." });
     if (input.headquartersCityId) {
       const [headquarters] = await database.select({ id: cities.id }).from(cities).where(eq(cities.id, input.headquartersCityId)).limit(1);
       if (!headquarters) throw new TRPCError({ code: "BAD_REQUEST", message: "A cidade selecionada para matriz não existe." });
     }
-    const [created] = await database.insert(providers).values({ ...input, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, address: input.address || null, headquartersCityId: input.headquartersCityId ?? null, brandColors: input.brandColors ?? [] }).returning();
+    const [created] = await database.insert(providers).values({ ...input, website, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, address: input.address || null, headquartersCityId: input.headquartersCityId ?? null, brandColors: input.brandColors ?? [] }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: created.id, action: "create", afterData: created });
     return created;
   }),
@@ -331,13 +352,14 @@ export const settingsRouter = router({
     const [before] = await database.select().from(providers).where(eq(providers.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada." });
     const billingCnpj = input.billingCnpj ? normalizeCnpj(input.billingCnpj) : null;
+    const website = normalizeWebsiteUrl(input.website);
     if (billingCnpj && billingCnpj.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ de faturamento com 14 dígitos." });
     const headquartersCityId = input.headquartersCityId === undefined ? before.headquartersCityId : input.headquartersCityId;
     if (headquartersCityId) {
       const [headquarters] = await database.select({ id: cities.id, providerId: regionals.providerId }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.id, headquartersCityId)).limit(1);
       if (!headquarters || headquarters.providerId !== input.id) throw new TRPCError({ code: "BAD_REQUEST", message: "A cidade-matriz deve estar vinculada a uma regional desta empresa." });
     }
-    const [updated] = await database.update(providers).set({ name: input.name, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, address: input.address || null, headquartersCityId: headquartersCityId ?? null, brandColors: input.brandColors ?? before.brandColors, updatedAt: new Date() }).where(eq(providers.id, input.id)).returning();
+    const [updated] = await database.update(providers).set({ name: input.name, billingCnpj, legalName: input.legalName || null, contactName: input.contactName || null, phone: input.phone || null, email: input.email || null, website, address: input.address || null, headquartersCityId: headquartersCityId ?? null, brandColors: input.brandColors ?? before.brandColors, updatedAt: new Date() }).where(eq(providers.id, input.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider", entityId: input.id, action: "update", beforeData: before, afterData: updated });
     return updated;
   }),
@@ -543,8 +565,9 @@ export const settingsRouter = router({
         const key = normalizeSpreadsheetKey(row.name);
         if (providerByName.has(key)) continue;
         const billingCnpj = row.billingCnpj ? normalizeCnpj(row.billingCnpj) : null;
+        const website = normalizeWebsiteUrl(row.website);
         if (billingCnpj && billingCnpj.length !== 14) throw new TRPCError({ code: "BAD_REQUEST", message: `CNPJ inválido para a empresa ${row.name}.` });
-        const [provider] = await transaction.insert(providers).values({ ...row, billingCnpj, legalName: row.legalName || null, contactName: row.contactName || null, phone: row.phone || null, email: row.email || null, address: row.address || null }).returning();
+        const [provider] = await transaction.insert(providers).values({ ...row, website, billingCnpj, legalName: row.legalName || null, contactName: row.contactName || null, phone: row.phone || null, email: row.email || null, address: row.address || null }).returning();
         providerByName.set(key, provider); created.providers += 1;
       }
       for (const row of input.regionals) {

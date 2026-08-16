@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
+import { CoordinatesField, StoreHoursField } from "@/components/StoreLocationFields";
 
 type Panel =
   | "provider"
@@ -131,6 +132,7 @@ export default function OperationalRegistriesPanel() {
   const [headquartersCityId, setHeadquartersCityId] = useState("");
   const [brandColors, setBrandColors] = useState("");
   const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [openingHours, setOpeningHours] = useState("");
@@ -341,6 +343,7 @@ export default function OperationalRegistriesPanel() {
     setHeadquartersCityId("");
     setBrandColors("");
     setEmail("");
+    setWebsite("");
     setPhone("");
     setAddress("");
     setOpeningHours("");
@@ -503,6 +506,7 @@ export default function OperationalRegistriesPanel() {
       setHeadquartersCityId(item.headquartersCityId ? String(item.headquartersCityId) : "");
       setBrandColors((item.brandColors ?? []).join(", "));
       setEmail(item.email ?? "");
+      setWebsite(item.website ?? "");
       setPhone(item.phone ?? "");
       setAddress(item.address ?? "");
       return;
@@ -612,6 +616,7 @@ export default function OperationalRegistriesPanel() {
         headquartersCityId: headquartersCityId ? Number(headquartersCityId) : null,
         brandColors: brandColors.split(",").map(color => color.trim()).filter(Boolean),
         email: email || undefined,
+        website: website || undefined,
         phone: phone || undefined,
         address: address || undefined,
       };
@@ -1025,6 +1030,8 @@ export default function OperationalRegistriesPanel() {
                 setBrandColors={setBrandColors}
                 email={email}
                 setEmail={setEmail}
+                website={website}
+                setWebsite={setWebsite}
                 phone={phone}
                 setPhone={setPhone}
                 address={address}
@@ -1159,6 +1166,8 @@ function RegistryForm(props: {
   setBrandColors: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
+  website: string;
+  setWebsite: (v: string) => void;
   phone: string;
   setPhone: (v: string) => void;
   address: string;
@@ -1325,9 +1334,8 @@ function RegistryForm(props: {
           <Field label="CEP" id="store-zip" value={props.zipCode} setValue={props.setZipCode} />
           <Field label="Telefone" id="store-phone" value={props.phone} setValue={props.setPhone} />
           <Field label="E-mail" id="store-email" value={props.email} setValue={props.setEmail} type="email" />
-          <Field label="Horário de funcionamento" id="store-opening-hours" value={props.openingHours} setValue={props.setOpeningHours} />
-          <Field label="Latitude" id="store-latitude" value={props.latitude} setValue={props.setLatitude} inputMode="decimal" />
-          <Field label="Longitude" id="store-longitude" value={props.longitude} setValue={props.setLongitude} inputMode="decimal" />
+          <StoreHoursField value={props.openingHours} onChange={props.setOpeningHours} />
+          <CoordinatesField latitude={props.latitude} longitude={props.longitude} setLatitude={props.setLatitude} setLongitude={props.setLongitude} />
           <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Após salvar, abra a ficha da loja para adicionar a foto e vincular seus supervisores comerciais.</p>
         </>
       ) : null}
@@ -1351,6 +1359,14 @@ function RegistryForm(props: {
             value={props.email}
             setValue={props.setEmail}
             type="email"
+          />
+          <Field
+            label="Site"
+            id="provider-website"
+            value={props.website}
+            setValue={props.setWebsite}
+            type="url"
+            placeholder="https://empresa.com.br"
           />
           <Field
             label="Telefone"
