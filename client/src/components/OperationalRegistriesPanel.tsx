@@ -156,6 +156,7 @@ export default function OperationalRegistriesPanel() {
   const [hasContract, setHasContract] = useState(false);
   const [mediaOperationCategory, setMediaOperationCategory] = useState<"graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers">("graphics");
   const [parentMediaTypeId, setParentMediaTypeId] = useState("");
+  const [parentServiceTypeId, setParentServiceTypeId] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
@@ -366,6 +367,7 @@ export default function OperationalRegistriesPanel() {
     setHasContract(false);
     setMediaOperationCategory("graphics");
     setParentMediaTypeId("");
+    setParentServiceTypeId("");
     setSupervisorStoreIds([]);
   };
   useEffect(() => {
@@ -615,6 +617,10 @@ export default function OperationalRegistriesPanel() {
         setMediaOperationCategory((mediaItem.operationCategory ?? "graphics") as "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers");
         setParentMediaTypeId(mediaItem.parentMediaTypeId ? String(mediaItem.parentMediaTypeId) : "");
       }
+      if (panel === "service") {
+        const serviceItem = data.serviceTypes.find(row => row.id === id);
+        setParentServiceTypeId(serviceItem?.parentServiceTypeId ? String(serviceItem.parentServiceTypeId) : "");
+      }
     }
   };
   const submit = () => {
@@ -727,10 +733,20 @@ export default function OperationalRegistriesPanel() {
       panel === "service" ||
       panel === "campaign" ||
       panel === "campaign_sector"
-    )
+    ) {
+      const typeKind = panel as "service" | "media" | "action" | "event" | "campaign" | "campaign_sector";
+      if (panel === "media") {
+        const payload = { kind: typeKind, name, operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null };
+        return editingId ? updateType.mutate({ id: editingId, ...payload }) : createType.mutate(payload);
+      }
+      if (panel === "service") {
+        const payload = { kind: typeKind, name, parentServiceTypeId: parentServiceTypeId ? Number(parentServiceTypeId) : null };
+        return editingId ? updateType.mutate({ id: editingId, ...payload }) : createType.mutate(payload);
+      }
       return editingId
-        ? updateType.mutate({ kind: panel, id: editingId, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) })
-        : createType.mutate({ kind: panel, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) });
+        ? updateType.mutate({ kind: typeKind, id: editingId, name })
+        : createType.mutate({ kind: typeKind, name });
+    }
   };
   const beginSupplierEdit = () => {
     if (!selectedSupplier) return;
@@ -1088,6 +1104,9 @@ export default function OperationalRegistriesPanel() {
                 setMediaOperationCategory={setMediaOperationCategory}
                 parentMediaTypeId={parentMediaTypeId}
                 setParentMediaTypeId={setParentMediaTypeId}
+                parentServiceTypeId={parentServiceTypeId}
+                setParentServiceTypeId={setParentServiceTypeId}
+                serviceTypes={overview.data?.serviceTypes ?? []}
                 mediaTypes={overview.data?.mediaTypes ?? []}
                 editingId={editingId}
                 onUploadContract={async file => {
@@ -1224,6 +1243,9 @@ function RegistryForm(props: {
   setMediaOperationCategory: (v: "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers") => void;
   parentMediaTypeId: string;
   setParentMediaTypeId: (v: string) => void;
+  parentServiceTypeId: string;
+  setParentServiceTypeId: (v: string) => void;
+  serviceTypes: Array<{ id: number; name: string; active: boolean; mediaTypeId?: number | null; parentServiceTypeId?: number | null }>;
   mediaTypes: Array<{ id: number; name: string; active: boolean; operationCategory?: string | null; parentMediaTypeId?: number | null }>;
   editingId: number | null;
   onUploadContract: (file: File) => void;
@@ -1270,6 +1292,21 @@ function RegistryForm(props: {
             emptyMessage="Nenhum subtipo cadastrado nesta categoria"
           />
           <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Deixe o subtipo pai vazio para criar um subtipo, como <strong>Outdoor</strong>. Selecione-o para criar uma variação, como <strong>Impressão de papel</strong>.</p>
+        </>
+      ) : null}
+      {props.panel === "service" ? (
+        <>
+          <SearchableMultiSelect
+            id="registry-service-parent"
+            label="Serviço pai"
+            options={props.serviceTypes.filter(item => item.active && item.id !== props.editingId && !item.parentServiceTypeId).map(item => ({ id: item.id, label: item.name, description: item.mediaTypeId ? "Serviço vinculado a um tipo de mídia" : "Serviço independente" }))}
+            values={props.parentServiceTypeId ? [Number(props.parentServiceTypeId)] : []}
+            onChange={values => props.setParentServiceTypeId(values[0] ? String(values[0]) : "")}
+            maxSelections={1}
+            placeholder="Sem pai: serviço independente"
+            emptyMessage="Nenhum serviço pai cadastrado"
+          />
+          <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Selecione um serviço pai para criar um subserviço. O vínculo com o tipo de mídia será herdado do serviço pai.</p>
         </>
       ) : null}
       {props.panel === "regional" ? (

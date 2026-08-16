@@ -542,7 +542,7 @@ export const settingsRouter = router({
     await assertPermission(ctx.user, "settings.write"); const database = await requireDatabase(); const [before] = await database.select().from(cities).where(eq(cities.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Cidade não encontrada." }); const [updated] = await database.update(cities).set({ ...input, ibgeCode: input.ibgeCode || null, address: input.address || null, zipCode: input.zipCode || null, latitude: input.latitude?.toFixed(7), longitude: input.longitude?.toFixed(7), locationNotes: input.locationNotes || null, updatedAt: new Date() }).where(eq(cities.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId, entityType: "city", entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
-  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
+  updateType: protectedProcedure.input(z.object({ kind: z.enum(["service", "media", "action", "event", "campaign", "campaign_sector"]), id: z.number().int().positive(), name: z.string().trim().min(2).max(160), operationCategory: z.enum(mediaOperationCategories).optional(), parentMediaTypeId: z.number().int().positive().nullable().optional(), mediaTypeId: z.number().int().positive().nullable().optional(), parentServiceTypeId: z.number().int().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     if (input.kind === "media") {
@@ -559,7 +559,19 @@ export const settingsRouter = router({
       await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_type", entityId: input.id, action: "update", beforeData: before, afterData: updated });
       return updated;
     }
-    const table = { service: serviceTypes, action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind];
+    if (input.kind === "service") {
+      const [before] = await database.select().from(serviceTypes).where(eq(serviceTypes.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Serviço não encontrado." });
+      const parentServiceTypeId = input.parentServiceTypeId === undefined ? before.parentServiceTypeId : input.parentServiceTypeId;
+      if (parentServiceTypeId === input.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Um serviço não pode ser subserviço de si mesmo." });
+      const [parent] = parentServiceTypeId ? await database.select().from(serviceTypes).where(eq(serviceTypes.id, parentServiceTypeId)).limit(1) : [null];
+      if (parentServiceTypeId && !parent) throw new TRPCError({ code: "BAD_REQUEST", message: "O serviço pai selecionado não existe." });
+      const mediaTypeId = input.mediaTypeId === undefined ? (parent?.mediaTypeId ?? before.mediaTypeId) : input.mediaTypeId;
+      const [updated] = await database.update(serviceTypes).set({ name: input.name, mediaTypeId: mediaTypeId ?? null, parentServiceTypeId: parentServiceTypeId ?? null }).where(eq(serviceTypes.id, input.id)).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "service_type", entityId: input.id, action: "update", beforeData: before, afterData: updated });
+      return updated;
+    }
+    const table = { action: actionTypes, event: eventTypes, campaign: campaignTypes, campaign_sector: campaignSectors }[input.kind];
     const [before] = await database.select().from(table).where(eq(table.id, input.id)).limit(1); if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Tipo não encontrado." }); const [updated] = await database.update(table).set({ name: input.name }).where(eq(table.id, input.id)).returning(); await writeAuditLog({ actorUserId: ctx.user.id, entityType: `${input.kind}_type`, entityId: input.id, action: "update", beforeData: before, afterData: updated }); return updated;
   }),
 
