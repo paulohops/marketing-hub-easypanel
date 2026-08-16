@@ -18,6 +18,7 @@ import {
   CalendarDays,
   FileText,
   Handshake,
+  Landmark,
   Loader2,
   MapPinned,
   Megaphone,
@@ -77,6 +78,7 @@ const cards: Array<{
   { key: "supervisor", title: "Supervisores comerciais", description: "Pessoas disponíveis para liderar ações e eventos no território.", icon: Store, group: "Parceiros" },
   { key: "campaign", title: "Atuação", description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.", icon: Megaphone, group: "Operação" },
   { key: "campaign_sector", title: "Setores", description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.", icon: Settings2, group: "Operação" },
+  { key: "financial_category", title: "Categorias financeiras", description: "Classificações para orçamento, custos, notas e pagamentos.", icon: Landmark, group: "Financeiro" },
   { key: "service", title: "Serviços", description: "Serviços contratáveis para parceiros.", icon: Wrench, group: "Parceiros" },
   { key: "action", title: "Tipos de ação", description: "Categorias configuráveis para ações de trade.", icon: Megaphone, group: "Categorias" },
   { key: "event", title: "Tipos de evento", description: "Categorias configuráveis para a agenda de eventos.", icon: CalendarDays, group: "Categorias" },
@@ -820,11 +822,11 @@ export default function OperationalRegistriesPanel() {
         </Badge>
       </div>
       <div className="mt-6 space-y-6">
-        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registryGroups.map(group => { const count = group === "Financeiro" ? 0 : group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="rounded-xl border border-border bg-background p-5 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><p className="mt-4 font-semibold text-foreground">{group}</p><p className="mt-1 text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</p><span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Abrir opções <Plus className="ml-1 h-3.5 w-3.5" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div></div>
+        {activeGroup === null ? <section aria-labelledby="registry-group-selector"><div className="mb-4"><h3 id="registry-group-selector" className="font-display text-lg font-semibold text-foreground">Escolha uma área de cadastro</h3><p className="mt-1 text-sm text-muted-foreground">Selecione um grupo para visualizar somente suas opções e manter o contexto de trabalho organizado.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registryGroups.map(group => { const count = group === "Modelos" ? 2 : cards.filter(card => card.group === group).length + (group === "Parceiros" ? 1 : 0); return <button key={group} type="button" onClick={() => navigateToGroup(group)} className="rounded-xl border border-border bg-background p-5 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Settings2 className="h-4 w-4" /></span><p className="mt-4 font-semibold text-foreground">{group}</p><p className="mt-1 text-sm text-muted-foreground">{count ? `${count} opções disponíveis` : "Em planejamento"}</p><span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Abrir opções <Plus className="ml-1 h-3.5 w-3.5" /></span></button>; })}</div></section> : <><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Grupo selecionado</p><h3 className="font-display text-lg font-semibold text-foreground">{activeGroup}</h3></div></div>
         {([activeGroup] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
           <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {group === "Financeiro" ? <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-5 sm:col-span-2 xl:col-span-3"><p className="font-semibold text-foreground">Planejamento financeiro</p><p className="mt-1 text-sm text-muted-foreground">Os cadastros e parâmetros financeiros serão estruturados na próxima etapa do Marketing HUB.</p></div> : cards.filter(card => card.group === group).map(card => {
+        {cards.filter(card => card.group === group).map(card => {
           const Icon = card.icon;
           return (
             <button

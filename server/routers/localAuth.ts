@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { createHash, randomInt } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { users } from "../../drizzle/schema";
+import { appSettings, users } from "../../drizzle/schema";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { hashLocalPassword, localPasswordInput, verifyLocalPassword } from "../auth/localPasswords";
 import { getSessionCookieOptions } from "../_core/cookies";
@@ -34,6 +34,11 @@ function assertNotRateLimited(email: string) {
 }
 function hashCode(code: string) { return createHash("sha256").update(code).digest("hex"); }
 function generateCode() { return String(randomInt(0, 1_000_000)).padStart(6, "0"); }
+async function isEmailLoginCodeEnabled(database: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
+  const [setting] = await database.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "app_system")).limit(1);
+  if (!setting?.value) return false;
+  try { return (JSON.parse(setting.value) as Record<string, unknown>).emailLoginCodeEnabled === true; } catch { return false; }
+}
 
 async function findAccount(database: NonNullable<Awaited<ReturnType<typeof getDb>>>, email: string) {
   const [account] = await database.select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1);
@@ -59,7 +64,7 @@ async function createSession(ctx: { req: any; res: any }, database: NonNullable<
 }
 
 export const localAuthRouter = router({
-  login: publicProcedure.input(loginInput).mutation(async ({ input }) => {
+  login: publicProcedure.input(loginInput).mutation(async ({ ctx, input }) => {
     const email = input.email.toLowerCase(); assertNotRateLimited(email);
     const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
     let account;
@@ -67,8 +72,12 @@ export const localAuthRouter = router({
     const validPassword = Boolean(account?.passwordHash) && await verifyLocalPassword(input.password, account.passwordHash!);
     if (!account || !account.isActive || !validPassword) { registerFailedAttempt(email); throw new TRPCError({ code: "UNAUTHORIZED", message: "E-mail ou senha inválidos." }); }
     attemptsByEmail.delete(email);
-    await issueCode(database, account, "login");
-    return { success: true, requiresCode: true } as const;
+    if (await isEmailLoginCodeEnabled(database)) {
+      await issueCode(database, account, "login");
+      return { success: true, requiresCode: true } as const;
+    }
+    await createSession(ctx, database, account);
+    return { success: true, requiresCode: false } as const;
   }),
   verifyLoginCode: publicProcedure.input(codeInput).mutation(async ({ ctx, input }) => {
     const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });

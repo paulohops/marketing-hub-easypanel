@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { randomUUID } from "crypto";
 import { parse as parseCookie } from "cookie";
 import { eq, sql } from "drizzle-orm";
-import { users } from "../../drizzle/schema";
+import { appSettings, users } from "../../drizzle/schema";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
@@ -10,10 +10,23 @@ import { sdk } from "./sdk";
 import { getDb } from "../db";
 
 const STATE_COOKIE = "trade_hub_google_oauth_state";
-const GOOGLE_LOGIN_ENABLED = false;
+async function getOAuthConfig() {
+  const database = await getDb();
+  let source: Record<string, unknown> = {};
+  if (database) {
+    const [setting] = await database.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "app_system")).limit(1);
+    if (setting?.value) { try { source = JSON.parse(setting.value) as Record<string, unknown>; } catch { source = {}; } }
+  }
+  return {
+    enabled: source.googleOAuthEnabled === true,
+    clientId: typeof source.googleClientId === "string" && source.googleClientId ? source.googleClientId : ENV.googleClientId,
+    clientSecret: typeof source.googleClientSecret === "string" && source.googleClientSecret ? source.googleClientSecret : ENV.googleClientSecret,
+    redirectUri: typeof source.googleRedirectUri === "string" && source.googleRedirectUri ? source.googleRedirectUri : ENV.googleRedirectUri,
+  };
+}
 
-function redirectUri(req: any) {
-  return ENV.googleRedirectUri || `${ENV.publicAppUrl || `${req.protocol}://${req.get("host")}`}/api/oauth/google/callback`;
+function redirectUri(req: any, configured?: string) {
+  return configured || `${ENV.publicAppUrl || `${req.protocol}://${req.get("host")}`}/api/oauth/google/callback`;
 }
 
 function unavailable(res: any) {
@@ -21,23 +34,25 @@ function unavailable(res: any) {
 }
 
 export function registerOAuthRoutes(app: Express) {
-  app.get("/api/oauth/google", (req, res) => {
-    if (!GOOGLE_LOGIN_ENABLED || !ENV.googleClientId || !ENV.googleClientSecret) return unavailable(res);
+  app.get("/api/oauth/google", async (req, res) => {
+    const config = await getOAuthConfig();
+    if (!config.enabled || !config.clientId || !config.clientSecret) return unavailable(res);
     const state = randomUUID();
     res.cookie(STATE_COOKIE, state, { ...getSessionCookieOptions(req), maxAge: 10 * 60 * 1000 });
-    const params = new URLSearchParams({ client_id: ENV.googleClientId, redirect_uri: redirectUri(req), response_type: "code", scope: "openid email profile", state, access_type: "online", prompt: "select_account" });
+    const params = new URLSearchParams({ client_id: config.clientId, redirect_uri: redirectUri(req, config.redirectUri), response_type: "code", scope: "openid email profile", state, access_type: "online", prompt: "select_account" });
     return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
   });
 
   app.get("/api/oauth/google/callback", async (req, res) => {
-    if (!GOOGLE_LOGIN_ENABLED || !ENV.googleClientId || !ENV.googleClientSecret) return unavailable(res);
+    const config = await getOAuthConfig();
+    if (!config.enabled || !config.clientId || !config.clientSecret) return unavailable(res);
     const code = typeof req.query.code === "string" ? req.query.code : "";
     const state = typeof req.query.state === "string" ? req.query.state : "";
     const cookies = parseCookie(req.headers.cookie ?? "");
     if (!code || !state || state !== cookies[STATE_COOKIE]) return res.status(400).send("Sessão OAuth inválida ou expirada.");
     res.clearCookie(STATE_COOKIE, getSessionCookieOptions(req));
     try {
-      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ code, client_id: ENV.googleClientId, client_secret: ENV.googleClientSecret, redirect_uri: redirectUri(req), grant_type: "authorization_code" }) });
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ code, client_id: config.clientId, client_secret: config.clientSecret, redirect_uri: redirectUri(req, config.redirectUri), grant_type: "authorization_code" }) });
       if (!tokenResponse.ok) return res.status(401).send("Não foi possível validar o login Google.");
       const token = await tokenResponse.json() as { access_token?: string };
       if (!token.access_token) return res.status(401).send("Resposta OAuth inválida.");

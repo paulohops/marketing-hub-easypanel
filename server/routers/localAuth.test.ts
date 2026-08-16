@@ -45,7 +45,7 @@ describe("localAuthRouter", () => {
     sendAuthCodeEmailMock.mockResolvedValue(true);
     const caller = appRouter.createCaller(context);
 
-    await expect(caller.auth.local.login({ email: "MARINA@CLUSTER.COM", password: "SenhaSegura123" })).resolves.toEqual({ success: true, requiresCode: true });
+    await expect(caller.auth.local.login({ email: "MARINA@CLUSTER.COM", password: "SenhaSegura123" })).resolves.toEqual({ success: true, requiresCode: false });
     expect(verifyPasswordMock).toHaveBeenCalledWith("SenhaSegura123", "hash");
     const database = getDbMock.mock.results[0]?.value;
     await expect(caller.auth.local.verifyLoginCode({ email: "MARINA@CLUSTER.COM", code: "000000" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });

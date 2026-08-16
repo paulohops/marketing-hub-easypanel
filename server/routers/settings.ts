@@ -217,10 +217,15 @@ export const settingsRouter = router({
       notificationEmailEnabled: source.notificationEmailEnabled === true,
       openAiApiKey: source.openAiApiKey ? "********" : "",
       googleMapsApiKey: source.googleMapsApiKey ? "********" : "",
+      googleClientId: typeof source.googleClientId === "string" ? source.googleClientId : "",
+      googleClientSecret: source.googleClientSecret ? "********" : "",
+      googleRedirectUri: typeof source.googleRedirectUri === "string" ? source.googleRedirectUri : "",
+      googleOAuthEnabled: source.googleOAuthEnabled === true,
+      emailLoginCodeEnabled: source.emailLoginCodeEnabled === true,
     };
   }),
 
-  updateSystem: protectedProcedure.input(z.object({ smtpHost: z.string().trim().max(255), smtpPort: z.string().trim().max(8), smtpUser: z.string().trim().max(255), smtpPassword: z.string().max(500).optional(), smtpFrom: z.string().trim().email().or(z.literal("")), notificationEmailEnabled: z.boolean(), openAiApiKey: z.string().max(500).optional(), googleMapsApiKey: z.string().max(500).optional() })).mutation(async ({ ctx, input }) => {
+  updateSystem: protectedProcedure.input(z.object({ smtpHost: z.string().trim().max(255), smtpPort: z.string().trim().max(8), smtpUser: z.string().trim().max(255), smtpPassword: z.string().max(500).optional(), smtpFrom: z.string().trim().email().or(z.literal("")), notificationEmailEnabled: z.boolean(), openAiApiKey: z.string().max(500).optional(), googleMapsApiKey: z.string().max(500).optional(), googleClientId: z.string().trim().max(500).optional(), googleClientSecret: z.string().max(500).optional(), googleRedirectUri: z.string().trim().max(1000).optional(), googleOAuthEnabled: z.boolean(), emailLoginCodeEnabled: z.boolean() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "settings.write");
     const database = await requireDatabase();
     const [currentSetting] = await database.select().from(appSettings).where(eq(appSettings.key, "app_system")).limit(1);
@@ -236,10 +241,15 @@ export const settingsRouter = router({
       ...(input.smtpPassword ? { smtpPassword: input.smtpPassword } : {}),
       ...(input.openAiApiKey && input.openAiApiKey !== "********" ? { openAiApiKey: input.openAiApiKey } : {}),
       ...(input.googleMapsApiKey && input.googleMapsApiKey !== "********" ? { googleMapsApiKey: input.googleMapsApiKey } : {}),
+      ...(input.googleClientId ? { googleClientId: input.googleClientId } : {}),
+      ...(input.googleClientSecret && input.googleClientSecret !== "********" ? { googleClientSecret: input.googleClientSecret } : {}),
+      ...(input.googleRedirectUri ? { googleRedirectUri: input.googleRedirectUri } : {}),
+      googleOAuthEnabled: input.googleOAuthEnabled,
+      emailLoginCodeEnabled: input.emailLoginCodeEnabled,
     };
     const [updated] = await database.insert(appSettings).values({ key: "app_system", value: JSON.stringify(next), updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(next), updatedAt: new Date() } }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "app_setting", entityId: 0, action: "update_system_settings", afterData: { smtpHost: next.smtpHost, smtpFrom: next.smtpFrom, notificationEmailEnabled: next.notificationEmailEnabled, hasApiKeys: Boolean(next.openAiApiKey || next.googleMapsApiKey) } });
-    return { smtpHost: String(next.smtpHost ?? ""), smtpPort: String(next.smtpPort ?? "587"), smtpUser: String(next.smtpUser ?? ""), smtpPassword: "", smtpFrom: String(next.smtpFrom ?? ""), notificationEmailEnabled: next.notificationEmailEnabled === true, openAiApiKey: next.openAiApiKey ? "********" : "", googleMapsApiKey: next.googleMapsApiKey ? "********" : "" };
+    return { smtpHost: String(next.smtpHost ?? ""), smtpPort: String(next.smtpPort ?? "587"), smtpUser: String(next.smtpUser ?? ""), smtpPassword: "", smtpFrom: String(next.smtpFrom ?? ""), notificationEmailEnabled: next.notificationEmailEnabled === true, openAiApiKey: next.openAiApiKey ? "********" : "", googleMapsApiKey: next.googleMapsApiKey ? "********" : "", googleClientId: String(next.googleClientId ?? ""), googleClientSecret: next.googleClientSecret ? "********" : "", googleRedirectUri: String(next.googleRedirectUri ?? ""), googleOAuthEnabled: next.googleOAuthEnabled === true, emailLoginCodeEnabled: next.emailLoginCodeEnabled === true };
   }),
 
   overview: protectedProcedure.query(async ({ ctx }) => {

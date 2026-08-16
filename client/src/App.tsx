@@ -38,6 +38,9 @@ function Router() {
     <Route path="/cadastros/empresas/:providerId">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/cadastros/empresas">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/cadastros/territorio">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/operacao">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/categorias">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/financeiro">{renderOperationalAlias}</Route>
     <Route path="/cadastros/regionais">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros/cidades">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros/lojas">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
