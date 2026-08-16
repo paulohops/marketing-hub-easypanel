@@ -212,7 +212,7 @@ export default function CampaignTemplatesWorkspace() {
         <div>
           <Button
             variant="ghost"
-            onClick={() => setLocation("/cadastros/operacionais")}
+            onClick={() => setLocation("/cadastros/territorio")}
             className="-ml-2 h-8 px-2 text-xs text-primary"
           >
             <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Cadastros

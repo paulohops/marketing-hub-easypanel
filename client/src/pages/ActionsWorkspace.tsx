@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import EvidenceUpload from "@/components/EvidenceUpload";
-import CompactListToggle from "@/components/CompactListToggle";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { useListDensity } from "@/hooks/useListDensity";
@@ -650,7 +649,6 @@ export default function ActionsWorkspace() {
             <SlidersHorizontal className="mr-2 h-4 w-4" />
             Filtros{activeFilterCount ? ` (${activeFilterCount})` : ""}
           </Button>
-          <CompactListToggle />
           {canWrite && <>
             <Button onClick={openForm} className="bg-primary">
               <Plus className="mr-2 h-4 w-4" /> Nova ação

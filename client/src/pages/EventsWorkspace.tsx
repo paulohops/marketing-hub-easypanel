@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import CompactListToggle from "@/components/CompactListToggle";
 import EvidenceUpload from "@/components/EvidenceUpload";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -81,7 +80,7 @@ export default function EventsWorkspace() {
   return <main className="mx-auto max-w-[1480px]">
     <header className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm"><MapPinned className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Experiências presenciais</p><h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-foreground">Eventos</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Planejamento territorial, equipe, fornecedores, recursos, custos e avaliação da parceria em uma única operação.</p></div></div>
-      <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => setFiltersOpen(value => !value)} className="h-10 rounded-xl border-border px-4 text-xs font-semibold"><SlidersHorizontal className="mr-1.5 h-4 w-4" />Filtros</Button><CompactListToggle />{canWrite && <Button onClick={() => setIsFormOpen(true)} className="h-10 rounded-xl bg-primary px-4 text-xs font-semibold hover:bg-primary/90"><Plus className="mr-1.5 h-4 w-4" /> Novo evento</Button>}</div>
+      <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => setFiltersOpen(value => !value)} className="h-10 rounded-xl border-border px-4 text-xs font-semibold"><SlidersHorizontal className="mr-1.5 h-4 w-4" />Filtros</Button>{canWrite && <Button onClick={() => setIsFormOpen(true)} className="h-10 rounded-xl bg-primary px-4 text-xs font-semibold hover:bg-primary/90"><Plus className="mr-1.5 h-4 w-4" /> Novo evento</Button>}</div>
     </header>
 
     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

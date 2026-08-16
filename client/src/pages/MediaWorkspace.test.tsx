@@ -52,13 +52,13 @@ import MediaWorkspace from "./MediaWorkspace";
 afterEach(() => { cleanup(); localStorage.removeItem("marketing_hub_list_density"); vi.clearAllMocks(); window.history.replaceState({}, "", "/midias"); window.dispatchEvent(new PopStateEvent("popstate")); });
 
 describe("detalhe de mídias", () => {
-  it("lê a preferência compacta no primeiro render da Mídia Urbana", () => {
+  it("mantém a preferência compacta sem exibir o botão de modo compacto", () => {
     localStorage.setItem("marketing_hub_list_density", "compact");
     listQuery.mockReturnValue({ data: [], isLoading: false });
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
     const { container } = render(<MediaWorkspace initialCategory="graphics" />);
 
-    expect(screen.getByRole("button", { name: "Compacto" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Compacto" })).not.toBeInTheDocument();
     expect(container.firstElementChild).toHaveClass("media-list-compact");
   });
 

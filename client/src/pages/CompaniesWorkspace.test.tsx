@@ -38,14 +38,14 @@ describe("workspace Empresas", () => {
     expect(screen.getByRole("heading", { name: "Cluster MG" })).toBeInTheDocument();
     expect(screen.getByText("Cluster MG LTDA")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Abrir ficha completa/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Criar empresa/i })).toHaveAttribute("href", "/cadastros/operacionais?novo=empresas");
+    expect(screen.getByRole("link", { name: /Criar empresa/i })).toHaveAttribute("href", "/cadastros/empresas?novo=1");
   });
 
   it("lê a preferência compacta no primeiro render da lista de Empresas", () => {
     localStorage.setItem("marketing_hub_list_density", "compact");
     render(<CompaniesWorkspace />);
 
-    expect(screen.getByRole("button", { name: "Compacto" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Compacto" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cluster MG" }).closest("button")).toHaveClass("p-3");
   });
 

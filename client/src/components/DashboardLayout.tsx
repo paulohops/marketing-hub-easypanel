@@ -134,6 +134,7 @@ const navigationGroups: NavGroup[] = [
         { label: "Equipes", path: "/configuracoes/equipes", icon: Network, permission: "settings.read" },
         { label: "Central de Dados", path: "/configuracoes/central-de-dados", icon: Database, permission: "settings.read" },
         { label: "Design", path: "/configuracoes/design", icon: PanelsTopLeft, permission: "settings.read" },
+        { label: "Sistema", path: "/configuracoes/sistema", icon: Settings2, permission: "settings.read" },
       ] },
     ],
   },

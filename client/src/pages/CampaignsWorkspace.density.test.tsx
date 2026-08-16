@@ -34,7 +34,7 @@ describe("densidade persistida em Campanhas", () => {
     localStorage.setItem("marketing_hub_list_density", "compact");
     render(<CampaignsWorkspace />);
 
-    expect(screen.getByRole("button", { name: "Compacto" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Compacto" })).not.toBeInTheDocument();
     expect(screen.getByText("Campanha Compacta").closest("button")).toHaveClass("min-h-[112px]", "py-3");
   });
 });

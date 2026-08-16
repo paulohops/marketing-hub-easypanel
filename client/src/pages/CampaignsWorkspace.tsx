@@ -1,6 +1,5 @@
 // @ts-nocheck
 import ImageViewer from "@/components/ImageViewer";
-import CompactListToggle from "@/components/CompactListToggle";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1314,7 +1313,6 @@ export default function CampaignsWorkspace() {
             <SlidersHorizontal className="mr-2 h-4 w-4" />
             Filtros{activeFilterCount ? ` (${activeFilterCount})` : ""}
           </Button>
-          <CompactListToggle />
           {canWrite && (
             <Button
               onClick={() => {

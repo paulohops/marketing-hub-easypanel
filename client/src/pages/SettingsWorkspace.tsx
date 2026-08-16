@@ -20,6 +20,7 @@ const administrativeAreas = [
   { title: "Equipes", description: "Visualize o organograma, defina gestores diretos e acompanhe colaboradores por responsável.", href: "/configuracoes/equipes", icon: Network, action: "Organizar equipes" },
   { title: "Central de Dados", description: "Importe cadastros e exporte relatórios operacionais em um único espaço.", href: "/configuracoes/central-de-dados", icon: Database, action: "Abrir Central de Dados" },
   { title: "Design", description: "Configure a identidade visual, as cores do tema claro e o fundo do tema escuro.", href: "/configuracoes/design", icon: Palette, action: "Abrir Design" },
+  { title: "Sistema", description: "Cadastre o SMTP para e-mails e gerencie as chaves de API utilizadas pelas integrações.", href: "/configuracoes/sistema", icon: Settings2, action: "Abrir Sistema" },
 ];
 
 export default function SettingsWorkspace() {
