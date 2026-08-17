@@ -66,19 +66,20 @@ const cards: Array<{
   description: string;
   icon: typeof Building2;
   group: RegistryGroup;
+  subcategory?: string;
 }> = [
   { key: "provider", title: "Empresas", description: "Faturamento, CNPJ, contatos e vínculo territorial.", icon: Building2, group: "Território" },
   { key: "regional", title: "Regionais", description: "Estrutura territorial, código e empresa responsável.", icon: MapPinned, group: "Território" },
   { key: "city", title: "Cidades", description: "UF, endereço, CEP e coordenadas de localização.", icon: Store, group: "Território" },
   { key: "store", title: "Lojas", description: "Unidades de atendimento, localização, horário e responsáveis comerciais.", icon: Store, group: "Território" },
   { key: "action_point", title: "Pontos de ação", description: "Locais recorrentes para planejar, comparar e avaliar ações de trade.", icon: MapPinned, group: "Território" },
-  { key: "supplier", title: "Fornecedores", description: "Cobertura, ofertas, preços e capacidades contratáveis.", icon: Handshake, group: "Parceiros" },
-  { key: "partner", title: "Parceiros comerciais", description: "Parceiros comerciais e institucionais ativos.", icon: Handshake, group: "Parceiros" },
-  { key: "supervisor", title: "Supervisores comerciais", description: "Pessoas disponíveis para liderar ações e eventos no território.", icon: Store, group: "Parceiros" },
+  { key: "supplier", title: "Fornecedores", description: "Fornecedores, contatos e condições comerciais.", icon: Handshake, group: "Parceiros", subcategory: "Parceiros" },
+  { key: "partner", title: "Parceiros comerciais", description: "Parceiros comerciais e institucionais ativos.", icon: Handshake, group: "Parceiros", subcategory: "Parceiros" },
+  { key: "supervisor", title: "Supervisores comerciais", description: "Pessoas disponíveis para liderar ações e eventos no território.", icon: Store, group: "Parceiros", subcategory: "Parceiros" },
   { key: "campaign", title: "Atuação", description: "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.", icon: Megaphone, group: "Operação" },
   { key: "campaign_sector", title: "Setores", description: "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.", icon: Settings2, group: "Operação" },
-  { key: "service", title: "Serviços", description: "Serviços contratáveis para parceiros.", icon: Wrench, group: "Parceiros" },
-  { key: "product", title: "Tipos de produto", description: "Categorias de produtos oferecidos pelos parceiros.", icon: PackagePlus, group: "Parceiros" },
+  { key: "service", title: "Serviços", description: "Serviços contratáveis para parceiros.", icon: Wrench, group: "Parceiros", subcategory: "Produtos e serviços" },
+  { key: "product", title: "Tipos de produto", description: "Categorias de produtos oferecidos pelos parceiros.", icon: PackagePlus, group: "Parceiros", subcategory: "Produtos e serviços" },
   { key: "action", title: "Tipos de ação", description: "Categorias configuráveis para ações de trade.", icon: Megaphone, group: "Categorias" },
   { key: "event", title: "Tipos de evento", description: "Categorias configuráveis para a agenda de eventos.", icon: CalendarDays, group: "Categorias" },
   { key: "media", title: "Tipos de mídia", description: "Canais e formatos de mídia usados no território.", icon: Radio, group: "Categorias" },
@@ -178,6 +179,8 @@ export default function OperationalRegistriesPanel() {
   const [hasContract, setHasContract] = useState(false);
   const [mediaOperationCategory, setMediaOperationCategory] = useState<"graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers">("graphics");
   const [parentMediaTypeId, setParentMediaTypeId] = useState("");
+  const [serviceMediaTypeId, setServiceMediaTypeId] = useState("");
+  const [parentServiceTypeId, setParentServiceTypeId] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [cityIds, setCityIds] = useState<number[]>([]);
   const [serviceIds, setServiceIds] = useState<number[]>([]);
@@ -411,6 +414,8 @@ export default function OperationalRegistriesPanel() {
     setHasContract(false);
     setMediaOperationCategory("graphics");
     setParentMediaTypeId("");
+    setServiceMediaTypeId("");
+    setParentServiceTypeId("");
     setSelectedLinkMediaId(0);
     setSelectedLinkServiceId(0);
     setSupervisorStoreIds([]);
@@ -666,6 +671,11 @@ export default function OperationalRegistriesPanel() {
         setMediaOperationCategory((mediaItem.operationCategory ?? "graphics") as "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers");
         setParentMediaTypeId(mediaItem.parentMediaTypeId ? String(mediaItem.parentMediaTypeId) : "");
       }
+      const serviceItem = panel === "service" ? data.serviceTypes.find(row => row.id === id) : undefined;
+      if (serviceItem) {
+        setServiceMediaTypeId(serviceItem.mediaTypeId ? String(serviceItem.mediaTypeId) : "");
+        setParentServiceTypeId(serviceItem.parentServiceTypeId ? String(serviceItem.parentServiceTypeId) : "");
+      }
     }
   };
   const submit = () => {
@@ -784,8 +794,8 @@ export default function OperationalRegistriesPanel() {
       panel === "campaign_sector"
     )
       return editingId
-        ? updateType.mutate({ kind: panel, id: editingId, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) })
-        : createType.mutate({ kind: panel, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : {}) });
+        ? updateType.mutate({ kind: panel, id: editingId, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : panel === "service" ? { mediaTypeId: serviceMediaTypeId ? Number(serviceMediaTypeId) : null, parentServiceTypeId: parentServiceTypeId ? Number(parentServiceTypeId) : null } : {}) })
+        : createType.mutate({ kind: panel, name, ...(panel === "media" ? { operationCategory: mediaOperationCategory, parentMediaTypeId: parentMediaTypeId ? Number(parentMediaTypeId) : null } : panel === "service" ? { mediaTypeId: serviceMediaTypeId ? Number(serviceMediaTypeId) : null, parentServiceTypeId: parentServiceTypeId ? Number(parentServiceTypeId) : null } : {}) });
   };
   const beginSupplierEdit = () => {
     if (!selectedSupplier) return;
@@ -914,38 +924,25 @@ export default function OperationalRegistriesPanel() {
         {([resolvedGroup] as RegistryGroup[]).map(group => <section key={group} aria-labelledby={`registry-group-${group}`}>
           <div className="mb-3 flex items-center gap-3"><h3 id={`registry-group-${group}`} className="text-sm font-semibold text-foreground">{group}</h3><span className="h-px flex-1 bg-border" /></div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {group === "Financeiro" ? <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-5 sm:col-span-2 xl:col-span-3"><p className="font-semibold text-foreground">Planejamento financeiro</p><p className="mt-1 text-sm text-muted-foreground">Os cadastros e parâmetros financeiros serão estruturados na próxima etapa do Marketing HUB.</p></div> : cards.filter(card => card.group === group).map(card => {
+        {group === "Financeiro" ? <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-5 sm:col-span-2 xl:col-span-3"><p className="font-semibold text-foreground">Planejamento financeiro</p><p className="mt-1 text-sm text-muted-foreground">Os cadastros e parâmetros financeiros serão estruturados na próxima etapa do Marketing HUB.</p></div> : cards.filter(card => card.group === group).map((card, index, groupCards) => {
           const Icon = card.icon;
-          return (
-            <button
-              key={card.key}
-              type="button"
-              onClick={() => {
-                if (card.key === "action_point") {
-                  setLocation("/pontos-de-acao");
-                  return;
-                }
-                const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", product: "tipos-de-produto", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
-                const target = paths[card.key];
-                if (target) setLocation(`/cadastros/${target}`);
-              }}
-              className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-secondary text-primary">
-                <Icon className="h-4 w-4" />
-              </span>
+          const showSubcategory = group === "Parceiros" && card.subcategory && (index === 0 || groupCards[index - 1].subcategory !== card.subcategory);
+          const paths: Partial<Record<Panel, string>> = { provider: "empresas", regional: "regionais", city: "cidades", store: "lojas", supplier: "fornecedores", partner: "parceiros", supervisor: "supervisores", service: "servicos", product: "tipos-de-produto", media: "tipos-de-midia", action: "tipos-de-acao", event: "tipos-de-evento", campaign: "tipos-de-campanha", campaign_sector: "setores-de-campanha", financial_category: "categorias-financeiras" };
+          const target = paths[card.key];
+          return [
+            showSubcategory ? <div key={`${card.key}-subcategory`} className="col-span-full mt-2 border-b border-border pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary">{card.subcategory}</div> : null,
+            <button key={card.key} type="button" onClick={() => { if (card.key === "action_point") { setLocation("/pontos-de-acao"); return; } if (target) setLocation(`/cadastros/${target}`); }} className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-secondary text-primary"><Icon className="h-4 w-4" /></span>
               <p className="mt-4 font-semibold text-foreground">{card.title}</p>
-              <p className="mt-1 min-h-10 text-xs leading-5 text-muted-foreground">
-                {card.description}
-              </p>
-              <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">
-                Ver cadastros <Plus className="ml-1 h-3.5 w-3.5" />
-              </span>
-            </button>
-          );
+              <p className="mt-1 min-h-10 text-xs leading-5 text-muted-foreground">{card.description}</p>
+              <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Ver cadastros <Plus className="ml-1 h-3.5 w-3.5" /></span>
+            </button>,
+          ];
         })}
         {group === "Parceiros" && (
-          <button
+          <>
+            <div className="col-span-full mt-2 border-b border-border pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Publicidade</div>
+            <button
             type="button"
             onClick={() => setLocation("/cadastros/influencers")}
             className="rounded-xl border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -953,8 +950,9 @@ export default function OperationalRegistriesPanel() {
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-secondary text-primary"><UserRound className="h-4 w-4" /></span>
             <p className="mt-4 font-semibold text-foreground">Influencers</p>
             <p className="mt-1 min-h-10 text-xs leading-5 text-muted-foreground">Perfis, dados de pagamento, grupos de publicação e acompanhamento de posts.</p>
-            <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Gerenciar influencers <Plus className="ml-1 h-3.5 w-3.5" /></span>
-          </button>
+              <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Gerenciar influencers <Plus className="ml-1 h-3.5 w-3.5" /></span>
+            </button>
+          </>
         )}
         {group === "Modelos" && (
           <>
@@ -1203,7 +1201,12 @@ export default function OperationalRegistriesPanel() {
                 setMediaOperationCategory={setMediaOperationCategory}
                 parentMediaTypeId={parentMediaTypeId}
                 setParentMediaTypeId={setParentMediaTypeId}
+                serviceMediaTypeId={serviceMediaTypeId}
+                setServiceMediaTypeId={setServiceMediaTypeId}
+                parentServiceTypeId={parentServiceTypeId}
+                setParentServiceTypeId={setParentServiceTypeId}
                 mediaTypes={overview.data?.mediaTypes ?? []}
+                serviceTypes={overview.data?.serviceTypes ?? []}
                 editingId={editingId}
                 onUploadContract={async file => {
                   if (!editingId || panel !== "partner") return;
@@ -1339,7 +1342,12 @@ function RegistryForm(props: {
   setMediaOperationCategory: (v: "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers") => void;
   parentMediaTypeId: string;
   setParentMediaTypeId: (v: string) => void;
+  serviceMediaTypeId: string;
+  setServiceMediaTypeId: (v: string) => void;
+  parentServiceTypeId: string;
+  setParentServiceTypeId: (v: string) => void;
   mediaTypes: Array<{ id: number; name: string; active: boolean; operationCategory?: string | null; parentMediaTypeId?: number | null }>;
+  serviceTypes: Array<{ id: number; name: string; active: boolean; mediaTypeId?: number | null; parentServiceTypeId?: number | null }>;
   editingId: number | null;
   onUploadContract: (file: File) => void;
 }) {
@@ -1385,6 +1393,31 @@ function RegistryForm(props: {
             emptyMessage="Nenhum subtipo cadastrado nesta categoria"
           />
           <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">Deixe o subtipo pai vazio para criar um subtipo, como <strong>Outdoor</strong>. Selecione-o para criar uma variação, como <strong>Impressão de papel</strong>.</p>
+        </>
+      ) : null}
+      {props.panel === "service" ? (
+        <>
+          <SearchableMultiSelect
+            id="registry-service-media"
+            label="Tipo de mídia vinculado"
+            options={props.mediaTypes.filter(item => item.active && !item.parentMediaTypeId).map(item => ({ id: item.id, label: item.name, description: "Vínculo opcional do serviço" }))}
+            values={props.serviceMediaTypeId ? [Number(props.serviceMediaTypeId)] : []}
+            onChange={values => props.setServiceMediaTypeId(values[0] ? String(values[0]) : "")}
+            maxSelections={1}
+            placeholder="Sem tipo de mídia"
+            emptyMessage="Nenhum tipo de mídia ativo cadastrado"
+          />
+          <SearchableMultiSelect
+            id="registry-service-parent"
+            label="Serviço pai / subserviço"
+            options={props.serviceTypes.filter(item => item.active && item.id !== Number(props.editingId) && (!props.serviceMediaTypeId || item.mediaTypeId === Number(props.serviceMediaTypeId))).map(item => ({ id: item.id, label: item.name, description: "Criar como subserviço" }))}
+            values={props.parentServiceTypeId ? [Number(props.parentServiceTypeId)] : []}
+            onChange={values => props.setParentServiceTypeId(values[0] ? String(values[0]) : "")}
+            maxSelections={1}
+            placeholder="Serviço independente"
+            emptyMessage="Nenhum serviço pai compatível"
+          />
+          <p className="sm:col-span-2 -mt-2 text-xs leading-5 text-muted-foreground">O tipo de mídia é opcional. Se houver um serviço pai, o cadastro será tratado como subserviço e herdará o tipo de mídia do pai quando necessário.</p>
         </>
       ) : null}
       {props.panel === "regional" ? (

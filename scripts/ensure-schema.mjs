@@ -100,7 +100,7 @@ try {
 
   const requiredSchema = {
     suppliers: ["id", "displayName", "document", "phone", "email", "partnershipType", "paymentDay", "contractStartsOn", "contractEndsOn"],
-    service_types: ["id", "name", "active"],
+    service_types: ["id", "name", "active", "mediaTypeId", "parentServiceTypeId"],
     media_types: ["id", "name", "active"],
     product_types: ["id", "name", "active"],
     supplier_offerings: ["id", "supplierId", "kind", "name", "unit", "unitPrice", "averageUnitPrice", "productTypeId", "mediaTypeId", "serviceTypeId"],
