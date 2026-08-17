@@ -193,12 +193,23 @@ const registryItems: RegistryItem[] = [
     slug: "servicos",
     title: "Serviços",
     description:
-      "Serviços disponíveis para contratação e composição de ações.",
+      "Serviços principais disponíveis para contratação e composição de ações.",
     group: "produtos-servicos",
     route: "/cadastros/servicos",
     collection: "serviceTypes",
     icon: Wrench,
-    relation: "Fornecedores e ofertas",
+    relation: "Fornecedores, mídia e subserviços",
+  },
+  {
+    slug: "subservicos",
+    title: "SubServiços",
+    description:
+      "Detalhamentos operacionais vinculados a um serviço principal, como lona, propaganda ou entrevista.",
+    group: "produtos-servicos",
+    route: "/cadastros/subservicos",
+    collection: "serviceTypes",
+    icon: Wrench,
+    relation: "Serviço principal e tipo de mídia",
   },
   {
     slug: "tipos-de-campanha",

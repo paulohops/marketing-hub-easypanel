@@ -150,7 +150,7 @@ describe("detalhe de mídias", () => {
     expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 21, tradeCampaignId: null, name: "Volta às aulas", startsOn: "2026-09-01", endsOn: "2026-09-15", partnershipType: "paid", estimatedCost: 800, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, vehicleOperation: undefined, airingSchedule: undefined, activeSpotId: undefined, materialFormat: "A5 frente e verso", materialQuantity: 1500, deadlineDays: 5, deliveryInstructions: "Promotores em lojas e no centro" }, cityDistributions: [{ cityId: 11, quantity: 1500, notes: "Centro e comércio" }] });
   });
 
-  it("apresenta o formulário de Mídia Urbana com taxonomia, fornecedor, território e coordenadas", () => {
+  it("apresenta o formulário de Mídia Urbana sem serviço do fornecedor, com taxonomia, fornecedor, território e coordenadas", () => {
     referenceDataQuery.mockReturnValue({ data: { suppliers: [{ id: 4, displayName: "Fornecedor Urbano", mainService: "Outdoor" }], regionals: [{ id: 2, name: "Triângulo" }], cities: [{ city: { id: 11, name: "Uberlândia", regionalId: 2 }, regionalName: "Triângulo" }], mediaTypes: [{ id: 8, name: "Mídia Urbana", operationCategory: "graphics", parentMediaTypeId: null }, { id: 9, name: "Outdoor", operationCategory: "graphics", parentMediaTypeId: 8 }, { id: 10, name: "Impressão de papel", operationCategory: "graphics", parentMediaTypeId: 9 }], serviceTypes: [{ id: 7, name: "Exibição urbana" }], supplierMediaTypes: [{ supplierId: 4, mediaTypeId: 9 }], supplierServiceTypes: [{ supplierId: 4, serviceTypeId: 7 }], supplierOfferings: [], supplierContracts: [] }, isLoading: false } as any);
     listQuery.mockReturnValue({ data: [], isLoading: false });
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
@@ -162,7 +162,7 @@ describe("detalhe de mídias", () => {
     expect(modal.getByRole("button", { name: "Cidade do ponto" })).toBeInTheDocument();
     expect(modal.getByRole("button", { name: "Fornecedor" })).toBeInTheDocument();
     expect(modal.getByRole("button", { name: "Tipo de mídia" })).toBeInTheDocument();
-    expect(modal.getByRole("button", { name: "Serviço do fornecedor" })).toBeInTheDocument();
+    expect(modal.queryByRole("button", { name: "Serviço do fornecedor" })).toBeNull();
     expect(modal.getByLabelText("Localização ou rota de referência")).toBeInTheDocument();
     expect(modal.getByLabelText("Latitude e longitude")).toBeInTheDocument();
     expect(modal.queryByRole("button", { name: "Variação" })).toBeNull();

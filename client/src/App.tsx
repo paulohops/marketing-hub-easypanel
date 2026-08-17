@@ -57,6 +57,7 @@ function Router() {
     <Route path="/cadastros/fornecedores">{renderOperationalAlias}</Route>
     <Route path="/cadastros/supervisores">{renderOperationalAlias}</Route>
     <Route path="/cadastros/servicos">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/subservicos">{renderOperationalAlias}</Route>
     <Route path="/cadastros/tipos-de-produto">{renderOperationalAlias}</Route>
     <Route path="/cadastros/tipos-de-midia">{renderOperationalAlias}</Route>
     <Route path="/cadastros/tipos-de-acao">{renderOperationalAlias}</Route>

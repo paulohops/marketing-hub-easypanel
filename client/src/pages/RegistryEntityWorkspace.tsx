@@ -134,7 +134,16 @@ const entities: Record<string, EntityConfig> = {
     collection: "serviceTypes",
     kind: "service",
     description:
-      "Serviços disponíveis para contratação e configuração da operação.",
+      "Serviços principais disponíveis para contratação e configuração da operação.",
+    icon: Building2,
+  },
+  subservicos: {
+    singular: "SubServiço",
+    plural: "SubServiços",
+    collection: "serviceTypes",
+    kind: "service",
+    description:
+      "Detalhamentos operacionais vinculados a um serviço principal.",
     icon: Building2,
   },
   "tipos-de-produto": {
@@ -324,6 +333,8 @@ export default function RegistryEntityWorkspace() {
   const cleanPath = location.split("?")[0];
   const [, , slug = "", rawId] = cleanPath.split("/");
   const entity = entities[slug];
+  const isSubservicePage = slug === "subservicos";
+  const isServiceRegistryPage = slug === "servicos" || isSubservicePage;
   const entityId = rawId ? Number(rawId) : null;
   const { can } = useEffectivePermissions();
   const utils = trpc.useUtils();
@@ -600,7 +611,11 @@ export default function RegistryEntityWorkspace() {
           Number(companyFilter)) &&
       (!regionalFilter || regionalId === Number(regionalFilter)) &&
       (!cityFilter ||
-        Number(row.cityId ?? row.headquartersCityId) === Number(cityFilter))
+        Number(row.cityId ?? row.headquartersCityId) === Number(cityFilter)) &&
+      (!isServiceRegistryPage ||
+        (isSubservicePage
+          ? Boolean(row.parentServiceTypeId)
+          : !row.parentServiceTypeId))
     );
   });
   const clearFilters = () => {
@@ -1165,6 +1180,10 @@ export default function RegistryEntityWorkspace() {
         | "event"
         | "campaign"
         | "campaign_sector";
+      if (kind === "service" && isSubservicePage && !form.parentServiceTypeId) {
+        toast.error("Selecione o serviço principal do SubServiço.");
+        return;
+      }
       const payload = {
         kind,
         name: form.name.trim(),
@@ -1339,6 +1358,7 @@ export default function RegistryEntityWorkspace() {
             ) : (
               <RegistryEditor
                 kind={entity.kind}
+                isSubservicePage={isSubservicePage}
                 form={form}
                 setForm={setForm}
                 providers={providers}
@@ -1613,6 +1633,7 @@ export default function RegistryEntityWorkspace() {
             ) : (
               <RegistryEditor
                 kind={entity.kind}
+                isSubservicePage={isSubservicePage}
                 form={form}
                 setForm={setForm}
                 providers={providers}
@@ -3208,6 +3229,7 @@ function SupplierEditor({
 
 function RegistryEditor({
   kind,
+  isSubservicePage = false,
   form,
   setForm,
   providers,
@@ -3224,6 +3246,7 @@ function RegistryEditor({
   isCreating = false,
 }: {
   kind: string;
+  isSubservicePage?: boolean;
   form: Record<string, string>;
   setForm: (value: Record<string, string>) => void;
   providers: RegistryRecord[];
@@ -3559,32 +3582,35 @@ function RegistryEditor({
                     ))}
                 </select>
               </label>
-              <label className="grid gap-2 text-sm font-medium">
-                <span>Serviço pai</span>
-                <select
-                  value={form.parentServiceTypeId ?? ""}
-                  onChange={event =>
-                    setForm({
-                      ...form,
-                      parentServiceTypeId: event.target.value,
-                    })
-                  }
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Serviço principal</option>
-                  {serviceTypes
-                    .filter(
-                      type =>
-                        type.active !== false &&
-                        type.id !== Number(form.recordId)
-                    )
-                    .map(type => (
-                      <option key={type.id} value={type.id}>
-                        {recordName(type)}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              {isSubservicePage ? (
+                <label className="grid gap-2 text-sm font-medium">
+                  <span>Serviço principal</span>
+                  <select
+                    value={form.parentServiceTypeId ?? ""}
+                    onChange={event =>
+                      setForm({
+                        ...form,
+                        parentServiceTypeId: event.target.value,
+                      })
+                    }
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">Serviço principal</option>
+                    {serviceTypes
+                      .filter(
+                        type =>
+                          type.active !== false &&
+                          !type.parentServiceTypeId &&
+                          type.id !== Number(form.recordId)
+                      )
+                      .map(type => (
+                        <option key={type.id} value={type.id}>
+                          {recordName(type)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              ) : null}
             </>
           ) : null}
           {kind === "product" ? (
