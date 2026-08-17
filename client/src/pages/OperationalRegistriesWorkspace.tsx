@@ -24,6 +24,7 @@ import { useLocation } from "wouter";
 type RegistryGroup =
   | "territorio"
   | "parceiros"
+  | "produtos_servicos"
   | "operacao"
   | "categorias"
   | "financeiro"
@@ -74,6 +75,12 @@ const groupDefinitions: Array<{
       "Fornecedores, parceiros comerciais, supervisores e serviços contratáveis.",
   },
   {
+    id: "produtos_servicos",
+    label: "Produtos e serviços",
+    description:
+      "Serviços, produtos e tipos de mídia disponíveis para a operação de trade.",
+  },
+  {
     id: "operacao",
     label: "Operação",
     description:
@@ -81,7 +88,7 @@ const groupDefinitions: Array<{
   },
   {
     id: "categorias",
-    label: "Categorias",
+    label: "Categorias do Trade",
     description: "Tipos de ação, evento, mídia e produto usados na execução.",
   },
   {
@@ -163,11 +170,11 @@ const registryItems: RegistryItem[] = [
     relation: "Cidades, serviços e operações",
   },
   {
-    slug: "parceiros",
+    slug: "parceiros-comerciais",
     title: "Parceiros comerciais",
     description: "Parceiros institucionais e comerciais ligados à operação.",
     group: "parceiros",
-    route: "/cadastros/parceiros",
+    route: "/cadastros/parceiros-comerciais",
     collection: "partners",
     icon: Handshake,
     relation: "Cidade, contrato e pagamento",
@@ -184,9 +191,10 @@ const registryItems: RegistryItem[] = [
   },
   {
     slug: "servicos",
-    title: "Serviços",
-    description: "Serviços disponíveis para contratação e composição de ações.",
-    group: "parceiros",
+    title: "Produtos e serviços",
+    description:
+      "Serviços e produtos disponíveis para contratação e composição de ações.",
+    group: "produtos_servicos",
     route: "/cadastros/servicos",
     collection: "serviceTypes",
     icon: Wrench,
@@ -237,7 +245,7 @@ const registryItems: RegistryItem[] = [
     slug: "tipos-de-midia",
     title: "Tipos de mídia",
     description: "Canais, categorias e formatos de mídia usados no território.",
-    group: "categorias",
+    group: "produtos_servicos",
     route: "/cadastros/tipos-de-midia",
     collection: "mediaTypes",
     icon: Radio,
@@ -245,9 +253,9 @@ const registryItems: RegistryItem[] = [
   },
   {
     slug: "tipos-de-produto",
-    title: "Tipos de produto",
-    description: "Categorias de produtos oferecidos por fornecedores.",
-    group: "categorias",
+    title: "Tipos de produtos",
+    description: "Classificações de produtos usadas no catálogo do Trade.",
+    group: "produtos_servicos",
     route: "/cadastros/tipos-de-produto",
     collection: "productTypes",
     icon: Package,

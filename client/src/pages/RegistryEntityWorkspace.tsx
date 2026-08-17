@@ -56,6 +56,8 @@ type EntityConfig = {
   icon: typeof Building2;
 };
 type SupervisorStoreLink = { commercialSupervisorId: number; storeId: number };
+type SupervisorCityLink = { commercialSupervisorId: number; cityId: number };
+type ProductMediaTypeLink = { productTypeId: number; mediaTypeId: number };
 
 const entities: Record<string, EntityConfig> = {
   empresas: {
@@ -103,9 +105,9 @@ const entities: Record<string, EntityConfig> = {
       "Contatos, cobertura, serviços contratáveis e condições comerciais.",
     icon: Building2,
   },
-  parceiros: {
-    singular: "Parceiro",
-    plural: "Parceiros",
+  "parceiros-comerciais": {
+    singular: "Parceiro comercial",
+    plural: "Parceiros comerciais",
     collection: "partners",
     kind: "partner",
     description: "Contatos, contratos e condições de parceria.",
@@ -196,7 +198,7 @@ const registryPaths: Record<string, string> = {
   city: "cidades",
   store: "lojas",
   supplier: "fornecedores",
-  partner: "parceiros",
+  partner: "parceiros-comerciais",
   supervisor: "supervisores",
   service: "servicos",
   product: "tipos-de-produto",
@@ -326,6 +328,8 @@ export default function RegistryEntityWorkspace() {
   const [supplierCityIds, setSupplierCityIds] = useState<number[]>([]);
   const [supplierServiceIds, setSupplierServiceIds] = useState<number[]>([]);
   const [supplierMediaIds, setSupplierMediaIds] = useState<number[]>([]);
+  const [supervisorCityIds, setSupervisorCityIds] = useState<number[]>([]);
+  const [productMediaIds, setProductMediaIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<
     "all" | "active" | "inactive"
@@ -489,6 +493,21 @@ export default function RegistryEntityWorkspace() {
       },
       onError: error => toast.error(error.message),
     });
+  const setSupervisorCities =
+    trpc.settings.setCommercialSupervisorCities.useMutation({
+      onSuccess: () => {
+        toast.success("Cidades vinculadas atualizadas.");
+        utils.settings.overview.invalidate();
+      },
+      onError: error => toast.error(error.message),
+    });
+  const setProductMediaTypes = trpc.settings.setProductMediaTypes.useMutation({
+    onSuccess: () => {
+      toast.success("Tipos de mídia vinculados atualizados.");
+      utils.settings.overview.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
   const setActive = trpc.settings.setRegistryActive.useMutation({
     onSuccess: (_result, variables) => {
       toast.success(
@@ -538,6 +557,12 @@ export default function RegistryEntityWorkspace() {
   const supervisorStoreLinks = ((
     overview.data as Record<string, unknown> | undefined
   )?.commercialSupervisorStores ?? []) as SupervisorStoreLink[];
+  const supervisorCityLinks = ((
+    overview.data as Record<string, unknown> | undefined
+  )?.commercialSupervisorCities ?? []) as SupervisorCityLink[];
+  const productMediaLinks = ((
+    overview.data as Record<string, unknown> | undefined
+  )?.productMediaTypes ?? []) as ProductMediaTypeLink[];
   const serviceTypes = ((overview.data as Record<string, unknown> | undefined)
     ?.serviceTypes ?? []) as RegistryRecord[];
   const mediaTypes = ((overview.data as Record<string, unknown> | undefined)
@@ -661,12 +686,30 @@ export default function RegistryEntityWorkspace() {
     );
   }, [entity?.kind, selected, supplierCoverage.data, isSupplierCreateRoute]);
   useEffect(() => {
+    if (entity?.kind !== "supervisor" || !selected || isCreateRoute) return;
+    setSupervisorCityIds(
+      supervisorCityLinks
+        .filter(link => link.commercialSupervisorId === selected.id)
+        .map(link => link.cityId)
+    );
+  }, [entity?.kind, selected, supervisorCityLinks, isCreateRoute]);
+  useEffect(() => {
+    if (entity?.kind !== "product" || !selected || isCreateRoute) return;
+    setProductMediaIds(
+      productMediaLinks
+        .filter(link => link.productTypeId === selected.id)
+        .map(link => link.mediaTypeId)
+    );
+  }, [entity?.kind, selected, productMediaLinks, isCreateRoute]);
+  useEffect(() => {
     if (!isCreateRoute || !entity) return;
     setEditing(false);
     setForm(blankRegistryForm(entity.kind));
     setSupplierCityIds([]);
     setSupplierServiceIds([]);
     setSupplierMediaIds([]);
+    setSupervisorCityIds([]);
+    setProductMediaIds([]);
   }, [isCreateRoute, entity?.kind]);
 
   if (!entity)
@@ -759,45 +802,72 @@ export default function RegistryEntityWorkspace() {
       entity.kind === "store"
         ? parseStoreHours(String(selected.openingHours ?? ""))
         : null;
+    const contextPanel = (
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-primary/10 text-primary">
+              <MapPin className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                Estrutura territorial
+              </p>
+              <h2 className="mt-1 font-display text-xl font-semibold text-foreground">
+                Contexto do cadastro
+              </h2>
+            </div>
+          </div>
+          <div className="mt-5 space-y-3">
+            <div className="rounded-[10px] border border-border bg-muted/30 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {parentLabel}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {parent ? recordName(parent) : "Não informado"}
+              </p>
+            </div>
+            <div className="rounded-[10px] border border-border bg-muted/30 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Status
+              </p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {selected.active === false ? "Inativo" : "Ativo"}
+              </p>
+            </div>
+            {selected.latitude && selected.longitude ? (
+              <div className="rounded-[10px] border border-border bg-muted/30 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Coordenadas
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {String(selected.latitude)}, {String(selected.longitude)}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+    );
     return (
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
         <div className="space-y-5">
-          <DetailOverview entity={entity} record={selected} />
-          {storeHours ? (
-            <section className="rounded-[10px] border border-border bg-card p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-display text-lg font-semibold text-foreground">
-                    Horário de funcionamento
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Dias e horários cadastrados para esta unidade.
-                  </p>
-                </div>
-                <Clock3 className="h-5 w-5 text-primary" />
-              </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {STORE_WEEKDAYS.map(({ key, label }) => {
-                  const day = storeHours[key];
-                  return (
-                    <div
-                      key={key}
-                      className={`flex items-center justify-between rounded-lg border px-3 py-2 ${day.enabled ? "border-primary/20 bg-primary/5" : "border-border bg-muted/20"}`}
-                    >
-                      <span className="text-sm font-medium text-foreground">
-                        {label}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {day.enabled
-                          ? `${day.open || "--:--"} – ${day.close || "--:--"}`
-                          : "Fechado"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+          <DetailOverview
+            entity={entity}
+            record={selected}
+            parent={parent}
+            parentLabel={parentLabel}
+          />
+          {entity.kind === "store" ? (
+            <StoreSupervisorsPanel
+              supervisors={supervisors}
+              linkedSupervisors={storeSupervisors}
+              canWrite={canWrite}
+              isPending={setSupervisorStores.isPending}
+              onToggle={toggleStoreSupervisor}
+            />
           ) : null}
+          {entity.kind === "store" ? contextPanel : null}
           {allRelationCards.length ? (
             <section className="rounded-[10px] border border-border bg-card p-5 shadow-sm">
               <div className="flex items-center gap-3">
@@ -868,51 +938,9 @@ export default function RegistryEntityWorkspace() {
           ) : null}
         </div>
         <aside className="space-y-5">
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-primary/10 text-primary">
-                  <MapPin className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                    Estrutura territorial
-                  </p>
-                  <h2 className="mt-1 font-display text-xl font-semibold text-foreground">
-                    Contexto do cadastro
-                  </h2>
-                </div>
-              </div>
-              <div className="mt-5 space-y-3">
-                <div className="rounded-[10px] border border-border bg-muted/30 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {parentLabel}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">
-                    {parent ? recordName(parent) : "Não informado"}
-                  </p>
-                </div>
-                <div className="rounded-[10px] border border-border bg-muted/30 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Status
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">
-                    {selected.active === false ? "Inativo" : "Ativo"}
-                  </p>
-                </div>
-                {selected.latitude && selected.longitude ? (
-                  <div className="rounded-[10px] border border-border bg-muted/30 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Coordenadas
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {String(selected.latitude)}, {String(selected.longitude)}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
+          {entity.kind === "store" && storeHours ? (
+            <StoreHoursPanel storeHours={storeHours} />
+          ) : null}
           {entity.kind === "store" ? (
             <StorePhotoPanel
               store={selected}
@@ -921,15 +949,7 @@ export default function RegistryEntityWorkspace() {
               onUpload={photoUpload}
             />
           ) : null}
-          {entity.kind === "store" ? (
-            <StoreSupervisorsPanel
-              supervisors={supervisors}
-              linkedSupervisors={storeSupervisors}
-              canWrite={canWrite}
-              isPending={setSupervisorStores.isPending}
-              onToggle={toggleStoreSupervisor}
-            />
-          ) : null}
+          {entity.kind !== "store" ? contextPanel : null}
         </aside>
       </section>
     );
@@ -1102,11 +1122,27 @@ export default function RegistryEntityWorkspace() {
         email: form.email.trim() || undefined,
         phone: form.phone.trim() || undefined,
       };
+      const saveCities = (supervisorId: number, created?: { id: number }) =>
+        setSupervisorCities.mutate(
+          { commercialSupervisorId: supervisorId, cityIds: supervisorCityIds },
+          {
+            onSuccess: () =>
+              created
+                ? finishCreate("Supervisor criado.")(created)
+                : (setEditing(false),
+                  void utils.settings.overview.invalidate()),
+          }
+        );
       return selected
-        ? updateSupervisor.mutate({ id: selected.id, ...payload })
+        ? updateSupervisor.mutate(
+            { id: selected.id, ...payload },
+            {
+              onSuccess: updated => saveCities(updated.id),
+            }
+          )
         : createSupervisor.mutate(
             { userId: null, ...payload },
-            { onSuccess: finishCreate("Supervisor criado.") }
+            { onSuccess: created => saveCities(created.id, created) }
           );
     }
     if (
@@ -1154,10 +1190,33 @@ export default function RegistryEntityWorkspace() {
             }
           : {}),
       };
+      const saveMediaLinks = (
+        productTypeId: number,
+        created?: { id: number }
+      ) =>
+        kind === "product"
+          ? setProductMediaTypes.mutate(
+              { productTypeId, mediaTypeIds: productMediaIds },
+              {
+                onSuccess: () =>
+                  created
+                    ? finishCreate("Tipo de produto criado.")(created)
+                    : (setEditing(false),
+                      void utils.settings.overview.invalidate()),
+              }
+            )
+          : created
+            ? finishCreate("Cadastro criado.")(created)
+            : undefined;
       return selected
-        ? updateType.mutate({ id: selected.id, ...payload })
+        ? updateType.mutate(
+            { id: selected.id, ...payload },
+            {
+              onSuccess: updated => saveMediaLinks(updated.id),
+            }
+          )
         : createType.mutate(payload, {
-            onSuccess: finishCreate("Cadastro criado."),
+            onSuccess: created => saveMediaLinks(created.id, created),
           });
     }
     if (entity.kind === "financial_category") {
@@ -1238,6 +1297,10 @@ export default function RegistryEntityWorkspace() {
             cities={cities}
             mediaTypes={mediaTypes}
             serviceTypes={serviceTypes}
+            supervisorCityIds={supervisorCityIds}
+            setSupervisorCityIds={setSupervisorCityIds}
+            productMediaIds={productMediaIds}
+            setProductMediaIds={setProductMediaIds}
             onSave={save}
             saving={
               createProvider.isPending ||
@@ -1298,20 +1361,27 @@ export default function RegistryEntityWorkspace() {
             </p>
           </div>
         </div>
-        {!selected && canWrite && !isSupplierCreateRoute ? (
-          <Button
-            onClick={() =>
-              setLocation(
-                entity.kind === "supplier"
-                  ? "/cadastros/fornecedores?novo=1"
-                  : `/cadastros/${registryGroups[entity.kind] ?? "territorio"}?novo=${slug}`
-              )
-            }
-            className="bg-primary text-primary-foreground"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar {entity.singular.toLowerCase()}
-          </Button>
+        {!selected ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocation("/cadastros")}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar aos Cadastros
+            </Button>
+            {canWrite && !isSupplierCreateRoute ? (
+              <Button
+                type="button"
+                onClick={() => setLocation(`/cadastros/${slug}?novo=1`)}
+                className="bg-primary text-primary-foreground"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar {entity.singular.toLowerCase()}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </div>
       {!selected ? (
@@ -1420,9 +1490,17 @@ export default function RegistryEntityWorkspace() {
                   className="hub-list-item grid w-full gap-3 p-4 text-left sm:grid-cols-[auto_minmax(0,1.3fr)_minmax(190px,.8fr)_auto] sm:items-center"
                 >
                   <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-primary">
-                    {entity.kind === "store" &&
-                    typeof row.photoUrl === "string" &&
-                    row.photoUrl ? (
+                    {entity.kind === "provider" &&
+                    typeof row.logoUrl === "string" &&
+                    row.logoUrl ? (
+                      <img
+                        src={row.logoUrl}
+                        alt={`Logo de ${recordName(row)}`}
+                        className="h-full w-full object-contain bg-background p-1"
+                      />
+                    ) : entity.kind === "store" &&
+                      typeof row.photoUrl === "string" &&
+                      row.photoUrl ? (
                       <img
                         src={row.photoUrl}
                         alt={`Foto de ${recordName(row)}`}
@@ -1559,6 +1637,10 @@ export default function RegistryEntityWorkspace() {
                 cities={cities}
                 mediaTypes={mediaTypes}
                 serviceTypes={serviceTypes}
+                supervisorCityIds={supervisorCityIds}
+                setSupervisorCityIds={setSupervisorCityIds}
+                productMediaIds={productMediaIds}
+                setProductMediaIds={setProductMediaIds}
                 onSave={save}
                 saving={
                   updateProvider.isPending ||
@@ -1575,7 +1657,23 @@ export default function RegistryEntityWorkspace() {
           ) : isTerritorial ? (
             <TerritorialDetailsLayout />
           ) : (
-            <DetailOverview entity={entity} record={selected} />
+            <>
+              <DetailOverview entity={entity} record={selected} />
+              {entity.kind === "supervisor" ? (
+                <SupervisorCitiesPanel
+                  cities={cities.filter(city =>
+                    supervisorCityIds.includes(city.id)
+                  )}
+                />
+              ) : null}
+              {entity.kind === "product" ? (
+                <ProductMediaPanel
+                  mediaTypes={mediaTypes.filter(type =>
+                    productMediaIds.includes(type.id)
+                  )}
+                />
+              ) : null}
+            </>
           )}
           {entity.kind === "provider" ? (
             <>
@@ -1816,9 +1914,13 @@ export default function RegistryEntityWorkspace() {
 function DetailOverview({
   entity,
   record,
+  parent,
+  parentLabel,
 }: {
   entity: EntityConfig;
   record: RegistryRecord;
+  parent?: RegistryRecord;
+  parentLabel?: string;
 }) {
   const phoneUrl = whatsappUrl(record.phone as string | null | undefined);
   const websiteUrl =
@@ -1827,6 +1929,9 @@ function DetailOverview({
       : null;
   const entries = Object.entries({
     Status: record.active === false ? "Inativo" : "Ativo",
+    ...(parentLabel
+      ? { [parentLabel]: parent ? recordName(parent) : "Não informado" }
+      : {}),
     Código: record.code,
     CNPJ: record.billingCnpj ?? record.document,
     Contato: record.contactName,
@@ -1837,14 +1942,22 @@ function DetailOverview({
     Endereço: record.address,
     "Ponto de referência": record.referencePoint,
     CEP: record.zipCode,
-    "Horário de funcionamento":
-      typeof record.openingHours === "string"
-        ? formatStoreHours(record.openingHours)
-        : record.openingHours,
+    ...(entity.kind !== "store"
+      ? {
+          "Horário de funcionamento":
+            typeof record.openingHours === "string"
+              ? formatStoreHours(record.openingHours)
+              : record.openingHours,
+        }
+      : {}),
     UF: record.state,
     IBGE: record.ibgeCode,
+    Latitude: record.latitude,
+    Longitude: record.longitude,
     Observações: record.locationNotes ?? record.description,
-  }).filter(([, value]) => value);
+  }).filter(
+    ([, value]) => value !== null && value !== undefined && value !== ""
+  );
   return (
     <Card>
       <CardContent className="p-6">
@@ -1902,6 +2015,110 @@ function DetailOverview({
             <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
           </a>
         ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SupervisorCitiesPanel({ cities }: { cities: RegistryRecord[] }) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          Cobertura territorial
+        </p>
+        <h2 className="mt-1 font-display text-xl font-semibold text-foreground">
+          Cidades vinculadas
+        </h2>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {cities.length ? (
+            cities.map(city => (
+              <Badge key={city.id} variant="secondary">
+                {recordName(city)}
+                {city.state ? ` · ${city.state}` : ""}
+              </Badge>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nenhuma cidade vinculada a este supervisor.
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProductMediaPanel({ mediaTypes }: { mediaTypes: RegistryRecord[] }) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          Aplicação do catálogo
+        </p>
+        <h2 className="mt-1 font-display text-xl font-semibold text-foreground">
+          Tipos de mídia vinculados
+        </h2>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {mediaTypes.length ? (
+            mediaTypes.map(media => (
+              <Badge key={media.id} variant="secondary">
+                {recordName(media)}
+              </Badge>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nenhum tipo de mídia vinculado a este produto.
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StoreHoursPanel({
+  storeHours,
+}: {
+  storeHours: ReturnType<typeof parseStoreHours>;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+              Operação da loja
+            </p>
+            <h2 className="mt-1 font-display text-xl font-semibold text-foreground">
+              Horário de funcionamento
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Dias e horários cadastrados para esta unidade.
+            </p>
+          </div>
+          <Clock3 className="h-5 w-5 text-primary" />
+        </div>
+        <div className="mt-5 grid grid-cols-1 gap-2">
+          {STORE_WEEKDAYS.map(({ key, label }) => {
+            const day = storeHours[key];
+            return (
+              <div
+                key={key}
+                className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${day.enabled ? "border-primary/20 bg-primary/5" : "border-border bg-muted/20"}`}
+              >
+                <span className="text-sm font-medium text-foreground">
+                  {label}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {day.enabled
+                    ? `${day.open || "--:--"} – ${day.close || "--:--"}`
+                    : "Fechado"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
@@ -2172,7 +2389,7 @@ function StorePhotoPanel({
   return (
     <Card>
       <CardContent className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
-        <div className="grid h-28 w-40 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/50">
+        <div className="grid aspect-square h-40 w-40 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/50 sm:h-44 sm:w-44">
           <input
             id="store-photo-upload"
             type="file"
@@ -3007,6 +3224,10 @@ function RegistryEditor({
   cities,
   mediaTypes,
   serviceTypes,
+  supervisorCityIds,
+  setSupervisorCityIds,
+  productMediaIds,
+  setProductMediaIds,
   onSave,
   saving,
   isCreating = false,
@@ -3019,6 +3240,10 @@ function RegistryEditor({
   cities: RegistryRecord[];
   mediaTypes: RegistryRecord[];
   serviceTypes: RegistryRecord[];
+  supervisorCityIds: number[];
+  setSupervisorCityIds: (value: number[]) => void;
+  productMediaIds: number[];
+  setProductMediaIds: (value: number[]) => void;
   onSave: () => void;
   saving: boolean;
   isCreating?: boolean;
@@ -3295,6 +3520,31 @@ function RegistryEditor({
             <>
               {field("email", "E-mail", "email")}
               {field("phone", "Telefone")}
+              <label className="grid gap-2 text-sm font-medium md:col-span-2">
+                <span>Cidades vinculadas</span>
+                <select
+                  multiple
+                  value={supervisorCityIds.map(String)}
+                  onChange={event =>
+                    setSupervisorCityIds(
+                      Array.from(event.target.selectedOptions).map(option =>
+                        Number(option.value)
+                      )
+                    )
+                  }
+                  className="min-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {cities.map(city => (
+                    <option key={city.id} value={city.id}>
+                      {recordName(city)}
+                      {city.state ? ` · ${city.state}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs font-normal text-muted-foreground">
+                  Segure Ctrl/Cmd para selecionar mais de uma cidade.
+                </span>
+              </label>
             </>
           ) : null}
           {kind === "service" ? (
@@ -3347,15 +3597,44 @@ function RegistryEditor({
             </>
           ) : null}
           {kind === "product" ? (
-            <label className="grid gap-2 text-sm font-medium md:col-span-2">
-              <span>Descrição</span>
-              <Textarea
-                value={form.description ?? ""}
-                onChange={event =>
-                  setForm({ ...form, description: event.target.value })
-                }
-              />
-            </label>
+            <>
+              <label className="grid gap-2 text-sm font-medium md:col-span-2">
+                <span>Tipos de mídia vinculados</span>
+                <select
+                  multiple
+                  value={productMediaIds.map(String)}
+                  onChange={event =>
+                    setProductMediaIds(
+                      Array.from(event.target.selectedOptions).map(option =>
+                        Number(option.value)
+                      )
+                    )
+                  }
+                  className="min-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {mediaTypes
+                    .filter(type => type.active !== false)
+                    .map(type => (
+                      <option key={type.id} value={type.id}>
+                        {recordName(type)}
+                      </option>
+                    ))}
+                </select>
+                <span className="text-xs font-normal text-muted-foreground">
+                  Vincule o produto aos tipos de mídia em que ele pode ser
+                  aplicado.
+                </span>
+              </label>
+              <label className="grid gap-2 text-sm font-medium md:col-span-2">
+                <span>Descrição</span>
+                <Textarea
+                  value={form.description ?? ""}
+                  onChange={event =>
+                    setForm({ ...form, description: event.target.value })
+                  }
+                />
+              </label>
+            </>
           ) : null}
           {kind === "media" ? (
             <>
