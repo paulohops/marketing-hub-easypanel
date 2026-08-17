@@ -3925,6 +3925,69 @@ export const settingsRouter = router({
       return { url: updated.value };
     }),
 
+  clearModuleData: protectedProcedure
+    .input(
+      z.object({
+        modules: z.array(z.enum(["media", "actions", "campaigns", "inventory", "operational_catalogs"])).min(1),
+        confirmation: z.literal("APAGAR"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const selected = new Set(input.modules);
+      await database.transaction(async transaction => {
+        if (selected.has("media")) {
+          await transaction.execute(sql`DELETE FROM "media_campaign_city_distributions"`);
+          await transaction.execute(sql`DELETE FROM "documents" WHERE "entity_type" IN ('media_campaign', 'media_point')`);
+          await transaction.execute(sql`DELETE FROM "media_campaigns"`);
+          await transaction.execute(sql`DELETE FROM "urban_media_registrations"`);
+          await transaction.execute(sql`DELETE FROM "media_points"`);
+          await transaction.execute(sql`DELETE FROM "media_spots"`);
+        }
+        if (selected.has("actions")) {
+          await transaction.execute(sql`DELETE FROM "action_debriefs"`);
+          await transaction.execute(sql`DELETE FROM "action_stock_items"`);
+          await transaction.execute(sql`DELETE FROM "action_team_members"`);
+          await transaction.execute(sql`DELETE FROM "action_services"`);
+          await transaction.execute(sql`DELETE FROM "action_suppliers"`);
+          await transaction.execute(sql`DELETE FROM "actions"`);
+          await transaction.execute(sql`DELETE FROM "event_stock_items"`);
+          await transaction.execute(sql`DELETE FROM "event_team_members"`);
+          await transaction.execute(sql`DELETE FROM "event_services"`);
+          await transaction.execute(sql`DELETE FROM "event_suppliers"`);
+          await transaction.execute(sql`DELETE FROM "events"`);
+        }
+        if (selected.has("campaigns")) {
+          await transaction.execute(sql`DELETE FROM "campaign_promotion_plans"`);
+          await transaction.execute(sql`DELETE FROM "campaign_promotion_cities"`);
+          await transaction.execute(sql`DELETE FROM "campaign_promotions"`);
+          await transaction.execute(sql`DELETE FROM "campaign_cities"`);
+          await transaction.execute(sql`DELETE FROM "campaign_regionals"`);
+          await transaction.execute(sql`DELETE FROM "trade_campaigns"`);
+        }
+        if (selected.has("inventory")) {
+          await transaction.execute(sql`DELETE FROM "stock_transfers"`);
+          await transaction.execute(sql`DELETE FROM "stock_movements"`);
+          await transaction.execute(sql`DELETE FROM "stock_balances"`);
+          await transaction.execute(sql`DELETE FROM "stock_items"`);
+        }
+        if (selected.has("operational_catalogs")) {
+          await transaction.execute(sql`DELETE FROM "supplier_offerings"`);
+          await transaction.execute(sql`DELETE FROM "supplier_service_types"`);
+          await transaction.execute(sql`DELETE FROM "supplier_media_types"`);
+          await transaction.execute(sql`DELETE FROM "service_type_relations"`);
+        }
+      });
+      await writeAuditLog({
+        actorUserId: ctx.user.id,
+        entityType: "data_center",
+        entityId: ctx.user.id,
+        action: "clear_modules",
+        afterData: { modules: input.modules },
+      });
+      return { success: true as const, modules: input.modules };
+    }),
   getRegional: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
