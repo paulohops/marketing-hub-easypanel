@@ -87,7 +87,7 @@ describe("detalhe de mídias", () => {
     expect(screen.getByText("Cobertura e fornecedor")).toBeInTheDocument();
     expect(screen.getByText("Histórico do ponto")).toBeInTheDocument();
     expect(screen.getByText("Registro criado")).toBeInTheDocument();
-    expect(screen.getByText("Mídias registradas")).toBeInTheDocument();
+    expect(screen.getByText("Veiculações registradas")).toBeInTheDocument();
     expect(screen.getByText("Impressão de papel")).toBeInTheDocument();
     expect(screen.getByText("Campanha Primavera")).toBeInTheDocument();
     expect(screen.getAllByText(/R\$\s?1\.200,00/).length).toBeGreaterThan(0);
@@ -109,13 +109,13 @@ describe("detalhe de mídias", () => {
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
 
     render(<MediaWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Nova campanha" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nova veiculação" }));
     const modal = within(screen.getByRole("dialog"));
-    fireEvent.change(modal.getByLabelText("Nome da campanha"), { target: { value: "Campanha Verão" } });
+    fireEvent.change(modal.getByLabelText("Nome da veiculação"), { target: { value: "Campanha Verão" } });
     fireEvent.change(modal.getByLabelText("Início"), { target: { value: "2026-09-01" } });
     fireEvent.change(modal.getByLabelText("Término"), { target: { value: "2026-09-30" } });
     fireEvent.change(modal.getByLabelText("Investimento previsto"), { target: { value: "2450.50" } });
-    fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
+    fireEvent.click(modal.getByRole("button", { name: "Confirmar veiculação" }));
 
     expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 8, tradeCampaignId: null, name: "Campanha Verão", startsOn: "2026-09-01", endsOn: "2026-09-30", partnershipType: "paid", estimatedCost: 2450.5, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, vehicleOperation: undefined, airingSchedule: undefined, activeSpotId: undefined, materialFormat: undefined, materialQuantity: undefined, deadlineDays: undefined, deliveryInstructions: undefined }, cityDistributions: [] });
   });
@@ -126,9 +126,9 @@ describe("detalhe de mídias", () => {
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
 
     render(<MediaWorkspace initialCategory="leafleting" />);
-    fireEvent.click(screen.getByRole("button", { name: "Nova campanha" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nova veiculação" }));
     const modal = within(screen.getByRole("dialog"));
-    fireEvent.change(modal.getByLabelText("Nome da campanha"), { target: { value: "Volta às aulas" } });
+    fireEvent.change(modal.getByLabelText("Nome da veiculação"), { target: { value: "Volta às aulas" } });
     fireEvent.change(modal.getByLabelText("Início"), { target: { value: "2026-09-01" } });
     fireEvent.change(modal.getByLabelText("Término"), { target: { value: "2026-09-15" } });
     fireEvent.change(modal.getByLabelText("Investimento previsto"), { target: { value: "800" } });
@@ -145,7 +145,7 @@ describe("detalhe de mídias", () => {
     fireEvent.change(leaflet.getByLabelText("Observação"), { target: { value: "Centro e comércio" } });
     fireEvent.click(leaflet.getByRole("button", { name: "Adicionar" }));
     expect(screen.getByRole("button", { name: "Remover" })).toBeInTheDocument();
-    fireEvent.click(modal.getByRole("button", { name: "Confirmar programação" }));
+    fireEvent.click(modal.getByRole("button", { name: "Confirmar veiculação" }));
 
     expect(createConfiguredCampaignMutation).toHaveBeenCalledWith({ mediaPointId: 21, tradeCampaignId: null, name: "Volta às aulas", startsOn: "2026-09-01", endsOn: "2026-09-15", partnershipType: "paid", estimatedCost: 800, notes: undefined, campaignDetails: undefined, campaignConfig: { dailyRate: undefined, circulationDays: undefined, dailyRoute: undefined, audioBrief: undefined, vehicleOperation: undefined, airingSchedule: undefined, activeSpotId: undefined, materialFormat: "A5 frente e verso", materialQuantity: 1500, deadlineDays: 5, deliveryInstructions: "Promotores em lojas e no centro" }, cityDistributions: [{ cityId: 11, quantity: 1500, notes: "Centro e comércio" }] });
   });

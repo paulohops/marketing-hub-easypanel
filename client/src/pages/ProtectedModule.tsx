@@ -37,6 +37,7 @@ import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
 import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
 import UrbanVeiculationPage from "./UrbanVeiculationPage";
 import TraditionalProgramDetails from "./TraditionalProgramDetails";
+import ExternalMediaPointDetails from "./ExternalMediaPointDetails";
 import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, FileSpreadsheet, Flag, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound } from "lucide-react";
 
 const definitions = {
@@ -46,6 +47,7 @@ const definitions = {
   campanhas: { permission: "actions.read", eyebrow: "Operação integrada", title: "Campanhas", description: "Agrupe ações, eventos e mídias por objetivo, território e período.", icon: Flag, resources: [], accent: "var(--primary)" },
   midias: { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídias e campanhas", description: "Cadastre pontos, campanhas, ciclos de renovação e evidências de veiculação.", icon: Megaphone, resources: [{ title: "Pontos de mídia", description: "Localização, fornecedor e tipo de mídia." }, { title: "Campanhas", description: "Vigência, renovação e resultado." }, { title: "Cobertura regional", description: "Filtros por regional e cidade." }], accent: "var(--primary)" },
   "midias-graficas": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídia Urbana", description: "Planeje e acompanhe outdoors, painéis e superfícies urbanas.", icon: Megaphone, resources: [], accent: "var(--primary)" },
+  "midias-externa": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídia Externa", description: "Controle panfletagem, carro de som e outras ativações externas em uma ficha operacional própria.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-audio-video": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídia Tradicional", description: "Acompanhe rádios, TVs, spots e horários de veiculação.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-tradicional": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Programa de Mídia Tradicional", description: "Ficha de rádio ou TV, alcance do sinal, spots e histórico operacional.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-tradicional-veiculacao": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Veiculação Tradicional", description: "Acompanhe o spot, as cidades de sinal, evidências, status e debriefing.", icon: Megaphone, resources: [], accent: "var(--primary)" },
@@ -81,6 +83,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   const { loading, isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [, traditionalPointParams] = useRoute("/midias/tradicional/:mediaPointId");
+  const [, externalPointParams] = useRoute("/midias/externa/:mediaPointId");
   const { can: canPermission, isLoading: permissionsLoading } = useEffectivePermissions();
   if (loading) return <div className="cluster-grid grid min-h-screen place-items-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   if (!isAuthenticated) return <LoginPage />;
@@ -113,6 +116,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "midias-graficas") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="graphics" /></div></DashboardLayout>;
   if (module === "midias-audio-video") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="audio_video" /></div></DashboardLayout>;
   if (module === "midias-tradicional") return <DashboardLayout><div className="cluster-workspace"><TraditionalProgramDetails mediaPointId={Number(traditionalPointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
+  if (module === "midias-externa") return <DashboardLayout><div className="cluster-workspace"><ExternalMediaPointDetails mediaPointId={Number(externalPointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
   if (module === "midias-tradicional-veiculacao") return <DashboardLayout><div className="cluster-workspace"><UrbanVeiculationPage traditional /></div></DashboardLayout>;
   if (module === "midias-panfletagem") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="leafleting" /></div></DashboardLayout>;
   if (module === "midias-carro-som") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="sound_car" /></div></DashboardLayout>;
