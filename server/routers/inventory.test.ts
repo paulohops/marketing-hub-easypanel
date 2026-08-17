@@ -10,6 +10,13 @@ describe("calculateStockBalance", () => {
     ])).toBe(17);
   });
 
+  it("mantém a soma numérica quando uma entrada de 10 é adicionada a um saldo de 50", () => {
+    expect(calculateStockBalance([
+      { movementType: "entry", quantity: "50.00" },
+      { movementType: "entry", quantity: "10.00" },
+    ])).toBe(60);
+  });
+
   it("ordena o histórico do evento mais recente para o mais antigo, desempantando pelo identificador", () => {
     const ordered = orderMovementHistory([
       { id: 2, occurredAt: new Date("2026-08-10T09:00:00Z") },

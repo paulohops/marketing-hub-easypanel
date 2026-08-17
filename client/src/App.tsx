@@ -44,6 +44,8 @@ function Router() {
     <Route path="/cadastros/territorio">{renderRegistries}</Route>
     <Route path="/cadastros/operacao">{renderRegistries}</Route>
     <Route path="/cadastros/parceiros">{renderRegistries}</Route>
+    <Route path="/cadastros/produtos-servicos">{renderRegistries}</Route>
+    <Route path="/cadastros/produtos_servicos">{() => <Redirect to="/cadastros/produtos-servicos" replace />}</Route>
     <Route path="/cadastros/categorias">{renderRegistries}</Route>
     <Route path="/cadastros/financeiro">{renderRegistries}</Route>
     <Route path="/cadastros/modelos">{renderRegistries}</Route>
@@ -53,6 +55,7 @@ function Router() {
     <Route path="/cadastros/fornecedores">{renderOperationalAlias}</Route>
     <Route path="/cadastros/supervisores">{renderOperationalAlias}</Route>
     <Route path="/cadastros/servicos">{renderOperationalAlias}</Route>
+    <Route path="/cadastros/tipos-de-produto">{renderOperationalAlias}</Route>
     <Route path="/cadastros/tipos-de-midia">{renderOperationalAlias}</Route>
     <Route path="/cadastros/tipos-de-acao">{renderOperationalAlias}</Route>
     <Route path="/cadastros/tipos-de-evento">{renderOperationalAlias}</Route>

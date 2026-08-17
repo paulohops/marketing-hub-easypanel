@@ -22,6 +22,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -218,7 +225,7 @@ const registryGroups: Record<string, string> = {
   partner: "parceiros",
   supervisor: "parceiros",
   service: "parceiros",
-  product: "categorias",
+  product: "produtos-servicos",
   media: "categorias",
   action: "categorias",
   event: "categorias",
@@ -324,6 +331,7 @@ export default function RegistryEntityWorkspace() {
     staleTime: 20_000,
   });
   const [editing, setEditing] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [supplierCityIds, setSupplierCityIds] = useState<number[]>([]);
   const [supplierServiceIds, setSupplierServiceIds] = useState<number[]>([]);
@@ -536,12 +544,6 @@ export default function RegistryEntityWorkspace() {
   const selected = entityId
     ? rows.find(item => item.id === entityId)
     : undefined;
-  const isCreateRoute = Boolean(
-    entity &&
-      !entityId &&
-      new URLSearchParams(location.split("?")[1] ?? "").has("novo")
-  );
-  const isSupplierCreateRoute = entity?.kind === "supplier" && isCreateRoute;
   const providers = ((overview.data as Record<string, unknown> | undefined)
     ?.providers ?? []) as RegistryRecord[];
   const regionals = ((overview.data as Record<string, unknown> | undefined)
@@ -665,8 +667,7 @@ export default function RegistryEntityWorkspace() {
     if (
       entity?.kind !== "supplier" ||
       !selected ||
-      !supplierCoverage.data ||
-      isSupplierCreateRoute
+      !supplierCoverage.data
     )
       return;
     setSupplierCityIds(
@@ -684,25 +685,25 @@ export default function RegistryEntityWorkspace() {
         .filter(item => item.supplierId === selected.id)
         .map(item => item.mediaTypeId)
     );
-  }, [entity?.kind, selected, supplierCoverage.data, isSupplierCreateRoute]);
+  }, [entity?.kind, selected, supplierCoverage.data]);
   useEffect(() => {
-    if (entity?.kind !== "supervisor" || !selected || isCreateRoute) return;
+    if (entity?.kind !== "supervisor" || !selected) return;
     setSupervisorCityIds(
       supervisorCityLinks
         .filter(link => link.commercialSupervisorId === selected.id)
         .map(link => link.cityId)
     );
-  }, [entity?.kind, selected, supervisorCityLinks, isCreateRoute]);
+  }, [entity?.kind, selected, supervisorCityLinks]);
   useEffect(() => {
-    if (entity?.kind !== "product" || !selected || isCreateRoute) return;
+    if (entity?.kind !== "product" || !selected) return;
     setProductMediaIds(
       productMediaLinks
         .filter(link => link.productTypeId === selected.id)
         .map(link => link.mediaTypeId)
     );
-  }, [entity?.kind, selected, productMediaLinks, isCreateRoute]);
+  }, [entity?.kind, selected, productMediaLinks]);
   useEffect(() => {
-    if (!isCreateRoute || !entity) return;
+    if (!createDialogOpen || !entity) return;
     setEditing(false);
     setForm(blankRegistryForm(entity.kind));
     setSupplierCityIds([]);
@@ -710,7 +711,7 @@ export default function RegistryEntityWorkspace() {
     setSupplierMediaIds([]);
     setSupervisorCityIds([]);
     setProductMediaIds([]);
-  }, [isCreateRoute, entity?.kind]);
+  }, [createDialogOpen, entity?.kind]);
 
   if (!entity)
     return (
@@ -990,7 +991,7 @@ export default function RegistryEntityWorkspace() {
         contractEndsOn: form.contractEndsOn || null,
         hasContract: form.hasContract === "yes",
       };
-      if (isSupplierCreateRoute && !selected) {
+      if (!selected) {
         createSupplier.mutate(supplierPayload, {
           onSuccess: created => {
             setSupplierCoverage.mutate(
@@ -1232,92 +1233,6 @@ export default function RegistryEntityWorkspace() {
     }
   };
 
-  if (isCreateRoute)
-    return (
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <nav className="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
-              <button
-                onClick={() =>
-                  setLocation(
-                    `/cadastros/${registryGroups[entity.kind] ?? "territorio"}`
-                  )
-                }
-                className="hover:text-primary"
-              >
-                Cadastros
-              </button>
-              <ChevronRight className="h-3 w-3" />
-              <span className="text-foreground">
-                Novo {entity.singular.toLowerCase()}
-              </span>
-            </nav>
-            <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
-              Novo {entity.singular.toLowerCase()}
-            </h1>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Preencha os dados principais e os vínculos que este cadastro
-              precisa para ser usado na operação.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setLocation(`/cadastros/${slug}`)}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar à lista
-          </Button>
-        </div>
-        {entity.kind === "supplier" ? (
-          <SupplierEditor
-            form={form}
-            setForm={setForm}
-            providers={providers}
-            cities={cities}
-            serviceTypes={serviceTypes}
-            mediaTypes={mediaTypes}
-            cityIds={supplierCityIds}
-            setCityIds={setSupplierCityIds}
-            serviceIds={supplierServiceIds}
-            setServiceIds={setSupplierServiceIds}
-            mediaIds={supplierMediaIds}
-            setMediaIds={setSupplierMediaIds}
-            onSave={save}
-            saving={createSupplier.isPending || setSupplierCoverage.isPending}
-          />
-        ) : (
-          <RegistryEditor
-            kind={entity.kind}
-            form={form}
-            setForm={setForm}
-            providers={providers}
-            regionals={regionals}
-            cities={cities}
-            mediaTypes={mediaTypes}
-            serviceTypes={serviceTypes}
-            supervisorCityIds={supervisorCityIds}
-            setSupervisorCityIds={setSupervisorCityIds}
-            productMediaIds={productMediaIds}
-            setProductMediaIds={setProductMediaIds}
-            onSave={save}
-            saving={
-              createProvider.isPending ||
-              createRegional.isPending ||
-              createCity.isPending ||
-              createStore.isPending ||
-              createPartner.isPending ||
-              createSupervisor.isPending ||
-              createType.isPending ||
-              createFinancialCategory.isPending
-            }
-            isCreating
-          />
-        )}
-      </div>
-    );
-
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
@@ -1371,10 +1286,10 @@ export default function RegistryEntityWorkspace() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar aos Cadastros
             </Button>
-            {canWrite && !isSupplierCreateRoute ? (
+            {canWrite ? (
               <Button
                 type="button"
-                onClick={() => setLocation(`/cadastros/${slug}?novo=1`)}
+                onClick={() => setCreateDialogOpen(true)}
                 className="bg-primary text-primary-foreground"
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -1384,6 +1299,74 @@ export default function RegistryEntityWorkspace() {
           </div>
         ) : null}
       </div>
+      {!selected ? (
+        <Dialog
+          open={createDialogOpen}
+          onOpenChange={open => {
+            setCreateDialogOpen(open);
+            if (!open) setForm({});
+          }}
+        >
+          <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Novo {entity.singular.toLowerCase()}
+              </DialogTitle>
+              <DialogDescription>
+                Preencha os dados principais e os vínculos deste cadastro.
+              </DialogDescription>
+            </DialogHeader>
+            {entity.kind === "supplier" ? (
+              <SupplierEditor
+                form={form}
+                setForm={setForm}
+                providers={providers}
+                cities={cities}
+                serviceTypes={serviceTypes}
+                mediaTypes={mediaTypes}
+                cityIds={supplierCityIds}
+                setCityIds={setSupplierCityIds}
+                serviceIds={supplierServiceIds}
+                setServiceIds={setSupplierServiceIds}
+                mediaIds={supplierMediaIds}
+                setMediaIds={setSupplierMediaIds}
+                onSave={save}
+                saving={
+                  createSupplier.isPending || setSupplierCoverage.isPending
+                }
+                isCreating
+              />
+            ) : (
+              <RegistryEditor
+                kind={entity.kind}
+                form={form}
+                setForm={setForm}
+                providers={providers}
+                regionals={regionals}
+                cities={cities}
+                mediaTypes={mediaTypes}
+                serviceTypes={serviceTypes}
+                supervisorCityIds={supervisorCityIds}
+                setSupervisorCityIds={setSupervisorCityIds}
+                productMediaIds={productMediaIds}
+                setProductMediaIds={setProductMediaIds}
+                onSave={save}
+                saving={
+                  createProvider.isPending ||
+                  createRegional.isPending ||
+                  createCity.isPending ||
+                  createStore.isPending ||
+                  createPartner.isPending ||
+                  createSupervisor.isPending ||
+                  createType.isPending ||
+                  createFinancialCategory.isPending
+                }
+                isCreating
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      ) : null}
       {!selected ? (
         <section>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
@@ -2947,6 +2930,7 @@ function SupplierEditor({
   setMediaIds,
   onSave,
   saving,
+  isCreating = false,
 }: {
   form: Record<string, string>;
   setForm: (value: Record<string, string>) => void;
@@ -2962,6 +2946,7 @@ function SupplierEditor({
   setMediaIds: (values: number[]) => void;
   onSave: () => void;
   saving: boolean;
+  isCreating?: boolean;
 }) {
   const field = (
     key: string,
@@ -3207,7 +3192,13 @@ function SupplierEditor({
         </div>
         <div className="mt-6 flex justify-end">
           <Button type="submit" disabled={saving} className="bg-primary">
-            {saving ? "Salvando fornecedor…" : "Salvar fornecedor"}
+            {saving
+              ? isCreating
+                ? "Criando fornecedor…"
+                : "Salvando fornecedor…"
+              : isCreating
+                ? "Criar fornecedor"
+                : "Salvar fornecedor"}
           </Button>
         </div>
       </section>

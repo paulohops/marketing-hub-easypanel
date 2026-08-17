@@ -44,6 +44,16 @@ import RegistryEntityWorkspace from "./RegistryEntityWorkspace";
 });
 
 describe("fichas de cadastros", () => {
+  it("abre o editor de criação em um diálogo para um cadastro genérico", () => {
+    window.history.replaceState({}, "", "/cadastros/servicos");
+    render(<RegistryEntityWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar serviço" }));
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("Novo serviço");
+    expect(screen.getByRole("button", { name: "Criar cadastro" })).toBeInTheDocument();
+  });
+
   it("permite pesquisar e abrir a edição contextual de um fornecedor", () => {
     window.history.replaceState({}, "", "/cadastros/fornecedores");
     render(<RegistryEntityWorkspace />);

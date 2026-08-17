@@ -8,6 +8,7 @@ const uploadProviderBrandManual = vi.hoisted(() => vi.fn());
 const uploadProviderDocument = vi.hoisted(() => vi.fn());
 const deleteProviderDocument = vi.hoisted(() => vi.fn());
 const updateProvider = vi.hoisted(() => vi.fn());
+const createProvider = vi.hoisted(() => vi.fn());
 const provider = { id: 1, name: "Cluster MG", legalName: "Cluster MG LTDA", billingCnpj: "12345678000195", contactName: "Paulo", email: "contato@cluster.com", website: "https://cluster.com.br/", phone: "3133333333", address: "Av. Central, 1", logoStorageKey: null, logoUrl: null, headquartersCityId: 3, brandColors: ["#0E723B", "#F45103"], cnpjCardStorageKey: null, cnpjCardUrl: "https://example.com/cnpj.pdf", brandManualStorageKey: null, brandManualUrl: null, active: true, createdAt: new Date(), updatedAt: new Date() };
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ settings: { overview: { invalidate: invalidateOverview, setData: setOverview } } }),
@@ -19,6 +20,7 @@ const trpcStub = vi.hoisted(() => ({
     uploadProviderDocument: { useMutation: () => ({ mutateAsync: uploadProviderDocument, isPending: false }) },
     deleteProviderDocument: { useMutation: () => ({ mutateAsync: deleteProviderDocument, isPending: false }) },
     updateProvider: { useMutation: () => ({ mutateAsync: updateProvider, isPending: false }) },
+    createProvider: { useMutation: () => ({ mutateAsync: createProvider, isPending: false }) },
   },
 }));
 
@@ -38,7 +40,8 @@ describe("workspace Empresas", () => {
     expect(screen.getByRole("heading", { name: "Cluster MG" })).toBeInTheDocument();
     expect(screen.getByText("Cluster MG LTDA")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Abrir ficha completa/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Criar empresa/i })).toHaveAttribute("href", "/cadastros/empresas?novo=1");
+    fireEvent.click(screen.getByRole("button", { name: /Criar empresa/i }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("Criar empresa");
   });
 
   it("lê a preferência compacta no primeiro render da lista de Empresas", () => {

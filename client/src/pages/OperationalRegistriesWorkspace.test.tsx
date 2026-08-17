@@ -64,4 +64,18 @@ describe("OperationalRegistriesWorkspace", () => {
       screen.queryByRole("button", { name: /^Empresas/ })
     ).not.toBeInTheDocument();
   });
+
+  it("mantém Produtos e serviços como grupo navegável e exibe Tipos de mídia em Categorias do Trade", () => {
+    window.history.replaceState({}, "", "/cadastros/produtos-servicos");
+    render(<OperationalRegistriesWorkspace />);
+
+    expect(screen.getByRole("button", { name: /^Serviços/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Tipos de produtos/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Tipos de mídia/ })).not.toBeInTheDocument();
+
+    window.history.replaceState({}, "", "/cadastros/categorias");
+    cleanup();
+    render(<OperationalRegistriesWorkspace />);
+    expect(screen.getByRole("button", { name: /^Tipos de mídia/ })).toBeInTheDocument();
+  });
 });
