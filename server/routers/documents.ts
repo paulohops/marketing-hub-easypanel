@@ -39,9 +39,10 @@ export const documentsRouter = router({
     return database.select().from(documents).where(and(eq(documents.entityType, input.entityType), eq(documents.entityId, input.entityId))).orderBy(asc(documents.createdAt));
   }),
 
-  upload: protectedProcedure.input(z.object({ entityType: z.enum(entityTypes), entityId: z.number().int().positive(), regionalId: z.number().int().positive().nullable(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(allowedMimeTypes), dataBase64: z.string().min(1).max(70_000_000) })).mutation(async ({ ctx, input }) => {
+  upload: protectedProcedure.input(z.object({ entityType: z.enum(entityTypes), entityId: z.number().int().positive(), regionalId: z.number().int().positive().nullable(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(allowedMimeTypes), documentKind: z.enum(["evidence", "art"]).default("evidence"), dataBase64: z.string().min(1).max(70_000_000) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, permissionForEntity(input.entityType, true));
     const database = await requireDatabase();
+    if (input.documentKind === "art" && (input.entityType !== "media_campaign" || !["application/pdf", "image/png", "image/jpeg"].includes(input.mimeType))) throw new TRPCError({ code: "BAD_REQUEST", message: "A arte da veiculação deve ser PDF, PNG ou JPEG e estar vinculada a uma veiculação." });
     if (input.entityType === "invoice") {
       const [invoice] = await database.select({ id: invoices.id }).from(invoices).where(eq(invoices.id, input.entityId));
       if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Nota fiscal não encontrada." });
@@ -77,8 +78,8 @@ export const documentsRouter = router({
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 50 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O arquivo deve ter até 50 MB." });
     const filename = safeName(input.originalName);
-    const stored = await storagePut(`trade/${input.entityType}/${input.entityId}/${filename}`, bytes, input.mimeType);
-    const [created] = await database.insert(documents).values({ regionalId: input.regionalId, entityType: input.entityType, entityId: input.entityId, storageKey: stored.key, url: stored.url, originalName: filename, mimeType: input.mimeType, sizeBytes: bytes.length, uploadedByUserId: ctx.user.id }).returning();
+    const stored = await storagePut(`trade/${input.entityType}/${input.documentKind}/${input.entityId}/${filename}`, bytes, input.mimeType);
+    const [created] = await database.insert(documents).values({ regionalId: input.regionalId, entityType: input.entityType, entityId: input.entityId, storageKey: stored.key, url: stored.url, originalName: filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: input.documentKind, uploadedByUserId: ctx.user.id }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId, entityType: "document", entityId: created.id, action: "upload", afterData: { entityType: input.entityType, entityId: input.entityId, originalName: filename } });
     return created;
   }),

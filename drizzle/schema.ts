@@ -32,6 +32,7 @@ export const movementTypeEnum = pgEnum("stock_movement_type", [
 export const campaignStatusEnum = pgEnum("campaign_status", [
   "scheduled",
   "active",
+  "inactive",
   "completed",
   "cancelled",
 ]);
@@ -1253,6 +1254,9 @@ export const mediaPoints = pgTable("media_points", {
     .default("graphics")
     .notNull(),
   replacementFrequency: varchar("replacementFrequency", { length: 32 }),
+  contractStartsOn: date("contractStartsOn"),
+  contractEndsOn: date("contractEndsOn"),
+  partnershipType: partnershipTypeEnum("partnershipType").default("paid").notNull(),
   address: text("address"),
   latitude: numeric("latitude", { precision: 10, scale: 7 }),
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
@@ -1321,6 +1325,12 @@ export const mediaCampaigns = pgTable(
       () => mediaTypes.id,
       { onDelete: "set null" }
     ),
+    serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, {
+      onDelete: "set null",
+    }),
+    responsibleUserId: integer("responsibleUserId").references(() => users.id, {
+      onDelete: "set null",
+    }),
     name: varchar("name", { length: 180 }).notNull(),
     objective: varchar("objective", { length: 180 }),
     status: campaignStatusEnum("status").default("active").notNull(),
@@ -1358,6 +1368,11 @@ export const mediaCampaigns = pgTable(
     rating: integer("rating"),
     resultAchieved: boolean("resultAchieved"),
     feedback: text("feedback"),
+    debriefHistory: text("debriefHistory"),
+    debriefResult: text("debriefResult"),
+    debriefEvaluation: text("debriefEvaluation"),
+    debriefLearnings: text("debriefLearnings"),
+    debriefAt: timestamp("debriefAt", { withTimezone: true }),
     createdAt: timestamp("createdAt", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1855,6 +1870,7 @@ export const documents = pgTable("documents", {
   originalName: varchar("originalName", { length: 255 }).notNull(),
   mimeType: varchar("mimeType", { length: 120 }).notNull(),
   sizeBytes: integer("sizeBytes").notNull(),
+  kind: varchar("kind", { length: 24 }).default("evidence").notNull(),
   uploadedByUserId: integer("uploadedByUserId").references(() => users.id, {
     onDelete: "restrict",
   }),
