@@ -39,7 +39,7 @@ export const documentsRouter = router({
     return database.select().from(documents).where(and(eq(documents.entityType, input.entityType), eq(documents.entityId, input.entityId))).orderBy(asc(documents.createdAt));
   }),
 
-  upload: protectedProcedure.input(z.object({ entityType: z.enum(entityTypes), entityId: z.number().int().positive(), regionalId: z.number().int().positive().nullable(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(allowedMimeTypes), documentKind: z.enum(["evidence", "art", "spot"]).default("evidence"), dataBase64: z.string().min(1).max(70_000_000) })).mutation(async ({ ctx, input }) => {
+  upload: protectedProcedure.input(z.object({ entityType: z.enum(entityTypes), entityId: z.number().int().positive(), regionalId: z.number().int().positive().nullable(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(allowedMimeTypes), documentKind: z.enum(["evidence", "history_evidence", "art", "spot"]).default("evidence"), dataBase64: z.string().min(1).max(70_000_000) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, permissionForEntity(input.entityType, true));
     const database = await requireDatabase();
     if (input.documentKind === "art" && (input.entityType !== "media_campaign" || !["application/pdf", "image/png", "image/jpeg"].includes(input.mimeType))) throw new TRPCError({ code: "BAD_REQUEST", message: "A arte da veiculação deve ser PDF, PNG ou JPEG e estar vinculada a uma veiculação." });

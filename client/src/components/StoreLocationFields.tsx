@@ -1,10 +1,9 @@
-import { ClipboardPaste, Clock3, MapPinned } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { parseCoordinates } from "@shared/location";
 import { MapView } from "@/components/Map";
+import { ClipboardPaste, Clock3, MapPinned } from "lucide-react";
 import { STORE_WEEKDAYS, parseStoreHours, serializeStoreHours, type StoreDayHours, type StoreHours, type StoreWeekday } from "@shared/storeHours";
 
 type CoordinatesFieldProps = {
@@ -12,9 +11,10 @@ type CoordinatesFieldProps = {
   longitude: string;
   setLatitude: (value: string) => void;
   setLongitude: (value: string) => void;
+  className?: string;
 };
 
-export function CoordinatesField({ latitude, longitude, setLatitude, setLongitude }: CoordinatesFieldProps) {
+export function CoordinatesField({ latitude, longitude, setLatitude, setLongitude, className }: CoordinatesFieldProps) {
   const [coordinatesText, setCoordinatesText] = useState("");
   const [message, setMessage] = useState("");
 
@@ -41,7 +41,7 @@ export function CoordinatesField({ latitude, longitude, setLatitude, setLongitud
   };
 
   return (
-    <div className="sm:col-span-2 rounded-xl border border-border bg-secondary/20 p-3">
+    <div className={`sm:col-span-2 rounded-xl border border-border bg-secondary/20 p-3 ${className ?? ""}`}>
       <div className="flex items-center gap-2">
         <MapPinned className="h-4 w-4 text-primary" />
         <div>

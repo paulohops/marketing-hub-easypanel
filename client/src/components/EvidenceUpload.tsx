@@ -6,7 +6,7 @@ import { ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type EntityType = "media_campaign" | "media_point" | "action" | "event" | "invoice" | "stock" | "regional_media";
-type DocumentKind = "evidence" | "art" | "spot";
+type DocumentKind = "evidence" | "history_evidence" | "art" | "spot";
 type UploadMimeType = "application/pdf" | "image/jpeg" | "image/png" | "image/webp" | "audio/mpeg" | "audio/wav" | "audio/x-wav" | "video/mp4" | "video/webm";
 
 function fileToBase64(file: File) {
@@ -62,12 +62,12 @@ export default function EvidenceUpload({ entityType, entityId, regionalId, canWr
   };
   const compact = variant === "side";
   const gallery = variant === "gallery";
-  const visibleDocuments = documents.data?.filter(document => documentKind === "evidence" ? !document.kind || document.kind === "evidence" : document.kind === "art" ? document.kind === "art" : document.kind === "spot") ?? [];
+  const visibleDocuments = documents.data?.filter(document => documentKind === "evidence" ? !document.kind || document.kind === "evidence" : documentKind === "history_evidence" ? document.kind === "history_evidence" : documentKind === "art" ? document.kind === "art" : document.kind === "spot") ?? [];
   const selectedDocument = visibleDocuments.find(document => document.id === previewId) ?? null;
 
   return <div className={`mt-3 rounded-xl border border-border bg-secondary ${compact || gallery ? "p-3" : "px-3 py-2.5"}`}>
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <div><p className="text-[11px] font-semibold text-foreground">{title ?? (documentKind === "art" ? "Arte da veiculação" : documentKind === "spot" ? "Spot da veiculação" : "Evidências, comprovantes e mídias")}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{documentKind === "art" ? "PDF, PNG ou JPEG de até 50 MB." : documentKind === "spot" ? "MP3, WAV, áudio compatível ou vídeo de até 50 MB." : "PDF, imagens, áudio e vídeo de até 50 MB."}</p></div>
+      <div><p className="text-[11px] font-semibold text-foreground">{title ?? (documentKind === "art" ? "Arte da veiculação" : documentKind === "spot" ? "Spot da veiculação" : documentKind === "history_evidence" ? "Pasta de motivo e evidências" : "Evidências, comprovantes e mídias")}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{documentKind === "art" ? "PDF, PNG ou JPEG de até 50 MB." : documentKind === "spot" ? "MP3, WAV, áudio compatível ou vídeo de até 50 MB." : documentKind === "history_evidence" ? "Arquivos exclusivos do histórico; não serão exibidos no acervo geral." : "PDF, imagens, áudio e vídeo de até 50 MB."}</p></div>
       {canWrite && <><input ref={inputRef} type="file" accept={documentKind === "art" ? "application/pdf,image/jpeg,image/png,image/webp" : documentKind === "spot" ? "audio/mpeg,audio/wav,audio/x-wav,video/mp4,video/webm" : "application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/mp4,video/mp4,video/webm"} onChange={handleFile} className="hidden" /><Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={upload.isPending} className="h-7 rounded-md border-border px-2 text-[10px] text-foreground">{upload.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Paperclip className="mr-1 h-3 w-3" />} Anexar</Button></>}
     </div>
     {visibleDocuments.length ? gallery ? <>

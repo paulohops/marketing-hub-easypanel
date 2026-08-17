@@ -13,3 +13,7 @@ A solução deve reutilizar `DashboardLayout`, tokens semânticos, componentes d
 Toda mutation deve validar a regra no backend, exigir a permissão apropriada, registrar auditoria quando alterar dados operacionais e invalidar as queries relacionadas após sucesso. Formulários dependentes devem filtrar opções e limpar valores que ficaram incompatíveis. Custos, datas, vínculos territoriais, fornecedores, serviços, estoque, status e evidências não podem ser confiados somente ao frontend.
 
 Antes de concluir, valide loading, vazio, erro, detalhe, formulário, tema escuro, viewport estreito e largura de 1280 px. Execute `pnpm check`, `pnpm test` e `pnpm build` sempre que possível e registre qualquer limitação.
+
+## Padrão global obrigatório
+
+Toda nova funcionalidade ou alteração nos módulos operacionais deve seguir a identidade visual e a usabilidade do módulo de Ações. Consulte [`docs/operational-ux-standards.md`](docs/operational-ux-standards.md) e reutilize [`client/src/components/OperationalPatterns.tsx`](client/src/components/OperationalPatterns.tsx) para status, confirmação de motivo e evidências, histórico, debriefing e demais padrões compartilhados. As interações específicas do módulo podem variar, mas não devem criar uma identidade visual ou um comportamento operacional paralelo.

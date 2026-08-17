@@ -10,6 +10,7 @@ import {
   campaignSectors,
   campaignTypes,
   cities,
+  documents,
   commercialSupervisorCities,
   commercialSupervisorStores,
   commercialSupervisors,
@@ -3939,13 +3940,14 @@ export const settingsRouter = router({
       await database.transaction(async transaction => {
         if (selected.has("media")) {
           await transaction.execute(sql`DELETE FROM "media_campaign_city_distributions"`);
-          await transaction.execute(sql`DELETE FROM "documents" WHERE "entity_type" IN ('media_campaign', 'media_point')`);
+          await transaction.execute(sql`DELETE FROM "documents" WHERE CAST("entityType" AS text) = ANY (ARRAY['media_campaign', 'media_point']::text[])`);
+          await transaction.execute(sql`DELETE FROM "media_spots"`);
           await transaction.execute(sql`DELETE FROM "media_campaigns"`);
           await transaction.execute(sql`DELETE FROM "urban_media_registrations"`);
           await transaction.execute(sql`DELETE FROM "media_points"`);
-          await transaction.execute(sql`DELETE FROM "media_spots"`);
         }
         if (selected.has("actions")) {
+          await transaction.execute(sql`DELETE FROM "documents" WHERE CAST("entityType" AS text) = ANY (ARRAY['action', 'event']::text[])`);
           await transaction.execute(sql`DELETE FROM "action_debriefs"`);
           await transaction.execute(sql`DELETE FROM "action_stock_items"`);
           await transaction.execute(sql`DELETE FROM "action_team_members"`);
