@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auditLogs, cities, documents, influencerGroupMembers, influencerGroups, influencerPosts, influencers, invoices, mediaCampaignCityDistributions, mediaCampaigns, mediaPoints, mediaSpots, mediaTypes, payments, regionals, serviceTypes, soundCarRuns, supplierCities, supplierContracts, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, tradeCampaigns, urbanMediaRegistrations, users } from "../../drizzle/schema";
+import { auditLogs, cities, documents, influencerGroupMembers, influencerGroups, influencerPosts, influencers, invoices, mediaCampaignCityDistributions, mediaCampaigns, mediaPoints, mediaSpots, mediaTypes, payments, regionals, serviceTypeRelations, serviceTypes, soundCarRuns, supplierCities, supplierContracts, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, tradeCampaigns, urbanMediaRegistrations, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -48,19 +48,22 @@ export const mediaRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "media.read");
     const database = await requireDatabase();
-    const [supplierRows, cityRows, regionalRows, mediaTypeRows, serviceRows, supplierMediaRows, supplierServiceRows, offeringRows, contractRows, userRows] = await Promise.all([
+    const [supplierRows, cityRows, regionalRows, mediaTypeRows, serviceRows, relationRows, supplierMediaRows, supplierServiceRows, offeringRows, contractRows, userRows] = await Promise.all([
       database.select().from(suppliers).where(eq(suppliers.active, true)).orderBy(asc(suppliers.displayName)).catch(() => []),
       database.select({ city: cities, regionalName: regionals.name }).from(cities).innerJoin(regionals, eq(cities.regionalId, regionals.id)).where(eq(cities.active, true)).orderBy(asc(cities.name)).catch(() => []),
       database.select().from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)).catch(() => []),
       database.select().from(mediaTypes).where(eq(mediaTypes.active, true)).orderBy(asc(mediaTypes.name)).catch(() => []),
       database.select().from(serviceTypes).where(eq(serviceTypes.active, true)).orderBy(asc(serviceTypes.name)).catch(() => []),
+      database.select().from(serviceTypeRelations).catch(() => []),
       database.select().from(supplierMediaTypes).catch(() => []),
       database.select().from(supplierServiceTypes).catch(() => []),
       database.select().from(supplierOfferings).where(eq(supplierOfferings.active, true)).orderBy(asc(supplierOfferings.name)).catch(() => []),
       database.select().from(supplierContracts).where(eq(supplierContracts.status, "active")).orderBy(desc(supplierContracts.startsOn)).catch(() => []),
       database.select({ id: users.id, name: users.name, email: users.email, jobTitle: users.jobTitle }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)).catch(() => []),
     ]);
-    return { suppliers: supplierRows, cities: cityRows, regionals: regionalRows, mediaTypes: mediaTypeRows, serviceTypes: serviceRows, supplierMediaTypes: supplierMediaRows, supplierServiceTypes: supplierServiceRows, supplierOfferings: offeringRows, supplierContracts: contractRows, users: userRows };
+    const relationSubserviceIds = new Set(relationRows.map(relation => relation.subserviceTypeId));
+    const subserviceRows = serviceRows.filter(service => Boolean(service.parentServiceTypeId) || relationSubserviceIds.has(service.id));
+    return { suppliers: supplierRows, cities: cityRows, regionals: regionalRows, mediaTypes: mediaTypeRows, serviceTypes: serviceRows, subserviceTypes: subserviceRows, serviceTypeRelations: relationRows, supplierMediaTypes: supplierMediaRows, supplierServiceTypes: supplierServiceRows, supplierOfferings: offeringRows, supplierContracts: contractRows, users: userRows };
   }),
   list: protectedProcedure.input(z.object({ regionalId: z.number().int().positive().optional(), cityId: z.number().int().positive().optional(), channelKind: z.enum(channelKinds).optional(), operationCategory: z.enum(mediaOperationCategories).optional(), status: z.enum(["active", "inactive", "scheduled", "completed", "cancelled"]).optional(), partnershipType: z.enum(partnershipKinds).optional() }).optional()).query(async ({ ctx, input }) => { await assertPermission(ctx.user, "media.read"); const database = await requireDatabase(); const conditions = []; if (input?.regionalId) conditions.push(eq(cities.regionalId, input.regionalId)); if (input?.cityId) conditions.push(eq(mediaPoints.cityId, input.cityId)); if (input?.channelKind) conditions.push(eq(mediaPoints.channelKind, input.channelKind)); if (input?.operationCategory) conditions.push(eq(mediaPoints.operationCategory, input.operationCategory)); const [points, campaigns, evidenceRows, invoiceRows, paymentRows] = await Promise.all([database.select({ point: mediaPoints, supplierName: suppliers.displayName, cityName: cities.name, regionalId: cities.regionalId, regionalName: regionals.name, mediaTypeName: mediaTypes.name, serviceTypeName: serviceTypes.name }).from(mediaPoints).innerJoin(suppliers, eq(mediaPoints.supplierId, suppliers.id)).innerJoin(cities, eq(mediaPoints.cityId, cities.id)).innerJoin(regionals, eq(cities.regionalId, regionals.id)).innerJoin(mediaTypes, eq(mediaPoints.mediaTypeId, mediaTypes.id)).leftJoin(serviceTypes, eq(mediaPoints.serviceTypeId, serviceTypes.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(mediaPoints.name)), database.select().from(mediaCampaigns).orderBy(desc(mediaCampaigns.startsOn)), database.select().from(documents).where(eq(documents.entityType, "media_campaign")).orderBy(desc(documents.createdAt)), database.select({ id: invoices.id, operationId: invoices.operationId, amount: invoices.amount, status: invoices.status }).from(invoices).where(eq(invoices.operationType, "media_campaign")), database.select({ invoiceId: payments.invoiceId, amount: payments.amount }).from(payments)]); return points.map(({ point, ...labels }) => { const pointCampaigns = campaigns.filter(campaign => campaign.mediaPointId === point.id && (!input?.status || campaign.status === input.status) && (!input?.partnershipType || campaign.partnershipType === input.partnershipType)).map(campaign => { const campaignInvoices = invoiceRows.filter(invoice => invoice.operationId === campaign.id && invoice.status !== "cancelled"); const paidAmount = campaignInvoices.reduce((total, invoice) => total + paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((subtotal, payment) => subtotal + Number(payment.amount), 0), 0); const estimatedAmount = Number(campaign.estimatedCost); return { ...campaign, finance: { estimatedAmount, invoicedAmount: campaignInvoices.reduce((total, invoice) => total + Number(invoice.amount), 0), paidAmount, remainingAmount: estimatedAmount - paidAmount } }; }); const pointCampaignIds = pointCampaigns.map(campaign => campaign.id); const cover = evidenceRows.find(document => document.kind === "evidence" && pointCampaignIds.includes(document.entityId) && document.mimeType.startsWith("image/")); return { ...point, ...labels, campaigns: pointCampaigns, coverImageUrl: cover?.url ?? null, activeCampaign: pointCampaigns.find(campaign => campaign.status === "active") ?? null, nextCampaign: pointCampaigns.find(campaign => campaign.status === "scheduled") ?? null }; }).filter(point => !input?.status && !input?.partnershipType || point.campaigns.length > 0); }),
   pointDetails: protectedProcedure.input(z.object({ mediaPointId: z.number().int().positive() })).query(async ({ ctx, input }) => {
@@ -101,20 +104,37 @@ export const mediaRouter = router({
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "urban_media_registration", entityId: created.id, action: "create", afterData: created });
     return created;
   }),
-  createUrbanVeiculation: protectedProcedure.input(z.object({ urbanMediaRegistrationId: z.number().int().positive(), serviceTypeId: z.number().int().positive().nullable().optional(), responsibleUserId: z.number().int().positive().nullable().optional(), tradeCampaignId: z.number().int().positive().nullable().optional(), name: z.string().trim().min(2).max(180), objective: z.string().trim().max(180).optional(), startsOn: z.string().date(), endsOn: z.string().date(), partnershipType: z.enum(partnershipKinds).default("paid"), estimatedCost: z.number().min(0).optional(), notes: z.string().trim().max(2000).optional(), campaignDetails: z.string().trim().max(4000).optional() })).mutation(async ({ ctx, input }) => {
+  createUrbanVeiculation: protectedProcedure.input(z.object({ mediaPointId: z.number().int().positive(), urbanMediaRegistrationId: z.number().int().positive().optional(), serviceTypeId: z.number().int().positive(), responsibleUserId: z.number().int().positive().nullable().optional(), tradeCampaignId: z.number().int().positive().nullable().optional(), name: z.string().trim().min(2).max(180), objective: z.string().trim().max(180).optional(), startsOn: z.string().date(), endsOn: z.string().date(), partnershipType: z.enum(partnershipKinds).default("paid"), estimatedCost: z.number().min(0).default(0), notes: z.string().trim().max(2000).optional(), campaignDetails: z.string().trim().min(3).max(4000) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "media.write");
     if (input.endsOn < input.startsOn) throw new TRPCError({ code: "BAD_REQUEST", message: "A data final deve ser posterior à data inicial." });
     const database = await requireDatabase();
-    const [registration] = await database.select().from(urbanMediaRegistrations).where(and(eq(urbanMediaRegistrations.id, input.urbanMediaRegistrationId), eq(urbanMediaRegistrations.active, true))).limit(1);
-    if (!registration) throw new TRPCError({ code: "NOT_FOUND", message: "Mídia registrada não encontrada ou inativa." });
-    const [point] = await database.select({ id: mediaPoints.id, mediaTypeId: mediaPoints.mediaTypeId, supplierId: mediaPoints.supplierId }).from(mediaPoints).where(eq(mediaPoints.id, registration.mediaPointId)).limit(1);
-    if (!point) throw new TRPCError({ code: "NOT_FOUND", message: "Ponto de mídia não encontrado." });
-    if (input.serviceTypeId) { const [service] = await database.select({ id: serviceTypes.id }).from(serviceTypes).where(and(eq(serviceTypes.id, input.serviceTypeId), eq(serviceTypes.mediaTypeId, point.mediaTypeId), eq(serviceTypes.active, true))).limit(1); if (!service) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo de serviço não está vinculado ao tipo de mídia deste ponto." }); }
-    if (input.responsibleUserId) { const [responsible] = await database.select({ id: users.id }).from(users).where(and(eq(users.id, input.responsibleUserId), eq(users.isActive, true))).limit(1); if (!responsible) throw new TRPCError({ code: "BAD_REQUEST", message: "O responsável selecionado não está ativo." }); }
-    if (input.tradeCampaignId) { const [tradeCampaign] = await database.select({ id: tradeCampaigns.id }).from(tradeCampaigns).where(eq(tradeCampaigns.id, input.tradeCampaignId)).limit(1); if (!tradeCampaign) throw new TRPCError({ code: "BAD_REQUEST", message: "Campanha comercial inexistente." }); }
+    let registration: typeof urbanMediaRegistrations.$inferSelect | null = null;
+    if (input.urbanMediaRegistrationId) {
+      const [legacyRegistration] = await database.select().from(urbanMediaRegistrations).where(and(eq(urbanMediaRegistrations.id, input.urbanMediaRegistrationId), eq(urbanMediaRegistrations.active, true))).limit(1);
+      if (!legacyRegistration) throw new TRPCError({ code: "NOT_FOUND", message: "Registro operacional legado não encontrado ou inativo." });
+      if (legacyRegistration.mediaPointId !== input.mediaPointId) throw new TRPCError({ code: "BAD_REQUEST", message: "O registro operacional não pertence ao ponto informado." });
+      registration = legacyRegistration;
+    }
+    const [point] = await database.select({ id: mediaPoints.id, mediaTypeId: mediaPoints.mediaTypeId, supplierId: mediaPoints.supplierId }).from(mediaPoints).where(and(eq(mediaPoints.id, input.mediaPointId), eq(mediaPoints.operationCategory, "graphics"), eq(mediaPoints.status, "active"))).limit(1);
+    if (!point) throw new TRPCError({ code: "NOT_FOUND", message: "Ponto de Mídia Urbana não encontrado ou inativo." });
+    const [service] = await database.select().from(serviceTypes).where(and(eq(serviceTypes.id, input.serviceTypeId), eq(serviceTypes.active, true))).limit(1);
+    if (!service) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione um SubServiço ativo." });
+    const [relation] = await database.select({ id: serviceTypeRelations.id }).from(serviceTypeRelations).where(eq(serviceTypeRelations.subserviceTypeId, input.serviceTypeId)).limit(1);
+    if (!service.parentServiceTypeId && !relation) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo selecionado precisa ser um SubServiço cadastrado." });
+    if (input.responsibleUserId) {
+      const [responsible] = await database.select({ id: users.id }).from(users).where(and(eq(users.id, input.responsibleUserId), eq(users.isActive, true))).limit(1);
+      if (!responsible) throw new TRPCError({ code: "BAD_REQUEST", message: "O responsável selecionado não está ativo." });
+    }
+    if (input.tradeCampaignId) {
+      const [tradeCampaign] = await database.select({ id: tradeCampaigns.id }).from(tradeCampaigns).where(eq(tradeCampaigns.id, input.tradeCampaignId)).limit(1);
+      if (!tradeCampaign) throw new TRPCError({ code: "BAD_REQUEST", message: "Campanha comercial inexistente." });
+    }
     const status = campaignStatusFor(input.startsOn);
-    if (status === "active") { const [existing] = await database.select({ id: mediaCampaigns.id }).from(mediaCampaigns).where(and(eq(mediaCampaigns.mediaPointId, registration.mediaPointId), eq(mediaCampaigns.status, "active"))).limit(1); if (existing) throw new TRPCError({ code: "CONFLICT", message: "Este ponto já possui uma veiculação ativa. Reagende a atual ou cadastre uma futura." }); }
-    const [created] = await database.insert(mediaCampaigns).values({ mediaPointId: registration.mediaPointId, urbanMediaRegistrationId: registration.id, mediaVariationTypeId: registration.mediaVariationTypeId, serviceTypeId: input.serviceTypeId ?? null, responsibleUserId: input.responsibleUserId ?? null, tradeCampaignId: input.tradeCampaignId ?? null, name: input.name, objective: input.objective || null, startsOn: input.startsOn, endsOn: input.endsOn, partnershipType: input.partnershipType, estimatedCost: (input.estimatedCost ?? Number(registration.contractValue)).toFixed(2), notes: input.notes || null, campaignDetails: input.campaignDetails || null, status }).returning();
+    if (status === "active") {
+      const [existing] = await database.select({ id: mediaCampaigns.id }).from(mediaCampaigns).where(and(eq(mediaCampaigns.mediaPointId, input.mediaPointId), eq(mediaCampaigns.status, "active"))).limit(1);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Este ponto já possui uma veiculação ativa. Reagende a atual ou cadastre uma futura." });
+    }
+    const [created] = await database.insert(mediaCampaigns).values({ mediaPointId: input.mediaPointId, urbanMediaRegistrationId: registration?.id ?? null, mediaVariationTypeId: registration?.mediaVariationTypeId ?? null, serviceTypeId: input.serviceTypeId, responsibleUserId: input.responsibleUserId ?? null, tradeCampaignId: input.tradeCampaignId ?? null, name: input.name, objective: input.objective || null, startsOn: input.startsOn, endsOn: input.endsOn, partnershipType: input.partnershipType, estimatedCost: input.estimatedCost.toFixed(2), notes: input.notes || null, campaignDetails: input.campaignDetails, status }).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_campaign", entityId: created.id, action: status === "scheduled" ? "schedule" : "create", afterData: created });
     return created;
   }),
