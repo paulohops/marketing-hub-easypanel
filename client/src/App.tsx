@@ -77,9 +77,9 @@ function Router() {
     <Route path="/configuracoes/design">{() => <ProtectedModule module="design" />}</Route>
     <Route path="/configuracoes/sistema">{() => <ProtectedModule module="sistema" />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
-    <Route path="/usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
-    <Route path="/administracao-usuarios">{() => <ProtectedModule module="usuarios" />}</Route>
-    <Route path="/equipes">{() => <ProtectedModule module="equipes" />}</Route>
+    <Route path="/usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>
+    <Route path="/administracao-usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>
+    <Route path="/equipes">{() => <Redirect to="/configuracoes/equipes" replace />}</Route>
     <Route path="/pontos-de-acao">{() => <ProtectedModule module="pontos-de-acao" />}</Route>
     <Route path="/ajuda">{() => <ProtectedModule module="ajuda" />}</Route>
     <Route path="/notificacoes">{() => <ProtectedModule module="notificacoes" />}</Route>
