@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { ArrowLeft, LockKeyhole, Loader2 } from "lucide-react";
-import { useLocation } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import LoginPage from "./LoginPage";
 import ModulePage from "./ModulePage";
 import FinanceWorkspace from "./FinanceWorkspace";
@@ -82,10 +82,11 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (!isAuthenticated) return <LoginPage />;
   const definition = definitions[module];
   if (permissionsLoading) return <DashboardLayout><div className="grid min-h-[calc(100vh-220px)] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div></DashboardLayout>;
-  const hasReadPermission = canPermission(definition.permission);
+  const hasReadPermission = module === "perfil" && user?.mustChangePassword ? true : canPermission(definition.permission);
   if (!hasReadPermission) {
     return <DashboardLayout><div className="grid min-h-[calc(100vh-220px)] place-items-center"><div className="max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm"><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent text-sidebar-primary"><LockKeyhole className="h-5 w-5" /></span><h1 className="mt-5 font-display text-2xl font-semibold text-foreground">Acesso não autorizado</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Seu perfil não possui permissão para consultar este módulo. Solicite a liberação a um administrador.</p><Button variant="outline" onClick={() => setLocation("/")} className="mt-6 rounded-lg border-border text-xs text-primary"><ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Voltar ao início</Button></div></div></DashboardLayout>;
   }
+  if (user?.mustChangePassword && module !== "perfil") return <Redirect to="/perfil?primeiro-acesso=1" replace />;
   if (module === "estoque") return <DashboardLayout><div className="cluster-workspace"><InventoryWorkspace /></div></DashboardLayout>;
   if (module === "financeiro") return <DashboardLayout><div className="cluster-workspace"><FinanceWorkspace /></div></DashboardLayout>;
   if (module === "operacoes") return <DashboardLayout><div className="cluster-workspace"><TradeOperationsWorkspace /></div></DashboardLayout>;

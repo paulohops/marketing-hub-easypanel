@@ -9,6 +9,7 @@ import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { hashLocalPassword, localPasswordInput, verifyLocalPassword } from "../auth/localPasswords";
+import { sendTemporaryPasswordEmail } from "../_core/notification";
 
 export const profileInput = z.object({
   name: z.string().trim().min(2, "Informe seu nome.").max(160),
@@ -29,7 +30,7 @@ const adminUserFields = z.object({
   regionalIds: z.array(z.number().int().positive()).max(100).optional(),
   cityIds: z.array(z.number().int().positive()).max(300).optional(),
 });
-const createLocalUserInput = adminUserFields.extend({ password: localPasswordInput });
+const createLocalUserInput = adminUserFields;
 const updateAdminUserInput = adminUserFields.extend({ userId: z.number().int().positive() });
 
 export function allowedPermissionKeys(rows: Array<{ module: string; action: string; allowed: boolean }>) {
@@ -60,6 +61,10 @@ async function resolveManager(database: Awaited<ReturnType<typeof requireDatabas
   const manager = await findUserOrFail(database, managerUserId);
   if (!manager.isActive) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione uma pessoa ativa para a supervisão da equipe." });
   return manager.id;
+}
+
+function generateTemporaryPassword() {
+  return `Temp-${randomUUID().replace(/-/g, "").slice(0, 16)}9A`;
 }
 
 function normalizeTrelloBoardUrl(value: string) {
@@ -108,6 +113,7 @@ export const usersRouter = router({
     role: ctx.user.role,
     loginMethod: ctx.user.loginMethod,
     hasLocalPassword: Boolean(ctx.user.passwordHash),
+    mustChangePassword: ctx.user.mustChangePassword,
     lastSignedIn: ctx.user.lastSignedIn,
   })),
 
@@ -146,18 +152,21 @@ export const usersRouter = router({
   passwordPolicy: protectedProcedure.query(({ ctx }) => ({
     providerManaged: !ctx.user.passwordHash,
     canChangePasswordHere: Boolean(ctx.user.passwordHash),
-    message: ctx.user.passwordHash
+    mustChangePassword: ctx.user.mustChangePassword,
+    message: ctx.user.mustChangePassword
+      ? "Sua senha temporária precisa ser trocada antes de continuar."
+      : ctx.user.passwordHash
       ? "Sua conta possui senha local. Use a troca de senha com sua senha atual para manter o acesso protegido."
       : "A senha é gerenciada pelo provedor de acesso Manus OAuth. Para sua segurança, não armazenamos senhas locais nesta conta.",
   })),
 
-  changeOwnLocalPassword: protectedProcedure.input(z.object({ currentPassword: z.string().min(1).max(128), newPassword: localPasswordInput })).mutation(async ({ ctx, input }) => {
+  changeOwnLocalPassword: protectedProcedure.input(z.object({ currentPassword: z.string().max(128).optional().or(z.literal("")), newPassword: localPasswordInput })).mutation(async ({ ctx, input }) => {
     const database = await requireDatabase();
     const account = await findUserOrFail(database, ctx.user.id);
     if (!account.passwordHash) throw new TRPCError({ code: "BAD_REQUEST", message: "Esta conta usa autenticação institucional e não possui senha local." });
-    if (!await verifyLocalPassword(input.currentPassword, account.passwordHash)) throw new TRPCError({ code: "UNAUTHORIZED", message: "A senha atual está incorreta." });
+    if (!account.mustChangePassword && (!input.currentPassword || !await verifyLocalPassword(input.currentPassword, account.passwordHash))) throw new TRPCError({ code: "UNAUTHORIZED", message: "A senha atual está incorreta." });
     const passwordHash = await hashLocalPassword(input.newPassword);
-    await database.update(users).set({ passwordHash, passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, account.id));
+    await database.update(users).set({ passwordHash, mustChangePassword: false, passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, account.id));
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: account.id, action: "change_own_password", beforeData: null, afterData: { passwordUpdated: true } });
     return { success: true } as const;
   }),
@@ -198,9 +207,12 @@ export const usersRouter = router({
     const email = input.email.toLowerCase();
     const [existing] = await database.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${email}`).limit(1);
     if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já existe uma conta com este e-mail." });
-    const passwordHash = await hashLocalPassword(input.password);
+    const temporaryPassword = generateTemporaryPassword();
+    const delivered = await sendTemporaryPasswordEmail({ to: email, name: input.name, temporaryPassword });
+    if (!delivered) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Não foi possível enviar a senha temporária. Verifique a configuração SMTP do Sistema." });
+    const passwordHash = await hashLocalPassword(temporaryPassword);
     const now = new Date();
-    const [created] = await database.insert(users).values({ openId: `local_${randomUUID()}`, name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, loginMethod: "local", passwordHash, passwordUpdatedAt: now, isActive: true, lastSignedIn: now, updatedAt: now }).returning();
+    const [created] = await database.insert(users).values({ openId: `local_${randomUUID()}`, name: input.name, email, phone: input.phone || null, jobTitle: input.jobTitle || null, role: input.role, loginMethod: "local", passwordHash, mustChangePassword: true, passwordUpdatedAt: now, isActive: true, updatedAt: now }).returning();
     const managerUserId = await resolveManager(database, created.id, input.managerUserId);
     if (managerUserId !== undefined) await database.update(users).set({ managerUserId, updatedAt: now }).where(eq(users.id, created.id));
     const territory = await resolveTerritoryAssignments(database, input.regionalIds ?? [], input.cityIds ?? []);
@@ -261,13 +273,16 @@ export const usersRouter = router({
     return redactUser(updated);
   }),
 
-  resetLocalPassword: adminProcedure.input(z.object({ userId: z.number().int().positive(), password: localPasswordInput })).mutation(async ({ ctx, input }) => {
+  resetLocalPassword: adminProcedure.input(z.object({ userId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const database = await requireDatabase();
     const account = await findUserOrFail(database, input.userId);
-    if (!account.passwordHash) throw new TRPCError({ code: "BAD_REQUEST", message: "Esta conta usa autenticação institucional e não possui senha local para redefinir." });
-    const passwordHash = await hashLocalPassword(input.password);
-    await database.update(users).set({ passwordHash, passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, account.id));
-    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: account.id, action: "reset_local_password", beforeData: null, afterData: { passwordReset: true } });
+    if (!account.passwordHash || !account.email) throw new TRPCError({ code: "BAD_REQUEST", message: "Esta conta não possui autenticação local e e-mail para redefinir." });
+    const temporaryPassword = generateTemporaryPassword();
+    const delivered = await sendTemporaryPasswordEmail({ to: account.email, name: account.name ?? "usuário", temporaryPassword });
+    if (!delivered) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Não foi possível enviar a senha temporária. Verifique a configuração SMTP do Sistema." });
+    const passwordHash = await hashLocalPassword(temporaryPassword);
+    await database.update(users).set({ passwordHash, mustChangePassword: true, passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, account.id));
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "user_access", entityId: account.id, action: "reset_local_password", beforeData: null, afterData: { passwordReset: true, temporaryPasswordSent: true } });
     return { success: true } as const;
   }),
 

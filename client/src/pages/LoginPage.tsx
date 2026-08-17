@@ -13,8 +13,8 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [stage, setStage] = useState<"credentials" | "login-code" | "reset-request" | "reset-code">("credentials");
-  const login = trpc.auth.local.login.useMutation({ onSuccess: result => result.requiresCode ? setStage("login-code") : window.location.assign("/"), onError: error => toast.error(error.message) });
-  const verifyLoginCode = trpc.auth.local.verifyLoginCode.useMutation({ onSuccess: () => window.location.assign("/"), onError: error => toast.error(error.message) });
+  const login = trpc.auth.local.login.useMutation({ onSuccess: result => result.requiresCode ? setStage("login-code") : window.location.assign(result.mustChangePassword ? "/perfil?primeiro-acesso=1" : "/"), onError: error => toast.error(error.message) });
+  const verifyLoginCode = trpc.auth.local.verifyLoginCode.useMutation({ onSuccess: result => window.location.assign(result.mustChangePassword ? "/perfil?primeiro-acesso=1" : "/"), onError: error => toast.error(error.message) });
   const requestPasswordReset = trpc.auth.local.requestPasswordReset.useMutation({ onSuccess: () => { setCode(""); setStage("reset-code"); toast.success("Se o e-mail estiver cadastrado, o código foi enviado."); }, onError: error => toast.error(error.message) });
   const resetPasswordMutation = trpc.auth.local.resetPassword.useMutation({ onSuccess: () => { setCode(""); setResetPassword(""); setStage("credentials"); toast.success("Senha redefinida. Faça o login novamente."); }, onError: error => toast.error(error.message) });
 
@@ -62,6 +62,7 @@ export default function LoginPage() {
             <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[11px] font-bold tracking-wide text-primary">ACESSO RESTRITO</span>
             <h2 className="mt-6 font-display text-3xl font-extrabold tracking-tight text-foreground">Acesse sua operação</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">Acesse com sua conta local usando seu e-mail e senha.</p>
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-amber-950"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" /><p className="text-xs leading-5"><strong>Acesso interno:</strong> para acessar <span className="font-semibold">http://10.159.245.28:8978/</span>, é necessário estar conectado à VPN da Sempre Internet.</p></div>
             {stage === "credentials" && <form className="mt-7 space-y-4" onSubmit={submit}>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-email">E-mail</label><Input id="local-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="nome@empresa.com" /></div>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-password">Senha</label><Input id="local-password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} placeholder="Sua senha local" /></div>
@@ -73,7 +74,7 @@ export default function LoginPage() {
             {stage === "reset-code" && <form className="mt-7 space-y-4" onSubmit={submitReset}><div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="reset-code">Código recebido</label><Input id="reset-code" inputMode="numeric" maxLength={6} required value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" /></div><div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="new-password">Nova senha</label><Input id="new-password" type="password" minLength={12} required value={resetPassword} onChange={event => setResetPassword(event.target.value)} placeholder="Mínimo de 12 caracteres" /></div><Button type="submit" disabled={resetPasswordMutation.isPending} className="h-12 w-full bg-primary text-primary-foreground">Redefinir senha</Button></form>}
             <div className="mt-6 flex items-start gap-3 rounded-xl border border-border bg-background p-4">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-sidebar-primary" />
-              <p className="text-xs leading-5 text-muted-foreground">O acesso está disponível por e-mail e senha. A confirmação por código está desabilitada temporariamente.</p>
+              <p className="text-xs leading-5 text-muted-foreground">O acesso está disponível por e-mail e senha. Se esta for sua primeira entrada, o sistema solicitará a troca da senha temporária.</p>
             </div>
           </div>
         </section>

@@ -176,6 +176,7 @@ export const users = pgTable("users", {
   ),
   passwordHash: varchar("passwordHash", { length: 255 }),
   passwordUpdatedAt: timestamp("passwordUpdatedAt", { withTimezone: true }),
+  mustChangePassword: boolean("mustChangePassword").default(false).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
   role: userRoleEnum("role").default("viewer").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true })

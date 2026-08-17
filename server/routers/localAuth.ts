@@ -61,6 +61,7 @@ async function createSession(ctx: { req: any; res: any }, database: NonNullable<
   await database.update(users).set({ lastSignedIn: signedInAt, updatedAt: signedInAt, authCodeHash: null, authCodePurpose: null, authCodeExpiresAt: null }).where(eq(users.id, account.id));
   const token = await sdk.createSessionToken(account.openId, { name: account.name || "Trade HUB", expiresInMs: ONE_YEAR_MS });
   ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
+  return { mustChangePassword: account.mustChangePassword } as const;
 }
 
 export const localAuthRouter = router({
@@ -74,16 +75,16 @@ export const localAuthRouter = router({
     attemptsByEmail.delete(email);
     if (await isEmailLoginCodeEnabled(database)) {
       await issueCode(database, account, "login");
-      return { success: true, requiresCode: true } as const;
+      return { success: true, requiresCode: true, mustChangePassword: account.mustChangePassword } as const;
     }
-    await createSession(ctx, database, account);
-    return { success: true, requiresCode: false } as const;
+    const session = await createSession(ctx, database, account);
+    return { success: true, requiresCode: false, ...session } as const;
   }),
   verifyLoginCode: publicProcedure.input(codeInput).mutation(async ({ ctx, input }) => {
     const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
     const account = await assertCode(database, input.email.toLowerCase(), input.code, "login");
-    await createSession(ctx, database, account);
-    return { success: true } as const;
+    const session = await createSession(ctx, database, account);
+    return { success: true, ...session } as const;
   }),
   requestPasswordReset: publicProcedure.input(z.object({ email: z.string().trim().email("Informe um e-mail válido.").max(320) })).mutation(async ({ input }) => {
     const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
@@ -94,7 +95,7 @@ export const localAuthRouter = router({
   resetPassword: publicProcedure.input(resetInput).mutation(async ({ input }) => {
     const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
     const account = await assertCode(database, input.email.toLowerCase(), input.code, "password_reset");
-    await database.update(users).set({ passwordHash: await hashLocalPassword(input.newPassword), passwordUpdatedAt: new Date(), authCodeHash: null, authCodePurpose: null, authCodeExpiresAt: null, updatedAt: new Date() }).where(eq(users.id, account.id));
+    await database.update(users).set({ passwordHash: await hashLocalPassword(input.newPassword), mustChangePassword: false, passwordUpdatedAt: new Date(), authCodeHash: null, authCodePurpose: null, authCodeExpiresAt: null, updatedAt: new Date() }).where(eq(users.id, account.id));
     return { success: true } as const;
   }),
 });
