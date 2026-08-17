@@ -88,6 +88,7 @@ export const mediaPointStatusEnum = pgEnum("media_point_status", [
   "active",
   "inactive",
   "maintenance",
+  "cancelled",
 ]);
 export const invoiceStatusEnum = pgEnum("invoice_status", [
   "open",
@@ -105,6 +106,7 @@ export const operationTypeEnum = pgEnum("financial_operation_type", [
 ]);
 export const documentEntityEnum = pgEnum("document_entity_type", [
   "media_campaign",
+  "media_point",
   "action",
   "event",
   "trade_operation",

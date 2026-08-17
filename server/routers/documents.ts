@@ -1,14 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { actions, documents, events, invoices, mediaCampaigns, regionals, stockItems, supplierContracts, tradeOperations } from "../../drizzle/schema";
+import { actions, documents, events, invoices, mediaCampaigns, mediaPoints, regionals, stockItems, supplierContracts, tradeOperations } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 
-const entityTypes = ["media_campaign", "action", "event", "trade_operation", "invoice", "stock", "regional_media", "supplier_contract"] as const;
+const entityTypes = ["media_campaign", "media_point", "action", "event", "trade_operation", "invoice", "stock", "regional_media", "supplier_contract"] as const;
 export const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav", "video/mp4", "video/webm"] as const;
 
 export function permissionForEntity(entityType: (typeof entityTypes)[number], write: boolean) {
@@ -59,6 +59,10 @@ export const documentsRouter = router({
     if (input.entityType === "media_campaign") {
       const [campaign] = await database.select({ id: mediaCampaigns.id }).from(mediaCampaigns).where(eq(mediaCampaigns.id, input.entityId));
       if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campanha não encontrada." });
+    }
+    if (input.entityType === "media_point") {
+      const [point] = await database.select({ id: mediaPoints.id }).from(mediaPoints).where(eq(mediaPoints.id, input.entityId));
+      if (!point) throw new TRPCError({ code: "NOT_FOUND", message: "Ponto de mídia não encontrado." });
     }
     if (input.entityType === "action") {
       const [action] = await database.select({ id: actions.id }).from(actions).where(eq(actions.id, input.entityId));

@@ -10,6 +10,9 @@ const renewCampaignMutation = vi.hoisted(() => vi.fn());
 const saveDebriefMutation = vi.hoisted(() => vi.fn());
 const createUrbanRegistrationMutation = vi.hoisted(() => vi.fn());
 const createUrbanVeiculationMutation = vi.hoisted(() => vi.fn());
+const updatePointMutation = vi.hoisted(() => vi.fn());
+const updatePointStatusMutation = vi.hoisted(() => vi.fn());
+const updateUrbanVeiculationMutation = vi.hoisted(() => vi.fn());
 const createInfluencerMutation = vi.hoisted(() => vi.fn());
 
 const trpcStub = vi.hoisted(() => ({
@@ -26,7 +29,10 @@ const trpcStub = vi.hoisted(() => ({
     renewCampaign: { useMutation: () => ({ mutate: renewCampaignMutation, isPending: false }) },
     saveDebrief: { useMutation: () => ({ mutate: saveDebriefMutation, isPending: false }) },
     createUrbanRegistration: { useMutation: () => ({ mutate: createUrbanRegistrationMutation, isPending: false }) },
-    createUrbanVeiculation: { useMutation: () => ({ mutate: createUrbanVeiculationMutation, isPending: false }) },
+    createUrbanVeiculation: { useMutation: () => ({ mutate: createUrbanVeiculationMutation, mutateAsync: vi.fn(), isPending: false }) },
+    updatePoint: { useMutation: () => ({ mutate: updatePointMutation, isPending: false }) },
+    updatePointStatus: { useMutation: () => ({ mutate: updatePointStatusMutation, isPending: false }) },
+    updateUrbanVeiculation: { useMutation: () => ({ mutate: vi.fn(), mutateAsync: updateUrbanVeiculationMutation, isPending: false }) },
     createInfluencer: { useMutation: () => ({ mutate: createInfluencerMutation, isPending: false }) },
     createSpot: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     uploadSpot: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
@@ -40,7 +46,7 @@ const trpcStub = vi.hoisted(() => ({
     updateCampaignStatus: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
   campaigns: { list: { useQuery: () => ({ data: [], isLoading: false }) } },
-  documents: { upload: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) } },
+  documents: { upload: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) }, listForEntity: { invalidate: vi.fn() } },
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));
