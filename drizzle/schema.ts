@@ -568,6 +568,25 @@ export const serviceTypes = pgTable("service_types", {
   active: boolean("active").default(true).notNull(),
 });
 
+export const serviceTypeRelations = pgTable(
+  "service_type_relations",
+  {
+    id: serial("id").primaryKey(),
+    serviceTypeId: integer("serviceTypeId")
+      .notNull()
+      .references(() => serviceTypes.id, { onDelete: "cascade" }),
+    subserviceTypeId: integer("subserviceTypeId")
+      .notNull()
+      .references(() => serviceTypes.id, { onDelete: "cascade" }),
+  },
+  table => [
+    uniqueIndex("service_type_relations_uq").on(
+      table.serviceTypeId,
+      table.subserviceTypeId
+    ),
+  ]
+);
+
 export const productTypes = pgTable("product_types", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),

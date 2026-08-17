@@ -27,6 +27,7 @@ import {
   providers,
   regionals,
   serviceTypes,
+  serviceTypeRelations,
   stores,
   supplierCities,
   supplierMediaTypes,
@@ -132,6 +133,46 @@ async function requireDatabase() {
 
 export function uniqueIds(values: number[]) {
   return Array.from(new Set(values));
+}
+
+async function resolveServiceParentIds(
+  database: Awaited<ReturnType<typeof requireDatabase>>,
+  parentIds: number[],
+  childId?: number
+) {
+  const normalizedIds = uniqueIds(parentIds);
+  if (childId && normalizedIds.includes(childId)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Um SubServiço não pode ser vinculado a si mesmo.",
+    });
+  }
+  if (!normalizedIds.length) return [];
+  const parents = await database
+    .select({
+      id: serviceTypes.id,
+      mediaTypeId: serviceTypes.mediaTypeId,
+      parentServiceTypeId: serviceTypes.parentServiceTypeId,
+      active: serviceTypes.active,
+    })
+    .from(serviceTypes)
+    .where(inArray(serviceTypes.id, normalizedIds));
+  if (
+    parents.length !== normalizedIds.length ||
+    parents.some(parent => parent.active === false)
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Um ou mais Serviços principais selecionados não existem ou estão inativos.",
+    });
+  }
+  if (parents.some(parent => parent.parentServiceTypeId !== null)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Selecione somente Serviços principais, não SubServiços.",
+    });
+  }
+  return normalizedIds.map(id => parents.find(parent => parent.id === id)!);
 }
 
 export function normalizeCnpj(value: string) {
@@ -926,6 +967,7 @@ export const settingsRouter = router({
       storeRows,
       partnerRows,
       serviceRows,
+      serviceRelationRows,
       mediaTypeRows,
       productTypeRows,
       actionTypeRows,
@@ -981,6 +1023,10 @@ export const settingsRouter = router({
         .select()
         .from(serviceTypes)
         .orderBy(asc(serviceTypes.name))
+        .catch(() => []),
+      database
+        .select()
+        .from(serviceTypeRelations)
         .catch(() => []),
       database
         .select()
@@ -1093,6 +1139,7 @@ export const settingsRouter = router({
       stores: storeRows,
       partners: partnerRows,
       serviceTypes: serviceRows,
+      serviceTypeRelations: serviceRelationRows,
       mediaTypes: mediaTypeRows,
       productTypes: productTypeRows,
       actionTypes: actionTypeRows,
@@ -1979,6 +2026,7 @@ export const settingsRouter = router({
         parentMediaTypeId: z.number().int().positive().nullable().optional(),
         mediaTypeId: z.number().int().positive().nullable().optional(),
         parentServiceTypeId: z.number().int().positive().nullable().optional(),
+        subserviceParentIds: z.array(z.number().int().positive()).max(100).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -1999,32 +2047,40 @@ export const settingsRouter = router({
         return created;
       }
       if (input.kind === "service") {
-        const parentServiceTypeId = input.parentServiceTypeId ?? null;
-        const parent = parentServiceTypeId
-          ? (
-              await database
-                .select()
-                .from(serviceTypes)
-                .where(eq(serviceTypes.id, parentServiceTypeId))
-                .limit(1)
-            )[0]
-          : null;
-        if (parentServiceTypeId && !parent)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "O serviço pai informado não existe.",
-          });
-        const mediaTypeId = input.mediaTypeId ?? parent?.mediaTypeId ?? null;
+        const requestedParentIds =
+          input.subserviceParentIds === undefined
+            ? input.parentServiceTypeId
+              ? [input.parentServiceTypeId]
+              : []
+            : input.subserviceParentIds;
+        const parents = await resolveServiceParentIds(database, requestedParentIds);
+        const parentServiceTypeId = parents[0]?.id ?? null;
+        const mediaTypeId =
+          input.mediaTypeId ?? parents[0]?.mediaTypeId ?? null;
         const [created] = await database
           .insert(serviceTypes)
           .values({ name: input.name, mediaTypeId, parentServiceTypeId })
           .returning();
+        if (parents.length) {
+          await database
+            .insert(serviceTypeRelations)
+            .values(
+              parents.map(parent => ({
+                serviceTypeId: parent.id,
+                subserviceTypeId: created.id,
+              }))
+            )
+            .onConflictDoNothing();
+        }
         await writeAuditLog({
           actorUserId: ctx.user.id,
           entityType: "service_type",
           entityId: created.id,
           action: "create",
-          afterData: created,
+          afterData: {
+            ...created,
+            subserviceParentIds: parents.map(parent => parent.id),
+          },
         });
         return created;
       }
@@ -2395,6 +2451,7 @@ export const settingsRouter = router({
         parentMediaTypeId: z.number().int().positive().nullable().optional(),
         mediaTypeId: z.number().int().positive().nullable().optional(),
         parentServiceTypeId: z.number().int().positive().nullable().optional(),
+        subserviceParentIds: z.array(z.number().int().positive()).max(100).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -2507,47 +2564,59 @@ export const settingsRouter = router({
             code: "NOT_FOUND",
             message: "Serviço não encontrado.",
           });
-        const parentServiceTypeId =
-          input.parentServiceTypeId === undefined
-            ? before.parentServiceTypeId
-            : input.parentServiceTypeId;
-        if (parentServiceTypeId === input.id)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Um serviço não pode ser subserviço de si mesmo.",
-          });
-        const [parent] = parentServiceTypeId
-          ? await database
-              .select()
-              .from(serviceTypes)
-              .where(eq(serviceTypes.id, parentServiceTypeId))
-              .limit(1)
-          : [null];
-        if (parentServiceTypeId && !parent)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "O serviço pai selecionado não existe.",
-          });
+        const requestedParentIds =
+          input.subserviceParentIds === undefined
+            ? input.parentServiceTypeId === undefined
+              ? before.parentServiceTypeId
+                ? [before.parentServiceTypeId]
+                : []
+              : input.parentServiceTypeId
+                ? [input.parentServiceTypeId]
+                : []
+            : input.subserviceParentIds;
+        const parents = await resolveServiceParentIds(
+          database,
+          requestedParentIds,
+          input.id
+        );
+        const parentServiceTypeId = parents[0]?.id ?? null;
         const mediaTypeId =
           input.mediaTypeId === undefined
-            ? (parent?.mediaTypeId ?? before.mediaTypeId)
+            ? (parents[0]?.mediaTypeId ?? before.mediaTypeId)
             : input.mediaTypeId;
         const [updated] = await database
           .update(serviceTypes)
           .set({
             name: input.name,
             mediaTypeId: mediaTypeId ?? null,
-            parentServiceTypeId: parentServiceTypeId ?? null,
+            parentServiceTypeId,
           })
           .where(eq(serviceTypes.id, input.id))
           .returning();
+        await database
+          .delete(serviceTypeRelations)
+          .where(eq(serviceTypeRelations.subserviceTypeId, input.id));
+        if (parents.length) {
+          await database
+            .insert(serviceTypeRelations)
+            .values(
+              parents.map(parent => ({
+                serviceTypeId: parent.id,
+                subserviceTypeId: input.id,
+              }))
+            )
+            .onConflictDoNothing();
+        }
         await writeAuditLog({
           actorUserId: ctx.user.id,
           entityType: "service_type",
           entityId: input.id,
           action: "update",
           beforeData: before,
-          afterData: updated,
+          afterData: {
+            ...updated,
+            subserviceParentIds: parents.map(parent => parent.id),
+          },
         });
         return updated;
       }

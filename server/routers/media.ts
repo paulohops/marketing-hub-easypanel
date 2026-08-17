@@ -39,8 +39,8 @@ async function assertPointRelationships(database: Awaited<ReturnType<typeof requ
   if (!cityCoverage[0]) throw new TRPCError({ code: "BAD_REQUEST", message: "O fornecedor não está habilitado para atender a cidade selecionada. Atualize a cobertura do fornecedor." });
   if (!mediaCoverage[0]) throw new TRPCError({ code: "BAD_REQUEST", message: "O fornecedor não está habilitado para este tipo de mídia. Atualize sua cobertura." });
   if (input.serviceTypeId && !serviceCoverage[0]) throw new TRPCError({ code: "BAD_REQUEST", message: "O fornecedor não está habilitado para o serviço selecionado. Atualize sua cobertura." });
-  if (!mediaType[0] || mediaType[0].parentMediaTypeId) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione um subtipo de mídia válido." });
-  if (mediaType[0].operationCategory !== input.operationCategory) throw new TRPCError({ code: "BAD_REQUEST", message: "O subtipo de mídia não pertence à categoria selecionada." });
+  if (!mediaType[0]) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione um tipo de mídia válido." });
+  if (mediaType[0].operationCategory !== input.operationCategory) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo de mídia não pertence à categoria selecionada." });
   if (input.mediaVariationTypeId && (!variation[0] || variation[0].parentMediaTypeId !== input.mediaTypeId || variation[0].operationCategory !== input.operationCategory)) throw new TRPCError({ code: "BAD_REQUEST", message: "A variação selecionada não pertence ao subtipo de mídia." });
 }
 
