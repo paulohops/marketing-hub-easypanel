@@ -1,0 +1,1 @@
+ALTER TABLE "media_points" ADD COLUMN "signalRangeKm" numeric(8, 2);

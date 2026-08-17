@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { ArrowLeft, LockKeyhole, Loader2 } from "lucide-react";
-import { Redirect, useLocation } from "wouter";
+import { Redirect, useLocation, useRoute } from "wouter";
 import LoginPage from "./LoginPage";
 import ModulePage from "./ModulePage";
 import FinanceWorkspace from "./FinanceWorkspace";
@@ -36,6 +36,7 @@ import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
 import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
 import UrbanVeiculationPage from "./UrbanVeiculationPage";
+import TraditionalProgramDetails from "./TraditionalProgramDetails";
 import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, FileSpreadsheet, Flag, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound } from "lucide-react";
 
 const definitions = {
@@ -46,6 +47,8 @@ const definitions = {
   midias: { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídias e campanhas", description: "Cadastre pontos, campanhas, ciclos de renovação e evidências de veiculação.", icon: Megaphone, resources: [{ title: "Pontos de mídia", description: "Localização, fornecedor e tipo de mídia." }, { title: "Campanhas", description: "Vigência, renovação e resultado." }, { title: "Cobertura regional", description: "Filtros por regional e cidade." }], accent: "var(--primary)" },
   "midias-graficas": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídia Urbana", description: "Planeje e acompanhe outdoors, painéis e superfícies urbanas.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-audio-video": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídia Tradicional", description: "Acompanhe rádios, TVs, spots e horários de veiculação.", icon: Megaphone, resources: [], accent: "var(--primary)" },
+  "midias-tradicional": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Programa de Mídia Tradicional", description: "Ficha de rádio ou TV, alcance do sinal, spots e histórico operacional.", icon: Megaphone, resources: [], accent: "var(--primary)" },
+  "midias-tradicional-veiculacao": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Veiculação Tradicional", description: "Acompanhe o spot, as cidades de sinal, evidências, status e debriefing.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-panfletagem": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Panfletagem", description: "Planeje distribuição territorial vinculada às campanhas.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-carro-som": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Carro de som", description: "Controle spots, agenda, rodagem e comprovações.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-influencers": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Influencers", description: "Planeje e acompanhe operações com influenciadores.", icon: Megaphone, resources: [], accent: "var(--primary)" },
@@ -77,6 +80,7 @@ const definitions = {
 export default function ProtectedModule({ module }: { module: keyof typeof definitions }) {
   const { loading, isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
+  const [, traditionalPointParams] = useRoute("/midias/tradicional/:mediaPointId");
   const { can: canPermission, isLoading: permissionsLoading } = useEffectivePermissions();
   if (loading) return <div className="cluster-grid grid min-h-screen place-items-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   if (!isAuthenticated) return <LoginPage />;
@@ -108,6 +112,8 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "midias") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace /><MediaCoverageExplorer /><MediaCampaignLibrary canWrite={canWrite("media.write")} /><RegionalMediaPanel canWrite={canWrite("media.write")} /></div></DashboardLayout>;
   if (module === "midias-graficas") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="graphics" /></div></DashboardLayout>;
   if (module === "midias-audio-video") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="audio_video" /></div></DashboardLayout>;
+  if (module === "midias-tradicional") return <DashboardLayout><div className="cluster-workspace"><TraditionalProgramDetails mediaPointId={Number(traditionalPointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
+  if (module === "midias-tradicional-veiculacao") return <DashboardLayout><div className="cluster-workspace"><UrbanVeiculationPage traditional /></div></DashboardLayout>;
   if (module === "midias-panfletagem") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="leafleting" /></div></DashboardLayout>;
   if (module === "midias-carro-som") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="sound_car" /></div></DashboardLayout>;
   if (module === "midias-influencers") return <DashboardLayout><div className="cluster-workspace"><div className="mx-auto max-w-3xl rounded-2xl border border-dashed border-border bg-card p-10 text-center"><h1 className="font-display text-2xl font-semibold text-foreground">Influencers</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Este módulo está disponível no menu, mas permanece desativado temporariamente.</p><Button type="button" variant="outline" className="mt-6 border-border" onClick={() => setLocation("/")}><ArrowLeft className="mr-2 h-4 w-4" />Voltar ao início</Button></div></div></DashboardLayout>;

@@ -6,6 +6,8 @@ import { ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type EntityType = "media_campaign" | "action" | "event" | "invoice" | "stock" | "regional_media";
+type DocumentKind = "evidence" | "art" | "spot";
+type UploadMimeType = "application/pdf" | "image/jpeg" | "image/png" | "image/webp" | "audio/mpeg" | "audio/wav" | "audio/x-wav" | "video/mp4" | "video/webm";
 
 function fileToBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -16,7 +18,7 @@ function fileToBase64(file: File) {
   });
 }
 
-export default function EvidenceUpload({ entityType, entityId, regionalId, canWrite = false, variant = "default", documentKind = "evidence", title, onUploadComplete }: { entityType: EntityType; entityId: number; regionalId?: number | null; canWrite?: boolean; variant?: "default" | "side" | "gallery"; documentKind?: "evidence" | "art"; title?: string; onUploadComplete?: (url: string) => void }) {
+export default function EvidenceUpload({ entityType, entityId, regionalId, canWrite = false, variant = "default", documentKind = "evidence", title, onUploadComplete }: { entityType: EntityType; entityId: number; regionalId?: number | null; canWrite?: boolean; variant?: "default" | "side" | "gallery"; documentKind?: DocumentKind; title?: string; onUploadComplete?: (url: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewId, setPreviewId] = useState<number | null>(null);
   const utils = trpc.useUtils();
@@ -33,10 +35,10 @@ export default function EvidenceUpload({ entityType, entityId, regionalId, canWr
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    const acceptedTypes = documentKind === "art" ? ["application/pdf", "image/jpeg", "image/png"] : ["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav", "video/mp4", "video/webm"]; if (!acceptedTypes.includes(file.type)) { toast.error(documentKind === "art" ? "Envie a arte em PDF, PNG ou JPEG." : "Envie PDF, imagem, MP3, WAV, MP4 ou WEBM."); return; }
+    const acceptedTypes = documentKind === "art" ? ["application/pdf", "image/jpeg", "image/png"] : documentKind === "spot" ? ["audio/mpeg", "audio/wav", "audio/x-wav", "video/mp4", "video/webm"] : ["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg", "audio/mp4", "video/mp4", "video/webm"]; if (!acceptedTypes.includes(file.type)) { toast.error(documentKind === "art" ? "Envie a arte em PDF, PNG ou JPEG." : documentKind === "spot" ? "Envie o spot em MP3, WAV, áudio compatível ou vídeo." : "Envie PDF, imagem, MP3, WAV, MP4 ou WEBM."); return; }
     if (file.size > 50 * 1024 * 1024) { toast.error("O arquivo deve ter no máximo 50 MB."); return; }
     try {
-      upload.mutate({ entityType, entityId, regionalId: regionalId ?? null, documentKind, originalName: file.name, mimeType: file.type as "application/pdf" | "image/jpeg" | "image/png" | "image/webp" | "audio/mpeg" | "audio/wav" | "audio/x-wav" | "video/mp4" | "video/webm", dataBase64: await fileToBase64(file) });
+      upload.mutate({ entityType, entityId, regionalId: regionalId ?? null, documentKind, originalName: file.name, mimeType: file.type as UploadMimeType, dataBase64: await fileToBase64(file) });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao preparar o arquivo.");
     }
@@ -60,13 +62,13 @@ export default function EvidenceUpload({ entityType, entityId, regionalId, canWr
   };
   const compact = variant === "side";
   const gallery = variant === "gallery";
-  const visibleDocuments = documents.data?.filter(document => documentKind === "evidence" ? !document.kind || document.kind === "evidence" : document.kind === "art") ?? [];
+  const visibleDocuments = documents.data?.filter(document => documentKind === "evidence" ? !document.kind || document.kind === "evidence" : document.kind === "art" ? document.kind === "art" : document.kind === "spot") ?? [];
   const selectedDocument = visibleDocuments.find(document => document.id === previewId) ?? null;
 
   return <div className={`mt-3 rounded-xl border border-border bg-secondary ${compact || gallery ? "p-3" : "px-3 py-2.5"}`}>
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <div><p className="text-[11px] font-semibold text-foreground">{title ?? (documentKind === "art" ? "Arte da veiculação" : "Evidências, comprovantes e mídias")}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{documentKind === "art" ? "PDF, PNG ou JPEG de até 50 MB." : "PDF, imagens, áudio e vídeo de até 50 MB."}</p></div>
-      {canWrite && <><input ref={inputRef} type="file" accept={documentKind === "art" ? "application/pdf,image/jpeg,image/png" : "application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/x-wav,video/mp4,video/webm"} onChange={handleFile} className="hidden" /><Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={upload.isPending} className="h-7 rounded-md border-border px-2 text-[10px] text-foreground">{upload.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Paperclip className="mr-1 h-3 w-3" />} Anexar</Button></>}
+      <div><p className="text-[11px] font-semibold text-foreground">{title ?? (documentKind === "art" ? "Arte da veiculação" : documentKind === "spot" ? "Spot da veiculação" : "Evidências, comprovantes e mídias")}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{documentKind === "art" ? "PDF, PNG ou JPEG de até 50 MB." : documentKind === "spot" ? "MP3, WAV, áudio compatível ou vídeo de até 50 MB." : "PDF, imagens, áudio e vídeo de até 50 MB."}</p></div>
+      {canWrite && <><input ref={inputRef} type="file" accept={documentKind === "art" ? "application/pdf,image/jpeg,image/png" : documentKind === "spot" ? "audio/mpeg,audio/wav,audio/x-wav,video/mp4,video/webm" : "application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/mp4,video/mp4,video/webm"} onChange={handleFile} className="hidden" /><Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={upload.isPending} className="h-7 rounded-md border-border px-2 text-[10px] text-foreground">{upload.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Paperclip className="mr-1 h-3 w-3" />} Anexar</Button></>}
     </div>
     {visibleDocuments.length ? gallery ? <>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">

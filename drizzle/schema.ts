@@ -1260,6 +1260,7 @@ export const mediaPoints = pgTable("media_points", {
   address: text("address"),
   latitude: numeric("latitude", { precision: 10, scale: 7 }),
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
+  signalRangeKm: numeric("signalRangeKm", { precision: 8, scale: 2 }),
   status: mediaPointStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
@@ -1352,6 +1353,8 @@ export const mediaCampaigns = pgTable(
         audioBrief?: string;
         vehicleOperation?: string;
         airingSchedule?: string;
+        signalNotes?: string;
+        allowConcurrent?: boolean;
         activeSpotId?: number;
         materialFormat?: string;
         materialQuantity?: number;
