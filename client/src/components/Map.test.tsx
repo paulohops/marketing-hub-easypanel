@@ -7,6 +7,14 @@ describe("loadMapScript", () => {
     resetMapLoaderForTests();
   });
 
+  it("usa a chave configurada na URL oficial do Google Maps", () => {
+    loadMapScript("browser-key");
+
+    const script = document.querySelector<HTMLScriptElement>('script[data-hub-trade-google-maps="true"]');
+    expect(script?.src).toContain("https://maps.googleapis.com/maps/api/js");
+    expect(script?.src).toContain("key=browser-key");
+  });
+
   it("reutiliza a mesma promessa e injeta somente um script", async () => {
     const firstLoad = loadMapScript();
     const secondLoad = loadMapScript();

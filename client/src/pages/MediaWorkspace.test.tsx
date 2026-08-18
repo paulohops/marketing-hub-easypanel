@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const listQuery = vi.hoisted(() => vi.fn());
 const detailQuery = vi.hoisted(() => vi.fn());
+const mapConfigQuery = vi.hoisted(() => vi.fn(() => ({ data: { apiKey: "" }, isLoading: false })));
 const referenceDataQuery = vi.hoisted(() => vi.fn(() => ({ data: { suppliers: [], cities: [], regionals: [], mediaTypes: [], serviceTypes: [], supplierMediaTypes: [], supplierServiceTypes: [], supplierOfferings: [] }, isLoading: false })));
 const createCampaignMutation = vi.hoisted(() => vi.fn());
 const createConfiguredCampaignMutation = vi.hoisted(() => vi.fn());
@@ -19,6 +20,7 @@ const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() }, listSpecializedData: { invalidate: vi.fn() }, campaignDetails: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read", "media.write", "media.create", "media.update", "media.delete"] }) } },
   media: {
+    mapConfig: { useQuery: mapConfigQuery },
     referenceData: { useQuery: referenceDataQuery },
     list: { useQuery: listQuery },
     pointDetails: { useQuery: detailQuery },
@@ -101,6 +103,20 @@ describe("detalhe de mídias", () => {
     expect(container.querySelector(".dark")).toBeInTheDocument();
     expect(container.querySelectorAll(".bg-card").length).toBeGreaterThan(0);
     expect(container.querySelector(".bg-white")).toBeNull();
+  });
+
+  it("envia regional, cidade, situação e modalidade ao filtrar Mídia Urbana", () => {
+    referenceDataQuery.mockReturnValue({ data: { suppliers: [], regionals: [{ id: 2, name: "Triângulo" }], cities: [{ city: { id: 11, name: "Uberlândia", regionalId: 2 }, regionalName: "Triângulo" }], mediaTypes: [], serviceTypes: [], supplierMediaTypes: [], supplierServiceTypes: [], supplierOfferings: [], supplierContracts: [] }, isLoading: false } as any);
+    listQuery.mockReturnValue({ data: [], isLoading: false });
+    detailQuery.mockReturnValue({ data: undefined, isLoading: false });
+
+    render(<MediaWorkspace initialCategory="graphics" />);
+    fireEvent.change(screen.getByLabelText("Regional"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Cidade"), { target: { value: "11" } });
+    fireEvent.change(screen.getByLabelText("Situação"), { target: { value: "active" } });
+    fireEvent.change(screen.getByLabelText("Modalidade"), { target: { value: "paid" } });
+
+    expect(listQuery.mock.calls.at(-1)?.[0]).toMatchObject({ regionalId: 2, cityId: 11, operationCategory: "graphics", status: "active", partnershipType: "paid" });
   });
 
   it("abre a ficha para criar uma nova veiculação urbana", () => {

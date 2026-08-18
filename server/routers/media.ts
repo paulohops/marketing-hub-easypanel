@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auditLogs, cities, documents, influencerGroupMembers, influencerGroups, influencerPosts, influencers, invoices, mediaCampaignCityDistributions, mediaCampaigns, mediaPoints, mediaSpots, mediaTypes, payments, regionals, serviceTypeRelations, serviceTypes, soundCarRuns, supplierCities, supplierContracts, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, tradeCampaigns, urbanMediaRegistrations, users } from "../../drizzle/schema";
+import { appSettings, auditLogs, cities, documents, influencerGroupMembers, influencerGroups, influencerPosts, influencers, invoices, mediaCampaignCityDistributions, mediaCampaigns, mediaPoints, mediaSpots, mediaTypes, payments, regionals, serviceTypeRelations, serviceTypes, soundCarRuns, supplierCities, supplierContracts, supplierMediaTypes, supplierOfferings, supplierServiceTypes, suppliers, tradeCampaigns, urbanMediaRegistrations, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -48,6 +48,23 @@ async function assertPointRelationships(database: Awaited<ReturnType<typeof requ
 }
 
 export const mediaRouter = router({
+  mapConfig: protectedProcedure.query(async ({ ctx }) => {
+    await assertPermission(ctx.user, "media.read");
+    const database = await requireDatabase();
+    const [setting] = await database.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "app_system")).limit(1);
+    let storedApiKey = "";
+    if (setting?.value) {
+      try {
+        const parsed = JSON.parse(setting.value) as { googleMapsApiKey?: unknown };
+        storedApiKey = typeof parsed.googleMapsApiKey === "string" ? parsed.googleMapsApiKey.trim() : "";
+      } catch {
+        storedApiKey = "";
+      }
+    }
+    return {
+      apiKey: storedApiKey || process.env.GOOGLE_MAPS_API_KEY?.trim() || process.env.GOOGLE_MAPS_BROWSER_API_KEY?.trim() || "",
+    };
+  }),
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "media.read");
     const database = await requireDatabase();
