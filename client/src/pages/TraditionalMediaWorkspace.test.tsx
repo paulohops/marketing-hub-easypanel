@@ -1,31 +1,31 @@
 import { render, screen, cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-const mediaWorkspaceProps = vi.hoisted(() => ({ initialCategory: "" }));
-
-vi.mock("./MediaWorkspace", () => ({
-  default: (props: { initialCategory?: string }) => {
-    mediaWorkspaceProps.initialCategory = props.initialCategory ?? "";
-    return <h1>Mídia Tradicional</h1>;
+const trpcMock = vi.hoisted(() => ({
+  media: {
+    referenceData: { useQuery: () => ({ data: { mediaTypes: [], supplierMediaTypes: [], supplierCities: [], suppliers: [], cities: [], regionals: [] } }) },
+    list: { useQuery: () => ({ data: [], isLoading: false }) },
+    pointDetails: { invalidate: vi.fn() },
+    createPoint: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
+  useUtils: () => ({ media: { list: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() } } }),
 }));
+
+vi.mock("@/lib/trpc", () => ({ trpc: trpcMock }));
+vi.mock("@/hooks/useEffectivePermissions", () => ({ useEffectivePermissions: () => ({ can: () => true }) }));
+vi.mock("@/components/SearchableMultiSelect", () => ({ default: () => <div>Cidade do programa</div> }));
+vi.mock("@/components/StoreLocationFields", () => ({ CoordinatesField: () => <div>Localização</div> }));
 
 import TraditionalMediaWorkspace from "./TraditionalMediaWorkspace";
 
-beforeEach(() => {
-  cleanup();
-  mediaWorkspaceProps.initialCategory = "";
-});
-
-afterEach(() => {
-  cleanup();
-});
+afterEach(() => cleanup());
 
 describe("workspace independente de Mídia Tradicional", () => {
-  it("abre o workspace completo com a categoria tradicional", () => {
+  it("renderiza a listagem e o botão de criação próprios do módulo", () => {
     render(<TraditionalMediaWorkspace />);
 
     expect(screen.getByRole("heading", { name: "Mídia Tradicional" })).toBeInTheDocument();
-    expect(mediaWorkspaceProps.initialCategory).toBe("audio_video");
+    expect(screen.getByRole("button", { name: "Novo programa de mídia tradicional" })).toBeInTheDocument();
+    expect(screen.getByText("Programas cadastrados")).toBeInTheDocument();
   });
 });

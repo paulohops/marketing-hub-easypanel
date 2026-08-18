@@ -13,8 +13,10 @@ const authState = vi.hoisted(() => ({
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => authState }));
 vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read"] }) } } } }));
 vi.mock("./MediaWorkspace", () => ({
-  default: ({ initialCategory }: { initialCategory?: string }) => <h1>{initialCategory === "audio_video" ? "Mídia Tradicional" : "Mídias e campanhas"}</h1>,
+  default: ({ initialCategory }: { initialCategory?: string }) => <h1>{initialCategory === "audio_video" ? "Mídia Tradicional urbana acoplada" : "Mídias e campanhas"}</h1>,
 }));
+vi.mock("./TraditionalMediaWorkspace", () => ({ default: () => <h1>Mídia Tradicional independente</h1> }));
+vi.mock("./TraditionalVeiculationPage", () => ({ default: () => <h1>Veiculação Tradicional independente</h1> }));
 vi.mock("@/components/MediaCoverageExplorer", () => ({ default: () => null }));
 vi.mock("@/components/MediaCampaignLibrary", () => ({ default: () => null }));
 vi.mock("@/components/RegionalMediaPanel", () => ({ default: () => null }));
@@ -37,10 +39,10 @@ describe("ProtectedModule", () => {
     expect(screen.getByRole("heading", { name: "Mídias e campanhas" })).toBeInTheDocument();
   });
 
-  it("abre a tela protegida de Mídia Tradicional com o rótulo atualizado", () => {
+  it("abre a tela protegida de Mídia Tradicional pela entrada independente", () => {
     authState.user.role = "viewer";
     render(<ProtectedModule module="midias-audio-video" />);
 
-    expect(screen.getByRole("heading", { name: "Mídia Tradicional" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Mídia Tradicional independente" })).toBeInTheDocument();
   });
 });
