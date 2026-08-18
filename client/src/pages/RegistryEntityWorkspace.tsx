@@ -3771,7 +3771,7 @@ function RegistryEditor({
           {kind === "media" ? (
             <>
               <label className="grid gap-2 text-sm font-medium">
-                <span>Tipo principal</span>
+                <span>Categoria da mídia</span>
                 <select
                   value={form.operationCategory ?? "graphics"}
                   onChange={event =>
@@ -3791,7 +3791,7 @@ function RegistryEditor({
                 </select>
               </label>
               <label className="grid gap-2 text-sm font-medium">
-                <span>Subtipo pai</span>
+                <span>Tipo de mídia pai (opcional)</span>
                 <select
                   value={form.parentMediaTypeId ?? ""}
                   onChange={event =>
@@ -3799,13 +3799,16 @@ function RegistryEditor({
                   }
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="">Este registro é um subtipo principal</option>
+                  <option value="">Sem tipo pai — este é um tipo principal</option>
                   {mediaParents.map(type => (
                     <option key={type.id} value={type.id}>
                       {recordName(type)}
                     </option>
                   ))}
                 </select>
+                <span className="text-xs font-normal text-muted-foreground">
+                  O tipo pai organiza este registro como subtipo/variação dentro da mesma categoria. Sem pai, o registro é um tipo principal.
+                </span>
               </label>
             </>
           ) : null}

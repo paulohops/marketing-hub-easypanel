@@ -4,9 +4,12 @@ import { z } from "zod";
 import {
   actionPoints,
   actions,
+  actionServices,
   actionSuppliers,
   actionTypes,
   appSettings,
+  campaignCities,
+  campaignPromotionCities,
   campaignSectors,
   campaignTypes,
   cities,
@@ -15,9 +18,11 @@ import {
   commercialSupervisorStores,
   commercialSupervisors,
   events,
+  eventServices,
   eventSuppliers,
   eventTypes,
   financialCategories,
+  mediaCampaignCityDistributions,
   mediaCampaigns,
   mediaPoints,
   mediaTypes,
@@ -29,12 +34,16 @@ import {
   regionals,
   serviceTypes,
   serviceTypeRelations,
+  stockItems,
   stores,
   supplierCities,
   supplierMediaTypes,
   supplierOfferings,
   supplierServiceTypes,
+  supplierContracts,
   suppliers,
+  tradeOperations,
+  urbanMediaRegistrations,
   userTrelloBoards,
 } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
@@ -1616,35 +1625,43 @@ export const settingsRouter = router({
           code: "CONFLICT",
           message: "Já existe um fornecedor cadastrado com este CNPJ.",
         });
-      const [created] = await database
-        .insert(suppliers)
-        .values({
-          providerId: input.providerId,
-          cityId: input.cityId ?? null,
-          displayName: input.displayName,
-          address: input.address || null,
-          document,
-          legalName: input.legalName || null,
-          contactName: input.contactName || null,
-          phone: input.phone,
-          email: input.email,
-          mainService: input.mainService || null,
-          partnershipType: input.partnershipType ?? null,
-          paymentMethod: input.paymentMethod || null,
-          paymentRecurrence: input.paymentRecurrence || null,
-          pixKey: input.pixKey || null,
-          paymentDay: input.paymentDay ?? null,
-          paymentBarterValue:
-            input.paymentBarterValue == null
-              ? null
-              : input.paymentBarterValue.toFixed(2),
-          paymentBarterService: input.paymentBarterService || null,
-          paymentNotes: input.paymentNotes || null,
-          contractStartsOn: input.contractStartsOn ?? null,
-          contractEndsOn: input.contractEndsOn ?? null,
-          hasContract: input.hasContract ?? false,
-        })
-        .returning();
+      const created = await database.transaction(async transaction => {
+        const [supplier] = await transaction
+          .insert(suppliers)
+          .values({
+            providerId: input.providerId,
+            cityId: input.cityId ?? null,
+            displayName: input.displayName,
+            address: input.address || null,
+            document,
+            legalName: input.legalName || null,
+            contactName: input.contactName || null,
+            phone: input.phone,
+            email: input.email,
+            mainService: input.mainService || null,
+            partnershipType: input.partnershipType ?? null,
+            paymentMethod: input.paymentMethod || null,
+            paymentRecurrence: input.paymentRecurrence || null,
+            pixKey: input.pixKey || null,
+            paymentDay: input.paymentDay ?? null,
+            paymentBarterValue:
+              input.paymentBarterValue == null
+                ? null
+                : input.paymentBarterValue.toFixed(2),
+            paymentBarterService: input.paymentBarterService || null,
+            paymentNotes: input.paymentNotes || null,
+            contractStartsOn: input.contractStartsOn ?? null,
+            contractEndsOn: input.contractEndsOn ?? null,
+            hasContract: input.hasContract ?? false,
+          })
+          .returning();
+        if (supplier.cityId)
+          await transaction
+            .insert(supplierCities)
+            .values({ supplierId: supplier.id, cityId: supplier.cityId })
+            .onConflictDoNothing();
+        return supplier;
+      });
       await writeAuditLog({
         actorUserId: ctx.user.id,
         entityType: "supplier",
@@ -1709,7 +1726,20 @@ export const settingsRouter = router({
     .mutation(async ({ ctx, input }) => {
       await assertPermission(ctx.user, "settings.write");
       const database = await requireDatabase();
-      const cityIds = uniqueIds(input.cityIds),
+      const [supplier] = await database
+        .select({ id: suppliers.id, cityId: suppliers.cityId })
+        .from(suppliers)
+        .where(eq(suppliers.id, input.supplierId))
+        .limit(1);
+      if (!supplier)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Fornecedor não encontrado.",
+        });
+      const cityIds = uniqueIds([
+          ...input.cityIds,
+          ...(supplier.cityId ? [supplier.cityId] : []),
+        ]),
         serviceTypeIds = uniqueIds(input.serviceTypeIds),
         mediaTypeIds = uniqueIds(input.mediaTypeIds),
         serviceMediaLinks = (
@@ -3033,37 +3063,54 @@ export const settingsRouter = router({
           code: "CONFLICT",
           message: "Já existe um fornecedor cadastrado com este CNPJ.",
         });
-      const [updated] = await database
-        .update(suppliers)
-        .set({
-          providerId: input.providerId,
-          cityId: input.cityId ?? null,
-          displayName: input.displayName,
-          address: input.address || null,
-          document,
-          legalName: input.legalName || null,
-          contactName: input.contactName || null,
-          phone: input.phone,
-          email: input.email,
-          mainService: input.mainService || null,
-          partnershipType: input.partnershipType ?? null,
-          paymentMethod: input.paymentMethod || null,
-          paymentRecurrence: input.paymentRecurrence || null,
-          pixKey: input.pixKey || null,
-          paymentDay: input.paymentDay ?? null,
-          paymentBarterValue:
-            input.paymentBarterValue == null
-              ? null
-              : input.paymentBarterValue.toFixed(2),
-          paymentBarterService: input.paymentBarterService || null,
-          paymentNotes: input.paymentNotes || null,
-          contractStartsOn: input.contractStartsOn ?? null,
-          contractEndsOn: input.contractEndsOn ?? null,
-          hasContract: input.hasContract ?? before.hasContract,
-          updatedAt: new Date(),
-        })
-        .where(eq(suppliers.id, input.id))
-        .returning();
+      const updated = await database.transaction(async transaction => {
+        const [supplier] = await transaction
+          .update(suppliers)
+          .set({
+            providerId: input.providerId,
+            cityId: input.cityId ?? null,
+            displayName: input.displayName,
+            address: input.address || null,
+            document,
+            legalName: input.legalName || null,
+            contactName: input.contactName || null,
+            phone: input.phone,
+            email: input.email,
+            mainService: input.mainService || null,
+            partnershipType: input.partnershipType ?? null,
+            paymentMethod: input.paymentMethod || null,
+            paymentRecurrence: input.paymentRecurrence || null,
+            pixKey: input.pixKey || null,
+            paymentDay: input.paymentDay ?? null,
+            paymentBarterValue:
+              input.paymentBarterValue == null
+                ? null
+                : input.paymentBarterValue.toFixed(2),
+            paymentBarterService: input.paymentBarterService || null,
+            paymentNotes: input.paymentNotes || null,
+            contractStartsOn: input.contractStartsOn ?? null,
+            contractEndsOn: input.contractEndsOn ?? null,
+            hasContract: input.hasContract ?? before.hasContract,
+            updatedAt: new Date(),
+          })
+          .where(eq(suppliers.id, input.id))
+          .returning();
+        if (before.cityId && before.cityId !== supplier.cityId)
+          await transaction
+            .delete(supplierCities)
+            .where(
+              and(
+                eq(supplierCities.supplierId, supplier.id),
+                eq(supplierCities.cityId, before.cityId)
+              )
+            );
+        if (supplier.cityId)
+          await transaction
+            .insert(supplierCities)
+            .values({ supplierId: supplier.id, cityId: supplier.cityId })
+            .onConflictDoNothing();
+        return supplier;
+      });
       await writeAuditLog({
         actorUserId: ctx.user.id,
         entityType: "supplier",
@@ -3624,6 +3671,250 @@ export const settingsRouter = router({
           code: "NOT_FOUND",
           message: "Cadastro não encontrado.",
         });
+      if (input.kind === "city") {
+        const [store, actionPoint, operation, action, event, mediaPoint] =
+          await Promise.all([
+            database
+              .select({ id: stores.id })
+              .from(stores)
+              .where(eq(stores.cityId, input.id))
+              .limit(1),
+            database
+              .select({ id: actionPoints.id })
+              .from(actionPoints)
+              .where(eq(actionPoints.cityId, input.id))
+              .limit(1),
+            database
+              .select({ id: tradeOperations.id })
+              .from(tradeOperations)
+              .where(eq(tradeOperations.cityId, input.id))
+              .limit(1),
+            database
+              .select({ id: actions.id })
+              .from(actions)
+              .where(eq(actions.cityId, input.id))
+              .limit(1),
+            database
+              .select({ id: events.id })
+              .from(events)
+              .where(eq(events.cityId, input.id))
+              .limit(1),
+            database
+              .select({ id: mediaPoints.id })
+              .from(mediaPoints)
+              .where(eq(mediaPoints.cityId, input.id))
+              .limit(1),
+          ]);
+        if (
+          store[0] ||
+          actionPoint[0] ||
+          operation[0] ||
+          action[0] ||
+          event[0] ||
+          mediaPoint[0]
+        )
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Esta cidade possui operações, pontos ou lojas vinculados. Inative-a para preservar o histórico.",
+          });
+        await database.transaction(async tx => {
+          await tx.delete(supplierCities).where(eq(supplierCities.cityId, input.id));
+          await tx
+            .delete(commercialSupervisorCities)
+            .where(eq(commercialSupervisorCities.cityId, input.id));
+          await tx.delete(campaignCities).where(eq(campaignCities.cityId, input.id));
+          await tx
+            .delete(campaignPromotionCities)
+            .where(eq(campaignPromotionCities.cityId, input.id));
+          await tx
+            .delete(mediaCampaignCityDistributions)
+            .where(eq(mediaCampaignCityDistributions.cityId, input.id));
+          await tx
+            .update(providers)
+            .set({ headquartersCityId: null, updatedAt: new Date() })
+            .where(eq(providers.headquartersCityId, input.id));
+          await tx
+            .update(suppliers)
+            .set({ cityId: null, updatedAt: new Date() })
+            .where(eq(suppliers.cityId, input.id));
+          await tx
+            .update(partners)
+            .set({ cityId: null, updatedAt: new Date() })
+            .where(eq(partners.cityId, input.id));
+          await tx
+            .update(stockItems)
+            .set({ cityId: null, updatedAt: new Date() })
+            .where(eq(stockItems.cityId, input.id));
+          await tx.delete(cities).where(eq(cities.id, input.id));
+        });
+      } else if (input.kind === "regional") {
+        const [city, stock] = await Promise.all([
+          database
+            .select({ id: cities.id })
+            .from(cities)
+            .where(eq(cities.regionalId, input.id))
+            .limit(1),
+          database
+            .select({ id: stockItems.id })
+            .from(stockItems)
+            .where(eq(stockItems.regionalId, input.id))
+            .limit(1),
+        ]);
+        if (city[0] || stock[0])
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Esta regional possui cidades ou estoque vinculados. Remova ou transfira esses registros antes de excluir a regional.",
+          });
+        await database.transaction(async tx => {
+          await tx.delete(regionals).where(eq(regionals.id, input.id));
+        });
+      } else if (input.kind === "store") {
+        await database.transaction(async tx => {
+          await tx
+            .delete(commercialSupervisorStores)
+            .where(eq(commercialSupervisorStores.storeId, input.id));
+          await tx.delete(stores).where(eq(stores.id, input.id));
+        });
+      } else if (input.kind === "supplier") {
+        const [mediaPoint, operation, actionSupplier, eventSupplier, contract] =
+          await Promise.all([
+            database
+              .select({ id: mediaPoints.id })
+              .from(mediaPoints)
+              .where(eq(mediaPoints.supplierId, input.id))
+              .limit(1),
+            database
+              .select({ id: tradeOperations.id })
+              .from(tradeOperations)
+              .where(eq(tradeOperations.supplierId, input.id))
+              .limit(1),
+            database
+              .select({ id: actionSuppliers.id })
+              .from(actionSuppliers)
+              .where(eq(actionSuppliers.supplierId, input.id))
+              .limit(1),
+            database
+              .select({ id: eventSuppliers.id })
+              .from(eventSuppliers)
+              .where(eq(eventSuppliers.supplierId, input.id))
+              .limit(1),
+            database
+              .select({ id: supplierContracts.id })
+              .from(supplierContracts)
+              .where(eq(supplierContracts.supplierId, input.id))
+              .limit(1),
+          ]);
+        if (
+          mediaPoint[0] ||
+          operation[0] ||
+          actionSupplier[0] ||
+          eventSupplier[0] ||
+          contract[0]
+        )
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Este fornecedor possui vínculos operacionais ou financeiros. Inative-o para preservar o histórico.",
+          });
+        await database.transaction(async tx => {
+          await tx.delete(supplierCities).where(eq(supplierCities.supplierId, input.id));
+          await tx
+            .delete(supplierMediaTypes)
+            .where(eq(supplierMediaTypes.supplierId, input.id));
+          await tx
+            .delete(supplierServiceTypes)
+            .where(eq(supplierServiceTypes.supplierId, input.id));
+          await tx
+            .delete(supplierOfferings)
+            .where(eq(supplierOfferings.supplierId, input.id));
+          await tx.delete(suppliers).where(eq(suppliers.id, input.id));
+        });
+      } else if (input.kind === "service") {
+        const [mediaPoint, actionService, eventService, child] =
+          await Promise.all([
+            database
+              .select({ id: mediaPoints.id })
+              .from(mediaPoints)
+              .where(eq(mediaPoints.serviceTypeId, input.id))
+              .limit(1),
+            database
+              .select({ id: actionServices.id })
+              .from(actionServices)
+              .where(eq(actionServices.serviceTypeId, input.id))
+              .limit(1),
+            database
+              .select({ id: eventServices.id })
+              .from(eventServices)
+              .where(eq(eventServices.serviceTypeId, input.id))
+              .limit(1),
+            database
+              .select({ id: serviceTypes.id })
+              .from(serviceTypes)
+              .where(eq(serviceTypes.parentServiceTypeId, input.id))
+              .limit(1),
+          ]);
+        if (mediaPoint[0] || actionService[0] || eventService[0] || child[0])
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Este serviço está vinculado a pontos de mídia ou possui subserviços. Inative-o ou remova os vínculos antes de excluir.",
+          });
+        await database.transaction(async tx => {
+          await tx
+            .delete(supplierServiceTypes)
+            .where(eq(supplierServiceTypes.serviceTypeId, input.id));
+          await tx
+            .delete(serviceTypeRelations)
+            .where(eq(serviceTypeRelations.serviceTypeId, input.id));
+          await tx
+            .delete(serviceTypeRelations)
+            .where(eq(serviceTypeRelations.subserviceTypeId, input.id));
+          await tx.delete(serviceTypes).where(eq(serviceTypes.id, input.id));
+        });
+      } else if (input.kind === "media") {
+        const [mediaPoint, operation, registration, child] =
+          await Promise.all([
+            database
+              .select({ id: mediaPoints.id })
+              .from(mediaPoints)
+              .where(eq(mediaPoints.mediaTypeId, input.id))
+              .limit(1),
+            database
+              .select({ id: tradeOperations.id })
+              .from(tradeOperations)
+              .where(eq(tradeOperations.mediaTypeId, input.id))
+              .limit(1),
+            database
+              .select({ id: urbanMediaRegistrations.id })
+              .from(urbanMediaRegistrations)
+              .where(eq(urbanMediaRegistrations.mediaVariationTypeId, input.id))
+              .limit(1),
+            database
+              .select({ id: mediaTypes.id })
+              .from(mediaTypes)
+              .where(eq(mediaTypes.parentMediaTypeId, input.id))
+              .limit(1),
+          ]);
+        if (mediaPoint[0] || operation[0] || registration[0] || child[0])
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Este tipo de mídia está vinculado a operações ou registros de mídia. Inative-o para preservar o histórico.",
+          });
+        await database.delete(mediaTypes).where(eq(mediaTypes.id, input.id));
+      }
+      if (["city", "regional", "store", "supplier", "service", "media"].includes(input.kind)) {
+        await writeAuditLog({
+          actorUserId: ctx.user.id,
+          entityType: input.kind,
+          entityId: input.id,
+          action: "delete",
+          beforeData: before,
+        });
+        return { success: true } as const;
+      }
       try {
         if (input.kind === "provider") {
           const [linkedRegionals, linkedSuppliers] = await Promise.all([
@@ -3744,21 +4035,69 @@ export const settingsRouter = router({
             break;
           }
           case "regional": {
+            const [city, stock] = await Promise.all([
+              tx.select({ id: cities.id }).from(cities).where(inArray(cities.regionalId, ids)).limit(1),
+              tx.select({ id: stockItems.id }).from(stockItems).where(inArray(stockItems.regionalId, ids)).limit(1),
+            ]);
+            if (city[0] || stock[0])
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Uma ou mais regionais possuem cidades ou estoque vinculados.",
+              });
             const removed = await tx.delete(regionals).where(inArray(regionals.id, ids)).returning({ id: regionals.id });
             deleted = removed.length;
             break;
           }
           case "city": {
+            const [store, actionPoint, operation, action, event, mediaPoint] = await Promise.all([
+              tx.select({ id: stores.id }).from(stores).where(inArray(stores.cityId, ids)).limit(1),
+              tx.select({ id: actionPoints.id }).from(actionPoints).where(inArray(actionPoints.cityId, ids)).limit(1),
+              tx.select({ id: tradeOperations.id }).from(tradeOperations).where(inArray(tradeOperations.cityId, ids)).limit(1),
+              tx.select({ id: actions.id }).from(actions).where(inArray(actions.cityId, ids)).limit(1),
+              tx.select({ id: events.id }).from(events).where(inArray(events.cityId, ids)).limit(1),
+              tx.select({ id: mediaPoints.id }).from(mediaPoints).where(inArray(mediaPoints.cityId, ids)).limit(1),
+            ]);
+            if (store[0] || actionPoint[0] || operation[0] || action[0] || event[0] || mediaPoint[0])
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Uma ou mais cidades possuem operações, pontos ou lojas vinculados.",
+              });
+            await tx.delete(supplierCities).where(inArray(supplierCities.cityId, ids));
+            await tx.delete(commercialSupervisorCities).where(inArray(commercialSupervisorCities.cityId, ids));
+            await tx.delete(campaignCities).where(inArray(campaignCities.cityId, ids));
+            await tx.delete(campaignPromotionCities).where(inArray(campaignPromotionCities.cityId, ids));
+            await tx.delete(mediaCampaignCityDistributions).where(inArray(mediaCampaignCityDistributions.cityId, ids));
+            await tx.update(providers).set({ headquartersCityId: null, updatedAt: new Date() }).where(inArray(providers.headquartersCityId, ids));
+            await tx.update(suppliers).set({ cityId: null, updatedAt: new Date() }).where(inArray(suppliers.cityId, ids));
+            await tx.update(partners).set({ cityId: null, updatedAt: new Date() }).where(inArray(partners.cityId, ids));
+            await tx.update(stockItems).set({ cityId: null, updatedAt: new Date() }).where(inArray(stockItems.cityId, ids));
             const removed = await tx.delete(cities).where(inArray(cities.id, ids)).returning({ id: cities.id });
             deleted = removed.length;
             break;
           }
           case "store": {
+            await tx.delete(commercialSupervisorStores).where(inArray(commercialSupervisorStores.storeId, ids));
             const removed = await tx.delete(stores).where(inArray(stores.id, ids)).returning({ id: stores.id });
             deleted = removed.length;
             break;
           }
           case "supplier": {
+            const [mediaPoint, operation, actionSupplier, eventSupplier, contract] = await Promise.all([
+              tx.select({ id: mediaPoints.id }).from(mediaPoints).where(inArray(mediaPoints.supplierId, ids)).limit(1),
+              tx.select({ id: tradeOperations.id }).from(tradeOperations).where(inArray(tradeOperations.supplierId, ids)).limit(1),
+              tx.select({ id: actionSuppliers.id }).from(actionSuppliers).where(inArray(actionSuppliers.supplierId, ids)).limit(1),
+              tx.select({ id: eventSuppliers.id }).from(eventSuppliers).where(inArray(eventSuppliers.supplierId, ids)).limit(1),
+              tx.select({ id: supplierContracts.id }).from(supplierContracts).where(inArray(supplierContracts.supplierId, ids)).limit(1),
+            ]);
+            if (mediaPoint[0] || operation[0] || actionSupplier[0] || eventSupplier[0] || contract[0])
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Um ou mais fornecedores possuem vínculos operacionais ou financeiros.",
+              });
+            await tx.delete(supplierCities).where(inArray(supplierCities.supplierId, ids));
+            await tx.delete(supplierMediaTypes).where(inArray(supplierMediaTypes.supplierId, ids));
+            await tx.delete(supplierServiceTypes).where(inArray(supplierServiceTypes.supplierId, ids));
+            await tx.delete(supplierOfferings).where(inArray(supplierOfferings.supplierId, ids));
             const removed = await tx.delete(suppliers).where(inArray(suppliers.id, ids)).returning({ id: suppliers.id });
             deleted = removed.length;
             break;
@@ -3774,6 +4113,20 @@ export const settingsRouter = router({
             break;
           }
           case "service": {
+            const [mediaPoint, actionService, eventService, child] = await Promise.all([
+              tx.select({ id: mediaPoints.id }).from(mediaPoints).where(inArray(mediaPoints.serviceTypeId, ids)).limit(1),
+              tx.select({ id: actionServices.id }).from(actionServices).where(inArray(actionServices.serviceTypeId, ids)).limit(1),
+              tx.select({ id: eventServices.id }).from(eventServices).where(inArray(eventServices.serviceTypeId, ids)).limit(1),
+              tx.select({ id: serviceTypes.id }).from(serviceTypes).where(inArray(serviceTypes.parentServiceTypeId, ids)).limit(1),
+            ]);
+            if (mediaPoint[0] || actionService[0] || eventService[0] || child[0])
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Um ou mais serviços estão vinculados a pontos de mídia ou possuem subserviços.",
+              });
+            await tx.delete(supplierServiceTypes).where(inArray(supplierServiceTypes.serviceTypeId, ids));
+            await tx.delete(serviceTypeRelations).where(inArray(serviceTypeRelations.serviceTypeId, ids));
+            await tx.delete(serviceTypeRelations).where(inArray(serviceTypeRelations.subserviceTypeId, ids));
             const removed = await tx.delete(serviceTypes).where(inArray(serviceTypes.id, ids)).returning({ id: serviceTypes.id });
             deleted = removed.length;
             break;
@@ -3784,6 +4137,17 @@ export const settingsRouter = router({
             break;
           }
           case "media": {
+            const [mediaPoint, operation, registration, child] = await Promise.all([
+              tx.select({ id: mediaPoints.id }).from(mediaPoints).where(inArray(mediaPoints.mediaTypeId, ids)).limit(1),
+              tx.select({ id: tradeOperations.id }).from(tradeOperations).where(inArray(tradeOperations.mediaTypeId, ids)).limit(1),
+              tx.select({ id: urbanMediaRegistrations.id }).from(urbanMediaRegistrations).where(inArray(urbanMediaRegistrations.mediaVariationTypeId, ids)).limit(1),
+              tx.select({ id: mediaTypes.id }).from(mediaTypes).where(inArray(mediaTypes.parentMediaTypeId, ids)).limit(1),
+            ]);
+            if (mediaPoint[0] || operation[0] || registration[0] || child[0])
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Um ou mais tipos de mídia estão vinculados a operações ou registros de mídia.",
+              });
             const removed = await tx.delete(mediaTypes).where(inArray(mediaTypes.id, ids)).returning({ id: mediaTypes.id });
             deleted = removed.length;
             break;

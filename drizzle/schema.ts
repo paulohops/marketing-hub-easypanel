@@ -467,7 +467,7 @@ export const commercialSupervisorStores = pgTable(
       .references(() => commercialSupervisors.id, { onDelete: "cascade" }),
     storeId: integer("storeId")
       .notNull()
-      .references(() => stores.id, { onDelete: "restrict" }),
+      .references(() => stores.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("commercial_supervisor_stores_store_uq").on(table.storeId),
@@ -483,7 +483,7 @@ export const commercialSupervisorCities = pgTable(
       .references(() => commercialSupervisors.id, { onDelete: "cascade" }),
     cityId: integer("cityId")
       .notNull()
-      .references(() => cities.id, { onDelete: "restrict" }),
+      .references(() => cities.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("commercial_supervisor_cities_uq").on(
@@ -521,7 +521,7 @@ export const actionPoints = pgTable(
 export const partners = pgTable("partners", {
   id: serial("id").primaryKey(),
   cityId: integer("cityId").references(() => cities.id, {
-    onDelete: "restrict",
+    onDelete: "set null",
   }),
   name: varchar("name", { length: 160 }).notNull(),
   legalName: varchar("legalName", { length: 220 }),
@@ -611,7 +611,7 @@ export const productMediaTypes = pgTable(
       .references(() => productTypes.id, { onDelete: "cascade" }),
     mediaTypeId: integer("mediaTypeId")
       .notNull()
-      .references(() => mediaTypes.id, { onDelete: "restrict" }),
+      .references(() => mediaTypes.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("product_media_types_uq").on(
@@ -726,7 +726,7 @@ export const suppliers = pgTable("suppliers", {
     onDelete: "restrict",
   }),
   cityId: integer("cityId").references(() => cities.id, {
-    onDelete: "restrict",
+    onDelete: "set null",
   }),
   displayName: varchar("displayName", { length: 180 }).notNull(),
   address: text("address"),
@@ -772,7 +772,7 @@ export const supplierCities = pgTable(
       .references(() => suppliers.id, { onDelete: "cascade" }),
     cityId: integer("cityId")
       .notNull()
-      .references(() => cities.id, { onDelete: "restrict" }),
+      .references(() => cities.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("supplier_cities_uq").on(table.supplierId, table.cityId),
@@ -788,7 +788,7 @@ export const supplierMediaTypes = pgTable(
       .references(() => suppliers.id, { onDelete: "cascade" }),
     mediaTypeId: integer("mediaTypeId")
       .notNull()
-      .references(() => mediaTypes.id, { onDelete: "restrict" }),
+      .references(() => mediaTypes.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("supplier_media_types_uq").on(
@@ -807,7 +807,7 @@ export const supplierServiceTypes = pgTable(
       .references(() => suppliers.id, { onDelete: "cascade" }),
     serviceTypeId: integer("serviceTypeId")
       .notNull()
-      .references(() => serviceTypes.id, { onDelete: "restrict" }),
+      .references(() => serviceTypes.id, { onDelete: "cascade" }),
     mediaTypeId: integer("mediaTypeId").references(() => mediaTypes.id, {
       onDelete: "set null",
     }),
@@ -947,7 +947,7 @@ export const campaignRegionals = pgTable(
       .references(() => tradeCampaigns.id, { onDelete: "cascade" }),
     regionalId: integer("regionalId")
       .notNull()
-      .references(() => regionals.id, { onDelete: "restrict" }),
+      .references(() => regionals.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("campaign_regionals_campaign_regional_uq").on(
@@ -966,7 +966,7 @@ export const campaignCities = pgTable(
       .references(() => tradeCampaigns.id, { onDelete: "cascade" }),
     cityId: integer("cityId")
       .notNull()
-      .references(() => cities.id, { onDelete: "restrict" }),
+      .references(() => cities.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("campaign_cities_campaign_city_uq").on(
@@ -1002,7 +1002,7 @@ export const campaignPromotionCities = pgTable(
       .references(() => campaignPromotions.id, { onDelete: "cascade" }),
     cityId: integer("cityId")
       .notNull()
-      .references(() => cities.id, { onDelete: "restrict" }),
+      .references(() => cities.id, { onDelete: "cascade" }),
   },
   table => [
     uniqueIndex("campaign_promotion_cities_promotion_city_uq").on(
@@ -1036,7 +1036,7 @@ export const stockItems = pgTable(
       .notNull()
       .references(() => regionals.id, { onDelete: "restrict" }),
     cityId: integer("cityId").references(() => cities.id, {
-      onDelete: "restrict",
+      onDelete: "set null",
     }),
     sku: varchar("sku", { length: 64 }).notNull(),
     name: varchar("name", { length: 180 }).notNull(),
@@ -1455,7 +1455,7 @@ export const mediaCampaignCityDistributions = pgTable(
       .references(() => mediaCampaigns.id, { onDelete: "cascade" }),
     cityId: integer("cityId")
       .notNull()
-      .references(() => cities.id, { onDelete: "restrict" }),
+      .references(() => cities.id, { onDelete: "cascade" }),
     quantity: integer("quantity").notNull(),
     notes: text("notes"),
   },

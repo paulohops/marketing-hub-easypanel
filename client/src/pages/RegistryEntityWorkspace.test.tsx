@@ -196,8 +196,8 @@ describe("fichas de cadastros", () => {
     render(<RegistryEntityWorkspace />);
 
     fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
-    expect(screen.getByLabelText("Tipo principal")).toHaveValue("graphics");
-    expect(screen.getByLabelText("Subtipo pai")).toHaveValue("5");
+    expect(screen.getByLabelText("Categoria da mídia")).toHaveValue("graphics");
+    expect(screen.getByLabelText("Tipo de mídia pai (opcional)")).toHaveValue("5");
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
     expect(updateType).toHaveBeenCalledWith({ id: 6, kind: "media", name: "Impressão em lona", operationCategory: "graphics", parentMediaTypeId: 5 });
