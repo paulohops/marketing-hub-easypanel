@@ -10,7 +10,6 @@ import FinanceWorkspace from "./FinanceWorkspace";
 import InventoryWorkspace from "./InventoryWorkspace";
 import SettingsWorkspace from "./SettingsWorkspace";
 import MediaWorkspace from "./MediaWorkspace";
-import TraditionalMediaWorkspace from "./TraditionalMediaWorkspace";
 import ActionsWorkspace from "./ActionsWorkspace";
 import EventsWorkspace from "./EventsWorkspace";
 import IndicatorsWorkspace from "./IndicatorsWorkspace";
@@ -115,7 +114,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   const canWrite = (permission: string) => canPermission(permission);
   if (module === "midias") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace /><MediaCoverageExplorer /><MediaCampaignLibrary canWrite={canWrite("media.write")} /><RegionalMediaPanel canWrite={canWrite("media.write")} /></div></DashboardLayout>;
   if (module === "midias-graficas") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="graphics" /></div></DashboardLayout>;
-  if (module === "midias-audio-video") return <DashboardLayout><div className="cluster-workspace"><TraditionalMediaWorkspace /></div></DashboardLayout>;
+  if (module === "midias-audio-video") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="audio_video" /></div></DashboardLayout>;
   if (module === "midias-tradicional") return <DashboardLayout><div className="cluster-workspace"><TraditionalProgramDetails mediaPointId={Number(traditionalPointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
   if (module === "midias-externa") return <DashboardLayout><div className="cluster-workspace"><ExternalMediaPointDetails mediaPointId={Number(externalPointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
   if (module === "midias-tradicional-veiculacao") return <DashboardLayout><div className="cluster-workspace"><UrbanVeiculationPage traditional /></div></DashboardLayout>;

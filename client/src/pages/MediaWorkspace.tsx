@@ -109,12 +109,26 @@ export default function MediaWorkspace({ initialChannel, initialCategory }: { in
   const needsAudioVideoConfig = scheduledPoint?.operationCategory === "audio_video";
   const needsSoundTruckConfig = scheduledPoint?.operationCategory === "sound_car" || /carro.*som|som.*carro/.test(scheduledServiceName);
   const needsFlyerConfig = scheduledPoint?.operationCategory === "leafleting" || /panflet|folder|flyer/.test(scheduledServiceName);
-  const availableDistributionCities = (references.data?.cities ?? []).filter(({ city }) => !cityDistributions.some(item => Number(item.cityId) === city.id));
+  const availableDistributionCities = useMemo(() => {
+    const usedCityIds = new Set(cityDistributions.map(item => Number(item.cityId)));
+    return (references.data?.cities ?? []).filter(({ city }) => !usedCityIds.has(city.id));
+  }, [cityDistributions, references.data?.cities]);
   const selectedSupplierId = Number(pointForm.supplierId || 0);
-  const eligibleSupplierIds = new Set((references.data?.supplierMediaTypes ?? []).filter(link => (references.data?.mediaTypes ?? []).some(type => type.id === link.mediaTypeId && type.operationCategory === pointForm.operationCategory) && (!pointForm.mediaTypeId || link.mediaTypeId === Number(pointForm.mediaTypeId)) && (!pointForm.cityId || (references.data?.supplierCities ?? []).some(cityLink => cityLink.supplierId === link.supplierId && cityLink.cityId === Number(pointForm.cityId)))).map(link => link.supplierId));
-  const eligibleSuppliers = (references.data?.suppliers ?? []).filter(supplier => eligibleSupplierIds.has(supplier.id));
-  const availableMediaTypes = (references.data?.mediaTypes ?? []).filter(type => type.operationCategory === pointForm.operationCategory && type.parentMediaTypeId !== null && (!selectedSupplierId || (references.data?.supplierMediaTypes ?? []).some(link => link.supplierId === selectedSupplierId && link.mediaTypeId === type.id)));
-  const availableMediaVariations = (references.data?.mediaTypes ?? []).filter(type => type.operationCategory === pointForm.operationCategory && type.parentMediaTypeId === Number(pointForm.mediaTypeId));
+  const mediaTypes = references.data?.mediaTypes ?? [];
+  const supplierMediaTypes = references.data?.supplierMediaTypes ?? [];
+  const supplierCities = references.data?.supplierCities ?? [];
+  const mediaTypesById = useMemo(() => new Map(mediaTypes.map(type => [type.id, type])), [mediaTypes]);
+  const categoryMediaTypes = useMemo(() => mediaTypes.filter(type => type.operationCategory === pointForm.operationCategory), [mediaTypes, pointForm.operationCategory]);
+  const eligibleSupplierIds = useMemo(() => {
+    const citySupplierIds = pointForm.cityId ? new Set(supplierCities.filter(link => link.cityId === Number(pointForm.cityId)).map(link => link.supplierId)) : null;
+    return new Set(supplierMediaTypes.filter(link => {
+      const mediaType = mediaTypesById.get(link.mediaTypeId);
+      return mediaType?.operationCategory === pointForm.operationCategory && (!pointForm.mediaTypeId || link.mediaTypeId === Number(pointForm.mediaTypeId)) && (!citySupplierIds || citySupplierIds.has(link.supplierId));
+    }).map(link => link.supplierId));
+  }, [mediaTypesById, pointForm.cityId, pointForm.mediaTypeId, pointForm.operationCategory, supplierCities, supplierMediaTypes]);
+  const eligibleSuppliers = useMemo(() => (references.data?.suppliers ?? []).filter(supplier => eligibleSupplierIds.has(supplier.id)), [eligibleSupplierIds, references.data?.suppliers]);
+  const availableMediaTypes = useMemo(() => categoryMediaTypes.filter(type => type.parentMediaTypeId !== null && (!selectedSupplierId || supplierMediaTypes.some(link => link.supplierId === selectedSupplierId && link.mediaTypeId === type.id))), [categoryMediaTypes, selectedSupplierId, supplierMediaTypes]);
+  const availableMediaVariations = useMemo(() => categoryMediaTypes.filter(type => type.parentMediaTypeId === Number(pointForm.mediaTypeId)), [categoryMediaTypes, pointForm.mediaTypeId]);
   const addDistribution = () => { if (!distributionDraft.cityId || !distributionDraft.quantity) return; setCityDistributions(current => [...current, distributionDraft]); setDistributionDraft({ cityId: "", quantity: "", notes: "" }); };
 
   if (routeMediaPointId) return initialCategory === "graphics" || !initialCategory ? <UrbanPointDetails /> : <MediaDetailPage mediaPointId={routeMediaPointId} />;
