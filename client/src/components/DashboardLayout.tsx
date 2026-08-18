@@ -108,10 +108,10 @@ const navigationGroups: NavGroup[] = [
         permission: "actions.read",
       },
       {
-        label: "Ações",
-        path: "/acoes",
-        icon: CalendarDays,
-        permission: "actions.read",
+        label: "Panfletagem",
+        path: "/midias/panfletagem",
+        icon: FileSpreadsheet,
+        permission: "media.read",
       },
       {
         label: "Mídias",
@@ -132,12 +132,6 @@ const navigationGroups: NavGroup[] = [
             permission: "media.read",
           },
           {
-            label: "Panfletagem",
-            path: "/midias/panfletagem",
-            icon: FileSpreadsheet,
-            permission: "media.read",
-          },
-          {
             label: "Carro de som",
             path: "/midias/carro-de-som",
             icon: Volume2,
@@ -150,6 +144,12 @@ const navigationGroups: NavGroup[] = [
             permission: "media.read",
           },
         ],
+      },
+      {
+        label: "Ações",
+        path: "/acoes",
+        icon: CalendarDays,
+        permission: "actions.read",
       },
       {
         label: "Eventos",

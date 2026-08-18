@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const listQuery = vi.hoisted(() => vi.fn(() => ({ data: [], isLoading: false })));
 const referenceDataQuery = vi.hoisted(() => vi.fn(() => ({
@@ -22,6 +22,7 @@ vi.mock("wouter", () => ({ useLocation: () => [vi.fn()] }));
 
 import TraditionalMediaWorkspace from "./TraditionalMediaWorkspace";
 
+beforeEach(() => { cleanup(); });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("workspace independente de Mídia Tradicional", () => {

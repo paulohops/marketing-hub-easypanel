@@ -76,6 +76,25 @@ if (migration.status !== 0) {
 
 const verificationPool = createPool();
 try {
+  await verificationPool.query(`
+    CREATE TABLE IF NOT EXISTS "media_campaign_schedules" (
+      "id" SERIAL PRIMARY KEY,
+      "mediaCampaignId" INTEGER NOT NULL REFERENCES "media_campaigns"("id") ON DELETE CASCADE,
+      "programName" VARCHAR(180) NOT NULL,
+      "weekday" INTEGER,
+      "specificDate" DATE,
+      "startsAt" VARCHAR(5) NOT NULL,
+      "endsAt" VARCHAR(5) NOT NULL,
+      "notes" TEXT,
+      "createdByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL,
+      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "media_campaign_schedules_uq"
+      ON "media_campaign_schedules" ("mediaCampaignId", "programName", "weekday", "specificDate", "startsAt", "endsAt");
+  `);
+  console.log("[Database] Tabela de programação tradicional verificada.");
+
   const requiredUserColumns = [
     "id",
     "openId",
@@ -150,6 +169,7 @@ try {
     supplier_media_types: ["supplierId", "mediaTypeId"],
     commercial_supervisor_cities: ["id", "commercialSupervisorId", "cityId"],
     product_media_types: ["id", "productTypeId", "mediaTypeId"],
+    media_campaign_schedules: ["id", "mediaCampaignId", "programName", "weekday", "specificDate", "startsAt", "endsAt", "notes", "createdByUserId", "createdAt", "updatedAt"],
   };
   const schemaRows = await verificationPool.query(
     `SELECT table_name, column_name

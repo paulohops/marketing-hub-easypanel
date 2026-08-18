@@ -1,0 +1,56 @@
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CalendarDays, Plus, Trash2 } from "lucide-react";
+
+export type TraditionalScheduleItem = {
+  programName: string;
+  weekday: number | null;
+  specificDate: string | null;
+  startsAt: string;
+  endsAt: string;
+  notes?: string;
+};
+
+const weekdays = [
+  [0, "Domingo"],
+  [1, "Segunda-feira"],
+  [2, "Terça-feira"],
+  [3, "Quarta-feira"],
+  [4, "Quinta-feira"],
+  [5, "Sexta-feira"],
+  [6, "Sábado"],
+] as const;
+
+export function createEmptyTraditionalSchedule(): TraditionalScheduleItem {
+  return { programName: "", weekday: 1, specificDate: null, startsAt: "08:00", endsAt: "08:30", notes: "" };
+}
+
+export default function TraditionalScheduleEditor({ value, onChange }: { value: TraditionalScheduleItem[]; onChange: (value: TraditionalScheduleItem[]) => void }) {
+  const update = (index: number, patch: Partial<TraditionalScheduleItem>) => onChange(value.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+  const remove = (index: number) => onChange(value.filter((_, itemIndex) => itemIndex !== index));
+  const add = () => onChange([...value, createEmptyTraditionalSchedule()]);
+
+  return <section className="space-y-3 rounded-xl border border-border bg-secondary/40 p-4 md:col-span-2">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex items-start gap-2">
+        <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
+        <div><Label className="text-sm font-semibold">Programação da veiculação</Label><p className="mt-1 text-xs leading-5 text-muted-foreground">Cadastre uma linha para cada programa, dia e horário. Use uma data específica para entrevistas ou participações únicas.</p></div>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={add} className="h-8 border-primary/30 text-xs"><Plus className="mr-1.5 h-3.5 w-3.5" />Adicionar horário</Button>
+    </div>
+    {value.length === 0 ? <button type="button" onClick={add} className="w-full rounded-lg border border-dashed border-primary/40 bg-card px-3 py-4 text-left text-xs text-muted-foreground transition hover:border-primary hover:text-foreground">Nenhuma programação cadastrada. Clique para adicionar o primeiro horário.</button> : <div className="space-y-3">{value.map((item, index) => <article key={`${index}-${item.programName}`} className="rounded-lg border border-border bg-card p-3">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_110px_110px_auto] md:items-end">
+        <label className="space-y-1.5"><Label htmlFor={`schedule-program-${index}`}>Programa</Label><Input id={`schedule-program-${index}`} value={item.programName} onChange={event => update(index, { programName: event.target.value })} placeholder="Ex.: Jornal da manhã" required /></label>
+        <label className="space-y-1.5"><Label htmlFor={`schedule-type-${index}`}>Tipo de ocorrência</Label><select id={`schedule-type-${index}`} value={item.specificDate ? "specific" : "weekly"} onChange={event => event.target.value === "specific" ? update(index, { weekday: null, specificDate: item.specificDate ?? new Date().toISOString().slice(0, 10) }) : update(index, { weekday: item.weekday ?? 1, specificDate: null })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring"><option value="weekly">Toda semana</option><option value="specific">Data específica</option></select></label>
+        <label className="space-y-1.5"><Label htmlFor={`schedule-start-${index}`}>Início</Label><Input id={`schedule-start-${index}`} type="time" value={item.startsAt} onChange={event => update(index, { startsAt: event.target.value })} required /></label>
+        <label className="space-y-1.5"><Label htmlFor={`schedule-end-${index}`}>Fim</Label><Input id={`schedule-end-${index}`} type="time" value={item.endsAt} onChange={event => update(index, { endsAt: event.target.value })} required /></label>
+        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-10 w-10 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Remover horário ${index + 1}`}><Trash2 className="h-4 w-4" /></Button>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-end">
+        {item.specificDate ? <label className="space-y-1.5"><Label htmlFor={`schedule-date-${index}`}>Data da entrevista ou inserção</Label><Input id={`schedule-date-${index}`} type="date" value={item.specificDate} onChange={event => update(index, { specificDate: event.target.value || null })} required /></label> : <div className="space-y-1.5"><Label>Dia da semana</Label><div className="flex flex-wrap gap-1.5">{weekdays.map(([day, label]) => <Button key={day} type="button" variant={item.weekday === day ? "default" : "outline"} size="sm" onClick={() => update(index, { weekday: day, specificDate: null })} className="h-8 px-2 text-[11px]">{label.slice(0, 3)}</Button>)}</div></div>}
+        <label className="space-y-1.5"><Label htmlFor={`schedule-notes-${index}`}>Observação</Label><Input id={`schedule-notes-${index}`} value={item.notes ?? ""} onChange={event => update(index, { notes: event.target.value })} placeholder="Ex.: entrevista ao vivo" /></label>
+      </div>
+    </article>)}</div>}
+  </section>;
+}

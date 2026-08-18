@@ -1411,6 +1411,41 @@ export const mediaCampaigns = pgTable(
   ]
 );
 
+export const mediaCampaignSchedules = pgTable(
+  "media_campaign_schedules",
+  {
+    id: serial("id").primaryKey(),
+    mediaCampaignId: integer("mediaCampaignId")
+      .notNull()
+      .references(() => mediaCampaigns.id, { onDelete: "cascade" }),
+    programName: varchar("programName", { length: 180 }).notNull(),
+    weekday: integer("weekday"),
+    specificDate: date("specificDate"),
+    startsAt: varchar("startsAt", { length: 5 }).notNull(),
+    endsAt: varchar("endsAt", { length: 5 }).notNull(),
+    notes: text("notes"),
+    createdByUserId: integer("createdByUserId").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("createdAt", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => [
+    uniqueIndex("media_campaign_schedules_uq").on(
+      table.mediaCampaignId,
+      table.programName,
+      table.weekday,
+      table.specificDate,
+      table.startsAt,
+      table.endsAt
+    ),
+  ]
+);
+
 export const mediaCampaignCityDistributions = pgTable(
   "media_campaign_city_distributions",
   {
