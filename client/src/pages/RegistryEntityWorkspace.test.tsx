@@ -56,16 +56,6 @@ describe("fichas de cadastros", () => {
     expect(screen.getByRole("button", { name: "Criar cadastro" })).toBeInTheDocument();
   });
 
-  it("abre a importação em lote já com o módulo da categoria selecionado", () => {
-    window.history.replaceState({}, "", "/cadastros/servicos");
-    render(<RegistryEntityWorkspace />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Importar em lote" }));
-
-    expect(window.location.pathname).toBe("/importar-dados");
-    expect(window.location.search).toBe("?module=serviceTypes");
-  });
-
   it("seleciona registros visíveis e confirma a exclusão em massa", () => {
     window.history.replaceState({}, "", "/cadastros/servicos");
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);

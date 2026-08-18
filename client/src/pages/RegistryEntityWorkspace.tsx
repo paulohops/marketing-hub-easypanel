@@ -1382,14 +1382,6 @@ export default function RegistryEntityWorkspace() {
               <>
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => setLocation(`/importar-dados?module=${encodeURIComponent(entity.importModule)}`)}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar em lote
-                </Button>
-                <Button
-                  type="button"
                   onClick={() => setCreateDialogOpen(true)}
                   className="bg-primary text-primary-foreground"
                 >
