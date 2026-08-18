@@ -6,6 +6,7 @@ const updateType = vi.hoisted(() => vi.fn());
 const updateStore = vi.hoisted(() => vi.fn());
 const updateProvider = vi.hoisted(() => vi.fn());
 const deleteRegistry = vi.hoisted(() => vi.fn());
+const deleteRegistries = vi.hoisted(() => vi.fn());
 const setRegistryActive = vi.hoisted(() => vi.fn());
 const trpcStub = vi.hoisted(() => {
   const mutations = () => ({ mutate: vi.fn(), isPending: false });
@@ -26,6 +27,7 @@ const trpcStub = vi.hoisted(() => {
       updateProvider: { useMutation: () => ({ mutate: updateProvider, isPending: false }) },
       setRegistryActive: { useMutation: () => ({ mutate: setRegistryActive, isPending: false }) },
       deleteRegistry: { useMutation: (options?: { onSuccess?: () => void }) => ({ mutate: (input: unknown) => { deleteRegistry(input); options?.onSuccess?.(); }, isPending: false }) },
+      deleteRegistries: { useMutation: () => ({ mutate: deleteRegistries, isPending: false }) },
     }, { get: (target, property) => target[property as keyof typeof target] ?? { useMutation: mutations } }),
   };
 });
@@ -52,6 +54,29 @@ describe("fichas de cadastros", () => {
 
     expect(screen.getByRole("dialog")).toHaveTextContent("Novo serviço");
     expect(screen.getByRole("button", { name: "Criar cadastro" })).toBeInTheDocument();
+  });
+
+  it("abre a importação em lote já com o módulo da categoria selecionado", () => {
+    window.history.replaceState({}, "", "/cadastros/servicos");
+    render(<RegistryEntityWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Importar em lote" }));
+
+    expect(window.location.pathname).toBe("/importar-dados");
+    expect(window.location.search).toBe("?module=serviceTypes");
+  });
+
+  it("seleciona registros visíveis e confirma a exclusão em massa", () => {
+    window.history.replaceState({}, "", "/cadastros/servicos");
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<RegistryEntityWorkspace />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Selecionar todos os visíveis" }));
+    expect(screen.getByText("1 selecionado(s)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Excluir selecionados" }));
+
+    expect(confirm).toHaveBeenCalledWith("Excluir 1 cadastro(s)? Esta ação não pode ser desfeita.");
+    expect(deleteRegistries).toHaveBeenCalledWith({ kind: "service", ids: [4] });
   });
 
   it("permite pesquisar e abrir a edição contextual de um fornecedor", () => {

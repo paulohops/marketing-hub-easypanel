@@ -59,6 +59,7 @@ type EntityConfig = {
   plural: string;
   collection: string;
   kind: string;
+  importModule: string;
   description: string;
   icon: typeof Building2;
 };
@@ -76,6 +77,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Empresas",
     collection: "providers",
     kind: "provider",
+    importModule: "providers",
     description:
       "Dados de faturamento, cobertura territorial, lojas, fornecedores e operações associadas.",
     icon: Building2,
@@ -85,6 +87,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Regionais",
     collection: "regionals",
     kind: "regional",
+    importModule: "regionals",
     description:
       "Estrutura territorial, empresa responsável, cidades, lojas e operações associadas.",
     icon: MapPin,
@@ -94,6 +97,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Cidades",
     collection: "cities",
     kind: "city",
+    importModule: "cities",
     description:
       "Localização, dados de território, lojas, fornecedores e referências operacionais.",
     icon: MapPin,
@@ -103,6 +107,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Lojas",
     collection: "stores",
     kind: "store",
+    importModule: "stores",
     description:
       "Unidades de atendimento e respectivas referências territoriais.",
     icon: Building2,
@@ -112,6 +117,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Fornecedores",
     collection: "suppliers",
     kind: "supplier",
+    importModule: "suppliers",
     description:
       "Contatos, cobertura, serviços contratáveis e condições comerciais.",
     icon: Building2,
@@ -121,6 +127,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Parceiros comerciais",
     collection: "partners",
     kind: "partner",
+    importModule: "partners",
     description: "Contatos, contratos e condições de parceria.",
     icon: Building2,
   },
@@ -129,6 +136,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Supervisores comerciais",
     collection: "commercialSupervisors",
     kind: "supervisor",
+    importModule: "commercialSupervisors",
     description: "Pessoas responsáveis e lojas sob supervisão comercial.",
     icon: Building2,
   },
@@ -137,6 +145,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Serviços",
     collection: "serviceTypes",
     kind: "service",
+    importModule: "serviceTypes",
     description:
       "Serviços principais disponíveis para contratação e configuração da operação.",
     icon: Building2,
@@ -146,6 +155,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "SubServiços",
     collection: "serviceTypes",
     kind: "service",
+    importModule: "serviceTypes",
     description:
       "Detalhamentos operacionais vinculados a um serviço principal.",
     icon: Building2,
@@ -155,6 +165,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Tipos de produto",
     collection: "productTypes",
     kind: "product",
+    importModule: "productTypes",
     description:
       "Categorias de produtos para composição das ofertas de fornecedores.",
     icon: Building2,
@@ -164,6 +175,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Tipos de mídia",
     collection: "mediaTypes",
     kind: "media",
+    importModule: "mediaTypes",
     description: "Canais e formatos para planejamento de mídia.",
     icon: Building2,
   },
@@ -172,6 +184,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Tipos de ação",
     collection: "actionTypes",
     kind: "action",
+    importModule: "actionTypes",
     description: "Classificações usadas no planejamento de ações.",
     icon: Building2,
   },
@@ -180,6 +193,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Tipos de evento",
     collection: "eventTypes",
     kind: "event",
+    importModule: "eventTypes",
     description: "Classificações usadas no planejamento de eventos.",
     icon: Building2,
   },
@@ -188,6 +202,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Atuações",
     collection: "campaignTypes",
     kind: "campaign",
+    importModule: "campaignTypes",
     description:
       "Classificações reutilizáveis, como Comercial, Fidelização e outras estratégias.",
     icon: Building2,
@@ -197,6 +212,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Setores",
     collection: "campaignSectors",
     kind: "campaign_sector",
+    importModule: "campaignSectors",
     description:
       "Segmentos reutilizáveis, como B2C, B2B, PME e demais públicos.",
     icon: Building2,
@@ -206,6 +222,7 @@ const entities: Record<string, EntityConfig> = {
     plural: "Categorias financeiras",
     collection: "financialCategories",
     kind: "financial_category",
+    importModule: "financialCategories",
     description:
       "Classificações de estimativas, verbas e controles financeiros.",
     icon: Building2,
@@ -363,6 +380,7 @@ export default function RegistryEntityWorkspace() {
   const [regionalFilter, setRegionalFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [expandedRelation, setExpandedRelation] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const updateProvider = trpc.settings.updateProvider.useMutation({
     onSuccess: () => {
       toast.success("Empresa atualizada.");
@@ -549,6 +567,14 @@ export default function RegistryEntityWorkspace() {
     },
     onError: error => toast.error(error.message),
   });
+  const removeMany = trpc.settings.deleteRegistries.useMutation({
+    onSuccess: result => {
+      toast.success(`${result.deleted} cadastro(s) excluído(s) com segurança.`);
+      setSelectedIds([]);
+      utils.settings.overview.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
 
   const rows = useMemo(
     () =>
@@ -638,6 +664,21 @@ export default function RegistryEntityWorkspace() {
     setCompanyFilter("");
     setRegionalFilter("");
     setCityFilter("");
+  };
+  const allVisibleSelected =
+    filteredRows.length > 0 && filteredRows.every(row => selectedIds.includes(row.id));
+  const toggleSelected = (id: number) => {
+    setSelectedIds(current =>
+      current.includes(id) ? current.filter(item => item !== id) : [...current, id]
+    );
+  };
+  const toggleAllVisible = () => {
+    const visibleIds = filteredRows.map(row => row.id);
+    setSelectedIds(current =>
+      allVisibleSelected
+        ? current.filter(id => !visibleIds.includes(id))
+        : Array.from(new Set([...current, ...visibleIds]))
+    );
   };
 
   useEffect(() => {
@@ -743,6 +784,10 @@ export default function RegistryEntityWorkspace() {
         .map(link => link.mediaTypeId)
     );
   }, [entity?.kind, selected, productMediaLinks]);
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [slug]);
+
   useEffect(() => {
     if (!createDialogOpen || !entity) return;
     setEditing(false);
@@ -1334,14 +1379,24 @@ export default function RegistryEntityWorkspace() {
               Voltar aos Cadastros
             </Button>
             {canWrite ? (
-              <Button
-                type="button"
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-primary text-primary-foreground"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar {entity.singular.toLowerCase()}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLocation(`/importar-dados?module=${encodeURIComponent(entity.importModule)}`)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Importar em lote
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="bg-primary text-primary-foreground"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar {entity.singular.toLowerCase()}
+                </Button>
+              </>
             ) : null}
           </div>
         ) : null}
@@ -1506,21 +1561,61 @@ export default function RegistryEntityWorkspace() {
               </div>
             </div>
           ) : null}
+          {canWrite ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleAllVisible}
+                  disabled={!filteredRows.length || removeMany.isPending}
+                  className="h-4 w-4 accent-primary"
+                />
+                Selecionar todos os visíveis
+              </label>
+              {selectedIds.length ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm text-muted-foreground">{selectedIds.length} selecionado(s)</span>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={removeMany.isPending}
+                    onClick={() => {
+                      if (!window.confirm(`Excluir ${selectedIds.length} cadastro(s)? Esta ação não pode ser desfeita.`)) return;
+                      removeMany.mutate({ kind: entity.kind as never, ids: selectedIds });
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir selecionados
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {entity.kind === "supplier" ? (
             <SupplierDirectory
               rows={filteredRows}
               providers={providers}
               cities={cities}
+              selectedIds={selectedIds}
+              onToggle={toggleSelected}
               onOpen={id => setLocation(`/cadastros/${slug}/${id}`)}
             />
           ) : (
             <div className="hub-list">
               {filteredRows.map(row => (
+                <div key={row.id} className="relative">
+                  <input
+                    type="checkbox"
+                    aria-label={`Selecionar ${recordName(row)}`}
+                    checked={selectedIds.includes(row.id)}
+                    onChange={() => toggleSelected(row.id)}
+                    className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 accent-primary"
+                  />
                 <button
-                  key={row.id}
                   type="button"
                   onClick={() => setLocation(`/cadastros/${slug}/${row.id}`)}
-                  className="hub-list-item grid w-full gap-3 p-4 text-left sm:grid-cols-[auto_minmax(0,1.3fr)_minmax(190px,.8fr)_auto] sm:items-center"
+                  className="hub-list-item grid w-full gap-3 p-4 pl-11 text-left sm:grid-cols-[auto_minmax(0,1.3fr)_minmax(190px,.8fr)_auto] sm:items-center"
                 >
                   <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-primary">
                     {entity.kind === "provider" &&
@@ -1572,6 +1667,7 @@ export default function RegistryEntityWorkspace() {
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 justify-self-end text-primary" />
                 </button>
+                </div>
               ))}
               {filteredRows.length === 0 ? (
                 <Card>
@@ -3755,11 +3851,15 @@ function SupplierDirectory({
   rows,
   providers,
   cities,
+  selectedIds,
+  onToggle,
   onOpen,
 }: {
   rows: RegistryRecord[];
   providers: RegistryRecord[];
   cities: RegistryRecord[];
+  selectedIds: number[];
+  onToggle: (id: number) => void;
   onOpen: (id: number) => void;
 }) {
   const cityName = (id: unknown) => {
@@ -3783,12 +3883,19 @@ function SupplierDirectory({
           item => item.id === Number(row.providerId)
         );
         return (
-          <button
-            key={row.id}
-            type="button"
-            onClick={() => onOpen(row.id)}
-            className="grid w-full grid-cols-[56px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-[10px] border border-border bg-card px-4 py-4 text-left shadow-[0_2px_8px_rgba(19,53,35,0.025)] transition hover:border-primary/30 hover:bg-muted/40 sm:grid-cols-[56px_minmax(190px,1.2fr)_minmax(170px,.9fr)_minmax(180px,.9fr)_32px] sm:px-5"
-          >
+          <div key={row.id} className="relative">
+            <input
+              type="checkbox"
+              aria-label={`Selecionar ${recordName(row)}`}
+              checked={selectedIds.includes(row.id)}
+              onChange={() => onToggle(row.id)}
+              className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 accent-primary"
+            />
+            <button
+              type="button"
+              onClick={() => onOpen(row.id)}
+              className="grid w-full grid-cols-[56px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-[10px] border border-border bg-card px-4 py-4 pl-11 text-left shadow-[0_2px_8px_rgba(19,53,35,0.025)] transition hover:border-primary/30 hover:bg-muted/40 sm:grid-cols-[56px_minmax(190px,1.2fr)_minmax(170px,.9fr)_minmax(180px,.9fr)_32px] sm:px-5 sm:pl-12"
+            >
             <span className="row-span-2 grid h-14 w-14 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-primary sm:row-span-1">
               {typeof row.photoUrl === "string" && row.photoUrl ? (
                 <img
@@ -3834,7 +3941,8 @@ function SupplierDirectory({
               </span>
             </span>
             <ChevronRight className="col-start-2 row-start-1 h-4 w-4 justify-self-end text-primary sm:col-start-auto sm:row-start-auto" />
-          </button>
+            </button>
+          </div>
         );
       })}
     </div>

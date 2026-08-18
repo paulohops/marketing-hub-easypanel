@@ -23,6 +23,7 @@ type ModuleValue = (typeof moduleOptions)[number]["value"];
 export default function DataCenterWorkspace() {
   const [, setLocation] = useLocation();
   const { can } = useEffectivePermissions();
+  const utils = trpc.useUtils();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [confirmation, setConfirmation] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -30,8 +31,15 @@ export default function DataCenterWorkspace() {
     .map(id => moduleOptions.find(option => option.id === id)?.value)
     .filter((value): value is ModuleValue => Boolean(value));
   const clearModuleData = trpc.settings.clearModuleData.useMutation({
-    onSuccess: result => {
-      toast.success(`Dados apagados: ${result.modules.length} módulo(s).`);
+    onSuccess: async result => {
+      await Promise.all([
+        utils.settings.overview.invalidate(),
+        utils.media.list.invalidate(),
+        utils.actions.list.invalidate(),
+        utils.events.list.invalidate(),
+      ]);
+      const totalDeleted = Object.values(result.deleted ?? {}).reduce((sum, value) => sum + value, 0);
+      toast.success(`Dados apagados: ${totalDeleted} registro(s) em ${result.modules.length} módulo(s).`);
       setSelectedIds([]);
       setConfirmation("");
       setConfirmOpen(false);

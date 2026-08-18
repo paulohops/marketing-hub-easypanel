@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { IMPORT_MODULES, getImportModuleDefinition, normalizeImportHeader, type ImportModuleId } from "@shared/import-modules";
 import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
-import { type ChangeEvent, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
@@ -93,7 +94,13 @@ export function validateOperationalRows(rows: LegacyImportRows) {
 
 export default function DataImportWorkspace() {
   const utils = trpc.useUtils();
+  const [location] = useLocation();
   const [selectedModule, setSelectedModule] = useState<ImportModuleId>(IMPORT_MODULES[0].id);
+  useEffect(() => {
+    const moduleParam = new URLSearchParams(location.split("?")[1] ?? "").get("module");
+    const matchedModule = IMPORT_MODULES.find(module => module.id === moduleParam)?.id;
+    if (matchedModule) setSelectedModule(matchedModule);
+  }, [location]);
   const [preview, setPreview] = useState<ModulePreview | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const definition = getImportModuleDefinition(selectedModule)!;

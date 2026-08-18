@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -3705,6 +3705,133 @@ export const settingsRouter = router({
       return { success: true } as const;
     }),
 
+  deleteRegistries: protectedProcedure
+    .input(
+      z.object({
+        kind: z.enum([
+          "provider",
+          "regional",
+          "city",
+          "store",
+          "supplier",
+          "partner",
+          "supervisor",
+          "service",
+          "product",
+          "media",
+          "action",
+          "event",
+          "campaign",
+          "campaign_sector",
+          "financial_category",
+          "supplier_offering",
+        ]),
+        ids: z.array(z.number().int().positive()).min(1).max(500),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const ids = Array.from(new Set(input.ids));
+      let deleted = 0;
+      await database.transaction(async tx => {
+        switch (input.kind) {
+          case "provider": {
+            await tx.update(regionals).set({ providerId: null }).where(inArray(regionals.providerId, ids));
+            await tx.update(suppliers).set({ providerId: null, updatedAt: new Date() }).where(inArray(suppliers.providerId, ids));
+            const removed = await tx.delete(providers).where(inArray(providers.id, ids)).returning({ id: providers.id });
+            deleted = removed.length;
+            break;
+          }
+          case "regional": {
+            const removed = await tx.delete(regionals).where(inArray(regionals.id, ids)).returning({ id: regionals.id });
+            deleted = removed.length;
+            break;
+          }
+          case "city": {
+            const removed = await tx.delete(cities).where(inArray(cities.id, ids)).returning({ id: cities.id });
+            deleted = removed.length;
+            break;
+          }
+          case "store": {
+            const removed = await tx.delete(stores).where(inArray(stores.id, ids)).returning({ id: stores.id });
+            deleted = removed.length;
+            break;
+          }
+          case "supplier": {
+            const removed = await tx.delete(suppliers).where(inArray(suppliers.id, ids)).returning({ id: suppliers.id });
+            deleted = removed.length;
+            break;
+          }
+          case "partner": {
+            const removed = await tx.delete(partners).where(inArray(partners.id, ids)).returning({ id: partners.id });
+            deleted = removed.length;
+            break;
+          }
+          case "supervisor": {
+            const removed = await tx.delete(commercialSupervisors).where(inArray(commercialSupervisors.id, ids)).returning({ id: commercialSupervisors.id });
+            deleted = removed.length;
+            break;
+          }
+          case "service": {
+            const removed = await tx.delete(serviceTypes).where(inArray(serviceTypes.id, ids)).returning({ id: serviceTypes.id });
+            deleted = removed.length;
+            break;
+          }
+          case "product": {
+            const removed = await tx.delete(productTypes).where(inArray(productTypes.id, ids)).returning({ id: productTypes.id });
+            deleted = removed.length;
+            break;
+          }
+          case "media": {
+            const removed = await tx.delete(mediaTypes).where(inArray(mediaTypes.id, ids)).returning({ id: mediaTypes.id });
+            deleted = removed.length;
+            break;
+          }
+          case "action": {
+            const removed = await tx.delete(actionTypes).where(inArray(actionTypes.id, ids)).returning({ id: actionTypes.id });
+            deleted = removed.length;
+            break;
+          }
+          case "event": {
+            const removed = await tx.delete(eventTypes).where(inArray(eventTypes.id, ids)).returning({ id: eventTypes.id });
+            deleted = removed.length;
+            break;
+          }
+          case "campaign": {
+            const removed = await tx.delete(campaignTypes).where(inArray(campaignTypes.id, ids)).returning({ id: campaignTypes.id });
+            deleted = removed.length;
+            break;
+          }
+          case "campaign_sector": {
+            const removed = await tx.delete(campaignSectors).where(inArray(campaignSectors.id, ids)).returning({ id: campaignSectors.id });
+            deleted = removed.length;
+            break;
+          }
+          case "financial_category": {
+            const removed = await tx.delete(financialCategories).where(inArray(financialCategories.id, ids)).returning({ id: financialCategories.id });
+            deleted = removed.length;
+            break;
+          }
+          case "supplier_offering": {
+            const removed = await tx.delete(supplierOfferings).where(inArray(supplierOfferings.id, ids)).returning({ id: supplierOfferings.id });
+            deleted = removed.length;
+            break;
+          }
+        }
+      });
+      if (!deleted)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Nenhum cadastro selecionado foi encontrado." });
+      await writeAuditLog({
+        actorUserId: ctx.user.id,
+        entityType: "registry",
+        entityId: deleted,
+        action: "delete_many",
+        beforeData: { kind: input.kind, requestedIds: ids, deleted },
+      });
+      return { success: true as const, deleted };
+    }),
+
   importRegistrySpreadsheet: protectedProcedure
     .input(registrySpreadsheetSchema)
     .mutation(async ({ ctx, input }) => {
@@ -3937,48 +4064,74 @@ export const settingsRouter = router({
       await assertPermission(ctx.user, "settings.write");
       const database = await requireDatabase();
       const selected = new Set(input.modules);
+      const deletedByModule: Record<string, number> = Object.fromEntries(
+        input.modules.map(module => [module, 0])
+      );
       await database.transaction(async transaction => {
+        const executeDelete = async (module: string, statement: SQL) => {
+          const result = await transaction.execute(statement);
+          deletedByModule[module] =
+            (deletedByModule[module] ?? 0) + Number(result.rowCount ?? 0);
+        };
         if (selected.has("media")) {
-          await transaction.execute(sql`DELETE FROM "media_campaign_city_distributions"`);
-          await transaction.execute(sql`DELETE FROM "documents" WHERE CAST("entityType" AS text) = ANY (ARRAY['media_campaign', 'media_point']::text[])`);
-          await transaction.execute(sql`DELETE FROM "media_spots"`);
-          await transaction.execute(sql`DELETE FROM "media_campaigns"`);
-          await transaction.execute(sql`DELETE FROM "urban_media_registrations"`);
-          await transaction.execute(sql`DELETE FROM "media_points"`);
+          await executeDelete("media", sql`DELETE FROM "media_campaign_city_distributions"`);
+          await executeDelete("media", sql`DELETE FROM "sound_car_runs"`);
+          await executeDelete("media", sql`DELETE FROM "influencer_posts"`);
+          await executeDelete("media", sql`DELETE FROM "influencer_group_members"`);
+          await executeDelete("media", sql`DELETE FROM "influencer_groups"`);
+          await executeDelete("media", sql`DELETE FROM "influencers"`);
+          await executeDelete("media", sql`DELETE FROM "documents" WHERE CAST("entityType" AS text) = ANY (ARRAY['media_campaign', 'media_point']::text[])`);
+          await executeDelete("media", sql`DELETE FROM "media_campaigns"`);
+          await executeDelete("media", sql`DELETE FROM "media_spots"`);
+          await executeDelete("media", sql`DELETE FROM "urban_media_registrations"`);
+          await executeDelete("media", sql`DELETE FROM "media_points"`);
         }
         if (selected.has("actions")) {
-          await transaction.execute(sql`DELETE FROM "documents" WHERE CAST("entityType" AS text) = ANY (ARRAY['action', 'event']::text[])`);
-          await transaction.execute(sql`DELETE FROM "action_debriefs"`);
-          await transaction.execute(sql`DELETE FROM "action_stock_items"`);
-          await transaction.execute(sql`DELETE FROM "action_team_members"`);
-          await transaction.execute(sql`DELETE FROM "action_services"`);
-          await transaction.execute(sql`DELETE FROM "action_suppliers"`);
-          await transaction.execute(sql`DELETE FROM "actions"`);
-          await transaction.execute(sql`DELETE FROM "event_stock_items"`);
-          await transaction.execute(sql`DELETE FROM "event_team_members"`);
-          await transaction.execute(sql`DELETE FROM "event_services"`);
-          await transaction.execute(sql`DELETE FROM "event_suppliers"`);
-          await transaction.execute(sql`DELETE FROM "events"`);
+          await executeDelete("actions", sql`DELETE FROM "documents" WHERE CAST("entityType" AS text) = ANY (ARRAY['action', 'event']::text[])`);
+          await executeDelete("actions", sql`DELETE FROM "action_debriefs"`);
+          await executeDelete("actions", sql`DELETE FROM "action_stock_items"`);
+          await executeDelete("actions", sql`DELETE FROM "action_team_members"`);
+          await executeDelete("actions", sql`DELETE FROM "action_services"`);
+          await executeDelete("actions", sql`DELETE FROM "action_suppliers"`);
+          await executeDelete("actions", sql`DELETE FROM "actions"`);
+          await executeDelete("actions", sql`DELETE FROM "event_stock_items"`);
+          await executeDelete("actions", sql`DELETE FROM "event_team_members"`);
+          await executeDelete("actions", sql`DELETE FROM "event_services"`);
+          await executeDelete("actions", sql`DELETE FROM "event_suppliers"`);
+          await executeDelete("actions", sql`DELETE FROM "events"`);
         }
         if (selected.has("campaigns")) {
-          await transaction.execute(sql`DELETE FROM "campaign_promotion_plans"`);
-          await transaction.execute(sql`DELETE FROM "campaign_promotion_cities"`);
-          await transaction.execute(sql`DELETE FROM "campaign_promotions"`);
-          await transaction.execute(sql`DELETE FROM "campaign_cities"`);
-          await transaction.execute(sql`DELETE FROM "campaign_regionals"`);
-          await transaction.execute(sql`DELETE FROM "trade_campaigns"`);
+          await executeDelete("campaigns", sql`DELETE FROM "campaign_promotion_plans"`);
+          await executeDelete("campaigns", sql`DELETE FROM "campaign_promotion_cities"`);
+          await executeDelete("campaigns", sql`DELETE FROM "campaign_promotions"`);
+          await executeDelete("campaigns", sql`DELETE FROM "campaign_cities"`);
+          await executeDelete("campaigns", sql`DELETE FROM "campaign_regionals"`);
+          await executeDelete("campaigns", sql`DELETE FROM "trade_campaigns"`);
         }
         if (selected.has("inventory")) {
-          await transaction.execute(sql`DELETE FROM "stock_transfers"`);
-          await transaction.execute(sql`DELETE FROM "stock_movements"`);
-          await transaction.execute(sql`DELETE FROM "stock_balances"`);
-          await transaction.execute(sql`DELETE FROM "stock_items"`);
+          await executeDelete("inventory", sql`DELETE FROM "stock_transfers"`);
+          await executeDelete("inventory", sql`DELETE FROM "stock_movements"`);
+          await executeDelete("inventory", sql`DELETE FROM "stock_balances"`);
+          await executeDelete("inventory", sql`DELETE FROM "stock_items"`);
         }
         if (selected.has("operational_catalogs")) {
-          await transaction.execute(sql`DELETE FROM "supplier_offerings"`);
-          await transaction.execute(sql`DELETE FROM "supplier_service_types"`);
-          await transaction.execute(sql`DELETE FROM "supplier_media_types"`);
-          await transaction.execute(sql`DELETE FROM "service_type_relations"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "product_media_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "service_type_relations"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "supplier_offerings"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "supplier_service_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "supplier_media_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "commercial_supervisor_cities"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "commercial_supervisor_stores"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "action_points"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "service_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "media_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "product_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "action_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "event_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "campaign_types"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "campaign_sectors"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "financial_categories"`);
+          await executeDelete("operational_catalogs", sql`DELETE FROM "commercial_supervisors"`);
         }
       });
       await writeAuditLog({
@@ -3986,9 +4139,9 @@ export const settingsRouter = router({
         entityType: "data_center",
         entityId: ctx.user.id,
         action: "clear_modules",
-        afterData: { modules: input.modules },
+        afterData: { modules: input.modules, deletedByModule },
       });
-      return { success: true as const, modules: input.modules };
+      return { success: true as const, modules: input.modules, deleted: deletedByModule };
     }),
   getRegional: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
