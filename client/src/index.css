@@ -274,3 +274,179 @@
     }
   }
 }
+
+
+@layer components {
+  /* Marketing HUB visual system: one rhythm for every internal workspace. */
+  .hub-page {
+    width: 100%;
+    max-width: 1480px;
+    margin-inline: auto;
+    padding: 0 1rem 2rem;
+  }
+
+  .hub-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.25rem;
+    min-height: 7.25rem;
+    padding: 1.25rem 0 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hub-header__identity {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
+
+  .hub-header__icon {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    place-items: center;
+    margin-top: 0.15rem;
+    border-radius: 0.875rem;
+    color: var(--primary-foreground);
+    background: var(--primary);
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 18%, transparent);
+  }
+
+  .hub-header__eyebrow {
+    margin: 0;
+    color: var(--primary);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .hub-header__title {
+    margin: 0.25rem 0 0;
+    color: var(--foreground);
+    font-family: var(--app-font-family, "Montserrat"), ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(1.65rem, 1.3rem + 1vw, 2.25rem);
+    font-weight: 650;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+  }
+
+  .hub-header__description {
+    max-width: 48rem;
+    margin: 0.5rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+  }
+
+  .hub-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .hub-header__actions,
+  .hub-actions,
+  .hub-section__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .hub-header__actions > button,
+  .hub-header__actions > a,
+  .hub-actions > button,
+  .hub-actions > a,
+  .hub-section__actions > button,
+  .hub-section__actions > a {
+    min-height: 2.25rem;
+  }
+
+  .hub-section {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .hub-section__header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .hub-section__title {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--app-font-family, "Montserrat"), ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  .hub-section__description {
+    margin: 0.25rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .hub-card {
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+  }
+
+  .hub-card--padded {
+    padding: 1.25rem;
+  }
+
+  .hub-card--interactive {
+    transition: border-color 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), transform 160ms var(--ease-out, ease-out);
+  }
+
+  .hub-card--interactive:hover {
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    box-shadow: 0 8px 18px rgba(19, 53, 35, 0.07);
+    transform: translateY(-1px);
+  }
+
+  @media (min-width: 640px) {
+    .hub-page {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hub-page {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .hub-header {
+      align-items: stretch;
+      flex-direction: column;
+      padding-bottom: 1.25rem;
+    }
+
+    .hub-header__actions,
+    .hub-actions,
+    .hub-section__actions {
+      justify-content: flex-start;
+    }
+
+    .hub-header__actions > button,
+    .hub-header__actions > a {
+      flex: 1 1 auto;
+    }
+  }
+}
