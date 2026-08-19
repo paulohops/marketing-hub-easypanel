@@ -107,7 +107,7 @@ export default function SearchableMultiSelect({
             }}
             variant="outline"
             disabled={disabled}
-            className={`h-10 w-full justify-between rounded-lg px-3 text-left font-normal ${triggerClassName}`}
+            className={`h-9 w-full justify-between rounded-[10px] px-3 text-left font-normal ${triggerClassName}`}
           >
             <span className="truncate">{selectedSummary}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-55" />

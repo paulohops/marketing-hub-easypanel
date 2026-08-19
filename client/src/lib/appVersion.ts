@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.1.4.0";
+export const APP_VERSION = "1.2.0.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,18 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.2.0.0",
+    date: "19/08/2026",
+    label: "Minor update",
+    summary: "Sistema visual global aplicado aos workspaces operacionais.",
+    changes: [
+      "Criado o WorkspaceChrome com shell, header, ações, seções e cards reutilizáveis para manter identidade visual única.",
+      "Aplicados tokens CSS globais de largura, espaçamento, hierarquia tipográfica, ícones, bordas e cards ao padrão de Mídia Urbana e Ações.",
+      "Migrados os headers de Ações, Campanhas, Eventos, Trade, Mídia Urbana e Mídia Audiovisual para a estrutura visual canônica.",
+      "Filtros dos workspaces passaram a iniciar ocultos e os dropdowns pesquisáveis foram alinhados ao tamanho dos botões compactos.",
+    ],
+  },
   {
     version: "1.1.4.0",
     date: "19/08/2026",

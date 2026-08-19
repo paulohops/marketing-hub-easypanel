@@ -2,6 +2,7 @@
 import ImageViewer from "@/components/ImageViewer";
 import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
+import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -1302,33 +1303,23 @@ export default function CampaignsWorkspace() {
     setStatusFilter("all");
   };
   return (
-    <main className="mx-auto max-w-[1480px] space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-primary">Operação</p>
-          <h1 className="font-display text-3xl font-bold">Campanhas</h1>
-          <p className="text-sm text-muted-foreground">
-            Planeje, segmente e acompanhe operações integradas.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <WorkspaceShell>
+      <WorkspaceHeader
+        eyebrow="Trade"
+        title="Campanhas"
+        description="Planeje, segmente e acompanhe operações integradas."
+        icon={CalendarDays}
+        actions={<WorkspaceActions>
           <Button type="button" variant="outline" onClick={() => setFiltersOpen(current => !current)} aria-expanded={filtersOpen}>
-            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            <SlidersHorizontal />
             Filtros{activeFilterCount ? ` (${activeFilterCount})` : ""}
           </Button>
-          {canWrite && (
-            <Button
-              onClick={() => {
-                setForm(blankForm());
-                setOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nova campanha
-            </Button>
-          )}
-        </div>
-      </header>
+          {canWrite && <Button onClick={() => { setForm(blankForm()); setOpen(true); }}>
+            <Plus />
+            Nova campanha
+          </Button>}
+        </WorkspaceActions>}
+      />
       {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
         {activeFilterCount > 0 && <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button></div>}
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1397,6 +1388,6 @@ export default function CampaignsWorkspace() {
         onSubmit={submit}
         pending={create.isPending || update.isPending}
       />
-    </main>
+    </WorkspaceShell>
   );
 }

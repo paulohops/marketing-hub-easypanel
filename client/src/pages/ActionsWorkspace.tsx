@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import EvidenceUpload from "@/components/EvidenceUpload";
 import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
+import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { useListDensity } from "@/hooks/useListDensity";
 import { trpc } from "@/lib/trpc";
@@ -636,27 +637,23 @@ export default function ActionsWorkspace() {
       </>
     );
   return (
-    <main className="mx-auto max-w-[1480px] space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-primary">Operação</p>
-          <h1 className="font-display text-3xl font-bold text-foreground">Ações</h1>
-          <p className="text-sm text-muted-foreground">
-            Planeje, execute e acompanhe ativações de trade em uma ficha única.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <WorkspaceShell>
+      <WorkspaceHeader
+        eyebrow="Trade"
+        title="Ações"
+        description="Planeje, execute e acompanhe ativações de trade em uma ficha única."
+        icon={ClipboardCheck}
+        actions={<WorkspaceActions>
           <Button type="button" variant="outline" onClick={() => setFiltersOpen(current => !current)} aria-expanded={filtersOpen}>
-            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            <SlidersHorizontal />
             Filtros{activeFilterCount ? ` (${activeFilterCount})` : ""}
           </Button>
-          {canWrite && <>
-            <Button onClick={openForm} className="bg-primary">
-              <Plus className="mr-2 h-4 w-4" /> Nova ação
-            </Button>
-          </>}
-        </div>
-      </header>
+          {canWrite && <Button onClick={openForm}>
+            <Plus />
+            Nova ação
+          </Button>}
+        </WorkspaceActions>}
+      />
       {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
         {activeFilterCount > 0 && <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button></div>}
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -796,7 +793,7 @@ export default function ActionsWorkspace() {
           </form>
         </DialogContent>
       </Dialog>
-    </main>
+    </WorkspaceShell>
   );
 }
 

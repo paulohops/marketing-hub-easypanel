@@ -111,6 +111,7 @@ describe("detalhe de mídias", () => {
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
 
     render(<MediaWorkspace initialCategory="graphics" />);
+    fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
     fireEvent.change(screen.getByLabelText("Regional"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Cidade"), { target: { value: "11" } });
     fireEvent.change(screen.getByLabelText("Situação"), { target: { value: "active" } });

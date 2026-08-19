@@ -58,7 +58,7 @@ export default function SearchableSelect({
       {!hideLabel && <Label htmlFor={id}>{label}</Label>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button id={id} type="button" variant="outline" disabled={disabled} className={`h-10 w-full justify-between rounded-lg px-3 text-left font-normal ${triggerClassName}`}>
+          <Button id={id} type="button" variant="outline" disabled={disabled} className={`h-9 w-full justify-between rounded-[10px] px-3 text-left font-normal ${triggerClassName}`}>
             <span className="truncate">{selected?.label ?? placeholder}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-55" />
           </Button>
