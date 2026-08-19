@@ -11,6 +11,19 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
+    version: "1.1.3.0",
+    date: "19/08/2026",
+    label: "Patch update",
+    summary: "Correção da ficha audiovisual, calendário interativo e ações rápidas.",
+    changes: [
+      "Corrigido o erro React #310 na ficha de veiculação audiovisual, garantindo que todos os hooks sejam executados na mesma ordem durante carregamento e atualização.",
+      "Calendário de programação passou a abrir um pop-up com dados da veiculação, horário, cidades, spot e evidências, com acesso direto à ficha.",
+      "Periodicidades audiovisuais continuam sendo exibidas em português, com revisão das ocorrências de Semanal, Quinzenal, Mensal e demais opções.",
+      "Debriefing foi removido do painel do programa audiovisual e permanece exclusivamente dentro das veiculações.",
+      "Header do programa recebeu status compacto e os cards de spots e veiculações mantêm as ações Abrir mídia e Reagendar.",
+    ],
+  },
+  {
     version: "1.1.2.0",
     date: "19/08/2026",
     label: "Patch update",
