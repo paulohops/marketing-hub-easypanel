@@ -246,6 +246,34 @@ export const mediaRouter = router({
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_campaign", entityId: updated.id, action: "update", beforeData: current.campaign, afterData: updated });
     return updated;
   }),
+  updateTraditionalVeiculation: protectedProcedure.input(z.object({ campaignId: z.number().int().positive(), serviceTypeId: z.number().int().positive().nullable().optional(), responsibleUserId: z.number().int().positive().nullable().optional(), tradeCampaignId: z.number().int().positive().nullable().optional(), name: z.string().trim().min(2).max(180), startsOn: z.string().date(), endsOn: z.string().date(), campaignDetails: z.string().trim().max(4000).optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "media.write");
+    if (input.endsOn < input.startsOn) throw new TRPCError({ code: "BAD_REQUEST", message: "A data final deve ser posterior à data inicial." });
+    const database = await requireDatabase();
+    const [current] = await database.select({ campaign: mediaCampaigns, point: mediaPoints }).from(mediaCampaigns).innerJoin(mediaPoints, eq(mediaCampaigns.mediaPointId, mediaPoints.id)).where(and(eq(mediaCampaigns.id, input.campaignId), eq(mediaPoints.operationCategory, "audio_video"))).limit(1);
+    if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Veiculação audiovisual não encontrada." });
+    if (current.point.status !== "active") throw new TRPCError({ code: "CONFLICT", message: "Não é possível editar uma veiculação de um programa inativo ou cancelado." });
+    if (input.serviceTypeId) {
+      const [service] = await database.select({ id: serviceTypes.id }).from(serviceTypes).where(and(eq(serviceTypes.id, input.serviceTypeId), eq(serviceTypes.active, true))).limit(1);
+      if (!service) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo de serviço selecionado não está ativo." });
+    }
+    if (input.responsibleUserId) {
+      const [responsible] = await database.select({ id: users.id }).from(users).where(and(eq(users.id, input.responsibleUserId), eq(users.isActive, true))).limit(1);
+      if (!responsible) throw new TRPCError({ code: "BAD_REQUEST", message: "O responsável selecionado não está ativo." });
+    }
+    if (input.tradeCampaignId) {
+      const [tradeCampaign] = await database.select({ id: tradeCampaigns.id }).from(tradeCampaigns).where(eq(tradeCampaigns.id, input.tradeCampaignId)).limit(1);
+      if (!tradeCampaign) throw new TRPCError({ code: "BAD_REQUEST", message: "Campanha comercial inexistente." });
+    }
+    const status = campaignStatusFor(input.startsOn);
+    if (status === "active") {
+      const [existing] = await database.select({ id: mediaCampaigns.id }).from(mediaCampaigns).where(and(eq(mediaCampaigns.mediaPointId, current.campaign.mediaPointId), eq(mediaCampaigns.status, "active"))).limit(1);
+      if (existing && existing.id !== input.campaignId) throw new TRPCError({ code: "CONFLICT", message: "Este programa já possui outra veiculação ativa." });
+    }
+    const [updated] = await database.update(mediaCampaigns).set({ serviceTypeId: input.serviceTypeId ?? null, responsibleUserId: input.responsibleUserId ?? null, tradeCampaignId: input.tradeCampaignId ?? null, name: input.name, startsOn: input.startsOn, endsOn: input.endsOn, campaignDetails: input.campaignDetails?.trim() || null, status, updatedAt: new Date() }).where(eq(mediaCampaigns.id, input.campaignId)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_campaign", entityId: updated.id, action: "update", beforeData: current.campaign, afterData: updated });
+    return updated;
+  }),
   createTraditionalVeiculation: protectedProcedure.input(z.object({ mediaPointId: z.number().int().positive(), serviceTypeId: z.number().int().positive().nullable().optional(), subserviceTypeId: z.number().int().positive().nullable().optional(), mediaServiceCatalogId: z.number().int().positive().nullable().optional(), productTypeId: z.number().int().positive().nullable().optional(), responsibleUserId: z.number().int().positive().nullable().optional(), tradeCampaignId: z.number().int().positive().nullable().optional(), name: z.string().trim().min(2).max(180), startsOn: z.string().date(), endsOn: z.string().date(), partnershipType: z.enum(partnershipKinds).default("paid"), estimatedCost: z.number().min(0).default(0), notes: z.string().trim().max(2000).optional(), campaignDetails: z.string().trim().max(4000).optional(), airingSchedule: z.string().trim().max(2000).optional(), signalNotes: z.string().trim().max(3000).optional(), signalCityIds: z.array(z.number().int().positive()).max(100).default([]), schedules: z.array(traditionalScheduleSchema).max(100).default([]), allowConcurrent: z.boolean().default(false), confirmReplaceExisting: z.boolean().default(false) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "media.write");
     if (input.endsOn < input.startsOn) throw new TRPCError({ code: "BAD_REQUEST", message: "A data final deve ser posterior à data inicial." });

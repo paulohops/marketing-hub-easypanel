@@ -11,6 +11,20 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
+    version: "1.1.2.0",
+    date: "19/08/2026",
+    label: "Patch update",
+    summary: "Reorganização visual e operacional da Mídia Audiovisual.",
+    changes: [
+      "Menu lateral corrigido para destacar somente Mídias ao navegar por Mídia Audiovisual, sem destacar Panfletagem.",
+      "Header do programa audiovisual reorganizado com edição, status, debriefing e nova veiculação em hierarquia consistente.",
+      "Programa audiovisual passou a usar colunas independentes: dados, mapa e histórico ficam na lateral menor; spots, calendário e debriefing ficam na coluna maior.",
+      "Fichas de spots e veiculações passaram a exibir somente informações resumidas, com duas fichas inicialmente e botão para mostrar mais.",
+      "Ficha de veiculação audiovisual reorganizada com dados, resumo operacional e debriefing na coluna maior; spot, cidades/programação, evidências e histórico na lateral menor.",
+      "Adicionada edição da veiculação audiovisual sem duplicação, mantendo status, reagendamento e evidências de motivo junto ao histórico.",
+    ],
+  },
+  {
     version: "1.1.1.0",
     date: "19/08/2026",
     label: "Patch update",

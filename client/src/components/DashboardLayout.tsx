@@ -68,6 +68,7 @@ type NavItem = {
   path: string;
   icon: typeof LayoutDashboard;
   permission: string;
+  aliases?: string[];
   children?: Array<Omit<NavItem, "children">>;
 };
 
@@ -128,6 +129,7 @@ const navigationGroups: NavGroup[] = [
           {
             label: "Mídia Audiovisual",
             path: "/midias/audio-video",
+            aliases: ["/midias/audiovisual", "/midias/tradicional"],
             icon: Radio,
             permission: "media.read",
           },
@@ -276,15 +278,15 @@ export default function DashboardLayout({
     .filter(group => group.items.length > 0);
   const profileName = user.name?.trim() || "Paulo Oliveira";
   const initials = profileName.slice(0, 2).toUpperCase();
-  const isPathActive = (path: string) =>
-    location === path || location.startsWith(`${path}/`);
+  const isPathActive = (path: string, aliases: string[] = []) =>
+    [path, ...aliases].some(candidate => location === candidate || location.startsWith(`${candidate}/`));
   const renderItem = (item: NavItem) => {
     const visibleChildren =
       item.children?.filter(child => canNavigate(child.permission)) ?? [];
     const active =
       visibleChildren.length > 0
-        ? visibleChildren.some(child => isPathActive(child.path)) || isPathActive(item.path)
-        : isPathActive(item.path);
+        ? visibleChildren.some(child => isPathActive(child.path, child.aliases)) || (location === item.path || (item.path !== "/midias" && isPathActive(item.path, item.aliases)))
+        : isPathActive(item.path, item.aliases);
     const isExpanded = Boolean(expandedMenus[item.path]);
     const toggleSubmenu = () => {
       if (!sidebarOpen) setSidebarOpen(true);
@@ -325,7 +327,7 @@ export default function DashboardLayout({
               <SidebarMenuSubItem key={child.path}>
                 <SidebarMenuSubButton
                   href={child.path}
-                  isActive={location === child.path}
+                  isActive={isPathActive(child.path, child.aliases)}
                   onClick={event => {
                     event.preventDefault();
                     setLocation(child.path);
