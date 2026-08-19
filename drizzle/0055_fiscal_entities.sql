@@ -69,8 +69,8 @@ END $$;
 
 INSERT INTO provider_fiscal_entities ("providerId", name, "legalName", cnpj, "isDefault")
 SELECT p.id,
-       COALESCE(NULLIF(p.legalName, ''), p.name),
-       p.legalName,
+       COALESCE(NULLIF(p."legalName", ''), p.name),
+       p."legalName",
        regexp_replace(p."billingCnpj", '\\D', '', 'g'),
        true
 FROM providers p
