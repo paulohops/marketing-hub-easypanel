@@ -349,10 +349,18 @@ function blankRegistryForm(kind: string) {
   return kind === "supplier" ? blankSupplierForm() : base;
 }
 
+const registrySlugAliases: Record<string, string> = {
+  produto: "tipos-de-produto",
+  produtos: "tipos-de-produto",
+  servico: "servicos",
+  subservico: "subservicos",
+};
+
 export default function RegistryEntityWorkspace() {
   const [location, setLocation] = useLocation();
   const cleanPath = location.split("?")[0];
-  const [, , slug = "", rawId] = cleanPath.split("/");
+  const [, , requestedSlug = "", rawId] = cleanPath.split("/");
+  const slug = registrySlugAliases[requestedSlug] ?? requestedSlug;
   const entity = entities[slug];
   const isSubservicePage = slug === "subservicos";
   const isServiceRegistryPage = slug === "servicos" || isSubservicePage;

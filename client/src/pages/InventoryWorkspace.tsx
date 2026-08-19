@@ -381,6 +381,14 @@ export default function InventoryWorkspace() {
           item.category === transferSource.category
       )
     : [];
+  const totalQuantity = useMemo(
+    () =>
+      (inventory.data ?? []).reduce(
+        (total, item) => total + Number(item.balance ?? 0),
+        0
+      ),
+    [inventory.data]
+  );
 
   return (
     <div className="mx-auto max-w-[1480px]">
@@ -871,12 +879,22 @@ export default function InventoryWorkspace() {
               movimentação e transferência.
             </p>
           </div>
-          <Badge
-            variant="outline"
-            className="border-border bg-secondary text-xs text-foreground"
-          >
-            {inventory.data?.length ?? 0} itens
-          </Badge>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Badge
+              variant="outline"
+              className="border-border bg-secondary text-xs text-foreground"
+            >
+              {inventory.data?.length ?? 0} itens
+            </Badge>
+            <Badge
+              variant="outline"
+              className="border-primary/30 bg-primary/5 text-xs text-primary"
+            >
+              Total: {totalQuantity.toLocaleString("pt-BR", {
+                maximumFractionDigits: 2,
+              })} unidades
+            </Badge>
+          </div>
         </div>
         {inventory.isLoading ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
@@ -885,7 +903,8 @@ export default function InventoryWorkspace() {
         ) : inventory.data?.length ? (
           <div className="divide-y divide-border">
             {inventory.data.map(item => {
-              const status = balanceLabel(item.balance, item.minimumQuantity);
+              const balance = Number(item.balance ?? 0);
+              const status = balanceLabel(balance, item.minimumQuantity);
               const isHistoryOpen = historyItemId === item.id;
               const isEditing = editingItemId === item.id;
               return (
@@ -932,7 +951,7 @@ export default function InventoryWorkspace() {
                     <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
                       <div className="col-span-2 text-left sm:mr-2 sm:text-right">
                         <p className="text-lg font-semibold text-foreground">
-                          {item.balance.toLocaleString("pt-BR", {
+                          {balance.toLocaleString("pt-BR", {
                             maximumFractionDigits: 2,
                           })}{" "}
                           <span className="text-xs font-medium text-muted-foreground">

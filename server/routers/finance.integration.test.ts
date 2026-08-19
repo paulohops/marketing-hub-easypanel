@@ -51,6 +51,7 @@ describe("finance.listInvoices via tRPC", () => {
         .mockReturnValueOnce({ from: vi.fn(() => ({ innerJoin: vi.fn(() => ({ where: invoiceWhere })) })) })
         .mockReturnValueOnce({ from: vi.fn(() => paymentRows) })
         .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => documentRows) })) })
+        .mockReturnValueOnce({ from: vi.fn(() => []) })
         .mockReturnValueOnce(fromWithOrder([{ id: 12, name: "Campanha Inverno" }]))
         .mockReturnValueOnce(fromWithOrder([]))
         .mockReturnValueOnce(fromWithOrder([])),

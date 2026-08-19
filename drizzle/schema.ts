@@ -104,6 +104,32 @@ export const operationTypeEnum = pgEnum("financial_operation_type", [
   "trade_operation",
   "other",
 ]);
+export const financeBudgetStatusEnum = pgEnum("finance_budget_status", [
+  "draft",
+  "approved",
+  "closed",
+]);
+export const purchaseOrderStatusEnum = pgEnum("purchase_order_status", [
+  "draft",
+  "pending_approval",
+  "approved",
+  "rejected",
+  "partially_received",
+  "received",
+  "cancelled",
+]);
+export const purchaseOrderItemKindEnum = pgEnum("purchase_order_item_kind", [
+  "product",
+  "service",
+  "media",
+  "other",
+]);
+export const financialAllocationMethodEnum = pgEnum("financial_allocation_method", [
+  "manual",
+  "by_quantity",
+  "by_percent",
+  "by_city",
+]);
 export const documentEntityEnum = pgEnum("document_entity_type", [
   "media_campaign",
   "media_point",
@@ -1979,6 +2005,192 @@ export const auditLogs = pgTable("audit_logs", {
   afterData: text("afterData"),
   occurredAt: timestamp("occurredAt", { withTimezone: true }).notNull(),
 });
+
+export const financeCompanies = pgTable(
+  "finance_companies",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 180 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull().unique(),
+    active: boolean("active").default(true).notNull(),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const financeDivisions = pgTable(
+  "finance_divisions",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 180 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull().unique(),
+    active: boolean("active").default(true).notNull(),
+  }
+);
+
+export const financeSectors = pgTable(
+  "finance_sectors",
+  {
+    id: serial("id").primaryKey(),
+    divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
+    name: varchar("name", { length: 180 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull().unique(),
+    active: boolean("active").default(true).notNull(),
+  }
+);
+
+export const financeMediums = pgTable(
+  "finance_mediums",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 180 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull().unique(),
+    active: boolean("active").default(true).notNull(),
+  }
+);
+
+export const financeAccounts = pgTable(
+  "finance_accounts",
+  {
+    id: serial("id").primaryKey(),
+    mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
+    name: varchar("name", { length: 180 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull().unique(),
+    active: boolean("active").default(true).notNull(),
+  }
+);
+
+export const financeBudgetPlans = pgTable(
+  "finance_budget_plans",
+  {
+    id: serial("id").primaryKey(),
+    year: integer("year").notNull(),
+    name: varchar("name", { length: 180 }).notNull(),
+    status: financeBudgetStatusEnum("status").default("draft").notNull(),
+    notes: text("notes"),
+    createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "restrict" }),
+    approvedByUserId: integer("approvedByUserId").references(() => users.id, { onDelete: "set null" }),
+    approvedAt: timestamp("approvedAt", { withTimezone: true }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [uniqueIndex("finance_budget_plans_year_name_uq").on(table.year, table.name)]
+);
+
+export const financeBudgetLines = pgTable(
+  "finance_budget_lines",
+  {
+    id: serial("id").primaryKey(),
+    planId: integer("planId").notNull().references(() => financeBudgetPlans.id, { onDelete: "cascade" }),
+    companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
+    sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
+    mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
+    accountId: integer("accountId").references(() => financeAccounts.id, { onDelete: "set null" }),
+    allocationRule: varchar("allocationRule", { length: 40 }).default("manual").notNull(),
+    percentage: numeric("percentage", { precision: 8, scale: 4 }),
+    annualAmount: numeric("annualAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const financeBudgetMonths = pgTable(
+  "finance_budget_months",
+  {
+    id: serial("id").primaryKey(),
+    budgetLineId: integer("budgetLineId").notNull().references(() => financeBudgetLines.id, { onDelete: "cascade" }),
+    month: integer("month").notNull(),
+    plannedAmount: numeric("plannedAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  },
+  table => [uniqueIndex("finance_budget_months_line_month_uq").on(table.budgetLineId, table.month)]
+);
+
+export const purchaseOrders = pgTable(
+  "purchase_orders",
+  {
+    id: serial("id").primaryKey(),
+    orderNumber: varchar("orderNumber", { length: 100 }).notNull().unique(),
+    supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "restrict" }),
+    budgetPlanId: integer("budgetPlanId").references(() => financeBudgetPlans.id, { onDelete: "set null" }),
+    companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
+    sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
+    mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
+    status: purchaseOrderStatusEnum("status").default("draft").notNull(),
+    requestedAt: timestamp("requestedAt", { withTimezone: true }).defaultNow().notNull(),
+    expectedDeliveryOn: date("expectedDeliveryOn"),
+    totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    notes: text("notes"),
+    requestedByUserId: integer("requestedByUserId").references(() => users.id, { onDelete: "restrict" }),
+    approvedByUserId: integer("approvedByUserId").references(() => users.id, { onDelete: "set null" }),
+    approvedAt: timestamp("approvedAt", { withTimezone: true }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const purchaseOrderItems = pgTable(
+  "purchase_order_items",
+  {
+    id: serial("id").primaryKey(),
+    purchaseOrderId: integer("purchaseOrderId").notNull().references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    kind: purchaseOrderItemKindEnum("kind").default("service").notNull(),
+    description: varchar("description", { length: 240 }).notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 2 }).default("1.00").notNull(),
+    unit: varchar("unit", { length: 40 }).default("unidade").notNull(),
+    unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    supplierOfferingId: integer("supplierOfferingId").references(() => supplierOfferings.id, { onDelete: "set null" }),
+    stockItemId: integer("stockItemId").references(() => stockItems.id, { onDelete: "set null" }),
+    operationType: operationTypeEnum("operationType"),
+    operationId: integer("operationId"),
+    receivedQuantity: numeric("receivedQuantity", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  }
+);
+
+export const invoiceItems = pgTable(
+  "invoice_items",
+  {
+    id: serial("id").primaryKey(),
+    invoiceId: integer("invoiceId").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+    purchaseOrderItemId: integer("purchaseOrderItemId").references(() => purchaseOrderItems.id, { onDelete: "set null" }),
+    kind: purchaseOrderItemKindEnum("kind").default("service").notNull(),
+    description: varchar("description", { length: 240 }).notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 2 }).default("1.00").notNull(),
+    unit: varchar("unit", { length: 40 }).default("unidade").notNull(),
+    unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    stockItemId: integer("stockItemId").references(() => stockItems.id, { onDelete: "set null" }),
+    receivedQuantity: numeric("receivedQuantity", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  }
+);
+
+export const financialCostAllocations = pgTable(
+  "financial_cost_allocations",
+  {
+    id: serial("id").primaryKey(),
+    sourceType: varchar("sourceType", { length: 48 }).notNull(),
+    sourceId: integer("sourceId").notNull(),
+    operationType: operationTypeEnum("operationType"),
+    operationId: integer("operationId"),
+    companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
+    sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
+    mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
+    accountId: integer("accountId").references(() => financeAccounts.id, { onDelete: "set null" }),
+    cityId: integer("cityId").references(() => cities.id, { onDelete: "set null" }),
+    allocationMethod: financialAllocationMethodEnum("allocationMethod").default("manual").notNull(),
+    allocationPercent: numeric("allocationPercent", { precision: 8, scale: 4 }),
+    quantity: numeric("quantity", { precision: 12, scale: 2 }),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    competenceMonth: integer("competenceMonth").notNull(),
+    competenceYear: integer("competenceYear").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
