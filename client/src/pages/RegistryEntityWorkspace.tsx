@@ -657,6 +657,10 @@ export default function RegistryEntityWorkspace() {
   )?.productMediaTypes ?? []) as ProductMediaTypeLink[];
   const serviceTypes = ((overview.data as Record<string, unknown> | undefined)
     ?.serviceTypes ?? []) as RegistryRecord[];
+  const subserviceTypes = ((overview.data as Record<string, unknown> | undefined)
+    ?.subserviceTypes ?? []) as RegistryRecord[];
+  const mediaServiceCatalog = ((overview.data as Record<string, unknown> | undefined)
+    ?.mediaServiceCatalog ?? []) as RegistryRecord[];
   const serviceTypeRelations = ((
     overview.data as Record<string, unknown> | undefined
   )?.serviceTypeRelations ?? []) as ServiceTypeRelationLink[];
@@ -889,6 +893,11 @@ export default function RegistryEntityWorkspace() {
         cities,
         stores,
         suppliers,
+        mediaTypes,
+        serviceTypes,
+        subserviceTypes,
+        serviceSubservices,
+        mediaServiceCatalog,
       })
     : [];
   const relationCards = isTerritorial ? [] : allRelationCards;
@@ -3932,7 +3941,7 @@ function RegistryEditor({
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="graphics">Mídia Urbana</option>
-                  <option value="audio_video">Mídia Tradicional</option>
+                  <option value="audio_video">Mídia Audiovisual</option>
                   <option value="leafleting">Panfletagem</option>
                   <option value="sound_car">Carro de Som</option>
                   <option value="influencers">Influencers</option>
@@ -4130,6 +4139,11 @@ function getRelations(
     cities: RegistryRecord[];
     stores: RegistryRecord[];
     suppliers: RegistryRecord[];
+    mediaTypes: RegistryRecord[];
+    serviceTypes: RegistryRecord[];
+    subserviceTypes: RegistryRecord[];
+    serviceSubservices: ServiceSubserviceLink[];
+    mediaServiceCatalog: RegistryRecord[];
   }
 ) {
   const companyRegionals = all.regionals.filter(
@@ -4156,6 +4170,40 @@ function getRelations(
   const scopeSuppliers = all.suppliers.filter(supplier =>
     scopeCities.some(city => city.id === Number(supplier.cityId))
   );
+  if (kind === "media") {
+    const catalogRows = all.mediaServiceCatalog.filter(row => Number(row.mediaTypeId) === record.id);
+    const relatedServices = all.serviceTypes.filter(service => catalogRows.some(row => Number(row.serviceTypeId) === service.id));
+    const subserviceIds = new Set(catalogRows.map(row => Number(row.subserviceTypeId)).filter(Number.isFinite));
+    const subserviceRows = all.subserviceTypes.filter(subservice => subserviceIds.has(subservice.id));
+    return [
+      {
+        label: "Serviços relacionados",
+        count: relatedServices.length,
+        description: "Serviços disponíveis para este tipo de mídia",
+        path: "/cadastros/servicos",
+        items: relatedServices,
+      },
+      {
+        label: "Subserviços relacionados",
+        count: subserviceRows.length,
+        description: "Subserviços vinculados ao catálogo de mídia",
+        path: "/cadastros/subservicos",
+        items: subserviceRows,
+      },
+    ];
+  }
+  if (kind === "service") {
+    const links = all.serviceSubservices.filter(link => link.serviceTypeId === record.id);
+    const subserviceIds = new Set(links.map(link => link.subserviceTypeId));
+    const subserviceRows = all.subserviceTypes.filter(subservice => subserviceIds.has(subservice.id));
+    return [{ label: "Subserviços relacionados", count: subserviceRows.length, description: "Subserviços atendidos por este serviço", path: "/cadastros/subservicos", items: subserviceRows }];
+  }
+  if (kind === "subservice") {
+    const links = all.serviceSubservices.filter(link => link.subserviceTypeId === record.id);
+    const serviceIds = new Set(links.map(link => link.serviceTypeId));
+    const serviceRows = all.serviceTypes.filter(service => serviceIds.has(service.id));
+    return [{ label: "Serviços relacionados", count: serviceRows.length, description: "Serviços que utilizam este subserviço", path: "/cadastros/servicos", items: serviceRows }];
+  }
   if (kind === "provider")
     return [
       {

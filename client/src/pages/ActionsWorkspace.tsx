@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import EvidenceUpload from "@/components/EvidenceUpload";
+import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { useListDensity } from "@/hooks/useListDensity";
@@ -1193,6 +1194,7 @@ function ActionForm({
             onChange={ids => setForm({ ...form, tradeCampaignId: ids[0] ? String(ids[0]) : "" })}
             maxSelections={1}
             placeholder="Sem campanha vinculada"
+            createAction={<InlineRegistryCreateDialog kind="campaign" onCreated={record => setForm({ ...form, tradeCampaignId: String(record.id) })} />}
           />
           <SearchableMultiSelect
             id="action-event"
@@ -1220,6 +1222,7 @@ function ActionForm({
             onChange={ids => setForm({ ...form, actionTypeId: ids[0] ? String(ids[0]) : "" })}
             maxSelections={1}
             placeholder="Selecionar tipo"
+            createAction={<InlineRegistryCreateDialog kind="action" onCreated={record => setForm({ ...form, actionTypeId: String(record.id) })} />}
           />
           <SearchableMultiSelect
             id="action-supervisor"
@@ -1313,6 +1316,7 @@ function ActionForm({
             values={form.supplierIds}
             onChange={setSuppliers}
             disabled={!form.cityId}
+            createAction={<InlineRegistryCreateDialog kind="supplier" onCreated={record => setForm({ ...form, supplierIds: [...form.supplierIds, record.id] })} />}
             emptyMessage="Nenhum fornecedor atende esta cidade."
           />
           <SearchableMultiSelect
@@ -1322,6 +1326,7 @@ function ActionForm({
             values={form.serviceTypeIds}
             onChange={setServices}
             disabled={!form.supplierIds.length}
+            createAction={<InlineRegistryCreateDialog kind="service" onCreated={record => setForm({ ...form, serviceTypeIds: [...form.serviceTypeIds, record.id] })} />}
             emptyMessage="Selecione um fornecedor que ofereça serviços para esta ação."
           />
           <SearchableMultiSelect

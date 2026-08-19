@@ -20,12 +20,12 @@ import TraditionalMediaWorkspace from "./TraditionalMediaWorkspace";
 
 afterEach(() => cleanup());
 
-describe("workspace independente de Mídia Tradicional", () => {
+describe("workspace independente de Mídia Audiovisual", () => {
   it("renderiza a listagem e o botão de criação próprios do módulo", () => {
     render(<TraditionalMediaWorkspace />);
 
-    expect(screen.getByRole("heading", { name: "Mídia Tradicional" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Novo programa de mídia tradicional" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Mídia Audiovisual" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Novo programa de mídia audiovisual" })).toBeInTheDocument();
     expect(screen.getByText("Programas cadastrados")).toBeInTheDocument();
   });
 });

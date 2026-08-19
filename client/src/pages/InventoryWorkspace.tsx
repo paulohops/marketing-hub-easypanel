@@ -16,6 +16,7 @@ import { trpc } from "@/lib/trpc";
 import ImageViewer from "@/components/ImageViewer";
 import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
+import SearchableSelect from "@/components/SearchableSelect";
 import {
   AlertCircle,
   ArrowDownToLine,
@@ -476,94 +477,10 @@ export default function InventoryWorkspace() {
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="inventory-filter-regional" className="text-xs">
-              Regional
-            </Label>
-            <select
-              id="inventory-filter-regional"
-              value={filtersState.regionalId}
-              onChange={event =>
-                setFiltersState({
-                  ...filtersState,
-                  regionalId: event.target.value,
-                  cityId: "",
-                })
-              }
-              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Todas as regionais</option>
-              {references.data?.regionals.map(regional => (
-                <option key={regional.id} value={regional.id}>
-                  {regional.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="inventory-filter-city" className="text-xs">
-              Cidade
-            </Label>
-            <select
-              id="inventory-filter-city"
-              value={filtersState.cityId}
-              onChange={event =>
-                setFiltersState({ ...filtersState, cityId: event.target.value })
-              }
-              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Todas as cidades</option>
-              {references.data?.cities
-                .filter(
-                  city =>
-                    !filtersState.regionalId ||
-                    city.regionalId === Number(filtersState.regionalId)
-                )
-                .map(city => (
-                  <option key={city.id} value={city.id}>
-                    {city.name} - {city.state}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="inventory-filter-availability" className="text-xs">Situação</Label>
-            <select
-              id="inventory-filter-availability"
-              value={filtersState.availability}
-              onChange={event => setFiltersState({ ...filtersState, availability: event.target.value })}
-              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Todas as situações</option>
-              <option value="out">Sem saldo</option>
-              <option value="low">Estoque baixo</option>
-              <option value="active">Itens ativos</option>
-              <option value="inactive">Itens inativos</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="inventory-filter-category" className="text-xs">
-              Categoria
-            </Label>
-            <select
-              id="inventory-filter-category"
-              value={filtersState.category}
-              onChange={event =>
-                setFiltersState({
-                  ...filtersState,
-                  category: event.target.value,
-                })
-              }
-              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Todas as categorias</option>
-              {stockCategories.map(category => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect id="inventory-filter-regional" label="Regional" value={filtersState.regionalId} onChange={value => setFiltersState({ ...filtersState, regionalId: value, cityId: "" })} placeholder="Todas as regionais" options={(references.data?.regionals ?? []).map(regional => ({ value: regional.id, label: regional.name }))} />
+          <SearchableSelect id="inventory-filter-city" label="Cidade" value={filtersState.cityId} onChange={value => setFiltersState({ ...filtersState, cityId: value })} placeholder="Todas as cidades" options={(references.data?.cities ?? []).filter(city => !filtersState.regionalId || city.regionalId === Number(filtersState.regionalId)).map(city => ({ value: city.id, label: `${city.name} - ${city.state}` }))} />
+          <SearchableSelect id="inventory-filter-availability" label="Situação" value={filtersState.availability} onChange={value => setFiltersState({ ...filtersState, availability: value })} placeholder="Todas as situações" options={[{ value: "out", label: "Sem saldo" }, { value: "low", label: "Estoque baixo" }, { value: "active", label: "Itens ativos" }, { value: "inactive", label: "Itens inativos" }]} />
+          <SearchableSelect id="inventory-filter-category" label="Categoria" value={filtersState.category} onChange={value => setFiltersState({ ...filtersState, category: value })} placeholder="Todas as categorias" options={stockCategories.map(category => ({ value: category.value, label: category.label }))} />
         </div>
       </section>
 
@@ -663,19 +580,7 @@ export default function InventoryWorkspace() {
                     }
                   />
                 </div>
-                <select
-                  id="item-product"
-                  value={itemForm.productTypeId}
-                  onChange={event =>
-                    setItemForm({ ...itemForm, productTypeId: event.target.value })
-                  }
-                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Sem produto vinculado</option>
-                  {references.data?.productTypes?.map(product => (
-                    <option key={product.id} value={product.id}>{product.name}</option>
-                  ))}
-                </select>
+                <SearchableSelect id="item-product" label="Produto do catálogo" value={itemForm.productTypeId} onChange={value => setItemForm({ ...itemForm, productTypeId: value })} placeholder="Sem produto vinculado" options={(references.data?.productTypes ?? []).map(product => ({ value: product.id, label: product.name }))} />
               </div>
               <div>
                 <Label htmlFor="item-sku">SKU</Label>
@@ -690,24 +595,7 @@ export default function InventoryWorkspace() {
                 />
               </div>
               <div>
-                <Label htmlFor="item-category">Categoria</Label>
-                <select
-                  id="item-category"
-                  value={itemForm.category}
-                  onChange={event =>
-                    setItemForm({
-                      ...itemForm,
-                      category: event.target.value as StockCategory,
-                    })
-                  }
-                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  {stockCategories.map(category => (
-                    <option key={category.value} value={category.value}>
-                      {category.label}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect id="item-category" label="Categoria" value={itemForm.category} onChange={value => setItemForm({ ...itemForm, category: value as StockCategory })} options={stockCategories.map(category => ({ value: category.value, label: category.label }))} />
               </div>
               <div>
                 <Label htmlFor="item-unit">Unidade</Label>
@@ -723,51 +611,10 @@ export default function InventoryWorkspace() {
                 />
               </div>
               <div>
-                <Label htmlFor="item-regional">Regional</Label>
-                <select
-                  id="item-regional"
-                  required
-                  value={itemForm.regionalId}
-                  onChange={event =>
-                    setItemForm({
-                      ...itemForm,
-                      regionalId: event.target.value,
-                      cityId: "",
-                    })
-                  }
-                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Selecionar</option>
-                  {references.data?.regionals.map(regional => (
-                    <option key={regional.id} value={regional.id}>
-                      {regional.name}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect id="item-regional" label="Regional" value={itemForm.regionalId} onChange={value => setItemForm({ ...itemForm, regionalId: value, cityId: "" })} placeholder="Selecionar" options={(references.data?.regionals ?? []).map(regional => ({ value: regional.id, label: regional.name }))} />
               </div>
               <div>
-                <Label htmlFor="item-city">Cidade</Label>
-                <select
-                  id="item-city"
-                  value={itemForm.cityId}
-                  onChange={event =>
-                    setItemForm({ ...itemForm, cityId: event.target.value })
-                  }
-                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Sem cidade específica</option>
-                  {references.data?.cities
-                    .filter(
-                      city =>
-                        !itemForm.regionalId ||
-                        city.regionalId === Number(itemForm.regionalId)
-                    )
-                    .map(city => (
-                      <option key={city.id} value={city.id}>
-                        {city.name} - {city.state}
-                      </option>
-                    ))}
-                </select>
+                <SearchableSelect id="item-city" label="Cidade" value={itemForm.cityId} onChange={value => setItemForm({ ...itemForm, cityId: value })} placeholder="Sem cidade específica" options={(references.data?.cities ?? []).filter(city => !itemForm.regionalId || city.regionalId === Number(itemForm.regionalId)).map(city => ({ value: city.id, label: `${city.name} - ${city.state}` }))} />
               </div>
               <div>
                 <Label htmlFor="item-minimum">Estoque mínimo</Label>
@@ -863,31 +710,7 @@ export default function InventoryWorkspace() {
             </p>
           </div>
           <div>
-            <Label htmlFor="transfer-destination" className="text-xs">
-              Cidade de destino
-            </Label>
-            <select
-              id="transfer-destination"
-              required
-              value={transferForm.destinationStockItemId}
-              onChange={event =>
-                setTransferForm({
-                  ...transferForm,
-                  destinationStockItemId: event.target.value,
-                })
-              }
-              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Selecionar item de destino</option>
-              {transferDestinations.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.cityName} · saldo{" "}
-                  {item.balance.toLocaleString("pt-BR", {
-                    maximumFractionDigits: 2,
-                  })}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect id="transfer-destination" label="Cidade de destino" value={transferForm.destinationStockItemId} onChange={value => setTransferForm({ ...transferForm, destinationStockItemId: value })} placeholder="Selecionar item de destino" options={transferDestinations.map(item => ({ value: item.id, label: `${item.cityName} · saldo ${item.balance.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}` }))} disabled={!transferDestinations.length} />
             {!transferDestinations.length && (
               <p className="mt-1 text-[11px] text-muted-foreground">
                 Cadastre o mesmo SKU, unidade e categoria em outra cidade para

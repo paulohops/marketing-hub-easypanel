@@ -28,6 +28,9 @@ function Router() {
     <Route path="/campanhas">{() => <ProtectedModule module="campanhas" />}</Route>
     <Route path="/midias/graficas">{() => <ProtectedModule module="midias-graficas" />}</Route>
     <Route path="/midias/audio-video">{() => <ProtectedModule module="midias-audio-video" />}</Route>
+    <Route path="/midias/audiovisual">{() => <ProtectedModule module="midias-audio-video" />}</Route>
+    <Route path="/midias/audiovisual/veiculacao/:campaignId">{() => <ProtectedModule module="midias-tradicional-veiculacao" />}</Route>
+    <Route path="/midias/audiovisual/:mediaPointId">{() => <ProtectedModule module="midias-tradicional" />}</Route>
     <Route path="/midias/tradicional/veiculacao/:campaignId">{() => <ProtectedModule module="midias-tradicional-veiculacao" />}</Route>
     <Route path="/midias/tradicional/:mediaPointId">{() => <ProtectedModule module="midias-tradicional" />}</Route>
     <Route path="/midias/externa/:mediaPointId">{() => <ProtectedModule module="midias-externa" />}</Route>

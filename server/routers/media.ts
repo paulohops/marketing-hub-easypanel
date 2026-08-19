@@ -243,10 +243,12 @@ export const mediaRouter = router({
     if (new Set(input.signalCityIds).size !== input.signalCityIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe cada cidade de sinal apenas uma vez." });
     const database = await requireDatabase();
     const [point] = await database.select().from(mediaPoints).where(and(eq(mediaPoints.id, input.mediaPointId), eq(mediaPoints.operationCategory, "audio_video"), eq(mediaPoints.status, "active"))).limit(1);
-    if (!point) throw new TRPCError({ code: "NOT_FOUND", message: "Programa de mídia tradicional não encontrado ou inativo." });
+    if (!point) throw new TRPCError({ code: "NOT_FOUND", message: "Programa de mídia audiovisual não encontrado ou inativo." });
     if (input.serviceTypeId) {
-      const [service] = await database.select({ id: serviceTypes.id }).from(serviceTypes).where(and(eq(serviceTypes.id, input.serviceTypeId), eq(serviceTypes.mediaTypeId, point.mediaTypeId), eq(serviceTypes.active, true))).limit(1);
-      if (!service) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo de serviço não está vinculado ao tipo de mídia deste programa." });
+      const [service] = await database.select({ id: serviceTypes.id, mediaTypeId: serviceTypes.mediaTypeId }).from(serviceTypes).where(and(eq(serviceTypes.id, input.serviceTypeId), eq(serviceTypes.active, true))).limit(1);
+      if (!service) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo de serviço selecionado não está ativo." });
+      const [catalogLink] = await database.select({ id: mediaServiceCatalog.id }).from(mediaServiceCatalog).where(and(eq(mediaServiceCatalog.mediaTypeId, point.mediaTypeId), eq(mediaServiceCatalog.serviceTypeId, input.serviceTypeId), eq(mediaServiceCatalog.active, true))).limit(1);
+      if (service.mediaTypeId !== point.mediaTypeId && !catalogLink) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo de serviço não está vinculado ao tipo de mídia deste programa." });
     }
     if (input.responsibleUserId) {
       const [responsible] = await database.select({ id: users.id }).from(users).where(and(eq(users.id, input.responsibleUserId), eq(users.isActive, true))).limit(1);

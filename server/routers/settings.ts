@@ -89,10 +89,10 @@ const supplierInputSchema = z.object({
   displayName: z.string().trim().min(2).max(180),
   address: z.string().trim().max(1000).optional(),
   legalName: z.string().trim().max(220).optional(),
-  document: z.string().trim().min(14).max(32),
+  document: z.string().trim().min(14).max(32).optional(),
   contactName: z.string().trim().max(160).optional(),
-  phone: z.string().trim().min(8).max(32),
-  email: z.string().trim().email().max(320),
+  phone: z.string().trim().min(8).max(32).optional(),
+  email: z.string().trim().email().max(320).optional(),
   mainService: z.string().trim().max(180).optional(),
   partnershipType: z.enum(paymentKinds).optional(),
   paymentMethod: z.string().trim().max(80).optional(),
@@ -1843,8 +1843,8 @@ export const settingsRouter = router({
     .mutation(async ({ ctx, input }) => {
       await assertPermission(ctx.user, "settings.write");
       const database = await requireDatabase();
-      const document = normalizeCnpj(input.document);
-      if (document.length !== 14)
+      const document = input.document ? normalizeCnpj(input.document) : null;
+      if (document && document.length !== 14)
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Informe um CNPJ com 14 dígitos.",
@@ -1861,13 +1861,15 @@ export const settingsRouter = router({
           code: "CONFLICT",
           message: "Já existe um fornecedor com este nome de exibição.",
         });
-      const [sameDocument] = await database
-        .select({ id: suppliers.id })
-        .from(suppliers)
-        .where(
-          sql`regexp_replace(coalesce(${suppliers.document}, ''), '[^0-9]', '', 'g') = ${document}`
-        )
-        .limit(1);
+      const [sameDocument] = document
+        ? await database
+            .select({ id: suppliers.id })
+            .from(suppliers)
+            .where(
+              sql`regexp_replace(coalesce(${suppliers.document}, ''), '[^0-9]', '', 'g') = ${document}`
+            )
+            .limit(1)
+        : [];
       if (sameDocument)
         throw new TRPCError({
           code: "CONFLICT",
@@ -1884,8 +1886,8 @@ export const settingsRouter = router({
             document,
             legalName: input.legalName || null,
             contactName: input.contactName || null,
-            phone: input.phone,
-            email: input.email,
+            phone: input.phone || null,
+            email: input.email || null,
             mainService: input.mainService || null,
             partnershipType: input.partnershipType ?? null,
             paymentMethod: input.paymentMethod || null,
@@ -2285,8 +2287,7 @@ export const settingsRouter = router({
         afterData: created,
       });
       return created;
-    }),
-
+        }),
   createType: protectedProcedure
     .input(
       z.object({
@@ -3410,8 +3411,8 @@ export const settingsRouter = router({
           code: "NOT_FOUND",
           message: "Fornecedor não encontrado.",
         });
-      const document = normalizeCnpj(input.document);
-      if (document.length !== 14)
+      const document = input.document ? normalizeCnpj(input.document) : before.document;
+      if (document && document.length !== 14)
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Informe um CNPJ com 14 dígitos.",
@@ -3451,8 +3452,8 @@ export const settingsRouter = router({
             document,
             legalName: input.legalName || null,
             contactName: input.contactName || null,
-            phone: input.phone,
-            email: input.email,
+            phone: input.phone || null,
+            email: input.email || null,
             mainService: input.mainService || null,
             partnershipType: input.partnershipType ?? null,
             paymentMethod: input.paymentMethod || null,

@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,14 +6,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { Plus, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 
-type QuickCreateKind = "service" | "subservice" | "product" | "media";
+type QuickCreateKind =
+  | "service"
+  | "subservice"
+  | "product"
+  | "media"
+  | "action"
+  | "event"
+  | "supplier"
+  | "campaignType"
+  | "campaignSector"
+  | "campaign";
 
 type CreatedRecord = {
   id: number;
@@ -43,6 +53,36 @@ const metadata: Record<QuickCreateKind, { title: string; description: string; pl
     description: "Cadastre o tipo de mídia para continuar o formulário atual.",
     placeholder: "Ex.: Outdoor",
   },
+  action: {
+    title: "Novo tipo de ação",
+    description: "Cadastre o tipo de ação sem interromper o preenchimento atual.",
+    placeholder: "Ex.: Ação externa",
+  },
+  event: {
+    title: "Novo tipo de evento",
+    description: "Cadastre o tipo de evento sem interromper o preenchimento atual.",
+    placeholder: "Ex.: Convenção",
+  },
+  supplier: {
+    title: "Novo fornecedor",
+    description: "Cadastre o fornecedor sem interromper o preenchimento atual.",
+    placeholder: "Ex.: Gráfica Central",
+  },
+  campaignType: {
+    title: "Novo tipo de campanha",
+    description: "Cadastre o tipo de campanha sem interromper o preenchimento atual.",
+    placeholder: "Ex.: Institucional",
+  },
+  campaignSector: {
+    title: "Novo setor de campanha",
+    description: "Cadastre o setor de campanha sem interromper o preenchimento atual.",
+    placeholder: "Ex.: Trade marketing",
+  },
+  campaign: {
+    title: "Nova campanha",
+    description: "Cadastre uma campanha básica e continue o formulário atual.",
+    placeholder: "Ex.: Campanha de inverno",
+  },
 };
 
 export function InlineRegistryCreateDialog({
@@ -59,23 +99,43 @@ export function InlineRegistryCreateDialog({
   const [description, setDescription] = useState("");
   const [unit, setUnit] = useState("unidade");
   const utils = trpc.useUtils();
-  const createType = trpc.settings.createType.useMutation({
-    onSuccess: record => {
-      const created = record as CreatedRecord;
-      toast.success(`${metadata[kind].title} criado.`);
-      void utils.settings.overview.invalidate();
-      void utils.media.referenceData.invalidate();
-      void utils.finance.financeDimensions.invalidate();
-      setName("");
-      setDescription("");
-      setUnit("unidade");
-      setOpen(false);
-      onCreated?.(created);
-    },
-    onError: error => toast.error(error.message),
+  const toCreatedRecord = (record: { id: number; name?: string; displayName?: string | null; unit?: string | null }): CreatedRecord => ({
+    id: record.id,
+    name: record.name ?? record.displayName ?? "Cadastro",
+    unit: record.unit,
   });
+  const finish = (record: CreatedRecord) => {
+    toast.success(`${metadata[kind].title} criado.`);
+    void utils.settings.overview.invalidate();
+    void utils.media.referenceData.invalidate();
+    void utils.finance.financeDimensions.invalidate();
+    void utils.actions.referenceData.invalidate();
+    void utils.events.referenceData.invalidate();
+    void utils.campaigns.referenceData.invalidate();
+    setName("");
+    setDescription("");
+    setUnit("unidade");
+    setOpen(false);
+    onCreated?.(record);
+  };
+  const unavailableMutation = { isPending: false, mutate: () => toast.error("Cadastro contextual indisponível neste ambiente.") };
+  const createTypeProcedure = (trpc as any).settings?.createType;
+  const createCampaignProcedure = (trpc as any).campaigns?.create;
+  const createSupplierProcedure = (trpc as any).settings?.createSupplier;
+  const createType = createTypeProcedure?.useMutation ? createTypeProcedure.useMutation({
+    onSuccess: (record: any) => finish(toCreatedRecord(record)),
+    onError: (error: any) => toast.error(error.message),
+  }) : unavailableMutation;
+  const createCampaign = createCampaignProcedure?.useMutation ? createCampaignProcedure.useMutation({
+    onSuccess: (record: any) => finish(toCreatedRecord(record)),
+    onError: (error: any) => toast.error(error.message),
+  }) : unavailableMutation;
+  const createSupplier = createSupplierProcedure?.useMutation ? createSupplierProcedure.useMutation({
+    onSuccess: (record: any) => finish(toCreatedRecord(record)),
+    onError: (error: any) => toast.error(error.message),
+  }) : unavailableMutation;
 
-  const submit = (event: React.FormEvent) => {
+  const submit = (event: FormEvent) => {
     event.preventDefault();
     const trimmedName = name.trim();
     if (trimmedName.length < 2) {
@@ -83,8 +143,35 @@ export function InlineRegistryCreateDialog({
       return;
     }
 
+    if (kind === "supplier") {
+      createSupplier.mutate({
+        providerId: null,
+        displayName: trimmedName,
+        mainService: description.trim() || undefined,
+      });
+      return;
+    }
+
+    if (kind === "campaign") {
+      createCampaign.mutate({
+        name: trimmedName,
+        objective: description.trim() || undefined,
+        providerId: null,
+        campaignTypeId: null,
+        campaignSectorId: null,
+        regionalId: null,
+        regionalIds: [],
+        cityIds: [],
+        startsAt: null,
+        endsAt: null,
+        status: "scheduled",
+        promotions: [],
+      });
+      return;
+    }
+
     createType.mutate({
-      kind,
+      kind: kind === "campaignType" ? "campaign" : kind === "campaignSector" ? "campaign_sector" : kind,
       name: trimmedName,
       description: description.trim() || undefined,
       ...(kind === "subservice" ? { unit: unit.trim() || "unidade", subserviceParentIds: [] } : {}),
@@ -93,6 +180,7 @@ export function InlineRegistryCreateDialog({
   };
 
   const details = metadata[kind];
+  const pending = createType.isPending || createCampaign.isPending || createSupplier.isPending;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -130,7 +218,7 @@ export function InlineRegistryCreateDialog({
             </div>
           )}
           <div className="grid gap-1.5">
-            <Label htmlFor={`quick-create-${kind}-description`}>Descrição (opcional)</Label>
+            <Label htmlFor={`quick-create-${kind}-description`}>{kind === "campaign" ? "Objetivo (opcional)" : "Descrição (opcional)"}</Label>
             <Input
               id={`quick-create-${kind}-description`}
               value={description}
@@ -142,8 +230,8 @@ export function InlineRegistryCreateDialog({
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createType.isPending}>
-              {createType.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={pending}>
+              {pending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
               Criar e selecionar
             </Button>
           </div>
@@ -155,3 +243,5 @@ export function InlineRegistryCreateDialog({
 
 export type { CreatedRecord };
 export default InlineRegistryCreateDialog;
+
+export type { QuickCreateKind };

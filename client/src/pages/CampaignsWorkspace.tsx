@@ -1,5 +1,6 @@
 // @ts-nocheck
 import ImageViewer from "@/components/ImageViewer";
+import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -298,6 +299,7 @@ function Editor({
               }
               maxSelections={1}
               placeholder="Selecione o tipo"
+              createAction={<InlineRegistryCreateDialog kind="campaignType" onCreated={record => setForm(current => ({ ...current, campaignTypeId: record.id }))} />}
             />
             <SearchableMultiSelect
               id="campaign-sector"
@@ -315,6 +317,7 @@ function Editor({
               }
               maxSelections={1}
               placeholder="Selecione o setor"
+              createAction={<InlineRegistryCreateDialog kind="campaignSector" onCreated={record => setForm(current => ({ ...current, campaignSectorId: record.id }))} />}
             />
             <div className="md:col-span-2">
               <SearchableMultiSelect

@@ -126,7 +126,7 @@ const navigationGroups: NavGroup[] = [
             permission: "media.read",
           },
           {
-            label: "Mídia Tradicional",
+            label: "Mídia Audiovisual",
             path: "/midias/audio-video",
             icon: Radio,
             permission: "media.read",

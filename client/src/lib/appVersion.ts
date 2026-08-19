@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.0.0.0";
+export const APP_VERSION = "1.1.0.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,21 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.1.0.0",
+    date: "19/08/2026",
+    label: "Minor update",
+    summary: "Padronização operacional, catálogo relacionado e evolução da Mídia Audiovisual.",
+    changes: [
+      "Cadastro contextual com pop-up e seleção automática em ações, campanhas e eventos, incluindo fornecedores, serviços, tipos e setores.",
+      "Dropdowns pesquisáveis nos formulários atualizados e componente global de seleção única com pesquisa.",
+      "Mídia Tradicional renomeada para Mídia Audiovisual, com aliases de rota preservados, serviço derivado do catálogo e programação com múltiplos dias.",
+      "Detalhe audiovisual reorganizado com spots antes do calendário e dados, mapa e histórico na coluna lateral.",
+      "Páginas de cadastros passam a exibir serviços e subserviços relacionados por tipo de mídia e os vínculos bidirecionais entre serviços e subserviços.",
+      "Estoque recebeu filtros pesquisáveis e seleções com pesquisa, mantendo cálculos numéricos de saldo e transferência por localização.",
+      "Filtros financeiros iniciam recolhidos e permanecem acessíveis pelo botão de filtros.",
+    ],
+  },
   {
     version: "1.0.0.0",
     date: "17/08/2026",

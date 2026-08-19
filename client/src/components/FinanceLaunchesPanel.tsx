@@ -34,7 +34,7 @@ function emptyItem() {
 }
 
 export function FinanceLaunchesPanel({ canWrite, onNewInvoice }: { canWrite: boolean; onNewInvoice: () => void }) {
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [contractSignal, setContractSignal] = useState(0);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [filters, setFilters] = useState<{ year: string; month: string; status: string; source: string; supplierId: string; companyId: string; fiscalEntityId: string }>({ year: String(new Date().getFullYear()), month: "", status: "", source: "", supplierId: "", companyId: "", fiscalEntityId: "" });
