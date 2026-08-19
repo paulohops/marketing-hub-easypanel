@@ -667,6 +667,61 @@ export const serviceTypeRelations = pgTable(
   ]
 );
 
+export const subserviceTypes = pgTable("subservice_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 180 }).notNull().unique(),
+  description: text("description"),
+  unit: varchar("unit", { length: 48 }).default("unidade").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const serviceSubservices = pgTable(
+  "service_subservices",
+  {
+    id: serial("id").primaryKey(),
+    serviceTypeId: integer("serviceTypeId")
+      .notNull()
+      .references(() => serviceTypes.id, { onDelete: "cascade" }),
+    subserviceTypeId: integer("subserviceTypeId")
+      .notNull()
+      .references(() => subserviceTypes.id, { onDelete: "cascade" }),
+    active: boolean("active").default(true).notNull(),
+  },
+  table => [
+    uniqueIndex("service_subservices_uq").on(table.serviceTypeId, table.subserviceTypeId),
+  ]
+);
+
+export const mediaServiceCatalog = pgTable(
+  "media_service_catalog",
+  {
+    id: serial("id").primaryKey(),
+    mediaTypeId: integer("mediaTypeId")
+      .notNull()
+      .references(() => mediaTypes.id, { onDelete: "cascade" }),
+    serviceTypeId: integer("serviceTypeId")
+      .notNull()
+      .references(() => serviceTypes.id, { onDelete: "cascade" }),
+    subserviceTypeId: integer("subserviceTypeId")
+      .notNull()
+      .references(() => subserviceTypes.id, { onDelete: "cascade" }),
+    productRequired: boolean("productRequired").default(false).notNull(),
+    defaultUnit: varchar("defaultUnit", { length: 48 }).default("unidade").notNull(),
+    active: boolean("active").default(true).notNull(),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("media_service_catalog_uq").on(
+      table.mediaTypeId,
+      table.serviceTypeId,
+      table.subserviceTypeId
+    ),
+  ]
+);
+
 export const productTypes = pgTable("product_types", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),
@@ -913,6 +968,12 @@ export const supplierOfferings = pgTable(
     serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, {
       onDelete: "set null",
     }),
+    subserviceTypeId: integer("subserviceTypeId").references(() => subserviceTypes.id, {
+      onDelete: "set null",
+    }),
+    mediaServiceCatalogId: integer("mediaServiceCatalogId").references(() => mediaServiceCatalog.id, {
+      onDelete: "set null",
+    }),
     productTypeId: integer("productTypeId").references(() => productTypes.id, {
       onDelete: "set null",
     }),
@@ -1000,6 +1061,9 @@ export const supplierContractItems = pgTable("supplier_contract_items", {
   totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).notNull(),
   supplierOfferingId: integer("supplierOfferingId").references(() => supplierOfferings.id, { onDelete: "set null" }),
   stockItemId: integer("stockItemId").references(() => stockItems.id, { onDelete: "set null" }),
+  mediaServiceCatalogId: integer("mediaServiceCatalogId").references(() => mediaServiceCatalog.id, { onDelete: "set null" }),
+  subserviceTypeId: integer("subserviceTypeId").references(() => subserviceTypes.id, { onDelete: "set null" }),
+  productTypeId: integer("productTypeId").references(() => productTypes.id, { onDelete: "set null" }),
   operationType: operationTypeEnum("operationType"),
   operationId: integer("operationId"),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
@@ -1136,6 +1200,28 @@ export const campaignPromotionPlans = pgTable("campaign_promotion_plans", {
   sortOrder: integer("sortOrder").default(0).notNull(),
 });
 
+export const supplierOfferingPriceHistory = pgTable(
+  "supplier_offering_price_history",
+  {
+    id: serial("id").primaryKey(),
+    supplierOfferingId: integer("supplierOfferingId")
+      .notNull()
+      .references(() => supplierOfferings.id, { onDelete: "cascade" }),
+    effectiveFrom: date("effectiveFrom").notNull(),
+    effectiveTo: date("effectiveTo"),
+    unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).notNull(),
+    source: varchar("source", { length: 80 }),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("supplier_offering_price_history_uq").on(
+      table.supplierOfferingId,
+      table.effectiveFrom
+    ),
+  ]
+);
+
 export const stockItems = pgTable(
   "stock_items",
   {
@@ -1144,6 +1230,9 @@ export const stockItems = pgTable(
       .notNull()
       .references(() => regionals.id, { onDelete: "restrict" }),
     cityId: integer("cityId").references(() => cities.id, {
+      onDelete: "set null",
+    }),
+    productTypeId: integer("productTypeId").references(() => productTypes.id, {
       onDelete: "set null",
     }),
     sku: varchar("sku", { length: 64 }).notNull(),
@@ -1456,6 +1545,15 @@ export const mediaCampaigns = pgTable(
       { onDelete: "set null" }
     ),
     serviceTypeId: integer("serviceTypeId").references(() => serviceTypes.id, {
+      onDelete: "set null",
+    }),
+    subserviceTypeId: integer("subserviceTypeId").references(() => subserviceTypes.id, {
+      onDelete: "set null",
+    }),
+    mediaServiceCatalogId: integer("mediaServiceCatalogId").references(() => mediaServiceCatalog.id, {
+      onDelete: "set null",
+    }),
+    productTypeId: integer("productTypeId").references(() => productTypes.id, {
       onDelete: "set null",
     }),
     responsibleUserId: integer("responsibleUserId").references(() => users.id, {
@@ -1794,6 +1892,9 @@ export const actionServices = pgTable(
     serviceTypeId: integer("serviceTypeId")
       .notNull()
       .references(() => serviceTypes.id, { onDelete: "restrict" }),
+    subserviceTypeId: integer("subserviceTypeId").references(() => subserviceTypes.id, {
+      onDelete: "set null",
+    }),
     supplierOfferingId: integer("supplierOfferingId").references(
       () => supplierOfferings.id,
       { onDelete: "set null" }
@@ -1803,7 +1904,11 @@ export const actionServices = pgTable(
       .notNull(),
   },
   table => [
-    uniqueIndex("action_services_uq").on(table.actionId, table.serviceTypeId),
+    uniqueIndex("action_services_uq").on(
+      table.actionId,
+      table.serviceTypeId,
+      table.subserviceTypeId
+    ),
   ]
 );
 
@@ -2266,6 +2371,9 @@ export const purchaseOrderItems = pgTable(
     unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).default("0.00").notNull(),
     totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
     supplierOfferingId: integer("supplierOfferingId").references(() => supplierOfferings.id, { onDelete: "set null" }),
+    mediaServiceCatalogId: integer("mediaServiceCatalogId").references(() => mediaServiceCatalog.id, { onDelete: "set null" }),
+    subserviceTypeId: integer("subserviceTypeId").references(() => subserviceTypes.id, { onDelete: "set null" }),
+    productTypeId: integer("productTypeId").references(() => productTypes.id, { onDelete: "set null" }),
     stockItemId: integer("stockItemId").references(() => stockItems.id, { onDelete: "set null" }),
     operationType: operationTypeEnum("operationType"),
     operationId: integer("operationId"),
@@ -2285,9 +2393,49 @@ export const invoiceItems = pgTable(
     unit: varchar("unit", { length: 40 }).default("unidade").notNull(),
     unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).default("0.00").notNull(),
     totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    mediaServiceCatalogId: integer("mediaServiceCatalogId").references(() => mediaServiceCatalog.id, { onDelete: "set null" }),
+    subserviceTypeId: integer("subserviceTypeId").references(() => subserviceTypes.id, { onDelete: "set null" }),
+    productTypeId: integer("productTypeId").references(() => productTypes.id, { onDelete: "set null" }),
     stockItemId: integer("stockItemId").references(() => stockItems.id, { onDelete: "set null" }),
     receivedQuantity: numeric("receivedQuantity", { precision: 12, scale: 2 }).default("0.00").notNull(),
   }
+);
+
+export const mediaPointMaterials = pgTable(
+  "media_point_materials",
+  {
+    id: serial("id").primaryKey(),
+    mediaPointId: integer("mediaPointId")
+      .notNull()
+      .references(() => mediaPoints.id, { onDelete: "cascade" }),
+    productTypeId: integer("productTypeId")
+      .notNull()
+      .references(() => productTypes.id, { onDelete: "restrict" }),
+    stockItemId: integer("stockItemId").references(() => stockItems.id, {
+      onDelete: "set null",
+    }),
+    mediaCampaignId: integer("mediaCampaignId").references(() => mediaCampaigns.id, {
+      onDelete: "set null",
+    }),
+    invoiceItemId: integer("invoiceItemId").references(() => invoiceItems.id, {
+      onDelete: "set null",
+    }),
+    startsOn: date("startsOn").notNull(),
+    endsOn: date("endsOn"),
+    status: varchar("status", { length: 32 }).default("active").notNull(),
+    specification: text("specification"),
+    evidenceUrl: text("evidenceUrl"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("media_point_materials_active_uq").on(
+      table.mediaPointId,
+      table.productTypeId,
+      table.startsOn
+    ),
+  ]
 );
 
 export const financialCostAllocations = pgTable(
@@ -2300,6 +2448,9 @@ export const financialCostAllocations = pgTable(
     operationId: integer("operationId"),
     companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
     fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
+    mediaServiceCatalogId: integer("mediaServiceCatalogId").references(() => mediaServiceCatalog.id, { onDelete: "set null" }),
+    subserviceTypeId: integer("subserviceTypeId").references(() => subserviceTypes.id, { onDelete: "set null" }),
+    productTypeId: integer("productTypeId").references(() => productTypes.id, { onDelete: "set null" }),
     divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
     sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
     mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),

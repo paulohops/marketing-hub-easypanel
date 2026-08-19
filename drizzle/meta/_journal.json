@@ -407,6 +407,13 @@
       "when": 1787007000000,
       "tag": "0057_finance_budget_dimensions",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1787008000000,
+      "tag": "0058_catalog_taxonomy_seed",
+      "breakpoints": true
     }
   ]
 }

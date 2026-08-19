@@ -22,6 +22,8 @@ import {
   invoices,
   mediaCampaigns,
   mediaPoints,
+  mediaTypes,
+  serviceTypes,
   payments,
   purchaseOrderItems,
   purchaseOrders,
@@ -34,6 +36,9 @@ import {
   supplierContractItems,
   supplierOfferings,
   suppliers,
+  subserviceTypes,
+  mediaServiceCatalog,
+  productTypes,
 } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
@@ -63,6 +68,9 @@ const financeItemInput = z.object({
   unitPrice: z.number().min(0),
   supplierOfferingId: z.number().int().positive().nullable().optional(),
   stockItemId: z.number().int().positive().nullable().optional(),
+  mediaServiceCatalogId: z.number().int().positive().nullable().optional(),
+  subserviceTypeId: z.number().int().positive().nullable().optional(),
+  productTypeId: z.number().int().positive().nullable().optional(),
   operationType: z.enum(["media_campaign", "action", "event", "trade_operation", "other"]).nullable().optional(),
   operationId: z.number().int().positive().nullable().optional(),
 });
@@ -299,6 +307,9 @@ export const financeRouter = router({
           totalAmount: (item.quantity * item.unitPrice).toFixed(2),
           supplierOfferingId: item.supplierOfferingId || null,
           stockItemId: item.stockItemId || null,
+          mediaServiceCatalogId: item.mediaServiceCatalogId || null,
+          subserviceTypeId: item.subserviceTypeId || null,
+          productTypeId: item.productTypeId || null,
           operationType: item.operationType || null,
           operationId: item.operationId || null,
         })));
@@ -350,7 +361,7 @@ export const financeRouter = router({
   financeDimensions: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "finance.read");
     const database = await requireDatabase();
-    const [companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities, regionalsList] = await Promise.all([
+    const [companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities, regionalsList, subservices, catalog, products] = await Promise.all([
       database.select().from(financeCompanies).where(eq(financeCompanies.active, true)).orderBy(asc(financeCompanies.name)),
       database.select().from(financeDivisions).where(eq(financeDivisions.active, true)).orderBy(asc(financeDivisions.name)),
       database.select().from(financeSectors).where(eq(financeSectors.active, true)).orderBy(asc(financeSectors.name)),
@@ -360,8 +371,11 @@ export const financeRouter = router({
       database.select().from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)),
       database.select({ fiscalEntity: providerFiscalEntities, providerName: providers.name }).from(providerFiscalEntities).innerJoin(providers, eq(providerFiscalEntities.providerId, providers.id)).where(eq(providerFiscalEntities.active, true)).orderBy(asc(providers.name), asc(providerFiscalEntities.name)),
       database.select().from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
+      database.select().from(subserviceTypes).where(eq(subserviceTypes.active, true)).orderBy(asc(subserviceTypes.name)),
+      database.select({ catalog: mediaServiceCatalog, mediaTypeName: mediaTypes.name, serviceName: serviceTypes.name, subserviceName: subserviceTypes.name }).from(mediaServiceCatalog).innerJoin(mediaTypes, eq(mediaServiceCatalog.mediaTypeId, mediaTypes.id)).innerJoin(serviceTypes, eq(mediaServiceCatalog.serviceTypeId, serviceTypes.id)).innerJoin(subserviceTypes, eq(mediaServiceCatalog.subserviceTypeId, subserviceTypes.id)).where(eq(mediaServiceCatalog.active, true)).orderBy(asc(mediaTypes.name), asc(serviceTypes.name), asc(subserviceTypes.name)),
+      database.select().from(productTypes).where(eq(productTypes.active, true)).orderBy(asc(productTypes.name)),
     ]);
-    return { companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities, regionals: regionalsList };
+    return { companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities, regionals: regionalsList, subservices, catalog, products };
   }),
 
   budgetSnapshot: protectedProcedure.input(z.object({ year: z.number().int().min(2020).max(2200) })).query(async ({ ctx, input }) => {
@@ -512,6 +526,9 @@ export const financeRouter = router({
         totalAmount: (item.quantity * item.unitPrice).toFixed(2),
         supplierOfferingId: item.supplierOfferingId || null,
         stockItemId: item.stockItemId || null,
+        mediaServiceCatalogId: item.mediaServiceCatalogId || null,
+        subserviceTypeId: item.subserviceTypeId || null,
+        productTypeId: item.productTypeId || null,
         operationType: item.operationType || null,
         operationId: item.operationId || null,
       })));
@@ -645,7 +662,7 @@ export const financeRouter = router({
     return input?.status ? result.filter(invoice => invoice.status === input.status) : result;
   }),
 
-  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), billingId: z.number().int().positive().nullable().optional(), companyId: z.number().int().positive().nullable().optional(), fiscalEntityId: z.number().int().positive().nullable().optional(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional(), items: z.array(z.object({ kind: z.enum(["product", "service", "media", "other"]), description: z.string().trim().min(1).max(240), quantity: z.number().positive(), unit: z.string().trim().min(1).max(40), unitPrice: z.number().min(0), stockItemId: z.number().int().positive().nullable().optional() })).optional() })).mutation(async ({ ctx, input }) => {
+  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), billingId: z.number().int().positive().nullable().optional(), companyId: z.number().int().positive().nullable().optional(), fiscalEntityId: z.number().int().positive().nullable().optional(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional(), items: z.array(z.object({ kind: z.enum(["product", "service", "media", "other"]), description: z.string().trim().min(1).max(240), quantity: z.number().positive(), unit: z.string().trim().min(1).max(40), unitPrice: z.number().min(0), mediaServiceCatalogId: z.number().int().positive().nullable().optional(), subserviceTypeId: z.number().int().positive().nullable().optional(), productTypeId: z.number().int().positive().nullable().optional(), stockItemId: z.number().int().positive().nullable().optional() })).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
     await validateFinancialEntity(database, input.companyId, input.fiscalEntityId);
@@ -678,7 +695,7 @@ export const financeRouter = router({
     return database.transaction(async tx => {
       const [created] = await tx.insert(invoices).values({ supplierId: input.supplierId, supplierContractId: input.supplierContractId || null, billingId: input.billingId || null, companyId: input.companyId || null, fiscalEntityId: input.fiscalEntityId || null, invoiceNumber: input.invoiceNumber, issueDate: input.issueDate, dueDate: input.dueDate, amount: input.amount.toFixed(2), operationType: input.operationType, operationId: input.operationId, notes: input.notes || null }).returning();
       if (items.length) {
-        await tx.insert(invoiceItems).values(items.map(item => ({ invoiceId: created.id, kind: item.kind, description: item.description, quantity: item.quantity.toFixed(2), unit: item.unit, unitPrice: item.unitPrice.toFixed(2), totalAmount: (item.quantity * item.unitPrice).toFixed(2), stockItemId: item.stockItemId || null })));
+        await tx.insert(invoiceItems).values(items.map(item => ({ invoiceId: created.id, kind: item.kind, description: item.description, quantity: item.quantity.toFixed(2), unit: item.unit, unitPrice: item.unitPrice.toFixed(2), totalAmount: (item.quantity * item.unitPrice).toFixed(2), mediaServiceCatalogId: item.mediaServiceCatalogId || null, subserviceTypeId: item.subserviceTypeId || null, productTypeId: item.productTypeId || null, stockItemId: item.stockItemId || null })));
       }
       if (input.billingId) {
         await tx.update(financeBillings).set({ status: "invoiced", updatedAt: new Date() }).where(eq(financeBillings.id, input.billingId));

@@ -29,12 +29,15 @@ import {
   partners,
   providerDocuments,
   providerFiscalEntities,
+  mediaServiceCatalog,
   productMediaTypes,
   productTypes,
   providers,
   regionals,
   serviceTypes,
   serviceTypeRelations,
+  serviceSubservices,
+  subserviceTypes,
   stockItems,
   stores,
   supplierCities,
@@ -999,6 +1002,9 @@ export const settingsRouter = router({
       partnerRows,
       serviceRows,
       serviceRelationRows,
+      subserviceRows,
+      serviceSubserviceRows,
+      mediaServiceCatalogRows,
       mediaTypeRows,
       productTypeRows,
       actionTypeRows,
@@ -1059,6 +1065,20 @@ export const settingsRouter = router({
       database
         .select()
         .from(serviceTypeRelations)
+        .catch(() => []),
+      database
+        .select()
+        .from(subserviceTypes)
+        .orderBy(asc(subserviceTypes.name))
+        .catch(() => []),
+      database
+        .select()
+        .from(serviceSubservices)
+        .catch(() => []),
+      database
+        .select()
+        .from(mediaServiceCatalog)
+        .where(eq(mediaServiceCatalog.active, true))
         .catch(() => []),
       database
         .select()
@@ -1177,6 +1197,9 @@ export const settingsRouter = router({
       partners: partnerRows,
       serviceTypes: serviceRows,
       serviceTypeRelations: serviceRelationRows,
+      subserviceTypes: subserviceRows,
+      serviceSubservices: serviceSubserviceRows,
+      mediaServiceCatalog: mediaServiceCatalogRows,
       mediaTypes: mediaTypeRows,
       productTypes: productTypeRows,
       actionTypes: actionTypeRows,
