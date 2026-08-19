@@ -1,6 +1,13 @@
 -- Catálogo integrado de mídias, serviços, subserviços, produtos e materiais.
 -- A migração é idempotente: pode ser reaplicada sem duplicar cadastros.
 
+DO $$
+BEGIN
+  ALTER TYPE "supplier_offering_kind" ADD VALUE IF NOT EXISTS 'subservice';
+EXCEPTION
+  WHEN undefined_object THEN NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS "subservice_types" (
   "id" serial PRIMARY KEY,
   "name" varchar(180) NOT NULL UNIQUE,

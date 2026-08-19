@@ -73,6 +73,7 @@ export const operationCostStatusEnum = pgEnum("operation_cost_status", [
 export const supplierOfferingKindEnum = pgEnum("supplier_offering_kind", [
   "product",
   "service",
+  "subservice",
   "media",
   "action",
   "event",

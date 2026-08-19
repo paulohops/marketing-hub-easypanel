@@ -276,13 +276,15 @@ export default function DashboardLayout({
     .filter(group => group.items.length > 0);
   const profileName = user.name?.trim() || "Paulo Oliveira";
   const initials = profileName.slice(0, 2).toUpperCase();
+  const isPathActive = (path: string) =>
+    location === path || location.startsWith(`${path}/`);
   const renderItem = (item: NavItem) => {
     const visibleChildren =
       item.children?.filter(child => canNavigate(child.permission)) ?? [];
     const active =
       visibleChildren.length > 0
-        ? visibleChildren.some(child => location === child.path)
-        : location === item.path;
+        ? visibleChildren.some(child => isPathActive(child.path)) || isPathActive(item.path)
+        : isPathActive(item.path);
     const isExpanded = Boolean(expandedMenus[item.path]);
     const toggleSubmenu = () => {
       if (!sidebarOpen) setSidebarOpen(true);
@@ -303,7 +305,8 @@ export default function DashboardLayout({
                 ? toggleSubmenu
                 : () => setLocation(item.path)
             }
-            className="h-10 rounded-lg px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-sidebar-primary data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto"
+            style={active ? { backgroundColor: "var(--app-accent)", color: "var(--app-accent-foreground, #fff)" } : undefined}
+            className="h-10 rounded-lg px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto"
           >
             <item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />
             <span>{item.label}</span>

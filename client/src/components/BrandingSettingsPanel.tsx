@@ -16,6 +16,7 @@ import {
   DEFAULT_APP_BRANDING,
   getBrandingFont,
   type AppBranding,
+  type BrandingTheme,
 } from "@shared/branding";
 import {
   ImagePlus,
@@ -51,6 +52,8 @@ export default function BrandingSettingsPanel() {
   const canWrite = can("settings.write");
   const utils = trpc.useUtils();
   const [form, setForm] = useState<AppBranding>(branding);
+  const [editingTheme, setEditingTheme] = useState<"light" | "dark">("light");
+  const activeTheme = form[editingTheme];
 
   useEffect(() => {
     setForm(branding);
@@ -65,6 +68,15 @@ export default function BrandingSettingsPanel() {
     value: AppBranding[K]
   ) => {
     setForm(current => ({ ...current, [field]: value }));
+  };
+  const updateThemeField = <K extends keyof BrandingTheme>(
+    field: K,
+    value: BrandingTheme[K]
+  ) => {
+    setForm(current => ({
+      ...current,
+      [editingTheme]: { ...current[editingTheme], [field]: value },
+    }));
   };
   const updateBranding = trpc.settings.updateBranding.useMutation({
     onSuccess: next => {
@@ -102,12 +114,16 @@ export default function BrandingSettingsPanel() {
   const save = (event: React.FormEvent) => {
     event.preventDefault();
     if (
-      !isHex(form.primaryColor) ||
-      !isHex(form.accentColor) ||
-      !isHex(form.backgroundColor) ||
-      !isHex(form.darkBackgroundColor) ||
-      !isHex(form.cardColor) ||
-      !isHex(form.foregroundColor)
+      !isHex(form.light.primaryColor) ||
+      !isHex(form.light.accentColor) ||
+      !isHex(form.light.backgroundColor) ||
+      !isHex(form.light.cardColor) ||
+      !isHex(form.light.foregroundColor) ||
+      !isHex(form.dark.primaryColor) ||
+      !isHex(form.dark.accentColor) ||
+      !isHex(form.dark.backgroundColor) ||
+      !isHex(form.dark.cardColor) ||
+      !isHex(form.dark.foregroundColor)
     ) {
       toast.error(
         "Use o formato hexadecimal completo, como #0E723B, em todas as cores."
@@ -117,14 +133,16 @@ export default function BrandingSettingsPanel() {
     updateBranding.mutate({
       appName: form.appName,
       appSubtitle: form.appSubtitle,
-      primaryColor: form.primaryColor,
-      accentColor: form.accentColor,
-      backgroundColor: form.backgroundColor,
-      darkBackgroundColor: form.darkBackgroundColor,
-      cardColor: form.cardColor,
-      foregroundColor: form.foregroundColor,
+      light: form.light,
+      dark: form.dark,
+      primaryColor: form.light.primaryColor,
+      accentColor: form.light.accentColor,
+      backgroundColor: form.light.backgroundColor,
+      darkBackgroundColor: form.dark.backgroundColor,
+      cardColor: form.light.cardColor,
+      foregroundColor: form.light.foregroundColor,
       fontFamily: form.fontFamily,
-      faviconUrl: form.faviconUrl,
+      faviconUrl: form.light.faviconUrl,
     });
   };
 
@@ -135,7 +153,9 @@ export default function BrandingSettingsPanel() {
       return;
     }
     try {
-      uploadFavicon.mutate({ originalName: file.name, mimeType: file.type as typeof allowedFaviconMimeTypes[number], dataBase64: await fileToBase64(file) });
+      uploadFavicon.mutate({ originalName: file.name, mimeType: file.type as typeof allowedFaviconMimeTypes[number],         dataBase64: await fileToBase64(file),
+        theme: editingTheme,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível preparar o favicon.");
     }
@@ -152,6 +172,7 @@ export default function BrandingSettingsPanel() {
         originalName: file.name,
         mimeType: file.type as "image/jpeg" | "image/png" | "image/webp",
         dataBase64: await fileToBase64(file),
+        theme: editingTheme,
       });
     } catch (error) {
       toast.error(
@@ -173,12 +194,12 @@ export default function BrandingSettingsPanel() {
   };
 
   const previewStyle = {
-    "--preview-primary": form.primaryColor,
-    "--preview-accent": form.accentColor,
-    "--preview-background": form.backgroundColor,
-    "--preview-dark-background": form.darkBackgroundColor,
-    "--preview-card": form.cardColor,
-    "--preview-foreground": form.foregroundColor,
+    "--preview-primary": activeTheme.primaryColor,
+    "--preview-accent": activeTheme.accentColor,
+    "--preview-background": activeTheme.backgroundColor,
+    "--preview-dark-background": form.dark.backgroundColor,
+    "--preview-card": activeTheme.cardColor,
+    "--preview-foreground": activeTheme.foregroundColor,
     fontFamily: `"${selectedFont.family}", ui-sans-serif, system-ui, sans-serif`,
   } as React.CSSProperties;
 
@@ -268,9 +289,26 @@ export default function BrandingSettingsPanel() {
           </section>
 
           <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex items-center gap-2">
-              <Palette className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-foreground">Paleta global</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Palette className="h-4 w-4 text-primary" />
+                <div>
+                  <h3 className="font-semibold text-foreground">Paletas por tema</h3>
+                  <p className="text-xs text-muted-foreground">Cada tema possui cores, superfícies, logo e favicon independentes.</p>
+                </div>
+              </div>
+              <div className="inline-flex rounded-lg border border-border bg-background p-1">
+                {(["light", "dark"] as const).map(theme => (
+                  <button
+                    key={theme}
+                    type="button"
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${editingTheme === theme ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                    onClick={() => setEditingTheme(theme)}
+                  >
+                    {theme === "light" ? "Tema claro" : "Tema escuro"}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {(
@@ -278,7 +316,6 @@ export default function BrandingSettingsPanel() {
                   "primaryColor",
                   "accentColor",
                   "backgroundColor",
-                  "darkBackgroundColor",
                   "cardColor",
                   "foregroundColor",
                 ] as const
@@ -287,36 +324,27 @@ export default function BrandingSettingsPanel() {
                   primaryColor: "Cor primária",
                   accentColor: "Cor de destaque",
                   backgroundColor: "Fundo da aplicação",
-                  darkBackgroundColor: "Fundo do tema escuro",
                   cardColor: "Superfícies e cartões",
                   foregroundColor: "Texto principal",
                 };
                 return (
                   <div key={field} className="grid gap-1.5 text-sm font-medium">
-                    <Label htmlFor={`branding-${field}`}>{labels[field]}</Label>
+                    <Label htmlFor={`branding-${editingTheme}-${field}`}>{labels[field]}</Label>
                     <div className="flex gap-2">
                       <input
-                        aria-label={`Selecionar ${labels[field]}`}
+                        aria-label={`Selecionar ${labels[field]} do tema ${editingTheme}`}
                         type="color"
-                        value={
-                          isHex(form[field])
-                            ? form[field]
-                            : DEFAULT_APP_BRANDING[field]
-                        }
+                        value={isHex(activeTheme[field]) ? activeTheme[field] : DEFAULT_APP_BRANDING[editingTheme][field]}
                         disabled={!canWrite}
-                        onChange={event =>
-                          updateField(field, event.target.value.toUpperCase())
-                        }
+                        onChange={event => updateThemeField(field, event.target.value.toUpperCase())}
                         className="h-10 w-12 cursor-pointer rounded-md border border-input bg-background p-1 disabled:cursor-not-allowed"
                       />
                       <Input
-                        id={`branding-${field}`}
-                        value={form[field]}
+                        id={`branding-${editingTheme}-${field}`}
+                        value={activeTheme[field]}
                         disabled={!canWrite}
                         maxLength={7}
-                        onChange={event =>
-                          updateField(field, event.target.value.toUpperCase())
-                        }
+                        onChange={event => updateThemeField(field, event.target.value.toUpperCase())}
                         placeholder="#0E723B"
                       />
                     </div>
@@ -325,8 +353,7 @@ export default function BrandingSettingsPanel() {
               })}
             </div>
             <p className="text-xs leading-5 text-muted-foreground">
-              Use cores hexadecimais de seis dígitos. O tema escuro deriva
-              automaticamente uma variação legível a partir da paleta escolhida.
+              A paleta do tema {editingTheme === "light" ? "claro" : "escuro"} é aplicada somente quando esse tema está ativo.
             </p>
           </section>
 
@@ -334,7 +361,7 @@ export default function BrandingSettingsPanel() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-foreground">
-                  Logo do aplicativo
+                  Logo do aplicativo — {editingTheme === "light" ? "tema claro" : "tema escuro"}
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   JPEG, PNG ou WEBP com até 3 MB. O arquivo é armazenado fora do
@@ -359,7 +386,7 @@ export default function BrandingSettingsPanel() {
             <div className="flex min-h-20 items-center gap-4 rounded-xl border border-border bg-background p-3">
               <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-card p-2">
                 <img
-                  src={form.logoUrl}
+                  src={activeTheme.logoUrl}
                   alt={form.appName}
                   className="max-h-full max-w-full object-contain"
                 />
@@ -369,7 +396,7 @@ export default function BrandingSettingsPanel() {
                   {form.appName}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {form.logoUrl === DEFAULT_APP_BRANDING.logoUrl
+                  {activeTheme.logoUrl === DEFAULT_APP_BRANDING[editingTheme].logoUrl
                     ? "Logo padrão"
                     : "Logo personalizada"}
                 </p>
@@ -380,7 +407,7 @@ export default function BrandingSettingsPanel() {
           <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="font-semibold text-foreground">Favicon do site</h3>
+                <h3 className="font-semibold text-foreground">Favicon do site — {editingTheme === "light" ? "tema claro" : "tema escuro"}</h3>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">Use PNG, ICO ou SVG. O ícone será aplicado na aba do navegador.</p>
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-primary transition hover:bg-secondary has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
@@ -390,8 +417,8 @@ export default function BrandingSettingsPanel() {
               </label>
             </div>
             <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-              <img src={form.faviconUrl || DEFAULT_APP_BRANDING.faviconUrl} alt="Favicon atual" className="h-10 w-10 rounded-lg border border-border bg-card object-contain p-1" />
-              <div><p className="text-sm font-semibold text-foreground">Ícone da aba</p><p className="text-xs text-muted-foreground">{form.faviconUrl === DEFAULT_APP_BRANDING.faviconUrl ? "Favicon padrão" : "Favicon personalizado"}</p></div>
+              <img src={activeTheme.faviconUrl || DEFAULT_APP_BRANDING[editingTheme].faviconUrl} alt="Favicon atual" className="h-10 w-10 rounded-lg border border-border bg-card object-contain p-1" />
+              <div><p className="text-sm font-semibold text-foreground">Ícone da aba</p><p className="text-xs text-muted-foreground">{activeTheme.faviconUrl === DEFAULT_APP_BRANDING[editingTheme].faviconUrl ? "Favicon padrão" : "Favicon personalizado"}</p></div>
             </div>
           </section>
 
@@ -430,7 +457,7 @@ export default function BrandingSettingsPanel() {
             <div className="flex items-center gap-2 bg-[var(--preview-primary)] p-3 text-white">
               <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-lg bg-[var(--preview-card)] p-1">
                 <img
-                  src={form.logoUrl}
+                  src={activeTheme.logoUrl}
                   alt=""
                   className="h-full w-full object-contain"
                 />

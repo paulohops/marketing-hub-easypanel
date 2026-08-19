@@ -5,6 +5,7 @@ import {
   type AppBranding,
 } from "@shared/branding";
 import { trpc } from "@/lib/trpc";
+import { useTheme } from "./ThemeContext";
 
 type BrandingContextValue = {
   branding: AppBranding;
@@ -15,6 +16,21 @@ const BrandingContext = createContext<BrandingContextValue>({
   branding: DEFAULT_APP_BRANDING,
   isLoading: false,
 });
+
+function getActiveBranding(branding: AppBranding, theme: "light" | "dark") {
+  const palette = branding[theme];
+  return {
+    ...branding,
+    primaryColor: palette.primaryColor,
+    accentColor: palette.accentColor,
+    backgroundColor: palette.backgroundColor,
+    darkBackgroundColor: branding.dark.backgroundColor,
+    cardColor: palette.cardColor,
+    foregroundColor: palette.foregroundColor,
+    logoUrl: palette.logoUrl,
+    faviconUrl: palette.faviconUrl,
+  };
+}
 
 function applyBranding(branding: AppBranding) {
   const root = document.documentElement;
@@ -59,7 +75,9 @@ function applyBranding(branding: AppBranding) {
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const query = trpc.settings.branding.useQuery(undefined, { retry: false });
-  const branding = query.data ?? DEFAULT_APP_BRANDING;
+  const { theme } = useTheme();
+  const baseBranding = query.data ?? DEFAULT_APP_BRANDING;
+  const branding = getActiveBranding(baseBranding, theme);
 
   useEffect(() => {
     applyBranding(branding);

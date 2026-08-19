@@ -14,6 +14,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { trpc } from "@/lib/trpc";
 import ImageViewer from "@/components/ImageViewer";
+import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import {
   AlertCircle,
@@ -26,6 +27,7 @@ import {
   History,
   MapPin,
   Pencil,
+  Search,
   Plus,
   RefreshCw,
 } from "lucide-react";
@@ -47,12 +49,13 @@ function categoryLabel(category: StockCategory) {
 }
 
 function balanceLabel(balance: number, minimum: string) {
-  return balance <= Number(minimum)
-    ? {
-        label: "Estoque mínimo",
-        className: "bg-accent/15 text-accent-foreground",
-      }
-    : { label: "Regular", className: "bg-secondary text-foreground" };
+  if (balance <= 0) {
+    return { label: "Sem saldo", className: "bg-destructive/10 text-destructive" };
+  }
+  if (balance <= Number(minimum)) {
+    return { label: "Estoque baixo", className: "bg-accent/15 text-accent-foreground" };
+  }
+  return { label: "Regular", className: "bg-secondary text-foreground" };
 }
 
 function movementLabel(type: "entry" | "exit" | "adjustment") {
@@ -90,10 +93,13 @@ export default function InventoryWorkspace() {
     regionalId: "",
     cityId: "",
     category: "",
+    search: "",
+    availability: "",
   });
   const [itemForm, setItemForm] = useState({
     regionalId: "",
     cityId: "",
+    productTypeId: "",
     sku: "",
     name: "",
     unit: "un",
@@ -102,6 +108,7 @@ export default function InventoryWorkspace() {
     description: "",
   });
   const [editForm, setEditForm] = useState({
+    productTypeId: "",
     sku: "",
     name: "",
     unit: "un",
@@ -144,10 +151,23 @@ export default function InventoryWorkspace() {
       category: (filtersState.category || undefined) as
         | StockCategory
         | undefined,
+      search: filtersState.search || undefined,
     }),
     [filtersState]
   );
   const inventory = trpc.inventory.list.useQuery(filters);
+  const visibleItems = useMemo(() => {
+    const availability = filtersState.availability;
+    if (!availability) return inventory.data ?? [];
+    return (inventory.data ?? []).filter(item => {
+      const balance = Number(item.balance ?? 0);
+      if (availability === "out") return balance <= 0;
+      if (availability === "low") return balance > 0 && balance <= Number(item.minimumQuantity);
+      if (availability === "active") return item.active;
+      if (availability === "inactive") return !item.active;
+      return true;
+    });
+  }, [filtersState.availability, inventory.data]);
   const territorialSummary = trpc.inventory.territorialSummary.useQuery({
     regionalId: filters.regionalId,
     cityId: filters.cityId,
@@ -220,6 +240,7 @@ export default function InventoryWorkspace() {
       setItemForm({
         regionalId: "",
         cityId: "",
+        productTypeId: "",
         sku: "",
         name: "",
         unit: "un",
@@ -279,6 +300,7 @@ export default function InventoryWorkspace() {
     createItem.mutate({
       regionalId: Number(itemForm.regionalId),
       cityId: itemForm.cityId ? Number(itemForm.cityId) : null,
+      productTypeId: itemForm.productTypeId ? Number(itemForm.productTypeId) : null,
       sku: itemForm.sku,
       name: itemForm.name,
       unit: itemForm.unit,
@@ -292,6 +314,7 @@ export default function InventoryWorkspace() {
     if (!editingItemId) return;
     updateStockItem.mutate({
       id: editingItemId,
+      productTypeId: editForm.productTypeId ? Number(editForm.productTypeId) : null,
       sku: editForm.sku,
       name: editForm.name,
       unit: editForm.unit,
@@ -353,6 +376,7 @@ export default function InventoryWorkspace() {
     setEditingItemId(item.id);
     setEditPhoto(null);
     setEditForm({
+      productTypeId: item.productTypeId ? String(item.productTypeId) : "",
       sku: item.sku,
       name: item.name,
       unit: item.unit,
@@ -369,9 +393,9 @@ export default function InventoryWorkspace() {
       )
     : 1;
   const transferSource =
-    inventory.data?.find(item => item.id === transferSourceId) ?? null;
+    visibleItems.find(item => item.id === transferSourceId) ?? null;
   const transferDestinations = transferSource
-    ? (inventory.data ?? []).filter(
+    ? visibleItems.filter(
         item =>
           item.id !== transferSource.id &&
           item.cityId &&
@@ -383,11 +407,11 @@ export default function InventoryWorkspace() {
     : [];
   const totalQuantity = useMemo(
     () =>
-      (inventory.data ?? []).reduce(
+              visibleItems.reduce(
         (total, item) => total + Number(item.balance ?? 0),
         0
       ),
-    [inventory.data]
+    [visibleItems]
   );
 
   return (
@@ -421,6 +445,36 @@ export default function InventoryWorkspace() {
       </div>
 
       <section className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Filtros de estoque</p>
+            <p className="mt-1 text-xs text-muted-foreground">Encontre materiais por nome, SKU ou localização.</p>
+          </div>
+          {(filtersState.search || filtersState.regionalId || filtersState.cityId || filtersState.category || filtersState.availability) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-muted-foreground"
+              onClick={() => setFiltersState({ regionalId: "", cityId: "", category: "", search: "", availability: "" })}
+            >
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+        <div className="mb-3">
+          <Label htmlFor="inventory-filter-search" className="text-xs">Buscar material</Label>
+          <div className="relative mt-1.5">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="inventory-filter-search"
+              value={filtersState.search}
+              onChange={event => setFiltersState({ ...filtersState, search: event.target.value })}
+              placeholder="Nome do material ou SKU"
+              className="h-9 pl-9"
+            />
+          </div>
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <Label htmlFor="inventory-filter-regional" className="text-xs">
@@ -470,6 +524,21 @@ export default function InventoryWorkspace() {
                     {city.name} - {city.state}
                   </option>
                 ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="inventory-filter-availability" className="text-xs">Situação</Label>
+            <select
+              id="inventory-filter-availability"
+              value={filtersState.availability}
+              onChange={event => setFiltersState({ ...filtersState, availability: event.target.value })}
+              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Todas as situações</option>
+              <option value="out">Sem saldo</option>
+              <option value="low">Estoque baixo</option>
+              <option value="active">Itens ativos</option>
+              <option value="inactive">Itens inativos</option>
             </select>
           </div>
           <div>
@@ -578,6 +647,35 @@ export default function InventoryWorkspace() {
                   }
                   className="mt-1.5"
                 />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="item-product">Produto do catálogo</Label>
+                  <InlineRegistryCreateDialog
+                    kind="product"
+                    triggerLabel="Novo"
+                    onCreated={created =>
+                      setItemForm(current => ({
+                        ...current,
+                        productTypeId: String(created.id),
+                        name: current.name || created.name,
+                      }))
+                    }
+                  />
+                </div>
+                <select
+                  id="item-product"
+                  value={itemForm.productTypeId}
+                  onChange={event =>
+                    setItemForm({ ...itemForm, productTypeId: event.target.value })
+                  }
+                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Sem produto vinculado</option>
+                  {references.data?.productTypes?.map(product => (
+                    <option key={product.id} value={product.id}>{product.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <Label htmlFor="item-sku">SKU</Label>
@@ -884,7 +982,7 @@ export default function InventoryWorkspace() {
               variant="outline"
               className="border-border bg-secondary text-xs text-foreground"
             >
-              {inventory.data?.length ?? 0} itens
+              {visibleItems.length} itens
             </Badge>
             <Badge
               variant="outline"
@@ -900,9 +998,9 @@ export default function InventoryWorkspace() {
           <div className="p-10 text-center text-sm text-muted-foreground">
             Carregando estoque...
           </div>
-        ) : inventory.data?.length ? (
+        ) : visibleItems.length ? (
           <div className="divide-y divide-border">
-            {inventory.data.map(item => {
+            {visibleItems.map(item => {
               const balance = Number(item.balance ?? 0);
               const status = balanceLabel(balance, item.minimumQuantity);
               const isHistoryOpen = historyItemId === item.id;
@@ -1062,6 +1160,20 @@ export default function InventoryWorkspace() {
                               }
                               className="mt-1 h-9 bg-background"
                             />
+                          </div>
+                          <div>
+                            <Label htmlFor={`edit-item-product-${item.id}`} className="text-xs">Produto do catálogo</Label>
+                            <select
+                              id={`edit-item-product-${item.id}`}
+                              value={editForm.productTypeId}
+                              onChange={event => setEditForm({ ...editForm, productTypeId: event.target.value })}
+                              className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                            >
+                              <option value="">Sem produto vinculado</option>
+                              {references.data?.productTypes?.map(product => (
+                                <option key={product.id} value={product.id}>{product.name}</option>
+                              ))}
+                            </select>
                           </div>
                           <div>
                             <Label

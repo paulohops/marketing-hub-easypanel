@@ -96,5 +96,5 @@ function Router() {
 }
 
 export default function App() {
-  return <ErrorBoundary><BrandingProvider><ThemeProvider defaultTheme="light" switchable><TooltipProvider><Toaster position="top-right" richColors /><Router /></TooltipProvider></ThemeProvider></BrandingProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><BrandingProvider><TooltipProvider><Toaster position="top-right" richColors /><Router /></TooltipProvider></BrandingProvider></ThemeProvider></ErrorBoundary>;
 }

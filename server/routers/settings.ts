@@ -281,16 +281,29 @@ const brandingFontIds = BRANDING_FONT_OPTIONS.map(option => option.id) as [
   BrandingFontId,
   ...BrandingFontId[],
 ];
-const brandingInputSchema = z.object({
-  appName: z.string().trim().min(2).max(80),
-  appSubtitle: z.string().trim().max(80),
+const brandingThemeInputSchema = z.object({
   primaryColor: hexColorSchema,
   accentColor: hexColorSchema,
   backgroundColor: hexColorSchema,
-  darkBackgroundColor: hexColorSchema.optional(),
   cardColor: hexColorSchema,
   foregroundColor: hexColorSchema,
+  logoUrl: z.string().trim().max(1000).optional(),
+  faviconUrl: z.string().trim().max(1000).optional(),
+});
+
+const brandingInputSchema = z.object({
+  appName: z.string().trim().min(2).max(80),
+  appSubtitle: z.string().trim().max(80),
   fontFamily: z.enum(brandingFontIds),
+  light: brandingThemeInputSchema.partial().optional(),
+  dark: brandingThemeInputSchema.partial().optional(),
+  // Campos legados aceitos para que integrações antigas continuem funcionando.
+  primaryColor: hexColorSchema.optional(),
+  accentColor: hexColorSchema.optional(),
+  backgroundColor: hexColorSchema.optional(),
+  darkBackgroundColor: hexColorSchema.optional(),
+  cardColor: hexColorSchema.optional(),
+  foregroundColor: hexColorSchema.optional(),
   faviconUrl: z.string().trim().max(1000).optional(),
 });
 
@@ -318,46 +331,66 @@ export function normalizeAppBranding(value: unknown): AppBranding {
     typeof source.appSubtitle === "string"
       ? source.appSubtitle.trim().slice(0, 80)
       : DEFAULT_APP_BRANDING.appSubtitle;
-  const isLocalLogo =
-    typeof source.logoUrl === "string" &&
-    source.logoUrl.startsWith("/") &&
-    !source.logoUrl.startsWith("//");
-  const logoUrl =
-    typeof source.logoUrl === "string" &&
-    (isLocalLogo || /^https?:\/\//i.test(source.logoUrl))
-      ? source.logoUrl
-      : DEFAULT_APP_BRANDING.logoUrl;
+  const sourceTheme = (key: "light" | "dark") => {
+    const value = source[key];
+    return value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  };
+  const isValidAssetUrl = (value: unknown) =>
+    typeof value === "string" &&
+    ((value.startsWith("/") && !value.startsWith("//")) ||
+      /^https?:\/\//i.test(value));
+  const normalizeTheme = (
+    key: "light" | "dark",
+    legacy: Record<string, unknown>
+  ) => {
+    const input = sourceTheme(key);
+    const fallback = DEFAULT_APP_BRANDING[key];
+    const color = (field: keyof typeof fallback) =>
+      isHexColor(input[field])
+        ? String(input[field]).toUpperCase()
+        : isHexColor(legacy[field])
+          ? String(legacy[field]).toUpperCase()
+          : fallback[field];
+    const asset = (field: "logoUrl" | "faviconUrl") =>
+      isValidAssetUrl(input[field])
+        ? String(input[field])
+        : isValidAssetUrl(legacy[field])
+          ? String(legacy[field])
+          : fallback[field];
+    return {
+      primaryColor: color("primaryColor"),
+      accentColor: color("accentColor"),
+      backgroundColor: color("backgroundColor"),
+      cardColor: color("cardColor"),
+      foregroundColor: color("foregroundColor"),
+      logoUrl: asset("logoUrl"),
+      faviconUrl: asset("faviconUrl"),
+    };
+  };
+  const light = normalizeTheme("light", source);
+  const dark = normalizeTheme("dark", {
+    ...source,
+    backgroundColor: source.darkBackgroundColor,
+  });
+  const fontFamily = isBrandingFont(source.fontFamily)
+    ? source.fontFamily
+    : DEFAULT_APP_BRANDING.fontFamily;
   return {
     appName,
     appSubtitle,
-    primaryColor: isHexColor(source.primaryColor)
-      ? source.primaryColor.toUpperCase()
-      : DEFAULT_APP_BRANDING.primaryColor,
-    accentColor: isHexColor(source.accentColor)
-      ? source.accentColor.toUpperCase()
-      : DEFAULT_APP_BRANDING.accentColor,
-    backgroundColor: isHexColor(source.backgroundColor)
-      ? source.backgroundColor.toUpperCase()
-      : DEFAULT_APP_BRANDING.backgroundColor,
-    darkBackgroundColor: isHexColor(source.darkBackgroundColor)
-      ? source.darkBackgroundColor.toUpperCase()
-      : DEFAULT_APP_BRANDING.darkBackgroundColor,
-    cardColor: isHexColor(source.cardColor)
-      ? source.cardColor.toUpperCase()
-      : DEFAULT_APP_BRANDING.cardColor,
-    foregroundColor: isHexColor(source.foregroundColor)
-      ? source.foregroundColor.toUpperCase()
-      : DEFAULT_APP_BRANDING.foregroundColor,
-    fontFamily: isBrandingFont(source.fontFamily)
-      ? source.fontFamily
-      : DEFAULT_APP_BRANDING.fontFamily,
-    logoUrl,
-    faviconUrl:
-      typeof source.faviconUrl === "string" &&
-      (source.faviconUrl.startsWith("/") ||
-        /^https?:\/\//i.test(source.faviconUrl))
-        ? source.faviconUrl
-        : DEFAULT_APP_BRANDING.faviconUrl,
+    fontFamily,
+    light,
+    dark,
+    primaryColor: light.primaryColor,
+    accentColor: light.accentColor,
+    backgroundColor: light.backgroundColor,
+    darkBackgroundColor: dark.backgroundColor,
+    cardColor: light.cardColor,
+    foregroundColor: light.foregroundColor,
+    logoUrl: light.logoUrl,
+    faviconUrl: light.faviconUrl,
   };
 }
 
@@ -724,6 +757,7 @@ export const settingsRouter = router({
         originalName: z.string().trim().min(1).max(255),
         mimeType: z.enum(imageMimeTypes),
         dataBase64: z.string().min(1).max(4_200_000),
+        theme: z.enum(["light", "dark"]).default("light"),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -748,7 +782,10 @@ export const settingsRouter = router({
       const current = currentSetting
         ? parseBrandingValue(currentSetting.value)
         : DEFAULT_APP_BRANDING;
-      const next = { ...current, logoUrl: stored.url };
+      const next = normalizeAppBranding({
+        ...current,
+        [input.theme]: { ...current[input.theme], logoUrl: stored.url },
+      });
       const [updated] = await database
         .insert(appSettings)
         .values({
@@ -782,6 +819,7 @@ export const settingsRouter = router({
           "image/svg+xml",
         ]),
         dataBase64: z.string().min(1).max(1_500_000),
+        theme: z.enum(["light", "dark"]).default("light"),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -806,7 +844,10 @@ export const settingsRouter = router({
       const current = currentSetting
         ? parseBrandingValue(currentSetting.value)
         : DEFAULT_APP_BRANDING;
-      const next = { ...current, faviconUrl: stored.url };
+      const next = normalizeAppBranding({
+        ...current,
+        [input.theme]: { ...current[input.theme], faviconUrl: stored.url },
+      });
       const [updated] = await database
         .insert(appSettings)
         .values({
@@ -2251,6 +2292,7 @@ export const settingsRouter = router({
       z.object({
         kind: z.enum([
           "service",
+          "subservice",
           "media",
           "product",
           "action",
@@ -2265,6 +2307,7 @@ export const settingsRouter = router({
         mediaTypeId: z.number().int().positive().nullable().optional(),
         parentServiceTypeId: z.number().int().positive().nullable().optional(),
         subserviceParentIds: z.array(z.number().int().positive()).max(100).optional(),
+        unit: z.string().trim().max(48).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -2319,6 +2362,39 @@ export const settingsRouter = router({
             ...created,
             subserviceParentIds: parents.map(parent => parent.id),
           },
+        });
+        return created;
+      }
+      if (input.kind === "subservice") {
+        const parents = await resolveServiceParentIds(
+          database,
+          input.subserviceParentIds ?? (input.parentServiceTypeId ? [input.parentServiceTypeId] : [])
+        );
+        const [created] = await database
+          .insert(subserviceTypes)
+          .values({
+            name: input.name,
+            description: input.description || null,
+            unit: input.unit || "unidade",
+          })
+          .returning();
+        if (parents.length) {
+          await database
+            .insert(serviceSubservices)
+            .values(
+              parents.map(parent => ({
+                serviceTypeId: parent.id,
+                subserviceTypeId: created.id,
+              }))
+            )
+            .onConflictDoNothing();
+        }
+        await writeAuditLog({
+          actorUserId: ctx.user.id,
+          entityType: "subservice_type",
+          entityId: created.id,
+          action: "create",
+          afterData: { ...created, serviceTypeIds: parents.map(parent => parent.id) },
         });
         return created;
       }
@@ -2432,6 +2508,7 @@ export const settingsRouter = router({
         kind: z.enum([
           "product",
           "service",
+          "subservice",
           "media",
           "action",
           "event",
@@ -2557,7 +2634,13 @@ export const settingsRouter = router({
           .limit(1);
         if (sameCnpj) throw new TRPCError({ code: "CONFLICT", message: "Este CNPJ já está cadastrado como empresa fiscal." });
       }
-      const updated = await database.transaction(async tx => {
+      const runInTransaction = <T>(work: (tx: any) => Promise<T>) => {
+        const transaction = (database as any).transaction;
+        return typeof transaction === "function"
+          ? transaction.call(database, work)
+          : work(database as any);
+      };
+      const updated = await runInTransaction(async tx => {
         const [provider] = await tx
           .update(providers)
           .set({
@@ -2711,6 +2794,7 @@ export const settingsRouter = router({
       z.object({
         kind: z.enum([
           "service",
+          "subservice",
           "media",
           "product",
           "action",
@@ -2726,6 +2810,7 @@ export const settingsRouter = router({
         mediaTypeId: z.number().int().positive().nullable().optional(),
         parentServiceTypeId: z.number().int().positive().nullable().optional(),
         subserviceParentIds: z.array(z.number().int().positive()).max(100).optional(),
+        unit: z.string().trim().max(48).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -2758,6 +2843,55 @@ export const settingsRouter = router({
           action: "update",
           beforeData: before,
           afterData: updated,
+        });
+        return updated;
+      }
+      if (input.kind === "subservice") {
+        const [before] = await database
+          .select()
+          .from(subserviceTypes)
+          .where(eq(subserviceTypes.id, input.id))
+          .limit(1);
+        if (!before)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "SubServiço não encontrado.",
+          });
+        const parents = await resolveServiceParentIds(
+          database,
+          input.subserviceParentIds ?? (input.parentServiceTypeId ? [input.parentServiceTypeId] : [])
+        );
+        const [updated] = await database
+          .update(subserviceTypes)
+          .set({
+            name: input.name,
+            description: input.description || null,
+            unit: input.unit || before.unit,
+            updatedAt: new Date(),
+          })
+          .where(eq(subserviceTypes.id, input.id))
+          .returning();
+        await database
+          .delete(serviceSubservices)
+          .where(eq(serviceSubservices.subserviceTypeId, input.id));
+        if (parents.length) {
+          await database
+            .insert(serviceSubservices)
+            .values(
+              parents.map(parent => ({
+                serviceTypeId: parent.id,
+                subserviceTypeId: input.id,
+              }))
+            )
+            .onConflictDoNothing();
+        }
+        await writeAuditLog({
+          actorUserId: ctx.user.id,
+          entityType: "subservice_type",
+          entityId: input.id,
+          action: "update",
+          beforeData: before,
+          afterData: { ...updated, serviceTypeIds: parents.map(parent => parent.id) },
         });
         return updated;
       }
@@ -3622,6 +3756,7 @@ export const settingsRouter = router({
         kind: z.enum([
           "product",
           "service",
+          "subservice",
           "media",
           "action",
           "event",

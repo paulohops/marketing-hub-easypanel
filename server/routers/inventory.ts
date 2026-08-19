@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { cities, commercialSupervisors, notifications, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
+import { cities, commercialSupervisors, notifications, productTypes, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -50,10 +50,12 @@ const inventoryListInput = z.object({
   regionalId: z.number().int().positive().optional(),
   cityId: z.number().int().positive().optional(),
   category: z.enum(stockCategoryValues).optional(),
+  search: z.string().trim().max(120).optional(),
 }).optional();
 
 const stockItemUpdateInput = z.object({
   id: z.number().int().positive(),
+  productTypeId: z.number().int().positive().nullable().optional(),
   sku: z.string().trim().min(2).max(64).toUpperCase(),
   name: z.string().trim().min(2).max(180),
   description: z.string().trim().max(2_000).optional(),
@@ -73,12 +75,13 @@ export const inventoryRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "inventory.read");
     const database = await requireDatabase();
-    const [regionalRows, cityRows, supervisorRows] = await Promise.all([
+    const [regionalRows, cityRows, supervisorRows, productRows] = await Promise.all([
       database.select().from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
       database.select().from(cities).where(eq(cities.active, true)).orderBy(asc(cities.name)),
       database.select().from(commercialSupervisors).where(eq(commercialSupervisors.active, true)).orderBy(asc(commercialSupervisors.name)),
+      database.select().from(productTypes).where(eq(productTypes.active, true)).orderBy(asc(productTypes.name)),
     ]);
-    return { regionals: regionalRows, cities: cityRows, supervisors: supervisorRows };
+    return { regionals: regionalRows, cities: cityRows, supervisors: supervisorRows, productTypes: productRows };
   }),
 
   list: protectedProcedure.input(inventoryListInput).query(async ({ ctx, input }) => {
@@ -88,14 +91,18 @@ export const inventoryRouter = router({
     if (input?.regionalId) conditions.push(eq(stockItems.regionalId, input.regionalId));
     if (input?.cityId) conditions.push(eq(stockItems.cityId, input.cityId));
     if (input?.category) conditions.push(eq(stockItems.category, input.category));
+    if (input?.search) {
+      const search = `%${input.search}%`;
+      conditions.push(or(ilike(stockItems.name, search), ilike(stockItems.sku, search))!);
+    }
     const where = conditions.length ? and(...conditions) : undefined;
     const [items, movements] = await Promise.all([
-      database.select({ item: stockItems, regionalName: regionals.name, cityName: cities.name, materializedBalance: stockBalances.quantity }).from(stockItems).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(stockBalances, eq(stockBalances.stockItemId, stockItems.id)).where(where).orderBy(asc(stockItems.name)),
+      database.select({ item: stockItems, regionalName: regionals.name, cityName: cities.name, productName: productTypes.name, materializedBalance: stockBalances.quantity }).from(stockItems).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(productTypes, eq(stockItems.productTypeId, productTypes.id)).leftJoin(stockBalances, eq(stockBalances.stockItemId, stockItems.id)).where(where).orderBy(asc(stockItems.name)),
       database.select().from(stockMovements),
     ]);
-    return items.map(({ item, regionalName, cityName, materializedBalance }) => {
+    return items.map(({ item, regionalName, cityName, productName, materializedBalance }) => {
       const relatedMovements = movements.filter(movement => movement.stockItemId === item.id);
-      return { ...item, regionalName, cityName, balance: materializedBalance === null ? calculateStockBalance(relatedMovements) : Number(materializedBalance), movementCount: relatedMovements.length };
+      return { ...item, regionalName, cityName, productName, balance: materializedBalance === null ? calculateStockBalance(relatedMovements) : Number(materializedBalance), movementCount: relatedMovements.length };
     });
   }),
 
@@ -137,7 +144,7 @@ export const inventoryRouter = router({
     return { items: rows, total: Number(totalRows[0]?.total ?? 0), page: filters.page, pageSize: filters.pageSize };
   }),
 
-  createItem: protectedProcedure.input(z.object({ regionalId: z.number().int().positive(), cityId: z.number().int().positive().nullable(), sku: z.string().trim().min(2).max(64).toUpperCase(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(2000).optional(), unit: z.string().trim().min(1).max(24).default("un"), category: z.enum(stockCategoryValues).default("material_suporte"), minimumQuantity: z.number().nonnegative().max(1_000_000).default(0) })).mutation(async ({ ctx, input }) => {
+  createItem: protectedProcedure.input(z.object({ regionalId: z.number().int().positive(), cityId: z.number().int().positive().nullable(), productTypeId: z.number().int().positive().nullable().optional(), sku: z.string().trim().min(2).max(64).toUpperCase(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(2000).optional(), unit: z.string().trim().min(1).max(24).default("un"), category: z.enum(stockCategoryValues).default("material_suporte"), minimumQuantity: z.number().nonnegative().max(1_000_000).default(0) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "inventory.write");
     const database = await requireDatabase();
     const created = await database.transaction(async transaction => {
@@ -168,6 +175,7 @@ export const inventoryRouter = router({
     const [before] = await database.select().from(stockItems).where(eq(stockItems.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Item de estoque não encontrado." });
     const [updated] = await database.update(stockItems).set({
+      productTypeId: input.productTypeId ?? null,
       sku: input.sku,
       name: input.name,
       description: input.description || null,
