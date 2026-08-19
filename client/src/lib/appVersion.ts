@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.1.0.0";
+export const APP_VERSION = "1.1.1.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,20 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.1.1.0",
+    date: "19/08/2026",
+    label: "Patch update",
+    summary: "Correções da programação audiovisual e consolidação dos padrões operacionais.",
+    changes: [
+      "Campo de programa audiovisual corrigido para aceitar texto completo e horários normalizados antes do envio.",
+      "Página do programa audiovisual passou a permitir edição, alteração de status com motivo e evidência e debriefing global persistido.",
+      "Histórico audiovisual passou a seguir o padrão global, com motivo, evidências e visualização dos últimos cinco registros.",
+      "Fornecedor e tipo de mídia podem ser cadastrados em pop-up no formulário audiovisual e selecionados automaticamente.",
+      "Campanhas, ações e detalhe audiovisual receberam a largura e o espaçamento amplo do padrão de Mídia Urbana; filtros continuam recolhidos por padrão.",
+      "Migração idempotente 0059 adicionada para os campos de debriefing dos pontos audiovisuais.",
+    ],
+  },
   {
     version: "1.1.0.0",
     date: "19/08/2026",

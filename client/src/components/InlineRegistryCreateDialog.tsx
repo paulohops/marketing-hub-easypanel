@@ -89,10 +89,14 @@ export function InlineRegistryCreateDialog({
   kind,
   onCreated,
   triggerLabel = "Novo cadastro",
+  supplierCityId,
+  mediaOperationCategory = "graphics",
 }: {
   kind: QuickCreateKind;
   onCreated?: (record: CreatedRecord) => void;
   triggerLabel?: string;
+  supplierCityId?: number | null;
+  mediaOperationCategory?: "graphics" | "audio_video" | "leafleting" | "sound_car" | "influencers";
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -146,6 +150,7 @@ export function InlineRegistryCreateDialog({
     if (kind === "supplier") {
       createSupplier.mutate({
         providerId: null,
+        cityId: supplierCityId ?? null,
         displayName: trimmedName,
         mainService: description.trim() || undefined,
       });
@@ -175,7 +180,7 @@ export function InlineRegistryCreateDialog({
       name: trimmedName,
       description: description.trim() || undefined,
       ...(kind === "subservice" ? { unit: unit.trim() || "unidade", subserviceParentIds: [] } : {}),
-      ...(kind === "media" ? { operationCategory: "graphics" as const } : {}),
+      ...(kind === "media" ? { operationCategory: mediaOperationCategory } : {}),
     });
   };
 

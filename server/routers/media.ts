@@ -21,8 +21,8 @@ const traditionalScheduleSchema = z.object({
   programName: z.string().trim().min(2).max(180),
   weekday: z.number().int().min(0).max(6).nullable().optional(),
   specificDate: z.string().date().nullable().optional(),
-  startsAt: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/),
-  endsAt: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/),
+  startsAt: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  endsAt: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   notes: z.string().trim().max(1000).optional(),
 }).superRefine((value, context) => {
   const hasWeekday = value.weekday !== null && value.weekday !== undefined;
@@ -154,6 +154,15 @@ export const mediaRouter = router({
     }
     const [updated] = await database.update(mediaPoints).set({ status: input.status }).where(eq(mediaPoints.id, input.mediaPointId)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_point", entityId: input.mediaPointId, action: `status_${input.status}`, beforeData: before, afterData: { ...updated, reason: input.reason || null, evidenceDocumentIds: input.evidenceDocumentIds } });
+    return updated;
+  }),
+  savePointDebrief: protectedProcedure.input(z.object({ mediaPointId: z.number().int().positive(), rating: z.number().int().min(1).max(5), notes: z.string().trim().max(4000).optional(), result: z.string().trim().max(4000).optional(), completedAt: z.string().datetime().optional() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "media.write");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(mediaPoints).where(eq(mediaPoints.id, input.mediaPointId)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Programa audiovisual não encontrado." });
+    const [updated] = await database.update(mediaPoints).set({ debriefRating: input.rating, debriefNotes: input.notes || null, debriefResult: input.result || null, debriefAt: input.completedAt ? new Date(input.completedAt) : new Date() }).where(eq(mediaPoints.id, input.mediaPointId)).returning();
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_point", entityId: input.mediaPointId, action: "save_debrief", beforeData: { debriefRating: before.debriefRating, debriefAt: before.debriefAt }, afterData: { debriefRating: updated.debriefRating, debriefAt: updated.debriefAt } });
     return updated;
   }),
   createUrbanRegistration: protectedProcedure.input(z.object({ mediaPointId: z.number().int().positive(), mediaVariationTypeId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), replacementFrequency: z.enum(replacementFrequencies), contractReference: z.string().trim().max(180).optional(), contractValue: z.number().min(0).optional() })).mutation(async ({ ctx, input }) => {

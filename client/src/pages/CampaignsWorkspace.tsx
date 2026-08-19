@@ -690,7 +690,7 @@ function Detail({
     ? `${campaign.cities.length} cidades selecionadas`
     : "Todas as cidades";
   return (
-    <main className="mx-auto max-w-6xl space-y-5">
+    <main className="mx-auto max-w-[1480px] space-y-5">
       <Button variant="outline" onClick={back}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar para campanhas
@@ -1261,7 +1261,7 @@ export default function CampaignsWorkspace() {
         />
       </>
     ) : (
-      <main className="mx-auto max-w-6xl p-6 text-muted-foreground">
+      <main className="mx-auto max-w-[1480px] p-6 text-muted-foreground">
         Campanha não encontrada.
       </main>
     );
@@ -1302,7 +1302,7 @@ export default function CampaignsWorkspace() {
     setStatusFilter("all");
   };
   return (
-    <main className="mx-auto max-w-6xl space-y-5">
+    <main className="mx-auto max-w-[1480px] space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-primary">Operação</p>

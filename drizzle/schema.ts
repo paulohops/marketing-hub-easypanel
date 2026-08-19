@@ -1481,6 +1481,10 @@ export const mediaPoints = pgTable("media_points", {
   longitude: numeric("longitude", { precision: 10, scale: 7 }),
   signalRangeKm: numeric("signalRangeKm", { precision: 8, scale: 2 }),
   status: mediaPointStatusEnum("status").default("active").notNull(),
+  debriefRating: integer("debriefRating"),
+  debriefNotes: text("debriefNotes"),
+  debriefResult: text("debriefResult"),
+  debriefAt: timestamp("debriefAt", { withTimezone: true }),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -636,7 +636,7 @@ export default function ActionsWorkspace() {
       </>
     );
   return (
-    <main className="mx-auto max-w-6xl space-y-5">
+    <main className="mx-auto max-w-[1480px] space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-primary">Operação</p>
@@ -917,7 +917,7 @@ function ActionDetail({
     reschedule: "Ação reagendada",
   };
   return (
-    <main className="mx-auto max-w-6xl space-y-5">
+    <main className="mx-auto max-w-[1480px] space-y-5">
       <Button variant="outline" onClick={onBack}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar para ações

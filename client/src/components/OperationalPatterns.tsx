@@ -89,6 +89,7 @@ export function OperationalStatusDialog({
   requiredReason = false,
   evidenceCount = 0,
   evidenceContent,
+  contextContent,
   pending = false,
   onSubmit,
 }: {
@@ -101,10 +102,11 @@ export function OperationalStatusDialog({
   requiredReason?: boolean;
   evidenceCount?: number;
   evidenceContent?: ReactNode;
+  contextContent?: ReactNode;
   pending?: boolean;
   onSubmit: () => void;
 }) {
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl overflow-x-hidden overflow-y-auto"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader><form className="grid gap-4" onSubmit={event => { event.preventDefault(); onSubmit(); }}><label className="grid gap-1.5 text-sm font-medium">Motivo {requiredReason ? "(obrigatório)" : "(opcional)"}<Textarea required={requiredReason} minLength={requiredReason ? 3 : undefined} value={reason} onChange={event => onReasonChange(event.target.value)} placeholder="Descreva a razão da alteração de status." /></label>{evidenceContent}{evidenceCount > 0 ? <p className="text-xs text-muted-foreground">{evidenceCount} evidência(s) selecionada(s).</p> : null}<div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button><Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={pending}>{pending ? "Salvando..." : "Confirmar status"}</Button></div></form></DialogContent></Dialog>;
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl overflow-x-hidden overflow-y-auto"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader><form className="grid gap-4" onSubmit={event => { event.preventDefault(); onSubmit(); }}>{contextContent}<label className="grid gap-1.5 text-sm font-medium">Motivo {requiredReason ? "(obrigatório)" : "(opcional)"}<Textarea required={requiredReason} minLength={requiredReason ? 3 : undefined} value={reason} onChange={event => onReasonChange(event.target.value)} placeholder="Descreva a razão da alteração de status." /></label>{evidenceContent}{evidenceCount > 0 ? <p className="text-xs text-muted-foreground">{evidenceCount} evidência(s) selecionada(s).</p> : null}<div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button><Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={pending}>{pending ? "Salvando..." : "Confirmar status"}</Button></div></form></DialogContent></Dialog>;
 }
 
 export function OperationalHistory({
