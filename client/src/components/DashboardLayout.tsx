@@ -100,7 +100,7 @@ const quickAccessItems: NavItem[] = [
 
 const navigationGroups: NavGroup[] = [
   {
-    label: "Operação",
+    label: "Trade",
     items: [
       {
         label: "Campanhas",

@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.1.1.0";
+export const APP_VERSION = "1.1.4.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,18 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.1.4.0",
+    date: "19/08/2026",
+    label: "Patch update",
+    summary: "Padronização de status, Trade e template inicial de Carro de Som.",
+    changes: [
+      "Dropdowns globais de status ajustados ao tamanho dos demais botões do sistema.",
+      "Menu Operação renomeado para Trade, preservando rotas e destaque ativo.",
+      "Novo ponto de Mídia Urbana passou a exibir tipo de mídia principal e subtipo opcional em seletores separados.",
+      "Carro de Som recebeu a primeira estrutura visual baseada no template de Mídia Audiovisual, com dados, spot, resumo operacional, rotas, programação e histórico.",
+    ],
+  },
   {
     version: "1.1.3.0",
     date: "19/08/2026",

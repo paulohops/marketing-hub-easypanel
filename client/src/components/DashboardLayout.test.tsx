@@ -74,7 +74,7 @@ describe("DashboardLayout", () => {
     );
 
     expect(screen.getByText("Cadastros")).toBeInTheDocument();
-    expect(screen.getAllByText("Operação").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Trade").length).toBeGreaterThan(0);
     expect(screen.getByText("Gestão")).toBeInTheDocument();
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
     expect(screen.queryByText("Ajuda e suporte")).not.toBeInTheDocument();
@@ -118,7 +118,7 @@ describe("DashboardLayout", () => {
       '[data-sidebar="group-heading"]'
     );
     expect(headings).toHaveLength(4);
-    expect(headings[0]).toHaveTextContent("Operação");
+    expect(headings[0]).toHaveTextContent("Trade");
     expect(headings[1]).toHaveTextContent("Gestão");
     expect(headings[0]).not.toHaveClass("group-data-[collapsible=icon]:-mt-8");
     expect(headings[0].parentElement).toHaveClass("shrink-0");

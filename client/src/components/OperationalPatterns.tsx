@@ -78,7 +78,7 @@ export function OperationalStatusDropdown<T extends string>({
   disabled?: boolean;
   className?: string;
 }) {
-  return <select id={id} aria-label="Status" value={value} disabled={disabled} onChange={event => onChange(event.target.value as T)} className={`h-9 min-w-[9.75rem] rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring ${className}`}>{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>;
+  return <select id={id} aria-label="Status" value={value} disabled={disabled} onChange={event => onChange(event.target.value as T)} className={`h-9 w-auto min-w-[8rem] max-w-[11rem] shrink-0 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring ${className}`}>{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>;
 }
 
 export function OperationalStatusDialog({
