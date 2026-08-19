@@ -44,7 +44,8 @@ type RegistryCollection =
   | "eventTypes"
   | "campaignTypes"
   | "campaignSectors"
-  | "financialCategories";
+  | "financialCategories"
+  | "fiscalEntities";
 
 type RegistryItem = {
   slug: string;
@@ -116,6 +117,16 @@ const registryItems: RegistryItem[] = [
     collection: "providers",
     icon: Building2,
     relation: "Regionais, cidades e fornecedores",
+  },
+  {
+    slug: "empresas-fiscais",
+    title: "Empresas fiscais",
+    description: "CNPJs e inscrições vinculados a cada Empresa operacional.",
+    group: "financeiro",
+    route: "/cadastros/empresas-fiscais",
+    collection: "fiscalEntities",
+    icon: Building2,
+    relation: "Empresa operacional e notas fiscais",
   },
   {
     slug: "regionais",

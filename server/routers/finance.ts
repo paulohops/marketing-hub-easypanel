@@ -12,6 +12,7 @@ import {
   financeBudgetMonths,
   financeBudgetPlans,
   financeCompanies,
+  providerFiscalEntities,
   financeDivisions,
   financeMediums,
   financeSectors,
@@ -23,6 +24,7 @@ import {
   payments,
   purchaseOrderItems,
   purchaseOrders,
+  providers,
   stockBalances,
   stockItems,
   stockMovements,
@@ -76,6 +78,34 @@ async function requireDatabase() {
   const database = await getDb();
   if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
   return database;
+}
+
+async function validateFinancialEntity(
+  database: Awaited<ReturnType<typeof getDb>>,
+  companyId: number | null | undefined,
+  fiscalEntityId: number | null | undefined,
+) {
+  if (!database) return;
+  let companyProviderId: number | null = null;
+  if (companyId) {
+    const [company] = await database
+      .select({ id: financeCompanies.id, providerId: financeCompanies.providerId })
+      .from(financeCompanies)
+      .where(eq(financeCompanies.id, companyId))
+      .limit(1);
+    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa operacional financeira não encontrada." });
+    companyProviderId = company.providerId;
+  }
+  if (!fiscalEntityId) return;
+  const [fiscalEntity] = await database
+    .select({ id: providerFiscalEntities.id, providerId: providerFiscalEntities.providerId })
+    .from(providerFiscalEntities)
+    .where(eq(providerFiscalEntities.id, fiscalEntityId))
+    .limit(1);
+  if (!fiscalEntity) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa fiscal não encontrada." });
+  if (companyProviderId && fiscalEntity.providerId !== companyProviderId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "A empresa fiscal selecionada não pertence à empresa operacional informada." });
+  }
 }
 
 async function operationCatalog(database: Awaited<ReturnType<typeof getDb>>) {
@@ -158,7 +188,7 @@ export const financeRouter = router({
   financeDimensions: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "finance.read");
     const database = await requireDatabase();
-    const [companies, divisions, sectors, mediums, accounts, offerings, stock] = await Promise.all([
+    const [companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities] = await Promise.all([
       database.select().from(financeCompanies).where(eq(financeCompanies.active, true)).orderBy(asc(financeCompanies.name)),
       database.select().from(financeDivisions).where(eq(financeDivisions.active, true)).orderBy(asc(financeDivisions.name)),
       database.select().from(financeSectors).where(eq(financeSectors.active, true)).orderBy(asc(financeSectors.name)),
@@ -166,8 +196,9 @@ export const financeRouter = router({
       database.select().from(financeAccounts).where(eq(financeAccounts.active, true)).orderBy(asc(financeAccounts.name)),
       database.select({ offering: supplierOfferings, supplierName: suppliers.displayName }).from(supplierOfferings).innerJoin(suppliers, eq(supplierOfferings.supplierId, suppliers.id)).where(eq(supplierOfferings.active, true)).orderBy(asc(supplierOfferings.name)),
       database.select().from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)),
+      database.select({ fiscalEntity: providerFiscalEntities, providerName: providers.name }).from(providerFiscalEntities).innerJoin(providers, eq(providerFiscalEntities.providerId, providers.id)).where(eq(providerFiscalEntities.active, true)).orderBy(asc(providers.name), asc(providerFiscalEntities.name)),
     ]);
-    return { companies, divisions, sectors, mediums, accounts, offerings, stock };
+    return { companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities };
   }),
 
   budgetSnapshot: protectedProcedure.input(z.object({ year: z.number().int().min(2020).max(2200) })).query(async ({ ctx, input }) => {
@@ -201,6 +232,7 @@ export const financeRouter = router({
     lineId: z.number().int().positive().optional(),
     planId: z.number().int().positive(),
     companyId: z.number().int().positive().nullable().optional(),
+    fiscalEntityId: z.number().int().positive().nullable().optional(),
     divisionId: z.number().int().positive().nullable().optional(),
     sectorId: z.number().int().positive().nullable().optional(),
     mediumId: z.number().int().positive().nullable().optional(),
@@ -212,10 +244,12 @@ export const financeRouter = router({
   })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
+    await validateFinancialEntity(database, input.companyId, input.fiscalEntityId);
     const annualAmount = input.months.reduce((sum, amount) => sum + amount, 0).toFixed(2);
     const lineValues = {
       planId: input.planId,
       companyId: input.companyId || null,
+      fiscalEntityId: input.fiscalEntityId || null,
       divisionId: input.divisionId || null,
       sectorId: input.sectorId || null,
       mediumId: input.mediumId || null,
@@ -254,6 +288,7 @@ export const financeRouter = router({
     supplierId: z.number().int().positive(),
     budgetPlanId: z.number().int().positive().nullable().optional(),
     companyId: z.number().int().positive().nullable().optional(),
+    fiscalEntityId: z.number().int().positive().nullable().optional(),
     divisionId: z.number().int().positive().nullable().optional(),
     sectorId: z.number().int().positive().nullable().optional(),
     mediumId: z.number().int().positive().nullable().optional(),
@@ -263,11 +298,12 @@ export const financeRouter = router({
   })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
+    await validateFinancialEntity(database, input.companyId, input.fiscalEntityId);
     const supplier = await database.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.id, input.supplierId));
     if (!supplier.length) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." });
     const totalAmount = input.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     return database.transaction(async tx => {
-      const [created] = await tx.insert(purchaseOrders).values({ ...input, budgetPlanId: input.budgetPlanId || null, companyId: input.companyId || null, divisionId: input.divisionId || null, sectorId: input.sectorId || null, mediumId: input.mediumId || null, expectedDeliveryOn: input.expectedDeliveryOn || null, notes: input.notes || null, totalAmount: totalAmount.toFixed(2), requestedByUserId: ctx.user.id }).returning();
+      const [created] = await tx.insert(purchaseOrders).values({ ...input, budgetPlanId: input.budgetPlanId || null, companyId: input.companyId || null, fiscalEntityId: input.fiscalEntityId || null, divisionId: input.divisionId || null, sectorId: input.sectorId || null, mediumId: input.mediumId || null, expectedDeliveryOn: input.expectedDeliveryOn || null, notes: input.notes || null, totalAmount: totalAmount.toFixed(2), requestedByUserId: ctx.user.id }).returning();
       await tx.insert(purchaseOrderItems).values(input.items.map(item => ({ ...item, purchaseOrderId: created.id, supplierOfferingId: item.supplierOfferingId || null, stockItemId: item.stockItemId || null, operationType: item.operationType || null, operationId: item.operationId || null, quantity: item.quantity.toFixed(2), unitPrice: item.unitPrice.toFixed(2), totalAmount: (item.quantity * item.unitPrice).toFixed(2) })));
       await writeAuditLog({ actorUserId: ctx.user.id, entityType: "purchase_order", entityId: created.id, action: "create", afterData: created });
       return created;
@@ -352,9 +388,10 @@ export const financeRouter = router({
     return input?.status ? result.filter(invoice => invoice.status === input.status) : result;
   }),
 
-  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional(), items: z.array(z.object({ kind: z.enum(["product", "service", "media", "other"]), description: z.string().trim().min(1).max(240), quantity: z.number().positive(), unit: z.string().trim().min(1).max(40), unitPrice: z.number().min(0), stockItemId: z.number().int().positive().nullable().optional() })).optional() })).mutation(async ({ ctx, input }) => {
+  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), companyId: z.number().int().positive().nullable().optional(), fiscalEntityId: z.number().int().positive().nullable().optional(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional(), items: z.array(z.object({ kind: z.enum(["product", "service", "media", "other"]), description: z.string().trim().min(1).max(240), quantity: z.number().positive(), unit: z.string().trim().min(1).max(40), unitPrice: z.number().min(0), stockItemId: z.number().int().positive().nullable().optional() })).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
+    await validateFinancialEntity(database, input.companyId, input.fiscalEntityId);
     if (input.operationType === null && input.operationId !== null) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione o tipo da operação vinculada." });
     if (["media_campaign", "action", "event"].includes(input.operationType ?? "") && input.operationId === null) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione a operação vinculada à nota fiscal." });
     if (input.operationType === "other" && input.operationId !== null) throw new TRPCError({ code: "BAD_REQUEST", message: "Uma operação genérica não deve apontar para uma entidade específica." });
@@ -375,7 +412,7 @@ export const financeRouter = router({
       }
     }
     return database.transaction(async tx => {
-      const [created] = await tx.insert(invoices).values({ supplierId: input.supplierId, supplierContractId: input.supplierContractId || null, invoiceNumber: input.invoiceNumber, issueDate: input.issueDate, dueDate: input.dueDate, amount: input.amount.toFixed(2), operationType: input.operationType, operationId: input.operationId, notes: input.notes || null }).returning();
+      const [created] = await tx.insert(invoices).values({ supplierId: input.supplierId, supplierContractId: input.supplierContractId || null, companyId: input.companyId || null, fiscalEntityId: input.fiscalEntityId || null, invoiceNumber: input.invoiceNumber, issueDate: input.issueDate, dueDate: input.dueDate, amount: input.amount.toFixed(2), operationType: input.operationType, operationId: input.operationId, notes: input.notes || null }).returning();
       if (items.length) {
         await tx.insert(invoiceItems).values(items.map(item => ({ invoiceId: created.id, kind: item.kind, description: item.description, quantity: item.quantity.toFixed(2), unit: item.unit, unitPrice: item.unitPrice.toFixed(2), totalAmount: (item.quantity * item.unitPrice).toFixed(2), stockItemId: item.stockItemId || null })));
       }

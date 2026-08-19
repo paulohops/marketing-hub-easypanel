@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql, type SQL } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -28,6 +28,7 @@ import {
   mediaTypes,
   partners,
   providerDocuments,
+  providerFiscalEntities,
   productMediaTypes,
   productTypes,
   providers,
@@ -120,6 +121,26 @@ const providerInputSchema = z.object({
   headquartersCityId: z.number().int().positive().nullable().optional(),
   brandColors: z.array(hexColorSchema).max(10).optional(),
 });
+
+const fiscalEntityInputSchema = z.object({
+  providerId: z.number().int().positive(),
+  name: z.string().trim().min(2).max(180),
+  legalName: z.string().trim().max(220).optional(),
+  cnpj: z.string().trim().min(14).max(18),
+  stateRegistration: z.string().trim().max(80).optional(),
+  municipalRegistration: z.string().trim().max(80).optional(),
+  address: z.string().trim().max(1000).optional(),
+  cityId: z.number().int().positive().nullable().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+function normalizeFiscalCnpj(value: string) {
+  const normalized = value.replace(/\D/g, "");
+  if (normalized.length !== 14) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um CNPJ fiscal com 14 dígitos." });
+  }
+  return normalized;
+}
 
 function safeContractName(name: string) {
   const normalized = name
@@ -998,6 +1019,7 @@ export const settingsRouter = router({
       actionSupplierRows,
       eventSupplierRows,
       providerDocumentRows,
+      fiscalEntityRows,
     ] = await Promise.all([
       database
         .select()
@@ -1140,6 +1162,11 @@ export const settingsRouter = router({
         .from(providerDocuments)
         .orderBy(asc(providerDocuments.createdAt))
         .catch(() => []),
+      database
+        .select()
+        .from(providerFiscalEntities)
+        .orderBy(asc(providerFiscalEntities.name))
+        .catch(() => []),
     ]);
     return {
       providers: providerRows,
@@ -1164,6 +1191,7 @@ export const settingsRouter = router({
       commercialSupervisorCities: supervisorCityRows,
       productMediaTypes: productMediaRows,
       providerDocuments: providerDocumentRows,
+      fiscalEntities: fiscalEntityRows,
       operationalFootprint: {
         actions: actionRows,
         events: eventRows,
@@ -1174,6 +1202,141 @@ export const settingsRouter = router({
       },
     };
   }),
+
+  listFiscalEntities: protectedProcedure
+    .input(z.object({ providerId: z.number().int().positive().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.read");
+      const database = await requireDatabase();
+      const conditions = input?.providerId
+        ? eq(providerFiscalEntities.providerId, input.providerId)
+        : undefined;
+      return database
+        .select({
+          id: providerFiscalEntities.id,
+          providerId: providerFiscalEntities.providerId,
+          providerName: providers.name,
+          name: providerFiscalEntities.name,
+          legalName: providerFiscalEntities.legalName,
+          cnpj: providerFiscalEntities.cnpj,
+          stateRegistration: providerFiscalEntities.stateRegistration,
+          municipalRegistration: providerFiscalEntities.municipalRegistration,
+          address: providerFiscalEntities.address,
+          cityId: providerFiscalEntities.cityId,
+          isDefault: providerFiscalEntities.isDefault,
+          active: providerFiscalEntities.active,
+          createdAt: providerFiscalEntities.createdAt,
+          updatedAt: providerFiscalEntities.updatedAt,
+        })
+        .from(providerFiscalEntities)
+        .innerJoin(providers, eq(providers.id, providerFiscalEntities.providerId))
+        .where(conditions)
+        .orderBy(asc(providers.name), asc(providerFiscalEntities.name));
+    }),
+
+  createFiscalEntity: protectedProcedure
+    .input(fiscalEntityInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const cnpj = normalizeFiscalCnpj(input.cnpj);
+      const [provider] = await database
+        .select({ id: providers.id })
+        .from(providers)
+        .where(eq(providers.id, input.providerId))
+        .limit(1);
+      if (!provider) throw new TRPCError({ code: "BAD_REQUEST", message: "Empresa operacional não encontrada." });
+      if (input.cityId) {
+        const [city] = await database.select({ id: cities.id }).from(cities).where(eq(cities.id, input.cityId)).limit(1);
+        if (!city) throw new TRPCError({ code: "BAD_REQUEST", message: "Cidade fiscal não encontrada." });
+      }
+      const [sameCnpj] = await database
+        .select({ id: providerFiscalEntities.id })
+        .from(providerFiscalEntities)
+        .where(eq(providerFiscalEntities.cnpj, cnpj))
+        .limit(1);
+      if (sameCnpj) throw new TRPCError({ code: "CONFLICT", message: "Este CNPJ já está cadastrado como empresa fiscal." });
+      const [existing] = await database
+        .select({ id: providerFiscalEntities.id })
+        .from(providerFiscalEntities)
+        .where(eq(providerFiscalEntities.providerId, input.providerId))
+        .limit(1);
+      const created = await database.transaction(async tx => {
+        if (input.isDefault || !existing) {
+          await tx.update(providerFiscalEntities).set({ isDefault: false, updatedAt: new Date() }).where(eq(providerFiscalEntities.providerId, input.providerId));
+        }
+        const [row] = await tx.insert(providerFiscalEntities).values({
+          providerId: input.providerId,
+          name: input.name,
+          legalName: input.legalName || null,
+          cnpj,
+          stateRegistration: input.stateRegistration || null,
+          municipalRegistration: input.municipalRegistration || null,
+          address: input.address || null,
+          cityId: input.cityId || null,
+          isDefault: input.isDefault ?? !existing,
+        }).returning();
+        return row;
+      });
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider_fiscal_entity", entityId: created.id, action: "create", afterData: created });
+      return created;
+    }),
+
+  updateFiscalEntity: protectedProcedure
+    .input(fiscalEntityInputSchema.partial().extend({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const [before] = await database.select().from(providerFiscalEntities).where(eq(providerFiscalEntities.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa fiscal não encontrada." });
+      const providerId = input.providerId ?? before.providerId;
+      const cnpj = input.cnpj ? normalizeFiscalCnpj(input.cnpj) : before.cnpj;
+      const [sameCnpj] = await database.select({ id: providerFiscalEntities.id }).from(providerFiscalEntities).where(and(eq(providerFiscalEntities.cnpj, cnpj), ne(providerFiscalEntities.id, input.id))).limit(1);
+      if (sameCnpj) throw new TRPCError({ code: "CONFLICT", message: "Este CNPJ já está cadastrado como empresa fiscal." });
+      if (input.cityId) {
+        const [city] = await database.select({ id: cities.id }).from(cities).where(eq(cities.id, input.cityId)).limit(1);
+        if (!city) throw new TRPCError({ code: "BAD_REQUEST", message: "Cidade fiscal não encontrada." });
+      }
+      const nextDefault = input.isDefault ?? before.isDefault;
+      const updated = await database.transaction(async tx => {
+        if (nextDefault || providerId !== before.providerId) {
+          await tx.update(providerFiscalEntities).set({ isDefault: false, updatedAt: new Date() }).where(eq(providerFiscalEntities.providerId, providerId));
+        }
+        const [row] = await tx.update(providerFiscalEntities).set({
+          providerId,
+          name: input.name ?? before.name,
+          legalName: input.legalName === undefined ? before.legalName : input.legalName || null,
+          cnpj,
+          stateRegistration: input.stateRegistration === undefined ? before.stateRegistration : input.stateRegistration || null,
+          municipalRegistration: input.municipalRegistration === undefined ? before.municipalRegistration : input.municipalRegistration || null,
+          address: input.address === undefined ? before.address : input.address || null,
+          cityId: input.cityId === undefined ? before.cityId : input.cityId || null,
+          isDefault: nextDefault,
+          updatedAt: new Date(),
+        }).where(eq(providerFiscalEntities.id, input.id)).returning();
+        return row;
+      });
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider_fiscal_entity", entityId: input.id, action: "update", beforeData: before, afterData: updated });
+      return updated;
+    }),
+
+  deleteFiscalEntity: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const [before] = await database.select().from(providerFiscalEntities).where(eq(providerFiscalEntities.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa fiscal não encontrada." });
+      await database.transaction(async tx => {
+        await tx.delete(providerFiscalEntities).where(eq(providerFiscalEntities.id, input.id));
+        if (before.isDefault) {
+          const [replacement] = await tx.select({ id: providerFiscalEntities.id }).from(providerFiscalEntities).where(eq(providerFiscalEntities.providerId, before.providerId)).orderBy(asc(providerFiscalEntities.id)).limit(1);
+          if (replacement) await tx.update(providerFiscalEntities).set({ isDefault: true, updatedAt: new Date() }).where(eq(providerFiscalEntities.id, replacement.id));
+        }
+      });
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "provider_fiscal_entity", entityId: input.id, action: "delete", beforeData: before });
+      return { success: true };
+    }),
 
   createProvider: protectedProcedure
     .input(providerInputSchema)
@@ -1211,21 +1374,42 @@ export const settingsRouter = router({
             message: "A cidade selecionada para matriz não existe.",
           });
       }
-      const [created] = await database
-        .insert(providers)
-        .values({
-          ...input,
-          website,
-          billingCnpj,
-          legalName: input.legalName || null,
-          contactName: input.contactName || null,
-          phone: input.phone || null,
-          email: input.email || null,
-          address: input.address || null,
-          headquartersCityId: input.headquartersCityId ?? null,
-          brandColors: input.brandColors ?? [],
-        })
-        .returning();
+      const created = await database.transaction(async tx => {
+        if (billingCnpj) {
+          const [sameCnpj] = await tx
+            .select({ id: providerFiscalEntities.id })
+            .from(providerFiscalEntities)
+            .where(eq(providerFiscalEntities.cnpj, billingCnpj))
+            .limit(1);
+          if (sameCnpj) throw new TRPCError({ code: "CONFLICT", message: "Este CNPJ já está cadastrado como empresa fiscal." });
+        }
+        const [provider] = await tx
+          .insert(providers)
+          .values({
+            ...input,
+            website,
+            billingCnpj,
+            legalName: input.legalName || null,
+            contactName: input.contactName || null,
+            phone: input.phone || null,
+            email: input.email || null,
+            address: input.address || null,
+            headquartersCityId: input.headquartersCityId ?? null,
+            brandColors: input.brandColors ?? [],
+          })
+          .returning();
+        if (billingCnpj) {
+          await tx.insert(providerFiscalEntities).values({
+            providerId: provider.id,
+            name: input.legalName || input.name,
+            legalName: input.legalName || null,
+            cnpj: billingCnpj,
+            cityId: input.headquartersCityId ?? null,
+            isDefault: true,
+          });
+        }
+        return provider;
+      });
       await writeAuditLog({
         actorUserId: ctx.user.id,
         entityType: "provider",
@@ -2342,23 +2526,59 @@ export const settingsRouter = router({
               "A cidade-matriz deve estar vinculada a uma regional desta empresa.",
           });
       }
-      const [updated] = await database
-        .update(providers)
-        .set({
-          name: input.name,
-          billingCnpj,
-          legalName: input.legalName || null,
-          contactName: input.contactName || null,
-          phone: input.phone || null,
-          email: input.email || null,
-          website,
-          address: input.address || null,
-          headquartersCityId: headquartersCityId ?? null,
-          brandColors: input.brandColors ?? before.brandColors,
-          updatedAt: new Date(),
-        })
-        .where(eq(providers.id, input.id))
-        .returning();
+      if (billingCnpj && billingCnpj !== before.billingCnpj) {
+        const [sameCnpj] = await database
+          .select({ id: providerFiscalEntities.id })
+          .from(providerFiscalEntities)
+          .where(eq(providerFiscalEntities.cnpj, billingCnpj))
+          .limit(1);
+        if (sameCnpj) throw new TRPCError({ code: "CONFLICT", message: "Este CNPJ já está cadastrado como empresa fiscal." });
+      }
+      const updated = await database.transaction(async tx => {
+        const [provider] = await tx
+          .update(providers)
+          .set({
+            name: input.name,
+            billingCnpj,
+            legalName: input.legalName || null,
+            contactName: input.contactName || null,
+            phone: input.phone || null,
+            email: input.email || null,
+            website,
+            address: input.address || null,
+            headquartersCityId: headquartersCityId ?? null,
+            brandColors: input.brandColors ?? before.brandColors,
+            updatedAt: new Date(),
+          })
+          .where(eq(providers.id, input.id))
+          .returning();
+        if (billingCnpj) {
+          const [defaultFiscal] = await tx
+            .select()
+            .from(providerFiscalEntities)
+            .where(and(eq(providerFiscalEntities.providerId, input.id), eq(providerFiscalEntities.isDefault, true)))
+            .limit(1);
+          if (defaultFiscal && (defaultFiscal.cnpj === before.billingCnpj || defaultFiscal.cnpj === billingCnpj)) {
+            await tx.update(providerFiscalEntities).set({
+              name: input.legalName || input.name,
+              legalName: input.legalName || null,
+              cnpj: billingCnpj,
+              cityId: headquartersCityId ?? null,
+              updatedAt: new Date(),
+            }).where(eq(providerFiscalEntities.id, defaultFiscal.id));
+          } else if (!defaultFiscal) {
+            await tx.insert(providerFiscalEntities).values({
+              providerId: input.id,
+              name: input.legalName || input.name,
+              legalName: input.legalName || null,
+              cnpj: billingCnpj,
+              cityId: headquartersCityId ?? null,
+              isDefault: true,
+            });
+          }
+        }
+        return provider;
+      });
       await writeAuditLog({
         actorUserId: ctx.user.id,
         entityType: "provider",
@@ -3447,6 +3667,7 @@ export const settingsRouter = router({
       z.object({
         kind: z.enum([
           "provider",
+          "provider_fiscal_entity",
           "regional",
           "city",
           "store",
@@ -3488,6 +3709,13 @@ export const settingsRouter = router({
             .set({ active: input.active })
             .where(eq(providers.id, input.id))
             .returning({ id: providers.id, active: providers.active });
+          break;
+        case "provider_fiscal_entity":
+          [updated] = await database
+            .update(providerFiscalEntities)
+            .set({ active: input.active, updatedAt: now })
+            .where(eq(providerFiscalEntities.id, input.id))
+            .returning({ id: providerFiscalEntities.id, active: providerFiscalEntities.active });
           break;
         case "regional":
           [updated] = await database
@@ -3620,6 +3848,7 @@ export const settingsRouter = router({
       z.object({
         kind: z.enum([
           "provider",
+          "provider_fiscal_entity",
           "regional",
           "city",
           "store",
@@ -3644,6 +3873,7 @@ export const settingsRouter = router({
       const database = await requireDatabase();
       const tables = {
         provider: providers,
+        provider_fiscal_entity: providerFiscalEntities,
         regional: regionals,
         city: cities,
         store: stores,
@@ -4001,6 +4231,7 @@ export const settingsRouter = router({
       z.object({
         kind: z.enum([
           "provider",
+          "provider_fiscal_entity",
           "regional",
           "city",
           "store",
@@ -4031,6 +4262,11 @@ export const settingsRouter = router({
             await tx.update(regionals).set({ providerId: null }).where(inArray(regionals.providerId, ids));
             await tx.update(suppliers).set({ providerId: null, updatedAt: new Date() }).where(inArray(suppliers.providerId, ids));
             const removed = await tx.delete(providers).where(inArray(providers.id, ids)).returning({ id: providers.id });
+            deleted = removed.length;
+            break;
+          }
+          case "provider_fiscal_entity": {
+            const removed = await tx.delete(providerFiscalEntities).where(inArray(providerFiscalEntities.id, ids)).returning({ id: providerFiscalEntities.id });
             deleted = removed.length;
             break;
           }

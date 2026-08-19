@@ -72,6 +72,15 @@ type ServiceTypeRelationLink = {
 };
 
 const entities: Record<string, EntityConfig> = {
+  "empresas-fiscais": {
+    singular: "Empresa fiscal",
+    plural: "Empresas fiscais",
+    collection: "fiscalEntities",
+    kind: "provider_fiscal_entity",
+    importModule: "fiscalEntities",
+    description: "CNPJs e inscrições fiscais vinculados a uma Empresa operacional.",
+    icon: Building2,
+  },
   empresas: {
     singular: "Empresa",
     plural: "Empresas",
@@ -231,6 +240,7 @@ const entities: Record<string, EntityConfig> = {
 
 const registryPaths: Record<string, string> = {
   provider: "empresas",
+  provider_fiscal_entity: "empresas-fiscais",
   regional: "regionais",
   city: "cidades",
   store: "lojas",
@@ -248,6 +258,7 @@ const registryPaths: Record<string, string> = {
 };
 const registryGroups: Record<string, string> = {
   provider: "territorio",
+  provider_fiscal_entity: "financeiro",
   regional: "territorio",
   city: "territorio",
   store: "territorio",
@@ -345,6 +356,10 @@ function blankRegistryForm(kind: string) {
     parentMediaTypeId: "",
     parentServiceTypeId: "",
     mediaTypeId: "",
+    cnpj: "",
+    stateRegistration: "",
+    municipalRegistration: "",
+    isDefault: "no",
   };
   return kind === "supplier" ? blankSupplierForm() : base;
 }
@@ -418,6 +433,17 @@ export default function RegistryEntityWorkspace() {
     },
   });
   const createProvider = trpc.settings.createProvider.useMutation({
+    onError: error => toast.error(error.message),
+  });
+  const createFiscalEntity = trpc.settings.createFiscalEntity.useMutation({
+    onError: error => toast.error(error.message),
+  });
+  const updateFiscalEntity = trpc.settings.updateFiscalEntity.useMutation({
+    onSuccess: () => {
+      toast.success("Empresa fiscal atualizada.");
+      utils.settings.overview.invalidate();
+      setEditing(false);
+    },
     onError: error => toast.error(error.message),
   });
   const createRegional = trpc.settings.createRegional.useMutation({
@@ -567,6 +593,14 @@ export default function RegistryEntityWorkspace() {
     },
     onError: error => toast.error(error.message),
   });
+  const removeFiscalEntity = trpc.settings.deleteFiscalEntity.useMutation({
+    onSuccess: () => {
+      toast.success("Empresa fiscal excluída.");
+      utils.settings.overview.invalidate();
+      setLocation("/cadastros/empresas-fiscais");
+    },
+    onError: error => toast.error(error.message),
+  });
   const remove = trpc.settings.deleteRegistry.useMutation({
     onSuccess: () => {
       toast.success("Cadastro excluído com segurança.");
@@ -701,6 +735,10 @@ export default function RegistryEntityWorkspace() {
       regionalId: selected.regionalId ? String(selected.regionalId) : "",
       legalName: String(selected.legalName ?? ""),
       billingCnpj: String(selected.billingCnpj ?? ""),
+      cnpj: String(selected.cnpj ?? ""),
+      stateRegistration: String(selected.stateRegistration ?? ""),
+      municipalRegistration: String(selected.municipalRegistration ?? ""),
+      isDefault: selected.isDefault ? "yes" : "no",
       contactName: String(selected.contactName ?? ""),
       phone: String(selected.phone ?? ""),
       email: String(selected.email ?? ""),
@@ -1117,6 +1155,32 @@ export default function RegistryEntityWorkspace() {
       );
       return;
     }
+    if (entity.kind === "provider_fiscal_entity") {
+      if (!form.providerId) {
+        toast.error("Selecione a Empresa operacional.");
+        return;
+      }
+      if (!form.cnpj.trim()) {
+        toast.error("Informe o CNPJ fiscal.");
+        return;
+      }
+      const payload = {
+        providerId: Number(form.providerId),
+        name: form.name.trim(),
+        legalName: form.legalName.trim() || undefined,
+        cnpj: form.cnpj.trim(),
+        stateRegistration: form.stateRegistration.trim() || undefined,
+        municipalRegistration: form.municipalRegistration.trim() || undefined,
+        address: form.address.trim() || undefined,
+        cityId: form.cityId ? Number(form.cityId) : null,
+        isDefault: form.isDefault === "yes",
+      };
+      return selected
+        ? updateFiscalEntity.mutate({ id: selected.id, ...payload })
+        : createFiscalEntity.mutate(payload, {
+            onSuccess: finishCreate("Empresa fiscal criada."),
+          });
+    }
     if (entity.kind === "provider") {
       const payload = {
         name: form.name.trim(),
@@ -1458,6 +1522,8 @@ export default function RegistryEntityWorkspace() {
                 onSave={save}
                 saving={
                   createProvider.isPending ||
+                  createFiscalEntity.isPending ||
+                  updateFiscalEntity.isPending ||
                   createRegional.isPending ||
                   createCity.isPending ||
                   createStore.isPending ||
@@ -1724,11 +1790,16 @@ export default function RegistryEntityWorkspace() {
                     entity.kind === "provider"
                       ? `Excluir ${entity.singular.toLowerCase()}? Regionais e fornecedores vinculados serão desvinculados da empresa, preservando os demais dados.`
                       : `Excluir ${entity.singular.toLowerCase()}? A exclusão só será concluída se não houver vínculos operacionais dependentes.`;
-                  if (window.confirm(deletionMessage))
-                    remove.mutate({
-                      kind: entity.kind as never,
-                      id: selected.id,
-                    });
+                  if (window.confirm(deletionMessage)) {
+                    if (entity.kind === "provider_fiscal_entity") {
+                      removeFiscalEntity.mutate({ id: selected.id });
+                    } else {
+                      remove.mutate({
+                        kind: entity.kind as never,
+                        id: selected.id,
+                      });
+                    }
+                  }
                 }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -1776,6 +1847,7 @@ export default function RegistryEntityWorkspace() {
                 onSave={save}
                 saving={
                   updateProvider.isPending ||
+                  updateFiscalEntity.isPending ||
                   updateRegional.isPending ||
                   updateCity.isPending ||
                   updateStore.isPending ||
@@ -3526,6 +3598,42 @@ function RegistryEditor({
                 <span className="text-xs font-normal text-muted-foreground">
                   Separe as cores hexadecimais por vírgula.
                 </span>
+              </label>
+            </>
+          ) : null}
+          {kind === "provider_fiscal_entity" ? (
+            <>
+              <label className="grid gap-2 text-sm font-medium">
+                <span>Empresa operacional</span>
+                <select
+                  value={form.providerId ?? ""}
+                  onChange={event => setForm({ ...form, providerId: event.target.value })}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Selecione a empresa operacional</option>
+                  {providers.map(provider => (
+                    <option key={provider.id} value={provider.id}>
+                      {recordName(provider)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {field("cnpj", "CNPJ fiscal")}
+              {field("legalName", "Razão social")}
+              {field("stateRegistration", "Inscrição estadual")}
+              {field("municipalRegistration", "Inscrição municipal")}
+              {field("address", "Endereço fiscal")}
+              {citySelect}
+              <label className="grid gap-2 text-sm font-medium">
+                <span>CNPJ padrão para faturamento</span>
+                <select
+                  value={form.isDefault ?? "no"}
+                  onChange={event => setForm({ ...form, isDefault: event.target.value })}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="no">Não</option>
+                  <option value="yes">Sim</option>
+                </select>
               </label>
             </>
           ) : null}

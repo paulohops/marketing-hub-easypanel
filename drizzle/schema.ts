@@ -317,6 +317,30 @@ export const providers = pgTable("providers", {
     .notNull(),
 });
 
+export const providerFiscalEntities = pgTable(
+  "provider_fiscal_entities",
+  {
+    id: serial("id").primaryKey(),
+    providerId: integer("providerId")
+      .notNull()
+      .references(() => providers.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 180 }).notNull(),
+    legalName: varchar("legalName", { length: 220 }),
+    cnpj: varchar("cnpj", { length: 14 }).notNull().unique(),
+    stateRegistration: varchar("stateRegistration", { length: 80 }),
+    municipalRegistration: varchar("municipalRegistration", { length: 80 }),
+    address: text("address"),
+    cityId: integer("cityId").references(() => cities.id, { onDelete: "set null" }),
+    isDefault: boolean("isDefault").default(false).notNull(),
+    active: boolean("active").default(true).notNull(),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("provider_fiscal_entities_provider_name_uq").on(table.providerId, table.name),
+  ]
+);
+
 export const providerDocuments = pgTable("provider_documents", {
   id: serial("id").primaryKey(),
   providerId: integer("providerId")
@@ -1898,6 +1922,8 @@ export const invoices = pgTable(
     supplierId: integer("supplierId")
       .notNull()
       .references(() => suppliers.id, { onDelete: "restrict" }),
+    companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
     supplierContractId: integer("supplierContractId").references(
       () => supplierContracts.id,
       { onDelete: "restrict" }
@@ -2010,6 +2036,8 @@ export const financeCompanies = pgTable(
   "finance_companies",
   {
     id: serial("id").primaryKey(),
+    providerId: integer("providerId").references(() => providers.id, { onDelete: "set null" }),
+    fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
     name: varchar("name", { length: 180 }).notNull(),
     code: varchar("code", { length: 40 }).notNull().unique(),
     active: boolean("active").default(true).notNull(),
@@ -2083,6 +2111,7 @@ export const financeBudgetLines = pgTable(
     id: serial("id").primaryKey(),
     planId: integer("planId").notNull().references(() => financeBudgetPlans.id, { onDelete: "cascade" }),
     companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
     divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
     sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
     mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
@@ -2115,6 +2144,7 @@ export const purchaseOrders = pgTable(
     supplierId: integer("supplierId").notNull().references(() => suppliers.id, { onDelete: "restrict" }),
     budgetPlanId: integer("budgetPlanId").references(() => financeBudgetPlans.id, { onDelete: "set null" }),
     companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
     divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
     sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
     mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
@@ -2176,6 +2206,7 @@ export const financialCostAllocations = pgTable(
     operationType: operationTypeEnum("operationType"),
     operationId: integer("operationId"),
     companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
     divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
     sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
     mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
