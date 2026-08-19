@@ -118,6 +118,34 @@ export const purchaseOrderStatusEnum = pgEnum("purchase_order_status", [
   "received",
   "cancelled",
 ]);
+export const financeRecurrenceEnum = pgEnum("finance_recurrence", [
+  "one_time",
+  "weekly",
+  "biweekly",
+  "monthly",
+  "bimonthly",
+  "quarterly",
+  "semiannual",
+  "annual",
+]);
+export const financeBillingStatusEnum = pgEnum("finance_billing_status", [
+  "planned",
+  "awaiting_invoice",
+  "invoiced",
+  "partially_paid",
+  "paid",
+  "overdue",
+  "cancelled",
+]);
+export const financeBillingSourceEnum = pgEnum("finance_billing_source", [
+  "contract",
+  "purchase_order",
+  "manual",
+]);
+export const financeBillingModeEnum = pgEnum("finance_billing_mode", [
+  "single",
+  "recurring",
+]);
 export const purchaseOrderItemKindEnum = pgEnum("purchase_order_item_kind", [
   "product",
   "service",
@@ -917,19 +945,33 @@ export const supplierContracts = pgTable(
     supplierId: integer("supplierId")
       .notNull()
       .references(() => suppliers.id, { onDelete: "restrict" }),
+    companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
     purchaseOrderCode: varchar("purchaseOrderCode", { length: 96 }),
     contractType: varchar("contractType", { length: 120 }).notNull(),
+    objectDescription: text("objectDescription"),
+    signatureDate: date("signatureDate"),
     contractCode: varchar("contractCode", { length: 120 }),
     billingNames: jsonb("billingNames").$type<string[]>().default([]).notNull(),
     startsOn: date("startsOn").notNull(),
     endsOn: date("endsOn"),
     termMonths: integer("termMonths"),
     recurrence: varchar("recurrence", { length: 80 }).notNull(),
+    billingMode: financeBillingModeEnum("billingMode").default("recurring").notNull(),
+    billingRecurrence: financeRecurrenceEnum("billingRecurrence").default("monthly").notNull(),
+    billingStartsOn: date("billingStartsOn"),
+    billingEndsOn: date("billingEndsOn"),
+    autoRenew: boolean("autoRenew").default(false).notNull(),
     paymentDay: integer("paymentDay"),
     expectedAmount: numeric("expectedAmount", { precision: 14, scale: 2 })
       .default("0.00")
       .notNull(),
     paymentMethod: varchar("paymentMethod", { length: 80 }),
+    bankName: varchar("bankName", { length: 120 }),
+    bankBranch: varchar("bankBranch", { length: 40 }),
+    bankAccount: varchar("bankAccount", { length: 80 }),
+    bankHolder: varchar("bankHolder", { length: 180 }),
+    pixKey: varchar("pixKey", { length: 180 }),
     status: supplierContractStatusEnum("status").default("draft").notNull(),
     notes: text("notes"),
     createdAt: timestamp("createdAt", { withTimezone: true })
@@ -946,6 +988,22 @@ export const supplierContracts = pgTable(
     ),
   ]
 );
+
+export const supplierContractItems = pgTable("supplier_contract_items", {
+  id: serial("id").primaryKey(),
+  supplierContractId: integer("supplierContractId").notNull().references(() => supplierContracts.id, { onDelete: "cascade" }),
+  kind: purchaseOrderItemKindEnum("kind").notNull(),
+  description: varchar("description", { length: 240 }).notNull(),
+  quantity: numeric("quantity", { precision: 14, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 40 }).notNull(),
+  unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).notNull(),
+  totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).notNull(),
+  supplierOfferingId: integer("supplierOfferingId").references(() => supplierOfferings.id, { onDelete: "set null" }),
+  stockItemId: integer("stockItemId").references(() => stockItems.id, { onDelete: "set null" }),
+  operationType: operationTypeEnum("operationType"),
+  operationId: integer("operationId"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const tradeCampaigns = pgTable("trade_campaigns", {
   id: serial("id").primaryKey(),
@@ -1935,6 +1993,7 @@ export const invoices = pgTable(
     status: invoiceStatusEnum("status").default("open").notNull(),
     operationType: operationTypeEnum("operationType"),
     operationId: integer("operationId"),
+    billingId: integer("billingId").references(() => financeBillings.id, { onDelete: "set null" }),
     notes: text("notes"),
     createdAt: timestamp("createdAt", { withTimezone: true })
       .defaultNow()
@@ -1948,6 +2007,33 @@ export const invoices = pgTable(
       table.supplierId,
       table.invoiceNumber
     ),
+  ]
+);
+
+export const financeBillings = pgTable(
+  "finance_billings",
+  {
+    id: serial("id").primaryKey(),
+    source: financeBillingSourceEnum("source").notNull(),
+    supplierContractId: integer("supplierContractId").references(() => supplierContracts.id, { onDelete: "cascade" }),
+    purchaseOrderId: integer("purchaseOrderId").references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
+    fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
+    billingCode: varchar("billingCode", { length: 120 }).notNull().unique(),
+    sequence: integer("sequence").default(1).notNull(),
+    competenceStart: date("competenceStart").notNull(),
+    competenceEnd: date("competenceEnd").notNull(),
+    dueDate: date("dueDate").notNull(),
+    amount: numeric("amount", { precision: 14, scale: 2 }).default("0.00").notNull(),
+    status: financeBillingStatusEnum("status").default("planned").notNull(),
+    description: varchar("description", { length: 240 }).notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("finance_billings_contract_sequence_uq").on(table.supplierContractId, table.sequence),
+    uniqueIndex("finance_billings_order_sequence_uq").on(table.purchaseOrderId, table.sequence),
   ]
 );
 
@@ -2112,6 +2198,8 @@ export const financeBudgetLines = pgTable(
     planId: integer("planId").notNull().references(() => financeBudgetPlans.id, { onDelete: "cascade" }),
     companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "set null" }),
     fiscalEntityId: integer("fiscalEntityId").references(() => providerFiscalEntities.id, { onDelete: "set null" }),
+    regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "set null" }),
+    supplierId: integer("supplierId").references(() => suppliers.id, { onDelete: "set null" }),
     divisionId: integer("divisionId").references(() => financeDivisions.id, { onDelete: "set null" }),
     sectorId: integer("sectorId").references(() => financeSectors.id, { onDelete: "set null" }),
     mediumId: integer("mediumId").references(() => financeMediums.id, { onDelete: "set null" }),
@@ -2151,6 +2239,11 @@ export const purchaseOrders = pgTable(
     status: purchaseOrderStatusEnum("status").default("draft").notNull(),
     requestedAt: timestamp("requestedAt", { withTimezone: true }).defaultNow().notNull(),
     expectedDeliveryOn: date("expectedDeliveryOn"),
+    billingMode: financeBillingModeEnum("billingMode").default("single").notNull(),
+    billingRecurrence: financeRecurrenceEnum("billingRecurrence").default("one_time").notNull(),
+    billingStartsOn: date("billingStartsOn"),
+    billingEndsOn: date("billingEndsOn"),
+    paymentDay: integer("paymentDay"),
     totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).default("0.00").notNull(),
     notes: text("notes"),
     requestedByUserId: integer("requestedByUserId").references(() => users.id, { onDelete: "restrict" }),

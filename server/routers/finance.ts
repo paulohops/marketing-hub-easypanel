@@ -17,6 +17,7 @@ import {
   financeMediums,
   financeSectors,
   financialCostAllocations,
+  financeBillings,
   invoiceItems,
   invoices,
   mediaCampaigns,
@@ -25,10 +26,12 @@ import {
   purchaseOrderItems,
   purchaseOrders,
   providers,
+  regionals,
   stockBalances,
   stockItems,
   stockMovements,
   supplierContracts,
+  supplierContractItems,
   supplierOfferings,
   suppliers,
 } from "../../drizzle/schema";
@@ -52,26 +55,113 @@ export const invoiceListFiltersInput = z.object({
   operationId: z.number().int().positive().optional(),
 });
 
+const financeItemInput = z.object({
+  kind: z.enum(["product", "service", "media", "other"]),
+  description: z.string().trim().min(1).max(240),
+  quantity: z.number().positive(),
+  unit: z.string().trim().min(1).max(40),
+  unitPrice: z.number().min(0),
+  supplierOfferingId: z.number().int().positive().nullable().optional(),
+  stockItemId: z.number().int().positive().nullable().optional(),
+  operationType: z.enum(["media_campaign", "action", "event", "trade_operation", "other"]).nullable().optional(),
+  operationId: z.number().int().positive().nullable().optional(),
+});
+
 const supplierContractInput = z.object({
   supplierId: z.number().int().positive(),
+  companyId: z.number().int().positive().nullable().optional(),
+  fiscalEntityId: z.number().int().positive().nullable().optional(),
   purchaseOrderCode: z.string().trim().max(96).optional(),
   contractType: z.string().trim().min(2).max(120),
+  objectDescription: z.string().trim().max(2000).optional(),
+  signatureDate: z.string().date().optional(),
   contractCode: z.string().trim().max(120).optional(),
   billingNames: z.array(z.string().trim().min(1).max(180)).max(12).default([]),
   startsOn: z.string().date(),
   endsOn: z.string().date().optional(),
   termMonths: z.number().int().positive().max(240).optional(),
   recurrence: z.string().trim().min(2).max(80),
+  billingMode: z.enum(["single", "recurring"]).default("recurring"),
+  billingRecurrence: z.enum(["one_time", "weekly", "biweekly", "monthly", "bimonthly", "quarterly", "semiannual", "annual"]).default("monthly"),
+  billingStartsOn: z.string().date().optional(),
+  billingEndsOn: z.string().date().optional(),
+  autoRenew: z.boolean().default(false),
   paymentDay: z.number().int().min(1).max(31).optional(),
   expectedAmount: z.number().min(0).max(10_000_000),
   paymentMethod: z.string().trim().max(80).optional(),
+  bankName: z.string().trim().max(120).optional(),
+  bankBranch: z.string().trim().max(40).optional(),
+  bankAccount: z.string().trim().max(80).optional(),
+  bankHolder: z.string().trim().max(180).optional(),
+  pixKey: z.string().trim().max(180).optional(),
   status: z.enum(["draft", "active", "expired", "terminated"]).default("draft"),
   notes: z.string().trim().max(3000).optional(),
+  items: z.array(financeItemInput).optional().default([]),
 });
 
 export function deriveInvoiceStatus(status: string, dueDate: string, today = new Date().toISOString().slice(0, 10)) {
   if (status === "cancelled" || status === "paid") return status;
   return dueDate < today ? "overdue" : status;
+}
+
+type FinanceRecurrence = "one_time" | "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly" | "semiannual" | "annual";
+
+function toUtcDate(value: string) {
+  return new Date(`${value}T12:00:00.000Z`);
+}
+
+function toDateString(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function addMonthsClamped(value: Date, months: number) {
+  const target = new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + months, 1, 12));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0, 12)).getUTCDate();
+  target.setUTCDate(Math.min(value.getUTCDate(), lastDay));
+  return target;
+}
+
+function addRecurrence(value: Date, recurrence: FinanceRecurrence) {
+  if (recurrence === "weekly") return new Date(value.getTime() + 7 * 86400000);
+  if (recurrence === "biweekly") return new Date(value.getTime() + 14 * 86400000);
+  if (recurrence === "monthly") return addMonthsClamped(value, 1);
+  if (recurrence === "bimonthly") return addMonthsClamped(value, 2);
+  if (recurrence === "quarterly") return addMonthsClamped(value, 3);
+  if (recurrence === "semiannual") return addMonthsClamped(value, 6);
+  return addMonthsClamped(value, 12);
+}
+
+function recurrencePeriodEnd(start: Date, recurrence: FinanceRecurrence, boundary: Date) {
+  if (recurrence === "one_time") return boundary;
+  const next = addRecurrence(start, recurrence);
+  return new Date(Math.min(next.getTime() - 86400000, boundary.getTime()));
+}
+
+function dueDateForPeriod(periodEnd: Date, paymentDay?: number | null) {
+  if (!paymentDay) return periodEnd;
+  const day = Math.min(Math.max(paymentDay, 1), 31);
+  const lastDay = new Date(Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth() + 1, 0, 12)).getUTCDate();
+  return new Date(Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), Math.min(day, lastDay), 12));
+}
+
+function buildBillingPeriods(startOn: string, endOn: string | null | undefined, recurrence: FinanceRecurrence, paymentDay?: number | null) {
+  const start = toUtcDate(startOn);
+  const boundary = toUtcDate(endOn || startOn);
+  if (boundary.getTime() < start.getTime()) throw new TRPCError({ code: "BAD_REQUEST", message: "O fim da recorrência não pode ser anterior ao início." });
+  if (recurrence !== "one_time" && !endOn) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe o fim da recorrência para gerar competências." });
+  const periods: Array<{ sequence: number; competenceStart: string; competenceEnd: string; dueDate: string }> = [];
+  let cursor = start;
+  let sequence = 1;
+  while (cursor.getTime() <= boundary.getTime() && sequence <= 2400) {
+    const end = recurrencePeriodEnd(cursor, recurrence, boundary);
+    periods.push({ sequence, competenceStart: toDateString(cursor), competenceEnd: toDateString(end), dueDate: toDateString(dueDateForPeriod(end, paymentDay)) });
+    if (recurrence === "one_time") break;
+    const next = addRecurrence(cursor, recurrence);
+    if (next.getTime() <= cursor.getTime()) break;
+    cursor = next;
+    sequence += 1;
+  }
+  return periods;
 }
 
 async function requireDatabase() {
@@ -156,10 +246,82 @@ export const financeRouter = router({
     const database = await requireDatabase();
     const [supplier] = await database.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.id, input.supplierId));
     if (!supplier) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." });
+    await validateFinancialEntity(database, input.companyId, input.fiscalEntityId);
     if (input.endsOn && input.endsOn < input.startsOn) throw new TRPCError({ code: "BAD_REQUEST", message: "A vigência final não pode ser anterior ao início do contrato." });
-    const [created] = await database.insert(supplierContracts).values({ ...input, purchaseOrderCode: input.purchaseOrderCode || null, contractCode: input.contractCode || null, endsOn: input.endsOn || null, termMonths: input.termMonths || null, paymentDay: input.paymentDay || null, expectedAmount: input.expectedAmount.toFixed(2), paymentMethod: input.paymentMethod || null, notes: input.notes || null }).returning();
-    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_contract", entityId: created.id, action: "create", afterData: created });
-    return created;
+    const billingStart = input.billingStartsOn || input.startsOn;
+    const billingEnd = input.billingEndsOn || input.endsOn;
+    const billingRecurrence = input.billingMode === "single" ? "one_time" : input.billingRecurrence;
+    const periods = buildBillingPeriods(billingStart, billingEnd, billingRecurrence, input.paymentDay);
+    for (const item of input.items) {
+      if (item.kind === "product" && !item.stockItemId) throw new TRPCError({ code: "BAD_REQUEST", message: "Vincule o produto ao estoque nos itens de produto do contrato." });
+    }
+    const itemsTotal = input.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const amountPerBilling = itemsTotal > 0 ? itemsTotal : input.expectedAmount;
+    return database.transaction(async tx => {
+      const [created] = await tx.insert(supplierContracts).values({
+        supplierId: input.supplierId,
+        companyId: input.companyId || null,
+        fiscalEntityId: input.fiscalEntityId || null,
+        purchaseOrderCode: input.purchaseOrderCode || null,
+        contractType: input.contractType,
+        objectDescription: input.objectDescription || null,
+        signatureDate: input.signatureDate || null,
+        contractCode: input.contractCode || null,
+        billingNames: input.billingNames,
+        startsOn: input.startsOn,
+        endsOn: input.endsOn || null,
+        termMonths: input.termMonths || null,
+        recurrence: input.recurrence,
+        billingMode: input.billingMode,
+        billingRecurrence,
+        billingStartsOn: billingStart,
+        billingEndsOn: billingEnd || null,
+        autoRenew: input.autoRenew,
+        paymentDay: input.paymentDay || null,
+        expectedAmount: input.expectedAmount.toFixed(2),
+        paymentMethod: input.paymentMethod || null,
+        bankName: input.bankName || null,
+        bankBranch: input.bankBranch || null,
+        bankAccount: input.bankAccount || null,
+        bankHolder: input.bankHolder || null,
+        pixKey: input.pixKey || null,
+        status: input.status,
+        notes: input.notes || null,
+      }).returning();
+      if (input.items.length) {
+        await tx.insert(supplierContractItems).values(input.items.map(item => ({
+          supplierContractId: created.id,
+          kind: item.kind,
+          description: item.description,
+          quantity: item.quantity.toFixed(2),
+          unit: item.unit,
+          unitPrice: item.unitPrice.toFixed(2),
+          totalAmount: (item.quantity * item.unitPrice).toFixed(2),
+          supplierOfferingId: item.supplierOfferingId || null,
+          stockItemId: item.stockItemId || null,
+          operationType: item.operationType || null,
+          operationId: item.operationId || null,
+        })));
+      }
+      await tx.insert(financeBillings).values(periods.map(period => ({
+        source: "contract" as const,
+        supplierContractId: created.id,
+        purchaseOrderId: null,
+        companyId: input.companyId || null,
+        fiscalEntityId: input.fiscalEntityId || null,
+        billingCode: `CTR-${created.id}-${period.sequence}`,
+        sequence: period.sequence,
+        competenceStart: period.competenceStart,
+        competenceEnd: period.competenceEnd,
+        dueDate: period.dueDate,
+        amount: amountPerBilling.toFixed(2),
+        status: "planned" as const,
+        description: input.objectDescription || input.contractType,
+        notes: null,
+      })));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_contract", entityId: created.id, action: "create", afterData: { ...created, billingCount: periods.length, itemCount: input.items.length } });
+      return created;
+    });
   }),
 
   operationForecasts: protectedProcedure.query(async ({ ctx }) => {
@@ -188,7 +350,7 @@ export const financeRouter = router({
   financeDimensions: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "finance.read");
     const database = await requireDatabase();
-    const [companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities] = await Promise.all([
+    const [companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities, regionalsList] = await Promise.all([
       database.select().from(financeCompanies).where(eq(financeCompanies.active, true)).orderBy(asc(financeCompanies.name)),
       database.select().from(financeDivisions).where(eq(financeDivisions.active, true)).orderBy(asc(financeDivisions.name)),
       database.select().from(financeSectors).where(eq(financeSectors.active, true)).orderBy(asc(financeSectors.name)),
@@ -197,8 +359,9 @@ export const financeRouter = router({
       database.select({ offering: supplierOfferings, supplierName: suppliers.displayName }).from(supplierOfferings).innerJoin(suppliers, eq(supplierOfferings.supplierId, suppliers.id)).where(eq(supplierOfferings.active, true)).orderBy(asc(supplierOfferings.name)),
       database.select().from(stockItems).where(eq(stockItems.active, true)).orderBy(asc(stockItems.name)),
       database.select({ fiscalEntity: providerFiscalEntities, providerName: providers.name }).from(providerFiscalEntities).innerJoin(providers, eq(providerFiscalEntities.providerId, providers.id)).where(eq(providerFiscalEntities.active, true)).orderBy(asc(providers.name), asc(providerFiscalEntities.name)),
+      database.select().from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
     ]);
-    return { companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities };
+    return { companies, divisions, sectors, mediums, accounts, offerings, stock, fiscalEntities, regionals: regionalsList };
   }),
 
   budgetSnapshot: protectedProcedure.input(z.object({ year: z.number().int().min(2020).max(2200) })).query(async ({ ctx, input }) => {
@@ -233,6 +396,8 @@ export const financeRouter = router({
     planId: z.number().int().positive(),
     companyId: z.number().int().positive().nullable().optional(),
     fiscalEntityId: z.number().int().positive().nullable().optional(),
+    regionalId: z.number().int().positive().nullable().optional(),
+    supplierId: z.number().int().positive().nullable().optional(),
     divisionId: z.number().int().positive().nullable().optional(),
     sectorId: z.number().int().positive().nullable().optional(),
     mediumId: z.number().int().positive().nullable().optional(),
@@ -250,6 +415,8 @@ export const financeRouter = router({
       planId: input.planId,
       companyId: input.companyId || null,
       fiscalEntityId: input.fiscalEntityId || null,
+      regionalId: input.regionalId || null,
+      supplierId: input.supplierId || null,
       divisionId: input.divisionId || null,
       sectorId: input.sectorId || null,
       mediumId: input.mediumId || null,
@@ -293,8 +460,13 @@ export const financeRouter = router({
     sectorId: z.number().int().positive().nullable().optional(),
     mediumId: z.number().int().positive().nullable().optional(),
     expectedDeliveryOn: z.string().date().nullable().optional(),
+    billingMode: z.enum(["single", "recurring"]).default("single"),
+    billingRecurrence: z.enum(["one_time", "weekly", "biweekly", "monthly", "bimonthly", "quarterly", "semiannual", "annual"]).default("one_time"),
+    billingStartsOn: z.string().date().nullable().optional(),
+    billingEndsOn: z.string().date().nullable().optional(),
+    paymentDay: z.number().int().min(1).max(31).nullable().optional(),
     notes: z.string().trim().max(3000).optional(),
-    items: z.array(z.object({ kind: z.enum(["product", "service", "media", "other"]), description: z.string().trim().min(1).max(240), quantity: z.number().positive(), unit: z.string().trim().min(1).max(40), unitPrice: z.number().min(0), supplierOfferingId: z.number().int().positive().nullable().optional(), stockItemId: z.number().int().positive().nullable().optional(), operationType: z.enum(["media_campaign", "action", "event", "trade_operation", "other"]).nullable().optional(), operationId: z.number().int().positive().nullable().optional() })).min(1),
+    items: z.array(financeItemInput).min(1),
   })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
@@ -302,10 +474,64 @@ export const financeRouter = router({
     const supplier = await database.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.id, input.supplierId));
     if (!supplier.length) throw new TRPCError({ code: "NOT_FOUND", message: "Fornecedor não encontrado." });
     const totalAmount = input.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const billingMode = input.billingMode;
+    const billingRecurrence = billingMode === "single" ? "one_time" : input.billingRecurrence;
+    const billingStart = input.billingStartsOn || input.expectedDeliveryOn || toDateString(new Date());
+    const billingEnd = input.billingEndsOn || (billingMode === "single" ? billingStart : null);
+    const periods = buildBillingPeriods(billingStart, billingEnd, billingRecurrence, input.paymentDay);
+    for (const item of input.items) {
+      if (item.kind === "product" && !item.stockItemId) throw new TRPCError({ code: "BAD_REQUEST", message: "Vincule o produto ao estoque nos itens de produto do pedido." });
+    }
     return database.transaction(async tx => {
-      const [created] = await tx.insert(purchaseOrders).values({ ...input, budgetPlanId: input.budgetPlanId || null, companyId: input.companyId || null, fiscalEntityId: input.fiscalEntityId || null, divisionId: input.divisionId || null, sectorId: input.sectorId || null, mediumId: input.mediumId || null, expectedDeliveryOn: input.expectedDeliveryOn || null, notes: input.notes || null, totalAmount: totalAmount.toFixed(2), requestedByUserId: ctx.user.id }).returning();
-      await tx.insert(purchaseOrderItems).values(input.items.map(item => ({ ...item, purchaseOrderId: created.id, supplierOfferingId: item.supplierOfferingId || null, stockItemId: item.stockItemId || null, operationType: item.operationType || null, operationId: item.operationId || null, quantity: item.quantity.toFixed(2), unitPrice: item.unitPrice.toFixed(2), totalAmount: (item.quantity * item.unitPrice).toFixed(2) })));
-      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "purchase_order", entityId: created.id, action: "create", afterData: created });
+      const [created] = await tx.insert(purchaseOrders).values({
+        orderNumber: input.orderNumber,
+        supplierId: input.supplierId,
+        budgetPlanId: input.budgetPlanId || null,
+        companyId: input.companyId || null,
+        fiscalEntityId: input.fiscalEntityId || null,
+        divisionId: input.divisionId || null,
+        sectorId: input.sectorId || null,
+        mediumId: input.mediumId || null,
+        expectedDeliveryOn: input.expectedDeliveryOn || null,
+        billingMode,
+        billingRecurrence,
+        billingStartsOn: input.billingStartsOn || null,
+        billingEndsOn: input.billingEndsOn || null,
+        paymentDay: input.paymentDay || null,
+        notes: input.notes || null,
+        totalAmount: totalAmount.toFixed(2),
+        requestedByUserId: ctx.user.id,
+      }).returning();
+      await tx.insert(purchaseOrderItems).values(input.items.map(item => ({
+        purchaseOrderId: created.id,
+        kind: item.kind,
+        description: item.description,
+        quantity: item.quantity.toFixed(2),
+        unit: item.unit,
+        unitPrice: item.unitPrice.toFixed(2),
+        totalAmount: (item.quantity * item.unitPrice).toFixed(2),
+        supplierOfferingId: item.supplierOfferingId || null,
+        stockItemId: item.stockItemId || null,
+        operationType: item.operationType || null,
+        operationId: item.operationId || null,
+      })));
+      await tx.insert(financeBillings).values(periods.map(period => ({
+        source: "purchase_order" as const,
+        supplierContractId: null,
+        purchaseOrderId: created.id,
+        companyId: input.companyId || null,
+        fiscalEntityId: input.fiscalEntityId || null,
+        billingCode: `OC-${created.id}-${period.sequence}`,
+        sequence: period.sequence,
+        competenceStart: period.competenceStart,
+        competenceEnd: period.competenceEnd,
+        dueDate: period.dueDate,
+        amount: (totalAmount / periods.length).toFixed(2),
+        status: "planned" as const,
+        description: `Ordem de compra ${input.orderNumber}`,
+        notes: null,
+      })));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "purchase_order", entityId: created.id, action: "create", afterData: { ...created, billingCount: periods.length, itemCount: input.items.length } });
       return created;
     });
   }),
@@ -360,6 +586,37 @@ export const financeRouter = router({
     });
   }),
 
+  listBillings: protectedProcedure.input(z.object({
+    year: z.number().int().min(2020).max(2200).optional(),
+    month: z.number().int().min(1).max(12).optional(),
+    status: z.enum(["planned", "awaiting_invoice", "invoiced", "partially_paid", "paid", "overdue", "cancelled"]).optional(),
+    source: z.enum(["contract", "purchase_order", "manual"]).optional(),
+    supplierId: z.number().int().positive().optional(),
+    companyId: z.number().int().positive().optional(),
+    fiscalEntityId: z.number().int().positive().optional(),
+  }).optional()).query(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.read");
+    const database = await requireDatabase();
+    const [billingRows, invoiceRows, paymentRows, contractRows, orderRows] = await Promise.all([
+      database.select().from(financeBillings).orderBy(asc(financeBillings.dueDate), asc(financeBillings.sequence)),
+      database.select().from(invoices),
+      database.select().from(payments),
+      database.select({ id: supplierContracts.id, supplierId: supplierContracts.supplierId, contractCode: supplierContracts.contractCode, supplierName: suppliers.displayName }).from(supplierContracts).innerJoin(suppliers, eq(supplierContracts.supplierId, suppliers.id)),
+      database.select({ id: purchaseOrders.id, supplierId: purchaseOrders.supplierId, orderNumber: purchaseOrders.orderNumber, supplierName: suppliers.displayName }).from(purchaseOrders).innerJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id)),
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    const result = billingRows.map(billing => {
+      const invoice = invoiceRows.find(row => row.billingId === billing.id);
+      const paidAmount = invoice ? paymentRows.filter(payment => payment.invoiceId === invoice.id).reduce((sum, payment) => sum + Number(payment.amount), 0) : 0;
+      const contractRecord = billing.source === "contract" ? contractRows.find(row => row.id === billing.supplierContractId) : undefined;
+      const orderRecord = billing.source === "purchase_order" ? orderRows.find(row => row.id === billing.purchaseOrderId) : undefined;
+      const sourceRecord = contractRecord || orderRecord;
+      const status = invoice ? (invoice.status === "paid" ? "paid" : paidAmount > 0 ? "partially_paid" : deriveInvoiceStatus("invoiced", invoice.dueDate, today)) : deriveInvoiceStatus(billing.status, billing.dueDate, today);
+      return { ...billing, status, invoice: invoice || null, totalPaid: paidAmount, outstandingAmount: Math.max(0, Number(billing.amount) - paidAmount), supplierId: sourceRecord?.supplierId || invoice?.supplierId || null, supplierName: sourceRecord?.supplierName || null, sourceReference: contractRecord?.contractCode || orderRecord?.orderNumber || null };
+    }).filter(row => !input?.year || row.dueDate.startsWith(`${input.year}-`)).filter(row => !input?.month || Number(row.dueDate.slice(5, 7)) === input.month).filter(row => !input?.status || row.status === input.status).filter(row => !input?.source || row.source === input.source).filter(row => !input?.supplierId || row.supplierId === input.supplierId).filter(row => !input?.companyId || row.companyId === input.companyId).filter(row => !input?.fiscalEntityId || row.fiscalEntityId === input.fiscalEntityId);
+    return result;
+  }),
+
   listInvoices: protectedProcedure.input(invoiceListFiltersInput.optional()).query(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.read");
     const database = await requireDatabase();
@@ -388,7 +645,7 @@ export const financeRouter = router({
     return input?.status ? result.filter(invoice => invoice.status === input.status) : result;
   }),
 
-  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), companyId: z.number().int().positive().nullable().optional(), fiscalEntityId: z.number().int().positive().nullable().optional(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional(), items: z.array(z.object({ kind: z.enum(["product", "service", "media", "other"]), description: z.string().trim().min(1).max(240), quantity: z.number().positive(), unit: z.string().trim().min(1).max(40), unitPrice: z.number().min(0), stockItemId: z.number().int().positive().nullable().optional() })).optional() })).mutation(async ({ ctx, input }) => {
+  createInvoice: protectedProcedure.input(z.object({ supplierId: z.number().int().positive(), supplierContractId: z.number().int().positive().nullable().optional(), billingId: z.number().int().positive().nullable().optional(), companyId: z.number().int().positive().nullable().optional(), fiscalEntityId: z.number().int().positive().nullable().optional(), invoiceNumber: z.string().trim().min(1).max(80), issueDate: z.string().date(), dueDate: z.string().date(), amount: z.number().positive().max(10_000_000), operationType: z.enum(["media_campaign", "action", "event", "other"]).nullable(), operationId: z.number().int().positive().nullable(), notes: z.string().trim().max(2000).optional(), items: z.array(z.object({ kind: z.enum(["product", "service", "media", "other"]), description: z.string().trim().min(1).max(240), quantity: z.number().positive(), unit: z.string().trim().min(1).max(40), unitPrice: z.number().min(0), stockItemId: z.number().int().positive().nullable().optional() })).optional() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.write");
     const database = await requireDatabase();
     await validateFinancialEntity(database, input.companyId, input.fiscalEntityId);
@@ -403,6 +660,13 @@ export const financeRouter = router({
       const [contract] = await database.select().from(supplierContracts).where(eq(supplierContracts.id, input.supplierContractId));
       if (!contract || contract.supplierId !== input.supplierId) throw new TRPCError({ code: "BAD_REQUEST", message: "O contrato informado não pertence ao fornecedor da nota fiscal." });
     }
+    if (input.billingId) {
+      const [billing] = await database.select().from(financeBillings).where(eq(financeBillings.id, input.billingId));
+      if (!billing) throw new TRPCError({ code: "NOT_FOUND", message: "Competência financeira não encontrada." });
+      if (billing.supplierContractId && input.supplierContractId !== billing.supplierContractId) throw new TRPCError({ code: "BAD_REQUEST", message: "A competência não pertence ao contrato informado." });
+      if (billing.companyId && input.companyId !== billing.companyId) throw new TRPCError({ code: "BAD_REQUEST", message: "A competência não pertence à empresa operacional informada." });
+      if (billing.fiscalEntityId && input.fiscalEntityId !== billing.fiscalEntityId) throw new TRPCError({ code: "BAD_REQUEST", message: "A competência não pertence à empresa fiscal informada." });
+    }
     const items = input.items ?? [];
     for (const item of items) {
       if (item.kind === "product" && !item.stockItemId) throw new TRPCError({ code: "BAD_REQUEST", message: "Vincule o produto a um item de estoque antes de salvar a nota." });
@@ -412,9 +676,12 @@ export const financeRouter = router({
       }
     }
     return database.transaction(async tx => {
-      const [created] = await tx.insert(invoices).values({ supplierId: input.supplierId, supplierContractId: input.supplierContractId || null, companyId: input.companyId || null, fiscalEntityId: input.fiscalEntityId || null, invoiceNumber: input.invoiceNumber, issueDate: input.issueDate, dueDate: input.dueDate, amount: input.amount.toFixed(2), operationType: input.operationType, operationId: input.operationId, notes: input.notes || null }).returning();
+      const [created] = await tx.insert(invoices).values({ supplierId: input.supplierId, supplierContractId: input.supplierContractId || null, billingId: input.billingId || null, companyId: input.companyId || null, fiscalEntityId: input.fiscalEntityId || null, invoiceNumber: input.invoiceNumber, issueDate: input.issueDate, dueDate: input.dueDate, amount: input.amount.toFixed(2), operationType: input.operationType, operationId: input.operationId, notes: input.notes || null }).returning();
       if (items.length) {
         await tx.insert(invoiceItems).values(items.map(item => ({ invoiceId: created.id, kind: item.kind, description: item.description, quantity: item.quantity.toFixed(2), unit: item.unit, unitPrice: item.unitPrice.toFixed(2), totalAmount: (item.quantity * item.unitPrice).toFixed(2), stockItemId: item.stockItemId || null })));
+      }
+      if (input.billingId) {
+        await tx.update(financeBillings).set({ status: "invoiced", updatedAt: new Date() }).where(eq(financeBillings.id, input.billingId));
       }
       await writeAuditLog({ actorUserId: ctx.user.id, entityType: "invoice", entityId: created.id, action: "create", afterData: { ...created, itemCount: items.length } });
       return created;
@@ -433,6 +700,9 @@ export const financeRouter = router({
     const [created] = await database.insert(payments).values({ ...input, amount: input.amount.toFixed(2), reference: input.reference || null, notes: input.notes || null, performedByUserId: ctx.user.id }).returning();
     const nextStatus = paymentStatus(Number(invoice.amount), paidBefore + input.amount);
     await database.update(invoices).set({ status: nextStatus, updatedAt: new Date() }).where(eq(invoices.id, input.invoiceId));
+    if (invoice.billingId) {
+      await database.update(financeBillings).set({ status: nextStatus === "paid" ? "paid" : "partially_paid", updatedAt: new Date() }).where(eq(financeBillings.id, invoice.billingId));
+    }
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "payment", entityId: created.id, action: "create", afterData: created });
     return { payment: created, invoiceStatus: nextStatus };
   }),
