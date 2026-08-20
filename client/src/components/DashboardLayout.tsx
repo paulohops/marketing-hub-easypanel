@@ -520,7 +520,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0 bg-background">
-        <div className="min-h-screen px-4 py-5 sm:px-7 sm:py-7">{children}</div>
+        <div className="min-h-screen">{children}</div>
         <OnboardingTutorial />
       </SidebarInset>
     </SidebarProvider>

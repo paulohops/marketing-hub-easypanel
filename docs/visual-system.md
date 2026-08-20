@@ -88,3 +88,15 @@ A classe global `hub-card`, usada por `WorkspaceCard`, aplica padding interno de
 O modificador `hub-card--padded` permanece apenas por compatibilidade com implementações antigas. Novos componentes não devem depender dele para obter respiro, pois `hub-card` já é padded. Cards auxiliares aninhados podem usar um padding menor somente quando não representarem uma unidade de conteúdo independente; essa exceção deve ser intencional e documentada.
 
 Filtros, headers, seções e cards devem respeitar o mesmo ritmo: header canônico, seção com espaçamento vertical consistente, card com padding, controles alinhados e ações sem contato com as bordas. Ao revisar um módulo, validar desktop e mobile para garantir que o padding não seja removido por classes utilitárias conflitantes.
+
+## Escala global de margem, padding e gaps — agosto de 2026
+
+Todo conteúdo autenticado deve estar dentro de `cluster-workspace` ou `WorkspaceShell`. O container global fornece o respiro externo da página, com padding horizontal responsivo, padding vertical superior de `1,25rem` e padding inferior de `2rem`. O `DashboardLayout` não deve adicionar um segundo padding ao conteúdo, evitando margem dupla entre módulos.
+
+A escala oficial usa os tokens CSS `--hub-space-1` a `--hub-space-10`. O ritmo padrão é: `0,5rem` para agrupamentos compactos, `0,75rem` entre controles relacionados, `1rem` entre itens de uma grade, `1,25rem` entre seções e como padding interno de cards, `1,5rem` para respiros maiores e `2rem` no final das páginas. Novas telas devem preferir esses tokens ou as classes compartilhadas `hub-page`, `hub-section`, `hub-filter-panel` e `hub-card` em vez de valores isolados.
+
+O `hub-card` e os componentes `Card` semânticos recebem padding interno obrigatório de `1,25rem`. Classes locais como `p-0`, `px-0` ou `py-0` só podem existir em áreas técnicas ou overlays cuja ausência de respiro seja intencional, como uma imagem ocupando toda a superfície de um card; elas não devem ser usadas para remover o padding de uma unidade de conteúdo, formulário ou ação.
+
+O header canônico é separado do primeiro conteúdo por `1,25rem`. Filtros ficam em painel próprio com `1rem` de padding, controles separados por `0,75rem` e menus pesquisáveis com `0,75rem` de padding. A mesma régua deve ser preservada em desktop, tablet e mobile; apenas a largura externa se torna fluida.
+
+Checklist adicional de espaçamento: confirmar que a rota passa pelo `cluster-workspace`; confirmar que o DashboardLayout não duplica padding; confirmar que o primeiro bloco não encosta no header; confirmar que cards têm `1,25rem` de respiro; confirmar que grids usam gap de `1rem`; confirmar que seções usam `1,25rem`; e testar a tela em modo claro, escuro, desktop e mobile.

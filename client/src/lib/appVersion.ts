@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.3.3.0";
+export const APP_VERSION = "1.3.4.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.3.4.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Padronização global de margens, padding e ritmo visual em todo o sistema.",
+    changes: [
+      "Criada uma escala global de espaçamento com tokens oficiais para páginas, seções, grids, filtros, controles e cards.",
+      "Todos os módulos autenticados passaram a usar o container cluster-workspace, com uma única margem externa e sem padding duplicado no DashboardLayout.",
+      "Cards semânticos e WorkspaceCard passaram a compartilhar padding interno obrigatório de 1,25rem e gap interno canônico.",
+      "Headers, filtros, listas e dropdowns pesquisáveis foram alinhados à mesma régua de espaçamento, incluindo a página inicial e os módulos legados.",
+      "A documentação do sistema visual foi ampliada com regras de margem, padding, exceções para overlays e checklist de validação responsiva.",
+    ],
+  },
   {
     version: "1.3.3.0",
     date: "20/08/2026",

@@ -138,5 +138,5 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   if (module === "pontos-de-acao") return <DashboardLayout><div className="cluster-workspace"><ActionPointsWorkspace /></div></DashboardLayout>;
   if (module === "central-conhecimento") return <DashboardLayout><div className="cluster-workspace">{topicId ? <KnowledgeTopicWorkspace topicId={topicId} /> : <HelpWorkspace />}</div></DashboardLayout>;
   if (module === "notificacoes") return <DashboardLayout><div className="cluster-workspace"><NotificationsWorkspace /></div></DashboardLayout>;
-  return <DashboardLayout><ModulePage {...definition} /></DashboardLayout>;
+  return <DashboardLayout><div className="cluster-workspace"><ModulePage {...definition} /></div></DashboardLayout>;
 }

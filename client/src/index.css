@@ -51,6 +51,23 @@
   --secondary: color-mix(in srgb, var(--app-primary, #0e723b) 10%, #ffffff); --secondary-foreground: var(--app-primary, #0e723b); --muted: color-mix(in srgb, var(--app-primary, #0e723b) 7%, #ffffff); --muted-foreground: color-mix(in srgb, var(--app-foreground, #133523) 64%, #ffffff); --accent: color-mix(in srgb, var(--app-accent, #f45103) 10%, #ffffff); --accent-foreground: color-mix(in srgb, var(--app-accent, #f45103) 78%, #000000);
   --destructive: #c73710; --destructive-foreground: #ffffff; --border: color-mix(in srgb, var(--app-primary, #0e723b) 16%, #ffffff); --input: color-mix(in srgb, var(--app-primary, #0e723b) 22%, #ffffff); --ring: var(--app-accent, #f45103);
   --sidebar: var(--app-primary, #0e723b); --sidebar-foreground: #ecf8f0; --sidebar-accent: color-mix(in srgb, var(--app-primary, #0e723b) 88%, #000000); --sidebar-accent-foreground: #ffffff; --sidebar-border: color-mix(in srgb, var(--app-primary, #0e723b) 70%, #ffffff); --sidebar-ring: var(--app-accent, #f45103);
+
+  /* Escala oficial de espaçamento: todo módulo deve usar estes tokens. */
+  --hub-space-1: 0.25rem;
+  --hub-space-2: 0.5rem;
+  --hub-space-3: 0.75rem;
+  --hub-space-4: 1rem;
+  --hub-space-5: 1.25rem;
+  --hub-space-6: 1.5rem;
+  --hub-space-8: 2rem;
+  --hub-space-10: 2.5rem;
+  --hub-page-inline-padding: clamp(1rem, 2vw, 2rem);
+  --hub-page-bottom-padding: var(--hub-space-8);
+  --hub-section-gap: var(--hub-space-5);
+  --hub-grid-gap: var(--hub-space-4);
+  --hub-card-padding: var(--hub-space-5);
+  --hub-card-internal-gap: var(--hub-space-4);
+  --hub-control-gap: var(--hub-space-3);
 }
 
 .dark {
@@ -167,7 +184,22 @@
   .cluster-workspace {
     position: relative;
     isolation: isolate;
+    display: flex;
     min-height: calc(100vh - 40px);
+    flex-direction: column;
+    gap: var(--hub-section-gap);
+    padding: var(--hub-space-5) var(--hub-page-inline-padding) var(--hub-page-bottom-padding);
+  }
+
+  .cluster-workspace > * {
+    min-width: 0;
+  }
+
+  /* O shell compartilhado herda o padding do cluster, evitando margens duplas. */
+  .cluster-workspace > .hub-page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
   }
 
   .cluster-workspace::before {
@@ -186,7 +218,7 @@
   /* Padrão visual de listas: cada registro é um cartão independente, nunca uma linha contínua. */
   .hub-list {
     display: grid;
-    gap: 0.75rem;
+    gap: var(--hub-grid-gap);
   }
 
   .hub-list-item {
@@ -208,7 +240,7 @@
   }
 
   .hub-list--compact {
-    gap: 0.5rem;
+    gap: var(--hub-space-2);
   }
 
   .media-list-compact .divide-y > article {
@@ -223,14 +255,14 @@
   /* Compatibilidade: módulos antigos que ainda usam divisórias são exibidos como itens independentes. */
   .divide-y.divide-border {
     display: grid;
-    gap: 0.75rem;
+    gap: var(--hub-grid-gap);
   }
 
   .divide-y.divide-border > :not([hidden]) {
     border: 1px solid var(--border) !important;
     border-radius: 10px;
     background: var(--card);
-    padding: 1rem !important;
+    padding: var(--hub-space-4) !important;
     box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
   }
 
@@ -270,18 +302,22 @@
     width: 100%;
     max-width: 1480px;
     margin-inline: auto;
-    padding: 0 1rem 2rem;
+    padding: 0 var(--hub-page-inline-padding) var(--hub-page-bottom-padding);
   }
 
   .hub-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1.25rem;
+    gap: var(--hub-space-5);
     height: 7.25rem;
     min-height: 7.25rem;
-    padding: 1.25rem 0 1.5rem;
+    padding: var(--hub-space-5) 0 var(--hub-space-6);
     border-bottom: 1px solid var(--border);
+  }
+
+  .hub-page > .hub-header + * {
+    margin-top: var(--hub-section-gap);
   }
 
   .hub-header__identity {
@@ -341,8 +377,8 @@
   .hub-header__meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
+    gap: var(--hub-space-2);
+    margin-top: var(--hub-space-3);
   }
 
   .hub-header__actions,
@@ -352,7 +388,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.5rem;
+    gap: var(--hub-space-2);
   }
 
   .hub-header__actions {
@@ -361,9 +397,9 @@
   }
   .hub-filter-panel {
     display: grid;
-    gap: 1rem;
+    gap: var(--hub-control-gap);
     align-items: center;
-    padding: 1rem;
+    padding: var(--hub-space-4);
     border: 1px solid var(--border);
     border-radius: 0.875rem;
     background: var(--card);
@@ -373,13 +409,13 @@
   .hub-filter-panel__controls {
     display: grid;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--hub-space-3);
   }
   .hub-filter-panel__label {
     display: flex;
     min-height: 2.25rem;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--hub-space-2);
     white-space: nowrap;
   }
   .hub-filter-panel__reset {
@@ -429,7 +465,7 @@
 
   .hub-searchable-popover {
     border-radius: 0.875rem;
-    padding: 0.75rem;
+    padding: var(--hub-space-3);
     box-shadow: 0 12px 28px rgba(19, 53, 35, 0.12);
   }
 
@@ -448,17 +484,17 @@
   }
 
   .hub-searchable-options {
-    margin-top: 0.625rem;
+    margin-top: var(--hub-space-3);
     max-height: 16rem;
     border: 0;
-    padding: 0.125rem;
+    padding: var(--hub-space-1);
   }
 
   .hub-searchable-option {
     min-height: 3rem;
     border: 1px solid transparent;
     border-radius: 0.625rem;
-    padding: 0.625rem 0.625rem;
+    padding: var(--hub-space-3);
     transition: background-color 160ms ease, border-color 160ms ease;
   }
 
@@ -480,8 +516,8 @@
 
   .hub-section {
     display: grid;
-    gap: 1rem;
-    margin-top: 1.25rem;
+    gap: var(--hub-grid-gap);
+    margin-top: var(--hub-section-gap);
   }
 
   .hub-section__header {
@@ -508,8 +544,8 @@
   }
 
   /* Padrão global: todo card tem respiro interno para separar conteúdo, borda e ações. */
-  .hub-card {
-    --hub-card-padding: 1.25rem;
+  .hub-card,
+  [data-slot="card"] {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
@@ -518,7 +554,16 @@
     border-radius: 0.875rem;
     background: var(--card);
     box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    gap: var(--hub-card-internal-gap);
     padding: var(--hub-card-padding) !important;
+  }
+
+  /* Card, CardHeader, CardContent e CardFooter compartilham a mesma borda interna. */
+  [data-slot="card"] > [data-slot="card-header"],
+  [data-slot="card"] > [data-slot="card-content"],
+  [data-slot="card"] > [data-slot="card-footer"] {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
   }
 
   /* Compatibilidade para cards antigos que já declaravam o modificador. */
@@ -538,13 +583,13 @@
 
   @media (min-width: 640px) {
     .hub-page {
-      padding-inline: 1.5rem;
+      padding-inline: var(--hub-page-inline-padding);
     }
   }
 
   @media (min-width: 1024px) {
     .hub-page {
-      padding-inline: 2rem;
+      padding-inline: var(--hub-page-inline-padding);
     }
   }
 
@@ -554,7 +599,7 @@
       flex-direction: column;
       height: auto;
       min-height: 0;
-      padding-bottom: 1.25rem;
+      padding-bottom: var(--hub-space-5);
     }
 
     .hub-header__actions,
