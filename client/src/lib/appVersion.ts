@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.4.1.0";
+export const APP_VERSION = "1.5.0.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.0.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Solicitações integradas ao fluxo de Gestão e à navegação responsiva do Marketing HUB.",
+    changes: [
+      "Criado o módulo Solicitações para registrar demandas de ações, eventos, mídias, financeiro e outras frentes administrativas.",
+      "Adicionados responsáveis, regional, cidade, prioridade, datas desejadas, prazo, status e histórico operacional com auditoria.",
+      "Incluídos filtros recolhíveis por texto, frente, status e prioridade, além de cards gerenciais da fila.",
+      "Solicitações passou a aparecer no menu Gestão, incluindo o menu lateral utilizado em telas celulares.",
+      "Criada a migration 0064 com enums, tabelas, vínculos territoriais e permissões específicas do módulo.",
+    ],
+  },
   {
     version: "1.4.1.0",
     date: "20/08/2026",

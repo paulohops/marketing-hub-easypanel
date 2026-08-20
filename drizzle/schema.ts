@@ -197,6 +197,9 @@ export const taskStatusEnum = pgEnum("task_status", [
 ]);
 export const taskPriorityEnum = pgEnum("task_priority", ["low", "normal", "high", "urgent"]);
 export const taskSourceEnum = pgEnum("task_source", ["manual", "notification"]);
+export const requestTypeEnum = pgEnum("request_type", ["action", "event", "media", "finance", "other"]);
+export const requestStatusEnum = pgEnum("request_status", ["draft", "submitted", "in_review", "approved", "rejected", "in_progress", "completed", "cancelled"]);
+export const requestPriorityEnum = pgEnum("request_priority", ["low", "normal", "high", "urgent"]);
 export const partnershipTypeEnum = pgEnum("partnership_type", [
   "paid",
   "barter",
@@ -232,6 +235,7 @@ export const permissionModuleEnum = pgEnum("permission_module", [
   "map",
   "notifications",
   "tasks",
+  "requests",
 ]);
 export const permissionActionEnum = pgEnum("permission_action", [
   "read",
@@ -2318,6 +2322,37 @@ export const taskHistory = pgTable("task_history", {
   action: varchar("action", { length: 64 }).notNull(),
   fromStatus: taskStatusEnum("fromStatus"),
   toStatus: taskStatusEnum("toStatus"),
+  note: text("note"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const requests = pgTable("requests", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 180 }).notNull(),
+  description: text("description"),
+  requestType: requestTypeEnum("requestType").default("action").notNull(),
+  status: requestStatusEnum("status").default("submitted").notNull(),
+  priority: requestPriorityEnum("priority").default("normal").notNull(),
+  requestedByUserId: integer("requestedByUserId").references(() => users.id, { onDelete: "set null" }),
+  assignedToUserId: integer("assignedToUserId").references(() => users.id, { onDelete: "set null" }),
+  regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "set null" }),
+  cityId: integer("cityId").references(() => cities.id, { onDelete: "set null" }),
+  requestedForDate: date("requestedForDate"),
+  dueDate: date("dueDate"),
+  linkedEntityType: varchar("linkedEntityType", { length: 64 }),
+  linkedEntityId: integer("linkedEntityId"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  completedAt: timestamp("completedAt", { withTimezone: true }),
+});
+
+export const requestHistory = pgTable("request_history", {
+  id: serial("id").primaryKey(),
+  requestId: integer("requestId").notNull().references(() => requests.id, { onDelete: "cascade" }),
+  actorUserId: integer("actorUserId").references(() => users.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 64 }).notNull(),
+  fromStatus: requestStatusEnum("fromStatus"),
+  toStatus: requestStatusEnum("toStatus"),
   note: text("note"),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
