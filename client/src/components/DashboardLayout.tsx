@@ -99,6 +99,14 @@ const quickAccessItems: NavItem[] = [
     path: "/trello",
     icon: Trello,
     permission: "settings.read",
+    children: [
+      {
+        label: "Tarefas",
+        path: "/tarefas",
+        icon: ClipboardCheck,
+        permission: "tasks.read",
+      },
+    ],
   },
 ];
 
@@ -194,12 +202,6 @@ const navigationGroups: NavGroup[] = [
         permission: "operations.read",
       },
       {
-        label: "Tarefas",
-        path: "/tarefas",
-        icon: ClipboardCheck,
-        permission: "tasks.read",
-      },
-      {
         label: "Solicitações",
         path: "/solicitacoes",
         icon: Inbox,
@@ -211,10 +213,30 @@ const navigationGroups: NavGroup[] = [
     label: "Relatórios",
     items: [
       {
-        label: "BI e indicadores",
+        label: "BI & Indicadores",
         path: "/indicadores",
         icon: BarChart3,
         permission: "dashboard.read",
+        children: [
+          {
+            label: "Visão geral",
+            path: "/indicadores",
+            icon: LayoutDashboard,
+            permission: "dashboard.read",
+          },
+          {
+            label: "Mídias",
+            path: "/indicadores/midias",
+            icon: Megaphone,
+            permission: "dashboard.read",
+          },
+          {
+            label: "Panfletagem",
+            path: "/indicadores/panfletagem",
+            icon: FileSpreadsheet,
+            permission: "dashboard.read",
+          },
+        ],
       },
     ],
   },

@@ -46,21 +46,21 @@ describe("estoque territorial", () => {
     territorialQuery.mockReturnValue({ data: [], isLoading: false });
     render(<InventoryWorkspace />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Regional" }));
+    fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
+    fireEvent.click(screen.getByLabelText("Regional"));
     expect(screen.getByRole("option", { name: "Central" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Norte" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("option", { name: "Central" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Cidade" }));
+    fireEvent.click(screen.getByLabelText("Cidade"));
     expect(screen.getByRole("option", { name: "Belo Horizonte - MG" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Montes Claros - MG" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("option", { name: "Belo Horizonte - MG" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Categoria" }));
+    fireEvent.click(screen.getByLabelText("Categoria"));
     fireEvent.click(screen.getByRole("option", { name: "Brinde VIP" }));
 
     expect(listQuery).toHaveBeenLastCalledWith({ regionalId: 3, cityId: 10, category: "brinde_vip" });
-    expect(territorialQuery).toHaveBeenLastCalledWith({ regionalId: 3, cityId: 10 });
     expect(screen.getByRole("button", { name: "Categoria" })).toHaveTextContent("Brinde VIP");
   });
 
@@ -69,11 +69,13 @@ describe("estoque territorial", () => {
     territorialQuery.mockReturnValue({ data: [], isLoading: false });
     render(<InventoryWorkspace />);
 
-    const filterGrid = screen.getByLabelText("Regional").parentElement?.parentElement;
-    const workspaceHeader = screen.getByRole("heading", { name: "Estoque de materiais" }).parentElement?.parentElement?.parentElement;
+    expect(screen.queryByLabelText("Regional")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
+    const filterGrid = screen.getByLabelText("Regional").closest(".grid")?.parentElement;
+    const workspaceHeader = screen.getByRole("heading", { name: "Estoque de materiais" }).closest("header");
 
-    expect(filterGrid).toHaveClass("grid", "sm:grid-cols-3");
-    expect(workspaceHeader).toHaveClass("flex", "flex-col", "sm:flex-row", "sm:items-end", "sm:justify-between");
+    expect(filterGrid).toHaveClass("grid", "sm:grid-cols-2", "xl:grid-cols-4");
+    expect(workspaceHeader).toHaveClass("hub-header");
   });
 
   it("mantém filtros e cartões em superfícies semânticas sob o tema escuro", () => {

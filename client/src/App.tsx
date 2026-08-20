@@ -47,6 +47,8 @@ function Router() {
     <Route path="/acoes">{() => <ProtectedModule module="acoes" />}</Route>
     <Route path="/eventos/:eventId">{() => <ProtectedModule module="eventos" />}</Route>
     <Route path="/eventos">{() => <ProtectedModule module="eventos" />}</Route>
+    <Route path="/indicadores/midias">{() => <ProtectedModule module="indicadores" />}</Route>
+    <Route path="/indicadores/panfletagem">{() => <ProtectedModule module="indicadores" />}</Route>
     <Route path="/indicadores">{() => <ProtectedModule module="indicadores" />}</Route>
     <Route path="/cadastros/empresas/:providerId">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/cadastros/empresas">{() => <ProtectedModule module="cadastro-entidade" />}</Route>

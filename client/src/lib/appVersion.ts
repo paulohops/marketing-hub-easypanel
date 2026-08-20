@@ -11,6 +11,20 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
+    version: "1.5.5.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Padronização de rotas e melhorias operacionais em Eventos, Estoque, Tarefas, Processos e BI do Trade.",
+    changes: [
+      "Páginas principais e subpáginas passaram a usar o shell canônico com header, largura e espaçamento uniformes.",
+      "Eventos foi alinhado ao padrão de Ações, sem agenda ou avaliação na interface, com filtros reorganizados para evitar sobreposição.",
+      "Estoque recebeu filtros recolhíveis, soma numérica explícita dos saldos e visualização detalhada sem a visão territorial consolidada.",
+      "Tarefas passou a ficar sob Trello no menu e manteve somente A fazer, Em andamento e Concluídas, com header padronizado.",
+      "BI & Indicadores foi dividido em Visão geral, Mídias e Panfletagem, com rotas e dropdown no menu principal.",
+      "O BPMN de Processos ganhou enquadramento ampliado, início/fim visíveis, gateway amarelo com borda preta, zoom, pan, seleção de etapas e conectores mais espaçados.",
+    ],
+  },
+  {
     version: "1.5.4.0",
     date: "20/08/2026",
     label: "Minor update",

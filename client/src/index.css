@@ -201,20 +201,28 @@
 
   /* O shell compartilhado recebe o único espaçamento externo da aplicação. */
   .cluster-workspace > .hub-page,
-  .cluster-workspace > main.max-w-6xl {
+  .cluster-workspace > .hub-entity-page,
+  .cluster-workspace > main[class*="max-w-"],
+  .cluster-workspace > div[class*="max-w-"] {
     width: 100%;
     max-width: var(--hub-content-max);
     margin: 0 auto;
     padding: 0;
   }
 
-  .cluster-workspace > main.max-w-6xl {
+  .cluster-workspace > .hub-page,
+  .cluster-workspace > .hub-entity-page,
+  .cluster-workspace > main[class*="max-w-"],
+  .cluster-workspace > div[class*="max-w-"] {
     display: flex;
     flex-direction: column;
     gap: var(--hub-section-gap);
   }
 
-  .cluster-workspace > main.max-w-6xl > * {
+  .cluster-workspace > .hub-page > *,
+  .cluster-workspace > .hub-entity-page > *,
+  .cluster-workspace > main[class*="max-w-"] > *,
+  .cluster-workspace > div[class*="max-w-"] > * {
     margin-top: 0 !important;
   }
 

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,10 +24,11 @@ import {
   ArrowLeftRight,
   ArrowUpFromLine,
   Boxes,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Filter,
   History,
-  MapPin,
   Pencil,
   Search,
   Plus,
@@ -81,6 +83,7 @@ export default function InventoryWorkspace() {
   const { can } = useEffectivePermissions();
   const canWrite = can("inventory.write");
   const [showCreate, setShowCreate] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [movementItemId, setMovementItemId] = useState<number | null>(null);
   const [transferSourceId, setTransferSourceId] = useState<number | null>(null);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
@@ -169,10 +172,6 @@ export default function InventoryWorkspace() {
       return true;
     });
   }, [filtersState.availability, inventory.data]);
-  const territorialSummary = trpc.inventory.territorialSummary.useQuery({
-    regionalId: filters.regionalId,
-    cityId: filters.cityId,
-  });
   const references = trpc.inventory.referenceData.useQuery();
   const movementInput = useMemo(
     () => ({
@@ -193,9 +192,8 @@ export default function InventoryWorkspace() {
   });
 
   const refreshInventory = () => {
-    utils.inventory.list.invalidate();
-    utils.inventory.territorialSummary.invalidate();
-    utils.inventory.listMovements.invalidate();
+    void utils.inventory.list.invalidate();
+    void utils.inventory.listMovements.invalidate();
   };
   const uploadPhoto = trpc.inventory.uploadPhoto.useMutation({
     onSuccess: () => {
@@ -416,127 +414,18 @@ export default function InventoryWorkspace() {
   );
 
   return (
-    <div className="mx-auto max-w-[1480px]">
-      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex gap-4">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-sm">
-            <Boxes className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
-              Operação e materiais
-            </p>
-            <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-foreground">
-              Estoque de materiais
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Controle brindes, tendas, cadeiras, mesas, windbanners e outros
-              materiais por regional e cidade.
-            </p>
-          </div>
-        </div>
-        {canWrite && (
-          <Button
-            onClick={() => setShowCreate(value => !value)}
-            className="h-10 rounded-xl bg-primary px-4 text-xs font-semibold hover:bg-primary/90"
-          >
-            <Plus className="mr-1.5 h-4 w-4" /> Novo item
-          </Button>
-        )}
-      </div>
+    <WorkspaceShell>
+      <WorkspaceHeader
+        eyebrow="Operação e materiais"
+        title="Estoque de materiais"
+        description="Controle brindes, tendas, cadeiras, mesas, windbanners e outros materiais por regional e cidade."
+        icon={Boxes}
+        actions={<WorkspaceActions>{canWrite ? <Button type="button" onClick={() => setShowCreate(value => !value)}><Plus />Novo item</Button> : null}</WorkspaceActions>}
+      />
 
-      <section className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Filtros de estoque</p>
-            <p className="mt-1 text-xs text-muted-foreground">Encontre materiais por nome, SKU ou localização.</p>
-          </div>
-          {(filtersState.search || filtersState.regionalId || filtersState.cityId || filtersState.category || filtersState.availability) && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs text-muted-foreground"
-              onClick={() => setFiltersState({ regionalId: "", cityId: "", category: "", search: "", availability: "" })}
-            >
-              Limpar filtros
-            </Button>
-          )}
-        </div>
-        <div className="mb-3">
-          <Label htmlFor="inventory-filter-search" className="text-xs">Buscar material</Label>
-          <div className="relative mt-1.5">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="inventory-filter-search"
-              value={filtersState.search}
-              onChange={event => setFiltersState({ ...filtersState, search: event.target.value })}
-              placeholder="Nome do material ou SKU"
-              className="h-9 pl-9"
-            />
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <SearchableSelect id="inventory-filter-regional" label="Regional" value={filtersState.regionalId} onChange={value => setFiltersState({ ...filtersState, regionalId: value, cityId: "" })} placeholder="Todas as regionais" options={(references.data?.regionals ?? []).map(regional => ({ value: regional.id, label: regional.name }))} />
-          <SearchableSelect id="inventory-filter-city" label="Cidade" value={filtersState.cityId} onChange={value => setFiltersState({ ...filtersState, cityId: value })} placeholder="Todas as cidades" options={(references.data?.cities ?? []).filter(city => !filtersState.regionalId || city.regionalId === Number(filtersState.regionalId)).map(city => ({ value: city.id, label: `${city.name} - ${city.state}` }))} />
-          <SearchableSelect id="inventory-filter-availability" label="Situação" value={filtersState.availability} onChange={value => setFiltersState({ ...filtersState, availability: value })} placeholder="Todas as situações" options={[{ value: "out", label: "Sem saldo" }, { value: "low", label: "Estoque baixo" }, { value: "active", label: "Itens ativos" }, { value: "inactive", label: "Itens inativos" }]} />
-          <SearchableSelect id="inventory-filter-category" label="Categoria" value={filtersState.category} onChange={value => setFiltersState({ ...filtersState, category: value })} placeholder="Todas as categorias" options={stockCategories.map(category => ({ value: category.value, label: category.label }))} />
-        </div>
-      </section>
-
-      <section className="mt-5">
-        <div className="mb-3 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" />
-          <h2 className="font-display text-base font-semibold text-foreground">
-            Visão territorial consolidada
-          </h2>
-        </div>
-        {territorialSummary.isLoading ? (
-          <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
-            Carregando resumo territorial...
-          </div>
-        ) : territorialSummary.data?.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {territorialSummary.data.map(summary => (
-              <article
-                key={`${summary.regionalId}-${summary.cityId ?? "regional"}-${summary.category}`}
-                className="rounded-2xl border border-border bg-card p-4 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-primary">
-                      {summary.regionalName}
-                    </p>
-                    <p className="mt-1 font-semibold text-foreground">
-                      {summary.cityName}
-                    </p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="border-border bg-secondary text-[10px] text-foreground"
-                  >
-                    {categoryLabel(summary.category)}
-                  </Badge>
-                </div>
-                <p className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
-                  {summary.quantity.toLocaleString("pt-BR", {
-                    maximumFractionDigits: 2,
-                  })}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {summary.itemCount}{" "}
-                  {summary.itemCount === 1
-                    ? "item cadastrado"
-                    : "itens cadastrados"}
-                </p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-5 text-sm text-muted-foreground">
-            Não há posição de estoque para os filtros selecionados.
-          </div>
-        )}
+      <section className="hub-section-card">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="hub-section-card__eyebrow">Consulta operacional</p><h2 className="hub-section-card__title">Posição de estoque</h2><p className="hub-section-card__description">Encontre materiais por nome, SKU, localização, situação ou categoria.</p></div><div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen(value => !value)}><Filter className="mr-2 h-4 w-4" />Filtros<ChevronDown className={`ml-2 h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} /></Button>{(filtersState.search || filtersState.regionalId || filtersState.cityId || filtersState.category || filtersState.availability) && <Button type="button" variant="ghost" size="sm" onClick={() => setFiltersState({ regionalId: "", cityId: "", category: "", search: "", availability: "" })}>Limpar</Button>}</div></div>
+        {filtersOpen && <div className="mt-4 grid gap-3 rounded-xl border border-border bg-secondary/30 p-4 sm:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-medium text-foreground sm:col-span-2 xl:col-span-4">Buscar material<div className="relative mt-1.5"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input id="inventory-filter-search" value={filtersState.search} onChange={event => setFiltersState({ ...filtersState, search: event.target.value })} placeholder="Nome do material ou SKU" className="h-9 pl-9" /></div></label><SearchableSelect id="inventory-filter-regional" label="Regional" value={filtersState.regionalId} onChange={value => setFiltersState({ ...filtersState, regionalId: value, cityId: "" })} placeholder="Todas as regionais" options={(references.data?.regionals ?? []).map(regional => ({ value: regional.id, label: regional.name }))} /><SearchableSelect id="inventory-filter-city" label="Cidade" value={filtersState.cityId} onChange={value => setFiltersState({ ...filtersState, cityId: value })} placeholder="Todas as cidades" options={(references.data?.cities ?? []).filter(city => !filtersState.regionalId || city.regionalId === Number(filtersState.regionalId)).map(city => ({ value: city.id, label: `${city.name} - ${city.state}` }))} /><SearchableSelect id="inventory-filter-availability" label="Situação" value={filtersState.availability} onChange={value => setFiltersState({ ...filtersState, availability: value })} placeholder="Todas as situações" options={[{ value: "out", label: "Sem saldo" }, { value: "low", label: "Estoque baixo" }, { value: "active", label: "Itens ativos" }, { value: "inactive", label: "Itens inativos" }]} /><SearchableSelect id="inventory-filter-category" label="Categoria" value={filtersState.category} onChange={value => setFiltersState({ ...filtersState, category: value })} placeholder="Todas as categorias" options={stockCategories.map(category => ({ value: category.value, label: category.label }))} /></div>}
       </section>
 
       {showCreate && (
@@ -1425,6 +1314,6 @@ export default function InventoryWorkspace() {
           </div>
         )}
       </section>
-    </div>
+    </WorkspaceShell>
   );
 }

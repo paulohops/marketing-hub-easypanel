@@ -195,8 +195,8 @@ describe("formulários operacionais ampliados", () => {
     eventListQuery.mockReturnValue({ data: [{ event: { id: 22, name: "Feira", status: "planned", partnershipType: "paid", startsAt: new Date("2026-08-20T10:00:00Z"), endsAt: null, estimatedCost: "0", partnershipReason: null, preEventNotes: null, rating: null, worthRenewing: null }, cityName: "Belo Horizonte", eventTypeName: "Feira", supervisorName: null, teamMembers: [], stockItems: [] }], isLoading: false });
     render(<EventsWorkspace />);
     fireEvent.click(screen.getByText("Feira"));
-    fireEvent.click(screen.getByLabelText("Vale renovar"));
-    fireEvent.click(screen.getByRole("button", { name: "Salvar avaliação" }));
-    expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, worthRenewing: false, resultAchieved: true }));
+    expect(screen.queryByLabelText("Vale renovar")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar acompanhamento" }));
+    expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, rating: null, worthRenewing: null, resultAchieved: true }));
   });
 });

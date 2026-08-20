@@ -90,7 +90,7 @@ describe("DashboardLayout", () => {
       </DashboardLayout>
     );
 
-    const midias = screen.getByText("Mídias").closest("button");
+    const midias = screen.getAllByText("Mídias").map(element => element.closest("button")).find(button => button?.hasAttribute("aria-expanded"));
     const cadastros = screen.getByText("Cadastros").closest("button");
     expect(midias).toHaveAttribute("aria-expanded", "false");
     expect(cadastros).not.toHaveAttribute("aria-expanded");

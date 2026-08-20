@@ -14,7 +14,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 describe("BI & Indicadores — Trade", () => {
   it("renderiza a dashboard com cartões e painéis agregados", () => {
     const { container } = render(<div className="dark"><IndicatorsWorkspace /></div>);
-    expect(screen.getByText("Trade")).toBeInTheDocument();
+    expect(screen.getByText(/BI & Indicadores · Trade/)).toBeInTheDocument();
     expect(screen.getByText("Pontos de mídia")).toBeInTheDocument();
     expect(screen.getByText("Desempenho por frente")).toBeInTheDocument();
     expect(screen.getByText("Leitura por cidade")).toBeInTheDocument();
