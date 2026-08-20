@@ -31,11 +31,14 @@ function Router() {
     <Route path="/midias/audiovisual">{() => <ProtectedModule module="midias-audio-video" />}</Route>
     <Route path="/midias/audiovisual/veiculacao/:campaignId">{() => <ProtectedModule module="midias-tradicional-veiculacao" />}</Route>
     <Route path="/midias/audiovisual/:mediaPointId">{() => <ProtectedModule module="midias-tradicional" />}</Route>
+    <Route path="/midias/volante/veiculacao/:campaignId">{() => <ProtectedModule module="midias-volante-veiculacao" />}</Route>
+    <Route path="/midias/volante/:mediaPointId">{() => <ProtectedModule module="midias-volante-detalhe" />}</Route>
+    <Route path="/midias/volante">{() => <ProtectedModule module="midias-volante" />}</Route>
     <Route path="/midias/tradicional/veiculacao/:campaignId">{() => <ProtectedModule module="midias-tradicional-veiculacao" />}</Route>
     <Route path="/midias/tradicional/:mediaPointId">{() => <ProtectedModule module="midias-tradicional" />}</Route>
     <Route path="/midias/externa/:mediaPointId">{() => <ProtectedModule module="midias-externa" />}</Route>
     <Route path="/midias/panfletagem">{() => <ProtectedModule module="midias-panfletagem" />}</Route>
-    <Route path="/midias/carro-de-som">{() => <ProtectedModule module="midias-carro-som" />}</Route>
+    <Route path="/midias/carro-de-som">{() => <Redirect to="/midias/volante" replace />}</Route>
     <Route path="/midias/influencers">{() => <ProtectedModule module="midias-influencers" />}</Route>
     <Route path="/midias/veiculacao/:campaignId">{() => <ProtectedModule module="midias-veiculacao" />}</Route>
     <Route path="/midias">{() => <Redirect to="/midias/graficas" replace />}</Route>

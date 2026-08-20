@@ -257,8 +257,8 @@ export const mediaRouter = router({
     await assertPermission(ctx.user, "media.write");
     if (input.endsOn < input.startsOn) throw new TRPCError({ code: "BAD_REQUEST", message: "A data final deve ser posterior à data inicial." });
     const database = await requireDatabase();
-    const [current] = await database.select({ campaign: mediaCampaigns, point: mediaPoints }).from(mediaCampaigns).innerJoin(mediaPoints, eq(mediaCampaigns.mediaPointId, mediaPoints.id)).where(and(eq(mediaCampaigns.id, input.campaignId), eq(mediaPoints.operationCategory, "audio_video"))).limit(1);
-    if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Veiculação audiovisual não encontrada." });
+    const [current] = await database.select({ campaign: mediaCampaigns, point: mediaPoints }).from(mediaCampaigns).innerJoin(mediaPoints, eq(mediaCampaigns.mediaPointId, mediaPoints.id)).where(and(eq(mediaCampaigns.id, input.campaignId), inArray(mediaPoints.operationCategory, ["audio_video", "sound_car"]))).limit(1);
+    if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Veiculação audiovisual ou de mídia volante não encontrada." });
     if (current.point.status !== "active") throw new TRPCError({ code: "CONFLICT", message: "Não é possível editar uma veiculação de um programa inativo ou cancelado." });
     if (input.serviceTypeId) {
       const [service] = await database.select({ id: serviceTypes.id }).from(serviceTypes).where(and(eq(serviceTypes.id, input.serviceTypeId), eq(serviceTypes.active, true))).limit(1);
@@ -286,8 +286,8 @@ export const mediaRouter = router({
     if (input.endsOn < input.startsOn) throw new TRPCError({ code: "BAD_REQUEST", message: "A data final deve ser posterior à data inicial." });
     if (new Set(input.signalCityIds).size !== input.signalCityIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe cada cidade de sinal apenas uma vez." });
     const database = await requireDatabase();
-    const [point] = await database.select().from(mediaPoints).where(and(eq(mediaPoints.id, input.mediaPointId), eq(mediaPoints.operationCategory, "audio_video"), eq(mediaPoints.status, "active"))).limit(1);
-    if (!point) throw new TRPCError({ code: "NOT_FOUND", message: "Programa de mídia audiovisual não encontrado ou inativo." });
+    const [point] = await database.select().from(mediaPoints).where(and(eq(mediaPoints.id, input.mediaPointId), inArray(mediaPoints.operationCategory, ["audio_video", "sound_car"]), eq(mediaPoints.status, "active"))).limit(1);
+    if (!point) throw new TRPCError({ code: "NOT_FOUND", message: "Ponto audiovisual ou de mídia volante não encontrado ou inativo." });
     if (input.serviceTypeId) {
       const [service] = await database.select({ id: serviceTypes.id, mediaTypeId: serviceTypes.mediaTypeId }).from(serviceTypes).where(and(eq(serviceTypes.id, input.serviceTypeId), eq(serviceTypes.active, true))).limit(1);
       if (!service) throw new TRPCError({ code: "BAD_REQUEST", message: "O tipo de serviço selecionado não está ativo." });

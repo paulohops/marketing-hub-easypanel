@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.3.0";
+export const APP_VERSION = "1.5.4.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,20 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.4.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Aprimoramentos de processos, tarefas e operação de Mídia Volante, com integração JetForms avaliada tecnicamente.",
+    changes: [
+      "Processos passaram a contar com exclusão protegida por permissão, confirmação e auditoria.",
+      "O Kanban de Tarefas recebeu cards e colunas com visual inspirado no Trello, mais limpo e focado no quadro.",
+      "Solicitações ficou temporariamente desativado com placeholder informativo, preservando o acesso pelo menu.",
+      "Carro de som foi renomeado para Mídia Volante e recebeu workspace, detalhe e veiculação independentes, usando a categoria sound_car.",
+      "O backend passou a aceitar veiculações tradicionais para Audiovisual e Mídia Volante.",
+      "A integração com JetForms foi avaliada e documentada com arquitetura recomendada via webhook autenticado.",
+    ],
+  },
   {
     version: "1.5.3.0",
     date: "20/08/2026",

@@ -138,8 +138,9 @@ const navigationGroups: NavGroup[] = [
             permission: "media.read",
           },
           {
-            label: "Carro de som",
-            path: "/midias/carro-de-som",
+            label: "Mídia Volante",
+            path: "/midias/volante",
+            aliases: ["/midias/carro-de-som"],
             icon: Volume2,
             permission: "media.read",
           },

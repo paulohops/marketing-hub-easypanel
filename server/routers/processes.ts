@@ -177,6 +177,19 @@ export const processesRouter = router({
     return { ...created, steps };
   }),
 
+  delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "operations.delete");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(processes).where(eq(processes.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Processo não encontrado." });
+    await database.transaction(async tx => {
+      await tx.delete(processSteps).where(eq(processSteps.processId, input.id));
+      await tx.delete(processes).where(eq(processes.id, input.id));
+    });
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: before.regionalId, entityType: "process", entityId: before.id, action: "delete", beforeData: before });
+    return { id: input.id };
+  }),
+
   update: protectedProcedure.input(processFields.extend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "operations.update");
     const database = await requireDatabase();

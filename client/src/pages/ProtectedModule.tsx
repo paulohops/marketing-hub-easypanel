@@ -11,6 +11,9 @@ import InventoryWorkspace from "./InventoryWorkspace";
 import SettingsWorkspace from "./SettingsWorkspace";
 import MediaWorkspace from "./MediaWorkspace";
 import TraditionalMediaWorkspace from "./TraditionalMediaWorkspace";
+import MidiaVolanteWorkspace from "./MidiaVolanteWorkspace";
+import MidiaVolanteDetails from "./MidiaVolanteDetails";
+import MidiaVolanteVeiculacaoPage from "./MidiaVolanteVeiculacaoPage";
 import TraditionalVeiculationPage from "./TraditionalVeiculationPage";
 import ActionsWorkspace from "./ActionsWorkspace";
 import EventsWorkspace from "./EventsWorkspace";
@@ -36,7 +39,6 @@ import DataCenterWorkspace from "./DataCenterWorkspace";
 import CampaignsWorkspace from "./CampaignsWorkspace";
 import CampaignTemplatesWorkspace from "./CampaignTemplatesWorkspace";
 import ProcessesWorkspace from "./ProcessesWorkspace";
-import RequestsWorkspace from "./RequestsWorkspace";
 import ActionTemplatesWorkspace from "./ActionTemplatesWorkspace";
 import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
@@ -57,6 +59,9 @@ const definitions = {
   "midias-audio-video": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídia Audiovisual", description: "Acompanhe rádios, TVs, spots e horários de veiculação.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-tradicional": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Programa de Mídia Audiovisual", description: "Ficha de rádio ou TV, alcance do sinal, spots e histórico operacional.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-tradicional-veiculacao": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Veiculação Audiovisual", description: "Acompanhe o spot, as cidades de sinal, evidências, status e debriefing.", icon: Megaphone, resources: [], accent: "var(--primary)" },
+  "midias-volante": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Mídia Volante", description: "Acompanhe pontos, spots, programação e veiculações de mídia volante.", icon: Megaphone, resources: [], accent: "var(--primary)" },
+  "midias-volante-detalhe": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Ponto de Mídia Volante", description: "Consulte os dados do ponto, a programação, as veiculações e o histórico operacional.", icon: Megaphone, resources: [], accent: "var(--primary)" },
+  "midias-volante-veiculacao": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Veiculação de Mídia Volante", description: "Acompanhe o spot, cidades, evidências, status e debriefing da veiculação.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-panfletagem": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Panfletagem", description: "Planeje distribuição territorial vinculada às campanhas.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-carro-som": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Carro de som", description: "Controle spots, agenda, rodagem e comprovações.", icon: Megaphone, resources: [], accent: "var(--primary)" },
   "midias-influencers": { permission: "media.read", eyebrow: "Canais e cobertura", title: "Influencers", description: "Planeje e acompanhe operações com influenciadores.", icon: Megaphone, resources: [], accent: "var(--primary)" },
@@ -94,6 +99,7 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   const [, traditionalPointParams] = useRoute("/midias/tradicional/:mediaPointId");
   const [, audiovisualPointParams] = useRoute("/midias/audiovisual/:mediaPointId");
   const [, externalPointParams] = useRoute("/midias/externa/:mediaPointId");
+  const [, volantePointParams] = useRoute("/midias/volante/:mediaPointId");
   const { can: canPermission, isLoading: permissionsLoading } = useEffectivePermissions();
   if (loading) return <div className="cluster-grid grid min-h-screen place-items-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   if (!isAuthenticated) return <LoginPage />;
@@ -121,7 +127,7 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   if (module === "trello") return <DashboardLayout><div className="cluster-workspace"><TrelloWorkspace /></div></DashboardLayout>;
   if (module === "tarefas") return <DashboardLayout><div className="cluster-workspace"><TasksWorkspace /></div></DashboardLayout>;
   if (module === "processos") return <DashboardLayout><div className="cluster-workspace"><ProcessesWorkspace processId={processId} /></div></DashboardLayout>;
-  if (module === "solicitacoes") return <DashboardLayout><div className="cluster-workspace"><RequestsWorkspace /></div></DashboardLayout>;
+  if (module === "solicitacoes") return <DashboardLayout><div className="cluster-workspace"><div className="mx-auto max-w-3xl rounded-2xl border border-dashed border-border bg-card p-10 text-center"><h1 className="font-display text-2xl font-semibold text-foreground">Solicitações</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Este módulo está disponível no menu, mas permanece desativado temporariamente.</p><Button type="button" variant="outline" className="mt-6 border-border" onClick={() => setLocation("/")}><ArrowLeft className="mr-2 h-4 w-4" />Voltar ao início</Button></div></div></DashboardLayout>;
   if (module === "importacao") return <DashboardLayout><div className="cluster-workspace"><DataImportWorkspace /></div></DashboardLayout>;
   if (module === "exportacao") return <DashboardLayout><div className="cluster-workspace"><ReportExportWorkspace /></div></DashboardLayout>;
   const canWrite = (permission: string) => canPermission(permission);
@@ -129,8 +135,11 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   if (module === "midias-graficas") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="graphics" /></div></DashboardLayout>;
   if (module === "midias-audio-video") return <DashboardLayout><div className="cluster-workspace"><TraditionalMediaWorkspace /></div></DashboardLayout>;
   if (module === "midias-tradicional") return <DashboardLayout><div className="cluster-workspace"><TraditionalProgramDetails mediaPointId={Number(traditionalPointParams?.mediaPointId ?? audiovisualPointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
+  if (module === "midias-volante") return <DashboardLayout><div className="cluster-workspace"><MidiaVolanteWorkspace /></div></DashboardLayout>;
+  if (module === "midias-volante-detalhe") return <DashboardLayout><div className="cluster-workspace"><MidiaVolanteDetails mediaPointId={Number(volantePointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
   if (module === "midias-externa") return <DashboardLayout><div className="cluster-workspace"><ExternalMediaPointDetails mediaPointId={Number(externalPointParams?.mediaPointId ?? 0)} /></div></DashboardLayout>;
   if (module === "midias-tradicional-veiculacao") return <DashboardLayout><div className="cluster-workspace"><TraditionalVeiculationPage /></div></DashboardLayout>;
+  if (module === "midias-volante-veiculacao") return <DashboardLayout><div className="cluster-workspace"><MidiaVolanteVeiculacaoPage /></div></DashboardLayout>;
   if (module === "midias-panfletagem") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="leafleting" /></div></DashboardLayout>;
   if (module === "midias-carro-som") return <DashboardLayout><div className="cluster-workspace"><MediaWorkspace initialCategory="sound_car" /></div></DashboardLayout>;
   if (module === "midias-influencers") return <DashboardLayout><div className="cluster-workspace"><div className="mx-auto max-w-3xl rounded-2xl border border-dashed border-border bg-card p-10 text-center"><h1 className="font-display text-2xl font-semibold text-foreground">Influencers</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Este módulo está disponível no menu, mas permanece desativado temporariamente.</p><Button type="button" variant="outline" className="mt-6 border-border" onClick={() => setLocation("/")}><ArrowLeft className="mr-2 h-4 w-4" />Voltar ao início</Button></div></div></DashboardLayout>;
