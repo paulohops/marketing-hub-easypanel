@@ -107,21 +107,21 @@ export default function SearchableMultiSelect({
             }}
             variant="outline"
             disabled={disabled}
-            className={`h-9 w-full justify-between rounded-[10px] px-3 text-left font-normal ${triggerClassName}`}
+            className={`hub-searchable-trigger h-9 w-full justify-between rounded-lg px-3 text-left font-normal ${triggerClassName}`}
           >
             <span className="truncate">{selectedSummary}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-55" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className={`w-[min(24rem,calc(100vw-2rem))] p-3 ${contentClassName}`}>
+        <PopoverContent align="start" className={`hub-searchable-popover w-[min(24rem,calc(100vw-2rem))] ${contentClassName}`}>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar…" className="h-9 pl-9" />
+            <Input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar…" className="hub-searchable-input h-9 pl-9" />
           </div>
           <div
             role="listbox"
             aria-multiselectable={!isSingleChoice}
-            className="mt-2 max-h-60 touch-pan-y overflow-y-auto overscroll-contain rounded-lg border border-border p-1"
+            className="hub-searchable-options mt-2 touch-pan-y overflow-y-auto overscroll-contain"
             onWheelCapture={event => event.stopPropagation()}
           >
             {available.length ? (
@@ -143,7 +143,7 @@ export default function SearchableMultiSelect({
                       aria-label={`Selecionar ${option.label}`}
                       aria-selected={selected}
                       onClick={() => toggle(option.id)}
-                      className="flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="hub-searchable-option flex w-full cursor-pointer items-start gap-2 text-left text-sm"
                     >
                       <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border ${selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/50"}`}>
                         {selected && <Check className="h-3 w-3" />}
@@ -154,7 +154,7 @@ export default function SearchableMultiSelect({
                 }
 
                 return (
-                  <label key={option.id} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted">
+                  <label key={option.id} className="hub-searchable-option flex cursor-pointer items-start gap-2 text-sm">
                     <Checkbox checked={selected} onCheckedChange={() => toggle(option.id)} aria-label={`Selecionar ${option.label}`} />
                     {optionContent}
                     {selected && <Check className="ml-auto mt-0.5 h-3.5 w-3.5 text-primary" />}

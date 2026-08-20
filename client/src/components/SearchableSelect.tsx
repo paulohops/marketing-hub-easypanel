@@ -32,7 +32,7 @@ export default function SearchableSelect({
   options,
   onChange,
   placeholder = "Selecionar",
-  emptyMessage = "Nenhuma opção disponível",
+  emptyMessage = "Nenhuma opÃ§Ã£o disponÃ­vel",
   disabled = false,
   hideLabel = false,
   triggerClassName = "",
@@ -58,22 +58,22 @@ export default function SearchableSelect({
       {!hideLabel && <Label htmlFor={id}>{label}</Label>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button id={id} type="button" variant="outline" disabled={disabled} className={`h-9 w-full justify-between rounded-[10px] px-3 text-left font-normal ${triggerClassName}`}>
+          <Button id={id} type="button" variant="outline" disabled={disabled} className={`hub-searchable-trigger h-9 w-full justify-between rounded-lg px-3 text-left font-normal ${triggerClassName}`}>
             <span className="truncate">{selected?.label ?? placeholder}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-55" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className={`w-[min(24rem,calc(100vw-2rem))] p-3 ${contentClassName}`}>
+        <PopoverContent align="start" className={`hub-searchable-popover w-[min(24rem,calc(100vw-2rem))] ${contentClassName}`}>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar…" className="h-9 pl-9" />
+            <Input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisarâ€¦" className="hub-searchable-input h-9 pl-9" />
           </div>
-          <div role="listbox" className="mt-2 max-h-60 touch-pan-y overflow-y-auto overscroll-contain rounded-lg border border-border p-1" onWheelCapture={event => event.stopPropagation()}>
+          <div role="listbox" className="hub-searchable-options mt-2 touch-pan-y overflow-y-auto overscroll-contain" onWheelCapture={event => event.stopPropagation()}>
             {available.length ? available.map(option => {
               const optionValue = String(option.value);
               const isSelected = optionValue === normalizedValue;
               return (
-                <button key={optionValue} type="button" role="option" aria-selected={isSelected} onClick={() => choose(optionValue)} className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button key={optionValue} type="button" role="option" aria-selected={isSelected} onClick={() => choose(optionValue)} className="hub-searchable-option flex w-full items-start gap-2 text-left text-sm">
                   <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border ${isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/50"}`}>
                     {isSelected && <Check className="h-3 w-3" />}
                   </span>
@@ -85,7 +85,7 @@ export default function SearchableSelect({
               );
             }) : <p className="px-2 py-5 text-center text-xs text-muted-foreground">{emptyMessage}</p>}
           </div>
-          {normalizedValue && <Button type="button" variant="ghost" size="sm" onClick={() => choose("")} className="mt-2 h-7 px-2 text-xs">Limpar seleção</Button>}
+          {normalizedValue && <Button type="button" variant="ghost" size="sm" onClick={() => choose("")} className="mt-2 h-7 px-2 text-xs">Limpar seleÃ§Ã£o</Button>}
         </PopoverContent>
       </Popover>
     </div>

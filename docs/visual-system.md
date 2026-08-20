@@ -62,3 +62,21 @@ Páginas de entidade usam duas colunas em telas grandes: a coluna menor concentr
 ## Checklist de revisão
 
 Antes de publicar uma tela nova, confirmar: shell de `1480px`; header com eyebrow, título, descrição e ações; botão primário único; botões em `h-9` ou `sm`; filtros recolhidos; status global; histórico com motivo e evidências; cards sem cores inventadas; layout responsivo; foco visível; textos em português; versão e changelog atualizados.
+
+## Regras de alinhamento e dropdowns — agosto de 2026
+
+Todos os módulos de Trade usam o mesmo `WorkspaceHeader`: altura desktop fixa de `7.25rem`, alinhamento vertical central, ações agrupadas à direita e descrição limitada a duas linhas. Os painéis de filtros usam `hub-filter-panel`, mantêm os controles centralizados verticalmente e só são renderizados após o acionamento do botão **Filtros**. Em telas menores, o header passa a ter altura automática para preservar a leitura.
+
+Dropdowns pesquisáveis devem seguir o padrão visual de referência: conteúdo com raio de `0.875rem`, campo de pesquisa com `2.25rem` de altura, borda de foco na cor primária e lista com itens de pelo menos `3rem` de altura, área clicável integral e descrição truncada. Não criar selects customizados com alturas, raios ou sombras diferentes sem atualizar este documento e os tokens globais.
+
+Serviços e SubServiços são entidades distintas. `serviceTypeId` sempre identifica o Serviço principal; `subserviceTypeId` identifica uma linha de `subservice_types`, e a seleção só deve listar vínculos ativos da tabela muitos-para-muitos `service_subservices` ou do catálogo de mídia correspondente. Fichas de Serviço exibem seus SubServiços; fichas de SubServiço exibem os Serviços vinculados.
+
+O eyebrow de Mídia Audiovisual é **Trade**. Novos módulos devem preservar a mesma escala de header, espaçamento horizontal e vertical, hierarquia tipográfica e comportamento de filtros.
+
+## Auditoria de alinhamento e dropdowns
+
+Todos os workspaces devem usar a mesma régua visual: `WorkspaceShell` centralizado, `WorkspaceHeader` com altura mínima de `7.25rem`, identidade verticalmente centralizada, área de ações alinhada ao centro e espaçamento de `0.5rem` entre controles. Os painéis de filtros devem começar ocultos, usar controles com altura mínima de `2.25rem`, manter os campos alinhados no eixo vertical e posicionar o botão de redefinição no centro do conjunto.
+
+Menus de seleção devem preferir `SearchableSelect` ou `SearchableMultiSelect`, reproduzindo o padrão de referência: trigger compacto, popover com bordas arredondadas, campo `Pesquisar…` com foco destacado, opções em linhas com área de toque confortável, descrição secundária quando houver e opção explícita de limpar. Selects legados recebem os mesmos tokens de altura, raio, borda e foco para não quebrar módulos ainda em migração.
+
+No fluxo de veiculação urbana, `Serviço` é sempre o serviço principal e `SubServiço` é carregado apenas a partir dos vínculos ativos de `serviceSubservices` ou do catálogo de mídia correspondente. O payload nunca deve enviar o ID de um Serviço no campo de SubServiço. As fichas de Serviços, SubServiços e Tipos de mídia devem exibir os relacionamentos nos dois sentidos, sem duplicar registros legados.

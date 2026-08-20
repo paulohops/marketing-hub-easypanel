@@ -112,10 +112,14 @@ describe("detalhe de mídias", () => {
 
     render(<MediaWorkspace initialCategory="graphics" />);
     fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
-    fireEvent.change(screen.getByLabelText("Regional"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("Cidade"), { target: { value: "11" } });
-    fireEvent.change(screen.getByLabelText("Situação"), { target: { value: "active" } });
-    fireEvent.change(screen.getByLabelText("Modalidade"), { target: { value: "paid" } });
+    fireEvent.click(screen.getByRole("button", { name: "Regional" }));
+    fireEvent.click(screen.getByRole("option", { name: "Selecionar Triângulo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cidade" }));
+    fireEvent.click(screen.getByRole("option", { name: "Selecionar Uberlândia" }));
+    fireEvent.click(screen.getByRole("button", { name: "Situação" }));
+    fireEvent.click(screen.getByRole("option", { name: "Selecionar Ativa" }));
+    fireEvent.click(screen.getByRole("button", { name: "Modalidade" }));
+    fireEvent.click(screen.getByRole("option", { name: "Selecionar Pago" }));
 
     expect(listQuery.mock.calls.at(-1)?.[0]).toMatchObject({ regionalId: 2, cityId: 11, operationCategory: "graphics", status: "active", partnershipType: "paid" });
   });

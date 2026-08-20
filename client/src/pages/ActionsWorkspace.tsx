@@ -654,7 +654,7 @@ export default function ActionsWorkspace() {
           </Button>}
         </WorkspaceActions>}
       />
-      {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+      {filtersOpen && <section className="hub-filter-panel space-y-4 p-4">
         {activeFilterCount > 0 && <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button></div>}
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="grid gap-1.5 text-sm font-medium">

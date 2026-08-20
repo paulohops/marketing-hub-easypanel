@@ -1320,7 +1320,7 @@ export default function CampaignsWorkspace() {
           </Button>}
         </WorkspaceActions>}
       />
-      {filtersOpen && <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+      {filtersOpen && <section className="hub-filter-panel space-y-4 p-4">
         {activeFilterCount > 0 && <div className="flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Limpar filtros</Button></div>}
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <SearchableMultiSelect id="campaign-filter-company" label="Empresa" options={(refs?.providers ?? []).map(provider => ({ id: provider.id, label: provider.name }))} values={providerId ? [providerId] : []} onChange={values => setProviderId(values[0] ?? null)} maxSelections={1} placeholder="Todas as empresas" />

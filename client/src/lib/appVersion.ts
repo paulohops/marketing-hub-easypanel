@@ -11,6 +11,18 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
+    version: "1.2.1.0",
+    date: "20/08/2026",
+    label: "Patch update",
+    summary: "Ritmo visual, dropdowns pesquisáveis e vínculos de serviços revisados.",
+    changes: [
+      "Headers, actions e painéis de filtros receberam uma escala vertical e horizontal comum, com alinhamento centralizado e espaçamento consistente entre os módulos de Trade.",
+      "Mídia Audiovisual passou a usar o eyebrow Trade Mídia Audiovisual e os controles de seleção receberam o mesmo tratamento visual de bordas, foco, busca e lista do padrão aprovado.",
+      "Serviços e SubServiços passaram a usar exclusivamente a relação muitos-para-muitos atual nas fichas, evitando a mistura de IDs da estrutura legada.",
+      "O formulário de nova veiculação urbana passou a filtrar SubServiços pelo Serviço principal, pelo catálogo da mídia e pelos vínculos ativos.",
+    ],
+  },
+  {
     version: "1.2.0.0",
     date: "19/08/2026",
     label: "Minor update",

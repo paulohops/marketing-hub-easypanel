@@ -287,9 +287,10 @@
 
   .hub-header {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     gap: 1.25rem;
+    height: 7.25rem;
     min-height: 7.25rem;
     padding: 1.25rem 0 1.5rem;
     border-bottom: 1px solid var(--border);
@@ -298,7 +299,8 @@
   .hub-header__identity {
     display: flex;
     min-width: 0;
-    align-items: flex-start;
+    min-height: 4.5rem;
+    align-items: center;
     gap: 0.875rem;
   }
 
@@ -336,11 +338,16 @@
   }
 
   .hub-header__description {
+    display: -webkit-box;
     max-width: 48rem;
+    min-height: 2.5rem;
     margin: 0.5rem 0 0;
+    overflow: hidden;
     color: var(--muted-foreground);
     font-size: 0.8125rem;
     line-height: 1.55;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .hub-header__meta {
@@ -358,6 +365,119 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
+  }
+
+  .hub-header__actions {
+    align-self: center;
+    flex: 0 0 auto;
+  }
+  .hub-filter-panel {
+    display: grid;
+    gap: 1rem;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+  }
+
+  .hub-filter-panel__controls {
+    display: grid;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .hub-filter-panel__label {
+    display: flex;
+    min-height: 2.25rem;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+  .hub-filter-panel__reset {
+    align-self: center;
+    min-height: 2.25rem;
+    white-space: nowrap;
+  }
+  .hub-filter-panel__controls > * {
+    min-width: 0;
+  }
+
+  .hub-filter-panel [data-slot='select-trigger'],
+  .hub-filter-panel select,
+  .hub-filter-panel input {
+    min-height: 2.25rem;
+  }
+
+  /* Todos os controles de seleção seguem o mesmo ritmo visual dos dropdowns pesquisáveis. */
+  .hub-page select:not([multiple]),
+  .hub-page [data-slot='select-trigger'] {
+    min-height: 2.25rem;
+    border-radius: 0.625rem;
+    border-color: var(--border);
+    background: var(--card);
+    font-size: 0.8125rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .hub-page select:not([multiple]) {
+    padding-inline: 0.75rem;
+  }
+
+  .hub-page select:not([multiple]):focus,
+  .hub-page [data-slot='select-trigger']:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .hub-filter-panel > div {
+    min-width: 0;
+  }
+
+  .hub-filter-panel .grid {
+    min-width: 0;
+  }
+
+  .hub-searchable-popover {
+    border-radius: 0.875rem;
+    padding: 0.75rem;
+    box-shadow: 0 12px 28px rgba(19, 53, 35, 0.12);
+  }
+
+  .hub-searchable-input {
+    height: 2.25rem;
+    border-width: 2px;
+    border-radius: 0.625rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .hub-searchable-input:focus,
+  .hub-searchable-input:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
+  }
+
+  .hub-searchable-options {
+    margin-top: 0.625rem;
+    max-height: 16rem;
+    border: 0;
+    padding: 0.125rem;
+  }
+
+  .hub-searchable-option {
+    min-height: 3rem;
+    border: 1px solid transparent;
+    border-radius: 0.625rem;
+    padding: 0.625rem 0.625rem;
+    transition: background-color 160ms ease, border-color 160ms ease;
+  }
+
+  .hub-searchable-option:hover,
+  .hub-searchable-option:focus-visible {
+    border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+    background: color-mix(in srgb, var(--accent) 8%, var(--card));
+    outline: none;
   }
 
   .hub-header__actions > button,
@@ -435,6 +555,8 @@
     .hub-header {
       align-items: stretch;
       flex-direction: column;
+      height: auto;
+      min-height: 0;
       padding-bottom: 1.25rem;
     }
 

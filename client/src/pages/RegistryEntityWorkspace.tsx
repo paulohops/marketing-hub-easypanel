@@ -657,8 +657,11 @@ export default function RegistryEntityWorkspace() {
   )?.productMediaTypes ?? []) as ProductMediaTypeLink[];
   const serviceTypes = ((overview.data as Record<string, unknown> | undefined)
     ?.serviceTypes ?? []) as RegistryRecord[];
-  const subserviceTypes = ((overview.data as Record<string, unknown> | undefined)
+  const rawSubserviceTypes = ((overview.data as Record<string, unknown> | undefined)
     ?.subserviceTypes ?? []) as RegistryRecord[];
+  const subserviceTypes = rawSubserviceTypes.length
+    ? rawSubserviceTypes
+    : serviceTypes.filter(item => Number(item.parentServiceTypeId ?? 0) > 0);
   const mediaServiceCatalog = ((overview.data as Record<string, unknown> | undefined)
     ?.mediaServiceCatalog ?? []) as RegistryRecord[];
   const serviceTypeRelations = ((
@@ -705,8 +708,11 @@ export default function RegistryEntityWorkspace() {
         (isSubservicePage
           ? true
           : !row.parentServiceTypeId &&
+            !serviceSubservices.some(
+              relation => Number(relation.subserviceTypeId) === row.id
+            ) &&
             !serviceTypeRelations.some(
-              relation => relation.subserviceTypeId === row.id
+              relation => Number(relation.subserviceTypeId) === row.id
             )))
     );
   });
@@ -790,11 +796,11 @@ export default function RegistryEntityWorkspace() {
     });
     const relationParentIds = isSubservicePage
       ? serviceSubservices
-          .filter(relation => relation.subserviceTypeId === selected.id)
-          .map(relation => relation.serviceTypeId)
+          .filter(relation => Number(relation.subserviceTypeId) === selected.id)
+          .map(relation => Number(relation.serviceTypeId))
       : serviceTypeRelations
-          .filter(relation => relation.subserviceTypeId === selected.id)
-          .map(relation => relation.serviceTypeId);
+          .filter(relation => Number(relation.subserviceTypeId) === selected.id)
+          .map(relation => Number(relation.serviceTypeId));
     setSubserviceParentIds(
       isSubservicePage
         ? relationParentIds.length
@@ -897,6 +903,7 @@ export default function RegistryEntityWorkspace() {
         serviceTypes,
         subserviceTypes,
         serviceSubservices,
+        serviceTypeRelations,
         mediaServiceCatalog,
       })
     : [];
@@ -4143,6 +4150,7 @@ function getRelations(
     serviceTypes: RegistryRecord[];
     subserviceTypes: RegistryRecord[];
     serviceSubservices: ServiceSubserviceLink[];
+    serviceTypeRelations: ServiceTypeRelationLink[];
     mediaServiceCatalog: RegistryRecord[];
   }
 ) {
@@ -4193,13 +4201,23 @@ function getRelations(
     ];
   }
   if (kind === "service") {
-    const links = all.serviceSubservices.filter(link => link.serviceTypeId === record.id);
+    const links = all.serviceSubservices
+      .map(link => ({
+        serviceTypeId: Number(link.serviceTypeId),
+        subserviceTypeId: Number(link.subserviceTypeId),
+      }))
+      .filter(link => link.serviceTypeId === record.id);
     const subserviceIds = new Set(links.map(link => link.subserviceTypeId));
     const subserviceRows = all.subserviceTypes.filter(subservice => subserviceIds.has(subservice.id));
     return [{ label: "Subserviços relacionados", count: subserviceRows.length, description: "Subserviços atendidos por este serviço", path: "/cadastros/subservicos", items: subserviceRows }];
   }
   if (kind === "subservice") {
-    const links = all.serviceSubservices.filter(link => link.subserviceTypeId === record.id);
+    const links = all.serviceSubservices
+      .map(link => ({
+        serviceTypeId: Number(link.serviceTypeId),
+        subserviceTypeId: Number(link.subserviceTypeId),
+      }))
+      .filter(link => link.subserviceTypeId === record.id);
     const serviceIds = new Set(links.map(link => link.serviceTypeId));
     const serviceRows = all.serviceTypes.filter(service => serviceIds.has(service.id));
     return [{ label: "Serviços relacionados", count: serviceRows.length, description: "Serviços que utilizam este subserviço", path: "/cadastros/servicos", items: serviceRows }];
