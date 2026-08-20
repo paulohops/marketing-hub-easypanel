@@ -2198,6 +2198,16 @@ export const processes = pgTable("processes", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const processSteps = pgTable("process_steps", {
+  id: serial("id").primaryKey(),
+  processId: integer("processId").references(() => processes.id, { onDelete: "cascade" }).notNull(),
+  stepOrder: integer("stepOrder").notNull(),
+  sectorName: varchar("sectorName", { length: 160 }).notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
   regionalId: integer("regionalId").references(() => regionals.id, {

@@ -99,7 +99,7 @@ const quickAccessItems: NavItem[] = [
   },
   {
     label: "Central de conhecimento",
-    path: "/ajuda",
+    path: "/central-conhecimento",
     icon: CircleHelp,
     permission: "dashboard.read",
   },
@@ -488,12 +488,6 @@ export default function DashboardLayout({
                   <Settings2 className="h-4 w-4" /> Configurações
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                className="gap-2"
-                onClick={() => setLocation("/ajuda")}
-              >
-                <CircleHelp className="h-4 w-4" /> Ajuda e suporte
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="gap-2 text-destructive focus:text-destructive"

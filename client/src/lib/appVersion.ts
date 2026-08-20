@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.2.0.0";
+export const APP_VERSION = "1.3.1.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.3.1.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Central de Conhecimento navegável, padding global e Processos simplificados por passos.",
+    changes: [
+      "Central de Conhecimento passou a funcionar como índice de cards, com uma página detalhada por tópico, explicações de relacionamento, campos, regras e fluxogramas visuais.",
+      "Removido o fluxo de Ajuda e suporte/solicitação de ajuda; o acesso oficial passa a ser a Central de Conhecimento.",
+      "WorkspaceCard recebeu padding interno canônico de 1,25rem no token global, documentado para novos módulos e revisões de interface.",
+      "Processos passou a ter fluxo simples com arquivo visual do procedimento e descritivo estruturado em vários passos, cada um com setor e explicação.",
+      "Adicionada a migração 0061 para persistir os passos de Processos com ordenação e exclusão em cascata.",
+    ],
+  },
   {
     version: "1.3.0.0",
     date: "20/08/2026",

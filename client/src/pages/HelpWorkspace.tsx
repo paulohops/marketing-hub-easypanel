@@ -1,13 +1,10 @@
 import { WorkspaceCard, WorkspaceHeader, WorkspaceSection, WorkspaceShell } from "@/components/WorkspaceChrome";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { BarChart3, BookOpenCheck, Boxes, CalendarDays, CircleHelp, ClipboardList, Database, FileSpreadsheet, Landmark, Mail, Megaphone, Network, Send, Settings2, ShieldCheck, Workflow } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { BarChart3, BookOpenCheck, Boxes, CalendarDays, CircleHelp, ClipboardList, Database, FileSpreadsheet, Landmark, Megaphone, Network, ArrowRight, Settings2, ShieldCheck, Workflow } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useLocation } from "wouter";
 
-type KnowledgeCard = {
+export type KnowledgeCard = {
   id: string;
   title: string;
   area: string;
@@ -19,7 +16,7 @@ type KnowledgeCard = {
   rules: string[];
 };
 
-const knowledgeCards: KnowledgeCard[] = [
+export const knowledgeCards: KnowledgeCard[] = [
   {
     id: "visao-geral",
     title: "Como o Marketing HUB se organiza",
@@ -141,47 +138,47 @@ const knowledgeCards: KnowledgeCard[] = [
     fields: ["Dimensões: módulo, campanha, regional, cidade, fornecedor, Serviço e SubServiço.", "Métricas: quantidade, custo, cobertura, prazo, nota, conversão ou saldo.", "Período: competência financeira ou janela operacional, conforme o indicador.", "Fonte: registro original que permite explicar e auditar o valor exibido."],
     rules: ["Não interprete um card sem conhecer seus filtros e sua definição.", "Dados sem responsável, status ou evidência devem ser tratados como pendentes de validação.", "O módulo de Indicadores Operacionais será substituído pela nova área BI & Indicadores, organizada por Trade."],
   },
+  {
+    id: "padrao-visual",
+    title: "Padrão visual, padding e alinhamento",
+    area: "Padrão global",
+    summary: "Todos os módulos devem preservar a mesma hierarquia visual: header canônico, seções com respiro, cards com padding interno e controles alinhados.",
+    icon: Settings2,
+    relationship: "WorkspaceShell → header → seção → card → conteúdo interno. O padding do card protege textos, campos e ações da borda e mantém a leitura consistente entre módulos.",
+    howTo: ["Use WorkspaceShell e WorkspaceHeader para manter o mesmo início de página e altura de header.", "Agrupe conteúdos relacionados em WorkspaceSection e mantenha a descrição logo abaixo do título.", "Use WorkspaceCard para superfícies de conteúdo; o padding interno padrão é aplicado pelo token global e não deve ser refeito em cada página.", "Separe blocos internos com gap, margens verticais e bordas sutis; não encoste campos, títulos ou botões na borda do card.", "Em cards interativos, preserve a área clicável, o foco visível e o alinhamento dos metadados."],
+    fields: ["Card: padding interno canônico de 1.25rem, borda, raio e sombra definidos em `.hub-card`.", "Seção: espaçamento vertical controlado por `.hub-section` e cabeçalho separado do conteúdo.", "Filtros: painel recolhido por padrão, controles com altura compacta e dropdown pesquisável.", "Ações: agrupadas em WorkspaceActions e alinhadas no header ou cabeçalho da seção."],
+    rules: ["Não usar padding manual para corrigir um card global; primeiro verifique o componente WorkspaceCard.", "Não misturar card sem padding com card padded em uma mesma grade sem uma decisão explícita de composição.", "Quando um conteúdo precisar ocupar a borda, use um wrapper interno negativo ou uma variante documentada, nunca remova o padrão silenciosamente.", "Qualquer novo módulo deve ser revisado em desktop e viewport estreito para confirmar alinhamento horizontal e vertical."],
+  },
 ];
 
 export default function HelpWorkspace() {
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const visibleCards = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");
     if (!query) return knowledgeCards;
     return knowledgeCards.filter(card => `${card.title} ${card.area} ${card.summary} ${card.relationship}`.toLocaleLowerCase("pt-BR").includes(query));
   }, [search]);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (!subject.trim() || !message.trim()) return toast.error("Informe o assunto e descreva como podemos ajudar.");
-    const body = `Solicitação enviada pelo Trade HUB — Cluster MG\n\nAssunto: ${subject.trim()}\n\nDescrição:\n${message.trim()}`;
-    window.location.href = `mailto:suporte@hubtrade.app?subject=${encodeURIComponent(`[Trade HUB] ${subject.trim()}`)}&body=${encodeURIComponent(body)}`;
-    toast.success("Seu aplicativo de e-mail foi preparado para enviar a solicitação.");
-  };
 
   return <WorkspaceShell>
     <WorkspaceHeader eyebrow="Central de conhecimento" title="Como trabalhar no Marketing HUB" description="Consulte os relacionamentos entre módulos, o significado dos campos e o modo correto de registrar planejamento, execução, custos, evidências e resultados." icon={CircleHelp} meta={<span className="inline-flex items-center gap-1.5"><BookOpenCheck className="h-3.5 w-3.5" />Documentação operacional por tópicos</span>} />
-    <WorkspaceSection title="Mapa de conhecimento" description="Cada card representa um tópico de uso. Pesquise por módulo, relacionamento ou termo do formulário.">
+    <WorkspaceSection title="Mapa de conhecimento" description="Cada card abre uma página própria com explicações detalhadas, campos, regras e um fluxo visual do tópico.">
       <div className="hub-filter-panel mb-5"><label className="grid gap-1.5"><span className="text-xs font-semibold text-foreground">Pesquisar na Central de Conhecimento</span><div className="relative"><BookOpenCheck className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Ex.: subserviço, nota fiscal, evidência, cidade…" className="h-9 pl-9" /></div></label></div>
       {visibleCards.length ? <div className="grid gap-4 xl:grid-cols-2">{visibleCards.map(card => <KnowledgeTopicCard key={card.id} card={card} />)}</div> : <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Nenhum tópico corresponde à pesquisa.</div>}
     </WorkspaceSection>
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <WorkspaceCard><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /><h2 className="font-display text-lg font-semibold text-foreground">Princípios para novos módulos</h2></div><div className="mt-4 grid gap-3 md:grid-cols-3"><Principle title="Relacionamento primeiro" text="Antes de criar um campo novo, identifique se a informação já existe em um cadastro mestre e pode ser vinculada." /><Principle title="Histórico sempre" text="Alterações relevantes devem preservar motivo, responsável, data e evidência quando aplicável." /><Principle title="Visual consistente" text="Use o shell, tokens, espaçamentos, filtros ocultos e dropdowns pesquisáveis do sistema." /></div></WorkspaceCard>
-      <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /><h2 className="font-display text-lg font-semibold text-foreground">Solicitar ajuda</h2></div><p className="mt-1 text-sm leading-6 text-muted-foreground">Ao enviar, será aberto um e-mail preenchido para a equipe de suporte.</p><div className="mt-5 space-y-4"><div><Label htmlFor="help-subject">Assunto</Label><Input id="help-subject" value={subject} onChange={event => setSubject(event.target.value)} maxLength={160} placeholder="Ex.: Dúvida sobre vínculo de SubServiço" className="mt-1.5" /></div><div><Label htmlFor="help-message">Descrição</Label><Textarea id="help-message" value={message} onChange={event => setMessage(event.target.value)} maxLength={3000} placeholder="Informe módulo, registro, etapa executada e resultado esperado." className="mt-1.5 min-h-36 resize-y" /></div></div><Button type="submit" className="mt-6 w-full bg-primary hover:bg-primary/90"><Send className="mr-1.5 h-4 w-4" />Preparar solicitação</Button><p className="mt-3 text-center text-[11px] leading-5 text-muted-foreground">Nunca inclua senhas ou dados sensíveis.</p></form>
+    <div className="grid gap-5 xl:grid-cols-3">
+      <WorkspaceCard><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /><h2 className="font-display text-lg font-semibold text-foreground">Relacionamento primeiro</h2></div><p className="mt-2 text-sm leading-6 text-muted-foreground">Antes de criar um campo novo, identifique se a informação já existe em um cadastro mestre e pode ser vinculada.</p></WorkspaceCard>
+      <WorkspaceCard><div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /><h2 className="font-display text-lg font-semibold text-foreground">Histórico sempre</h2></div><p className="mt-2 text-sm leading-6 text-muted-foreground">Alterações relevantes devem preservar motivo, responsável, data e evidência quando aplicável.</p></WorkspaceCard>
+      <WorkspaceCard><div className="flex items-center gap-2"><Workflow className="h-4 w-4 text-primary" /><h2 className="font-display text-lg font-semibold text-foreground">Visual consistente</h2></div><p className="mt-2 text-sm leading-6 text-muted-foreground">Use o shell, tokens, padding, espaçamentos, filtros ocultos e dropdowns pesquisáveis do sistema.</p></WorkspaceCard>
     </div>
   </WorkspaceShell>;
 }
 
 function KnowledgeTopicCard({ card }: { card: KnowledgeCard }) {
+  const [, setLocation] = useLocation();
   const Icon = card.icon;
-  return <WorkspaceCard className="h-full"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-4.5 w-4.5" /></span><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">{card.area}</p><h2 className="mt-1 font-display text-lg font-semibold text-foreground">{card.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{card.summary}</p></div></div><div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">Relacionamento</p><p className="mt-1 text-xs leading-5 text-foreground">{card.relationship}</p></div><div className="mt-4 grid gap-4 md:grid-cols-2"><KnowledgeList title="Como preencher e usar" items={card.howTo} /><KnowledgeList title="Campos importantes" items={card.fields} /></div><div className="mt-4 border-t border-border pt-4"><KnowledgeList title="Regras e cuidados" items={card.rules} /></div></WorkspaceCard>;
+  return <button type="button" onClick={() => setLocation(`/central-conhecimento/${card.id}`)} className="group block h-full w-full text-left" aria-label={`Abrir conhecimento: ${card.title}`}><WorkspaceCard className="h-full transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-4.5 w-4.5" /></span><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">{card.area}</p><h2 className="mt-1 font-display text-lg font-semibold text-foreground">{card.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{card.summary}</p></div></div><div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">Relacionamento</p><p className="mt-1 text-xs leading-5 text-foreground">{card.relationship}</p></div><div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs font-semibold text-primary"><span>Ver página completa</span><ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></div></WorkspaceCard></button>;
 }
 
 function KnowledgeList({ title, items }: { title: string; items: string[] }) {
   return <div><h3 className="text-xs font-semibold text-foreground">{title}</h3><ul className="mt-2 space-y-2 text-xs leading-5 text-muted-foreground">{items.map(item => <li key={item} className="flex gap-2"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />{item}</li>)}</ul></div>;
-}
-
-function Principle({ title, text }: { title: string; text: string }) {
-  return <div className="rounded-xl border border-border bg-secondary/30 p-3"><h3 className="text-sm font-semibold text-foreground">{title}</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p></div>;
 }

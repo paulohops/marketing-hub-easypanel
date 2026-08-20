@@ -80,3 +80,11 @@ Todos os workspaces devem usar a mesma régua visual: `WorkspaceShell` centraliz
 Menus de seleção devem preferir `SearchableSelect` ou `SearchableMultiSelect`, reproduzindo o padrão de referência: trigger compacto, popover com bordas arredondadas, campo `Pesquisar…` com foco destacado, opções em linhas com área de toque confortável, descrição secundária quando houver e opção explícita de limpar. Selects legados recebem os mesmos tokens de altura, raio, borda e foco para não quebrar módulos ainda em migração.
 
 No fluxo de veiculação urbana, `Serviço` é sempre o serviço principal e `SubServiço` é carregado apenas a partir dos vínculos ativos de `serviceSubservices` ou do catálogo de mídia correspondente. O payload nunca deve enviar o ID de um Serviço no campo de SubServiço. As fichas de Serviços, SubServiços e Tipos de mídia devem exibir os relacionamentos nos dois sentidos, sem duplicar registros legados.
+
+## Padding canônico dos cards
+
+A classe global `hub-card`, usada por `WorkspaceCard`, aplica padding interno de **1,25 rem** a todo card. Esse respiro é obrigatório para separar título, conteúdo, ações e bordas, evitando que textos e controles fiquem colados nas extremidades. O padrão vale para Trade, Mídia Urbana, Mídia Audiovisual, Cadastros, Financeiro, Estoque, Processos e qualquer módulo novo.
+
+O modificador `hub-card--padded` permanece apenas por compatibilidade com implementações antigas. Novos componentes não devem depender dele para obter respiro, pois `hub-card` já é padded. Cards auxiliares aninhados podem usar um padding menor somente quando não representarem uma unidade de conteúdo independente; essa exceção deve ser intencional e documentada.
+
+Filtros, headers, seções e cards devem respeitar o mesmo ritmo: header canônico, seção com espaçamento vertical consistente, card com padding, controles alinhados e ações sem contato com as bordas. Ao revisar um módulo, validar desktop e mobile para garantir que o padding não seja removido por classes utilitárias conflitantes.

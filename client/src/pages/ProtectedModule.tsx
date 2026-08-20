@@ -21,6 +21,7 @@ import TeamsWorkspace from "./TeamsWorkspace";
 import ActionPointsWorkspace from "./ActionPointsWorkspace";
 import TradeOperationsWorkspace from "./TradeOperationsWorkspace";
 import HelpWorkspace from "./HelpWorkspace";
+import KnowledgeTopicWorkspace from "./KnowledgeTopicWorkspace";
 import OperationalRegistriesWorkspace from "./OperationalRegistriesWorkspace";
 import NotificationsWorkspace from "./NotificationsWorkspace";
 import CompaniesWorkspace from "./CompaniesWorkspace";
@@ -76,14 +77,14 @@ const definitions = {
   usuarios: { permission: "settings.read", eyebrow: "Acesso administrativo", title: "Usuários e permissões", description: "Gerencie papéis e acessos operacionais.", icon: ShieldCheck, resources: [], accent: "var(--primary)" },
   equipes: { permission: "settings.read", eyebrow: "Acesso administrativo", title: "Equipes", description: "Visualize e gerencie a hierarquia da equipe.", icon: Network, resources: [], accent: "var(--primary)" },
   "pontos-de-acao": { permission: "settings.read", eyebrow: "Cadastros operacionais", title: "Pontos de ação", description: "Gerencie locais recorrentes para ações de trade.", icon: MapPinned, resources: [], accent: "var(--primary)" },
-  ajuda: { permission: "dashboard.read", eyebrow: "Central de conhecimento", title: "Ajuda e suporte", description: "Consulte os fluxos do sistema e envie solicitações de suporte.", icon: CircleHelp, resources: [], accent: "var(--primary)" },
+  "central-conhecimento": { permission: "dashboard.read", eyebrow: "Central de conhecimento", title: "Central de Conhecimento", description: "Consulte páginas detalhadas sobre os módulos, relacionamentos, preenchimento dos campos e fluxos operacionais.", icon: CircleHelp, resources: [], accent: "var(--primary)" },
   notificacoes: { permission: "dashboard.read", eyebrow: "Acompanhamento operacional", title: "Notificações", description: "Acompanhe alertas direcionados a pessoas, regionais e cidades.", icon: BellRing, resources: [], accent: "var(--primary)" },
   "central-de-dados": { permission: "settings.read", eyebrow: "Administração do sistema", title: "Central de Dados", description: "Importe cadastros e exporte relatórios.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
   design: { permission: "settings.read", eyebrow: "Identidade visual", title: "Design", description: "Personalize o tema e a identidade visual.", icon: Settings2, resources: [], accent: "var(--primary)" },
   sistema: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Sistema", description: "Configure SMTP, notificações por e-mail e chaves de integrações.", icon: Settings2, resources: [], accent: "var(--primary)" },
 } as const;
 
-export default function ProtectedModule({ module }: { module: keyof typeof definitions }) {
+export default function ProtectedModule({ module, topicId }: { module: keyof typeof definitions; topicId?: string }) {
   const { loading, isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [, traditionalPointParams] = useRoute("/midias/tradicional/:mediaPointId");
@@ -135,7 +136,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "usuarios") return <DashboardLayout><div className="cluster-workspace"><UserAdministrationWorkspace /></div></DashboardLayout>;
   if (module === "equipes") return <DashboardLayout><div className="cluster-workspace"><TeamsWorkspace /></div></DashboardLayout>;
   if (module === "pontos-de-acao") return <DashboardLayout><div className="cluster-workspace"><ActionPointsWorkspace /></div></DashboardLayout>;
-  if (module === "ajuda") return <DashboardLayout><div className="cluster-workspace"><HelpWorkspace /></div></DashboardLayout>;
+  if (module === "central-conhecimento") return <DashboardLayout><div className="cluster-workspace">{topicId ? <KnowledgeTopicWorkspace topicId={topicId} /> : <HelpWorkspace />}</div></DashboardLayout>;
   if (module === "notificacoes") return <DashboardLayout><div className="cluster-workspace"><NotificationsWorkspace /></div></DashboardLayout>;
   return <DashboardLayout><ModulePage {...definition} /></DashboardLayout>;
 }

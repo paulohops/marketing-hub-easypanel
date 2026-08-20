@@ -146,8 +146,9 @@ describe("DashboardLayout", () => {
     );
     fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
 
-    const helpItem = await screen.findByText("Ajuda e suporte");
-    const menu = helpItem.closest('[role="menu"]');
+    const profileItem = await screen.findByText("Meu perfil");
+    const menu = profileItem.closest('[role="menu"]');
+    expect(screen.queryByText("Ajuda e suporte")).not.toBeInTheDocument();
     expect(document.documentElement).toHaveClass("dark");
     expect(menu).toBeInTheDocument();
     expect(menu).toHaveClass("bg-popover");

@@ -92,7 +92,9 @@ function Router() {
     <Route path="/administracao-usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>
     <Route path="/equipes">{() => <Redirect to="/configuracoes/equipes" replace />}</Route>
     <Route path="/pontos-de-acao">{() => <ProtectedModule module="pontos-de-acao" />}</Route>
-    <Route path="/ajuda">{() => <ProtectedModule module="ajuda" />}</Route>
+    <Route path="/central-conhecimento/:topicId">{({ topicId }) => <ProtectedModule module="central-conhecimento" topicId={topicId} />}</Route>
+    <Route path="/central-conhecimento">{() => <ProtectedModule module="central-conhecimento" />}</Route>
+    <Route path="/ajuda">{() => <Redirect to="/central-conhecimento" replace />}</Route>
     <Route path="/notificacoes">{() => <ProtectedModule module="notificacoes" />}</Route>
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />

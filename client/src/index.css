@@ -518,13 +518,16 @@
     line-height: 1.5;
   }
 
+  /* Padrão global: todo card tem respiro interno para separar conteúdo, borda e ações. */
   .hub-card {
     border: 1px solid var(--border);
     border-radius: 0.875rem;
     background: var(--card);
     box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    padding: 1.25rem;
   }
 
+  /* Compatibilidade para cards antigos que já declaravam o modificador. */
   .hub-card--padded {
     padding: 1.25rem;
   }
