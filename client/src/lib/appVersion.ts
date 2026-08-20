@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.3.2.0";
+export const APP_VERSION = "1.3.3.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.3.3.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Processos com página detalhada, BPMN ortogonal e revisão visual dos formulários e da Central de Conhecimento.",
+    changes: [
+      "A página principal de Processos passou a exibir um catálogo de cards; cada card abre a página detalhada com informações, BPMN e descritivo operacional.",
+      "Os conectores do BPMN passaram a usar rotas ortogonais com segmentos em ângulo reto, incluindo os caminhos Sim e Não dos gateways.",
+      "Removidos os asteriscos automáticos de obrigatoriedade que estavam quebrando o alinhamento dos formulários; a validação de negócio permanece no envio.",
+      "Headers, painel de busca e espaçamentos da Central de Conhecimento foram alinhados ao WorkspaceChrome e ao padrão global documentado.",
+      "A rota detalhada de Processos foi adicionada sem alterar a proteção de permissões dos módulos.",
+    ],
+  },
   {
     version: "1.3.2.0",
     date: "20/08/2026",

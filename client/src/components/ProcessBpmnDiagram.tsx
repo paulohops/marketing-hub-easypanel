@@ -16,7 +16,11 @@ const nodeWidth = 174;
 const nodeHeight = 58;
 const columnGap = 54;
 const leftLabelWidth = 178;
-const rightPadding = 72;
+const rightPadding = 96;
+
+type ConnectorPoint = { x: number; y: number };
+
+type ShapeBounds = { left: number; right: number };
 
 function truncate(value: string, max = 28) {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
@@ -34,6 +38,26 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
     const step = ordered[index];
     const lane = sectorIndex.get(step.sectorName || "Setor não informado") ?? 0;
     return { x: leftLabelWidth + index * (nodeWidth + columnGap), y: lane * laneHeight + 38, centerY: lane * laneHeight + 38 + nodeHeight / 2 };
+  };
+
+  const shapeBounds = (position: NonNullable<ReturnType<typeof stepPosition>>, gateway: boolean): ShapeBounds => {
+    const centerX = position.x + nodeWidth / 2;
+    const halfWidth = gateway ? 24 : nodeWidth / 2;
+    return { left: centerX - halfWidth, right: centerX + halfWidth };
+  };
+
+  const orthogonalPath = (from: ConnectorPoint, target: NonNullable<ReturnType<typeof stepPosition>>, targetGateway: boolean) => {
+    const targetBounds = shapeBounds(target, targetGateway);
+    const targetIsToRight = target.x >= from.x;
+    if (targetIsToRight) {
+      const targetX = targetBounds.left - 8;
+      if (Math.abs(targetX - from.x) < 8) return `M ${from.x} ${from.y} V ${target.centerY} H ${targetX}`;
+      const viaX = from.x + Math.max(18, (targetX - from.x) / 2);
+      return `M ${from.x} ${from.y} H ${viaX} V ${target.centerY} H ${targetX}`;
+    }
+    const targetX = targetBounds.right + 8;
+    const viaX = Math.max(from.x, targetX) + 28;
+    return `M ${from.x} ${from.y} H ${viaX} V ${target.centerY} H ${targetX}`;
   };
 
   if (!ordered.length) {
@@ -73,9 +97,9 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
           const noTarget = step.noNextStepOrder ? stepPosition(step.noNextStepOrder) : null;
           return (
             <g key={step.stepOrder}>
-              {!isGateway && nextPosition ? <line x1={position.x + nodeWidth} y1={position.centerY} x2={nextPosition.x - 8} y2={nextPosition.centerY} stroke="var(--primary)" strokeWidth="1.6" markerEnd="url(#bpmn-arrow)" /> : null}
-              {isGateway && yesTarget ? <path d={`M ${diamondCenterX + 24} ${diamondCenterY - 8} L ${yesTarget.x - 20} ${yesTarget.centerY - 16} L ${yesTarget.x - 8} ${yesTarget.centerY - 16}`} fill="none" stroke="var(--primary)" strokeWidth="1.6" markerEnd="url(#bpmn-arrow)" /> : null}
-              {isGateway && noTarget ? <path d={`M ${diamondCenterX + 24} ${diamondCenterY + 8} L ${noTarget.x - 20} ${noTarget.centerY + 16} L ${noTarget.x - 8} ${noTarget.centerY + 16}`} fill="none" stroke="var(--accent)" strokeWidth="1.6" markerEnd="url(#bpmn-arrow)" /> : null}
+              {!isGateway && nextPosition ? <path d={orthogonalPath({ x: position.x + nodeWidth, y: position.centerY }, nextPosition, next?.stepType === "gateway")} fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinejoin="round" markerEnd="url(#bpmn-arrow)" /> : null}
+              {isGateway && yesTarget ? <path d={orthogonalPath({ x: diamondCenterX + 24, y: diamondCenterY - 8 }, yesTarget, ordered.find(stepItem => stepItem.stepOrder === step.yesNextStepOrder)?.stepType === "gateway")} fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinejoin="round" markerEnd="url(#bpmn-arrow)" /> : null}
+              {isGateway && noTarget ? <path d={orthogonalPath({ x: diamondCenterX + 24, y: diamondCenterY + 8 }, noTarget, ordered.find(stepItem => stepItem.stepOrder === step.noNextStepOrder)?.stepType === "gateway")} fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinejoin="round" markerEnd="url(#bpmn-arrow)" /> : null}
               {isGateway ? (
                 <>
                   <polygon points={diamond} fill="var(--accent)" fillOpacity="0.16" stroke="var(--accent)" strokeWidth="2" />

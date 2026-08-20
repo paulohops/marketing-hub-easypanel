@@ -90,18 +90,6 @@
 
 
 @layer base {
-  .required-field::after,
-  label:has(+ input:required)::after,
-  label:has(+ select:required)::after,
-  label:has(+ textarea:required)::after,
-  label:has(input:required)::after,
-  label:has(select:required)::after,
-  label:has(textarea:required)::after {
-    content: " *";
-    color: var(--destructive);
-    font-weight: 700;
-  }
-
   * {
     @apply border-border outline-ring/50;
   }
@@ -375,6 +363,7 @@
     display: grid;
     gap: 1rem;
     align-items: center;
+    padding: 1rem;
     border: 1px solid var(--border);
     border-radius: 0.875rem;
     background: var(--card);

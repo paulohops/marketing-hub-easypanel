@@ -84,7 +84,7 @@ const definitions = {
   sistema: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Sistema", description: "Configure SMTP, notificações por e-mail e chaves de integrações.", icon: Settings2, resources: [], accent: "var(--primary)" },
 } as const;
 
-export default function ProtectedModule({ module, topicId }: { module: keyof typeof definitions; topicId?: string }) {
+export default function ProtectedModule({ module, topicId, processId }: { module: keyof typeof definitions; topicId?: string; processId?: string }) {
   const { loading, isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [, traditionalPointParams] = useRoute("/midias/tradicional/:mediaPointId");
@@ -115,7 +115,7 @@ export default function ProtectedModule({ module, topicId }: { module: keyof typ
   if (module === "cadastro-entidade") return <DashboardLayout><div className="cluster-workspace"><RegistryEntityWorkspace /></div></DashboardLayout>;
   if (module === "empresas") return <DashboardLayout><div className="cluster-workspace"><CompaniesWorkspace /></div></DashboardLayout>;
   if (module === "trello") return <DashboardLayout><div className="cluster-workspace"><TrelloWorkspace /></div></DashboardLayout>;
-  if (module === "processos") return <DashboardLayout><div className="cluster-workspace"><ProcessesWorkspace /></div></DashboardLayout>;
+  if (module === "processos") return <DashboardLayout><div className="cluster-workspace"><ProcessesWorkspace processId={processId} /></div></DashboardLayout>;
   if (module === "importacao") return <DashboardLayout><div className="cluster-workspace"><DataImportWorkspace /></div></DashboardLayout>;
   if (module === "exportacao") return <DashboardLayout><div className="cluster-workspace"><ReportExportWorkspace /></div></DashboardLayout>;
   const canWrite = (permission: string) => canPermission(permission);
