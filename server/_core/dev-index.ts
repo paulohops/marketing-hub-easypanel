@@ -4,7 +4,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { operationalAlertsHandler } from "../operationalAlerts";
 import { createContext } from "./context";
-import { assertRuntimeEnvironment } from "./env";
+import { assertRuntimeEnvironment, ENV } from "./env";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { setupVite } from "./vite";
@@ -29,8 +29,7 @@ async function startDevelopmentServer() {
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
   await setupVite(app, server);
 
-  const port = Number.parseInt(process.env.PORT ?? "3000", 10);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`PORT inválida: ${process.env.PORT ?? ""}`);
+  const port = Number.parseInt(ENV.port, 10);
   server.listen(port, "0.0.0.0", () => appLog("INFO", "Servidor de desenvolvimento iniciado", { port }));
 }
 

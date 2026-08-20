@@ -246,7 +246,49 @@ A leitura do branding é pública para permitir que a tela de login carregue a m
 
 Ao criar novos componentes, use `useBranding()` quando o nome, a logo ou o subtítulo forem exibidos. Para novas cores, prefira os tokens semânticos derivados do branding; não leia `appSettings` diretamente no componente e não invente uma segunda fonte de verdade.
 
-## 9. Anti-gambiarra: regras que a IA deve obedecer
+## 9. Rotas atuais, IA assistida e governança
+
+O mapa de rotas abaixo complementa a tabela da seção 3 com as áreas adicionadas nas rodadas recentes. As rotas continuam entrando pelo mesmo `ProtectedModule`, pelo mesmo `DashboardLayout` e pela mesma autorização; não existe uma navegação paralela para IA.
+
+| Grupo | Rota | `module` | Comportamento | Permissão de leitura |
+|---|---|---|---|---|
+| Trade | `/midias/volante` | `midias-volante` | Lista de Mídia Volante, independente de Mídia Audiovisual | `media.read` |
+| Trade | `/midias/volante/:mediaPointId` | `midias-volante-detalhe` | Detalhe do ponto e histórico de Mídia Volante | `media.read` |
+| Trade | `/midias/volante/veiculacao/:campaignId` | `midias-volante-veiculacao` | Detalhe da veiculação de Mídia Volante | `media.read` |
+| Trade | `/midias/audiovisual` | `midias-audio-video` | Lista de Mídia Audiovisual | `media.read` |
+| Trade | `/midias/audiovisual/:mediaPointId` | `midias-tradicional` | Detalhe do programa audiovisual | `media.read` |
+| Trade | `/midias/audiovisual/veiculacao/:campaignId` | `midias-tradicional-veiculacao` | Detalhe da veiculação audiovisual | `media.read` |
+| BI | `/indicadores` | `indicadores` | Visão geral do Trade | `dashboard.read` |
+| BI | `/indicadores/midias` | `indicadores` | Visão de Mídias | `dashboard.read` |
+| BI | `/indicadores/panfletagem` | `indicadores` | Visão de Panfletagem | `dashboard.read` |
+| Gestão | `/tarefas` | `tarefas` | Painel Kanban independente, próximo de Trello | `tasks.read` |
+| Configurações | `/configuracoes` | `configuracoes` | Configurações, incluindo Cadastros e Central de Dados | `settings.read` |
+| Processos | `/processos` e `/processos/:processId` | `processos` | Lista e detalhe dos processos com descritivo e BPMN | `documents.read` |
+
+### 9.1 Procedures de IA disponíveis
+
+As capacidades atuais de IA são deliberadamente **somente leitura** e ficam no namespace tRPC `ai`:
+
+| Procedure | Entrada | Saída | Regra de segurança |
+|---|---|---|---|
+| `ai.detectInventoryAnomalies` | Regional, busca opcional e limite de alertas | Alertas estruturados de saldo negativo, mínimo, movimentação incomum ou item sem movimentação | Consulta apenas `stock_items`, saldos e movimentos; não cria ou altera estoque. |
+| `ai.summarizeAction` | `actionId` | Resumo, destaques, pendências e riscos da ação | Lê ação, serviços e debriefing; não edita status, custo, debriefing ou vínculos. |
+
+O backend exige `dashboard.read` antes de consultar os dados, limita o volume enviado ao modelo, instrui o modelo a tratar os registros como dados não confiáveis, usa `gpt-5-mini` e exige saída JSON com schema estrito. A resposta passa por validação Zod antes de ser retornada ao cliente. Se o proxy LLM não estiver configurado ou falhar, a procedure retorna indisponibilidade controlada; não há fallback que invente uma recomendação.
+
+A integração server-side usa `BUILT_IN_FORGE_API_URL` e `BUILT_IN_FORGE_API_KEY`. Essas variáveis nunca devem ser lidas no cliente, persistidas em branding ou incluídas em respostas tRPC. O adaptador possui timeout de 30 segundos e só aceita conteúdo não vazio. A ausência das variáveis é uma condição operacional documentada, não uma razão para expor segredo ou habilitar uma chamada direta do navegador.
+
+### 9.2 Governança obrigatória para IA
+
+> **Regra:** a IA pode sugerir, classificar, detectar e resumir; a decisão de alterar dados continua pertencendo a uma regra de negócio autorizada ou a uma pessoa com permissão explícita.
+
+Toda execução deve registrar no `audit_logs` o ator solicitante, a entidade ou escopo consultado, o modelo efetivo, o hash SHA-256 do prompt e o resultado validado ou a falha controlada. O prompt salvo como hash não deve conter credenciais. Dados enviados ao modelo devem ser mínimos, limitados ao caso de uso e sem campos que não participem da decisão.
+
+Qualquer fluxo futuro que proponha alteração de status, aprovação financeira, movimentação de estoque, delegação de tarefa, envio de mensagem ou gravação de debriefing deve separar quatro etapas: **sugestão**, **revisão humana**, **confirmação com permissão do domínio** e **mutation auditada**. Não é permitido transformar uma resposta textual do modelo em mutation automática, nem aceitar um identificador retornado pelo modelo sem verificar se ele pertence ao escopo consultado.
+
+Os dados de entidades, nomes, notas, objetivos, SKUs, descrições e documentos são conteúdo não confiável. Instruções contidas nesses campos devem ser tratadas como dados e nunca como comandos para o modelo. Saídas estruturadas devem ter enumerações e limites de tamanho definidos, passar por Zod e ser reduzidas ao escopo solicitado. Para cada função de IA nova, adicionar casos normais, casos sem evidência, dados incompletos e tentativas de prompt injection antes de disponibilizá-la no menu.
+
+## 10. Anti-gambiarra: regras que a IA deve obedecer
 
 > **Princípio central:** uma solução é considerada inadequada quando funciona apenas para um caso visual ou de dados, mas ignora o padrão de navegação, os tokens, as permissões, as validações do servidor ou a manutenção futura.
 
@@ -268,7 +310,7 @@ Ao criar novos componentes, use `useBranding()` quando o nome, a logo ou o subt�
 | Apagar histórico, motivo ou evidência ao mudar status. | Registrar a alteração no audit log com ator, contexto e evidências. |
 | Aceitar upload sem validar MIME, tamanho e entidade. | Reutilizar o contrato de storage e validar formato, tamanho e permissão. |
 
-## 10. Acessibilidade e responsividade
+## 11. Acessibilidade e responsividade
 
 Todo controle interativo deve ser teclado-acessível, ter nome compreensível e preservar foco dentro de diálogos quando o componente base já oferece esse comportamento. Ícones sozinhos precisam de `aria-label` ou texto alternativo. Imagens decorativas podem usar `alt=""`; imagens de identidade devem usar o nome da entidade.
 
@@ -276,13 +318,13 @@ A largura de 1280 px é uma referência importante para validar listas densas, m
 
 O tema escuro deve ser verificado em todas as superfícies novas. Não assumir que `bg-white`, `text-black` ou cores de status somente no tema claro terão contraste adequado. A solução correta é usar os tokens e as classes de estado já praticadas em Campanhas e Ações.
 
-## 11. Fluxo de implementação recomendado
+## 12. Fluxo de implementação recomendado
 
 A IA deve começar descrevendo a mudança em termos de domínio: entidade, rota, permissão, query, mutation, vínculos e estado de auditoria. Em seguida deve localizar um exemplo canônico, implementar o contrato de backend, conectar a query de referências e a listagem, construir a lista, construir o detalhe e somente depois adicionar diálogos auxiliares ou refinamentos visuais.
 
 A implementação deve ser validada em camadas. Primeiro, verificar tipos e testes relacionados; depois, executar a suíte de testes; por fim, revisar visualmente estados de carregamento, vazio, erro, formulário, detalhe, tema escuro e viewport estreito. Se uma regra nova não couber no padrão de Campanhas ou Ações, a IA deve justificar a exceção no código ou na documentação em vez de criar uma variação silenciosa.
 
-## 12. Checklist de aceite para novas funcionalidades
+## 13. Checklist de aceite para novas funcionalidades
 
 | Categoria | Pergunta de aceite |
 |---|---|

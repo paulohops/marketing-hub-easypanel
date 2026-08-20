@@ -19,6 +19,17 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("recharts") || id.includes("xlsx")) return "vendor-data";
+          if (id.includes("@radix-ui") || id.includes("lucide-react")) return "vendor-ui";
+          if (id.includes("react") || id.includes("wouter") || id.includes("@tanstack")) return "vendor-react";
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     host: true,

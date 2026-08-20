@@ -11,6 +11,20 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
+    version: "1.5.7.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Confiabilidade de testes, carregamento por rota, observabilidade de integrações e fundações seguras de IA.",
+    changes: [
+      "RegistryEntityWorkspace.test.tsx foi dividido em seis arquivos por domínio, com fixtures mínimas e execução serializada para reduzir pressão de memória.",
+      "Workspaces pesados passaram a usar React.lazy/Suspense e o Vite recebeu chunks separados para React, UI e dados.",
+      "Portas, banco e integrações opcionais passaram a usar o ENV central, com validação de requisitos no boot e avisos operacionais.",
+      "Adicionado health.integrations para BrasilAPI e armazenamento, com timeout, cache curto e status individual por integração.",
+      "Criadas as procedures somente leitura ai.detectInventoryAnomalies e ai.summarizeAction, com dashboard.read, saída Zod, modelo gpt-5-mini e auditoria de modelo, hash do prompt e resultado.",
+      "Atualizados o guia de IA e o relatório de auditoria com rotas atuais, governança, limitações e backlog técnico remanescente.",
+    ],
+  },
+  {
     version: "1.5.6.0",
     date: "20/08/2026",
     label: "Minor update",

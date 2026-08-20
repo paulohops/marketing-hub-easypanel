@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ProtectedModule from "./ProtectedModule";
 
@@ -32,17 +32,17 @@ describe("ProtectedModule", () => {
     expect(screen.getByRole("heading", { name: "Acesso não autorizado" })).toBeInTheDocument();
   });
 
-  it("libera acesso direto a um módulo permitido para visualizador", () => {
+  it("libera acesso direto a um módulo permitido para visualizador", async () => {
     authState.user.role = "viewer";
     render(<ProtectedModule module="midias" />);
 
-    expect(screen.getByRole("heading", { name: "Mídias e campanhas" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Mídias e campanhas" })).toBeInTheDocument());
   });
 
-  it("abre a tela protegida de Mídia Tradicional pela entrada independente", () => {
+  it("abre a tela protegida de Mídia Tradicional pela entrada independente", async () => {
     authState.user.role = "viewer";
     render(<ProtectedModule module="midias-audio-video" />);
 
-    expect(screen.getByRole("heading", { name: "Mídia Tradicional independente" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Mídia Tradicional independente" })).toBeInTheDocument());
   });
 });

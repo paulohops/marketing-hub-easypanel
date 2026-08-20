@@ -15,15 +15,14 @@ export async function getDb() {
   }
 
   if (!db) {
-    const sslEnabled = process.env.DATABASE_SSL === "true";
     pool = new Pool({
       connectionString,
-      max: Number(process.env.DATABASE_POOL_MAX ?? 8),
+      max: ENV.databasePoolMax,
       idleTimeoutMillis: 30_000,
-      ...(sslEnabled
+      ...(ENV.databaseSsl
         ? {
             ssl: {
-              rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
+              rejectUnauthorized: ENV.databaseSslRejectUnauthorized,
             },
           }
         : {}),

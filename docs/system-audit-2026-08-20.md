@@ -10,14 +10,17 @@ A referência de engenharia do repositório é formada por [`AGENTS.md`](../AGEN
 
 | Área | Situação | Observação |
 |---|---|---|
-| Compilação TypeScript | Aprovada | `pnpm run check` concluído sem erros na rodada. |
-| Build de produção | Aprovado com aviso | O bundle principal permanece acima do limite recomendado pelo Vite; não impede a publicação, mas indica necessidade de code splitting. |
-| Testes funcionais | Aprovados nos testes executados | A suíte restante chegou a 61 arquivos, 220 testes aprovados e 3 ignorados. O teste pesado de `RegistryEntityWorkspace` provoca encerramento inesperado de worker por memória. |
+| Compilação TypeScript | Aprovada | `pnpm run check` concluído sem erros após a implementação de ENV, health checks e IA. |
+| Build de produção | Aprovado | O entry principal ficou em 163,30 kB; os maiores vendors ficaram em 424,69 kB (`vendor-data`) e 351,52 kB (`vendor-react`), abaixo do limite de 1.200 kB por chunk. |
+| Testes funcionais | Aprovados | A suíte completa passou com **67 arquivos, 246 testes aprovados e 3 ignorados**; os 26 cenários de `RegistryEntityWorkspace` foram separados e passaram com um único worker. |
 | Navegação | Corrigida | Tarefas deixou de ser submenu de Trello; Cadastros foi movido para Configurações; Solicitações foi removido do frontend e do agregador tRPC. |
 | Formulários | Padronizados | `DialogContent`, grids, rolagem interna, largura segura e rodapés de ações receberam uma base reutilizável. |
 | Permissões financeiras | Corrigidas | Aprovação de pedido de compra passou a usar `finance.update`, escopo reconhecido pela autorização efetiva de administradores. |
 | CNPJ de fornecedores | Integrado | O backend consulta a BrasilAPI com CNPJ normalizado e timeout; o editor de fornecedor preenche os campos retornados sem apagar valores não retornados. |
 | BI | Corrigido | As rotas de Visão geral, Mídias e Panfletagem não devem mais manter Visão geral marcada quando outra visão está ativa. |
+| Configuração | Implementada | Portas, banco e integrações opcionais usam `server/_core/env.ts`; o boot valida requisitos e avisa sobre opcionais ausentes. |
+| Observabilidade | Implementada | `health.integrations` verifica BrasilAPI com timeout/cache e armazenamento sem expor segredos. |
+| IA assistida | Implementada | `ai.detectInventoryAnomalies` e `ai.summarizeAction` são somente leitura, exigem `dashboard.read`, validam JSON com Zod e auditam modelo/hash/resultado. |
 
 ## Correções realizadas
 
@@ -33,23 +36,23 @@ A consulta de CNPJ foi implementada no backend para manter a chave e a regra de 
 
 ### 1. Suíte completa de testes e memória do worker
 
-Os testes direcionados do menu passaram isoladamente. A execução controlada dos demais testes passou com **61 arquivos, 220 testes aprovados e 3 ignorados**, mas o processo apresentou um erro de worker ao alcançar o teste pesado de `RegistryEntityWorkspace.test.tsx`. A causa observada foi encerramento inesperado do worker por pressão de memória, não uma asserção funcional do módulo. Esse teste deve ser dividido em cenários menores ou executado em um job separado de CI com mais memória.
+O teste monolítico de `RegistryEntityWorkspace` foi removido e seus 26 cenários foram divididos em seis arquivos por domínio, cada um com mock e fixtures mínimas. A execução direcionada usa um único worker e não depende mais de um arquivo que concentra todos os cenários. A suíte completa ainda deve ser executada na validação final para medir o comportamento global.
 
 ### 2. Bundle principal acima do limite recomendado
 
-O build de produção concluiu, porém o Vite reportou que o chunk principal excede 1.200 kB após minificação. O impacto provável é maior tempo de carregamento inicial, especialmente em conexões móveis. A correção recomendada é adotar `import()` para workspaces raramente acessados, separar rotas de módulos pesados e configurar `manualChunks` somente depois de medir o efeito real.
+O `ProtectedModule` agora usa `React.lazy` para workspaces pesados, com fallback único de `Suspense`. O Vite também separa dependências estáveis em chunks de React, UI e dados por `manualChunks`. O build desta rodada confirmou entry principal de **163,30 kB**, maior vendor de **424,69 kB** e nenhum chunk acima do limite configurado de **1.200 kB**.
 
 ### 3. Auditoria estática de manutenção
 
-A contagem estática final encontrou 49 ocorrências de `any`, 32 leituras diretas de `process.env`, 65 arquivos de teste, 41 routers e 67 migrations. Esses números não significam que todas as ocorrências são defeitos: comentários, tipos de biblioteca e adaptadores podem aparecer na contagem. Eles indicam áreas para revisão controlada.
+A contagem estática atual encontrou 43 ocorrências de `any`, 33 referências totais a `process.env` (9 fora do módulo central, incluindo arquivos de teste/boot), 70 arquivos de teste, 42 routers e 67 migrations. Esses números não significam que todas as ocorrências são defeitos: comentários, tipos de biblioteca e adaptadores podem aparecer na contagem. Eles indicam áreas para revisão controlada.
 
-| Risco | Prioridade | Ação recomendada |
+| Risco | Prioridade | Situação nesta rodada |
 |---|---:|---|
-| `any` em áreas de domínio | Média | Substituir progressivamente por tipos derivados de tRPC, schemas Zod ou tipos de domínio. Começar por integrações e operações financeiras. |
-| `process.env` fora do módulo central | Média | Concentrar configuração em `server/env.ts`, validar variáveis no boot e impedir que credenciais cheguem ao bundle do cliente. |
-| Worker de testes encerrado por memória | Alta para CI | Dividir o teste de cadastros, reduzir fixtures e configurar um job com memória dedicada. |
-| Bundle principal grande | Média | Lazy loading por rota e análise de dependências antes de alterar chunks manualmente. |
-| Migrations numerosas | Média | Manter migrations imutáveis, verificar drift no deploy e documentar política de restauração/rollback. |
+| `any` em áreas de domínio | Média | Permanece como backlog de tipagem progressiva; a rodada concentrou-se em confiabilidade, bundle, configuração, observabilidade e IA. |
+| `process.env` fora do módulo central | Média | Reduzido para 9 referências residuais de teste/boot; o runtime de banco, portas e integrações revisadas usa `ENV`, com validação no boot. |
+| Worker de testes encerrado por memória | Alta para CI | Tratado com divisão do teste de cadastros, fixtures mínimas e execução serializada. |
+| Bundle principal grande | Média | Tratado com lazy loading por rota e chunks manuais de dependências; medir no build final. |
+| Migrations numerosas | Média | Mantido como recomendação operacional: migrations continuam imutáveis e devem ser verificadas no deploy. |
 
 Não foram encontradas ocorrências de `TODO`, `FIXME` ou `HACK` nos diretórios de cliente e servidor pela busca estática realizada. Também não foram encontrados `catch {}` completamente vazios nessa varredura; isso não elimina a necessidade de revisar tratamentos que retornam valores vazios sem registrar contexto.
 
@@ -76,11 +79,11 @@ A ordem recomendada de evolução é: primeiro observabilidade e dados confiáve
 
 ## O que ainda vale aperfeiçoar
 
-O próximo ciclo técnico deveria priorizar a confiabilidade da suíte de testes, code splitting por rota, centralização completa das configurações, revisão dos `any` nas áreas de domínio, testes de contrato para integrações externas e uma matriz de permissões testada por papel. Também é importante criar health checks para BrasilAPI, RD Station, WordPress e armazenamento de arquivos, com logs estruturados, retries limitados e dead-letter queue para entradas que não puderem ser processadas.
+O próximo ciclo técnico deve priorizar a redução progressiva dos `any` remanescentes nas áreas de domínio, testes de contrato para integrações externas e uma matriz de permissões testada por papel. Nesta rodada foram implementados code splitting por rota, centralização de configuração, health check da BrasilAPI e armazenamento, além das fundações de IA assistida. RD Station e WordPress continuam fora do health check porque não possuem credenciais/contratos ativos nesta cópia; quando habilitados, devem receber o mesmo padrão de timeout, logs estruturados, retries limitados e fila de falhas.
 
 Na camada de produto, faltam evoluções naturais para um sistema mais robusto: centro de auditoria pesquisável, histórico de alterações por entidade, importação idempotente, fila de pendências, SLA por responsável, reconciliação financeira, dashboard de qualidade dos dados, exportação controlada e política de retenção de dados pessoais. Essas capacidades reduzem o risco operacional antes de adicionar autonomia de IA.
 
-A auditoria não identificou uma falha de compilação ou uma falha funcional adicional confirmada além da limitação de memória do teste pesado e do aviso de bundle. Os pontos listados como risco devem ser tratados como backlog técnico priorizado e validados com testes ou telemetria antes de serem classificados como defeitos.
+A rodada corrigiu a limitação conhecida do teste pesado, aplicou code splitting, centralizou configuração, adicionou observabilidade das integrações disponíveis e criou as duas primeiras procedures de IA sob governança. O build final confirmou a redução do entry principal para 163,30 kB e a suíte completa confirmou 246 testes aprovados. A tipagem progressiva de `any`, a integração futura de RD Station/WordPress e a matriz ampliada de testes de permissão permanecem como backlog técnico priorizado, não como falhas funcionais confirmadas.
 
 ## Referências
 
