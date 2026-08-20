@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import EvidenceUpload from "@/components/EvidenceUpload";
 import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
-import SearchableMultiSelect from "@/components/SearchableMultiSelect";
+import SearchableMultiSelect, { type SelectableOption } from "@/components/SearchableMultiSelect";
 import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { useListDensity } from "@/hooks/useListDensity";
@@ -32,10 +32,41 @@ import {
   Star,
   UsersRound,
 } from "lucide-react";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "../../../server/routers";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
 
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+type ActionReferenceData = RouterOutputs["actions"]["referenceData"];
+type ActionRow = RouterOutputs["actions"]["list"][number];
+type CreatedAction = RouterOutputs["actions"]["create"];
+type ActionHistoryEntry = ActionRow["history"][number];
+type ActionCityReference = ActionReferenceData["cities"][number];
+type ActionSupplierReference = ActionReferenceData["suppliers"][number];
+type ActionServiceReference = ActionReferenceData["serviceTypes"][number];
+type ActionOfferingReference = ActionReferenceData["supplierOfferings"][number];
+type ActionServiceLink = ActionReferenceData["supplierServiceTypes"][number];
+type ActionSupplierRow = NonNullable<ActionRow["suppliers"]>[number];
+type ActionServiceRow = NonNullable<ActionRow["services"]>[number];
+type ActionTeamMemberRow = NonNullable<ActionRow["teamMembers"]>[number];
+type ActionStockRow = NonNullable<ActionRow["stockItems"]>[number];
+type ActionFormState = ReturnType<typeof blankForm>;
+type ActionDebriefState = {
+  rating: string;
+  notes: string;
+  positives: string;
+  negatives: string;
+  resultAchieved: boolean;
+  resultSummary: string;
+  leadCount: string;
+  saleCount: string;
+  renewalCount: string;
+  worthRepeating: boolean;
+  completedAt: string;
+};
 type StockAllocation = { stockItemId: number; quantity: string };
 type ServiceAllocation = { serviceTypeId: number; supplierOfferingId: number | null; estimatedAmount: string };
 const statusLabel: Record<string, string> = {
@@ -160,7 +191,7 @@ export default function ActionsWorkspace() {
   });
   const cities = useMemo(
     () =>
-      (references.data?.cities ?? []).map((entry: any) => ({
+      (references.data?.cities ?? []).map((entry: ActionCityReference) => ({
         city: entry.city ?? entry,
         regionalName: entry.regionalName ?? "",
       })),
@@ -193,14 +224,14 @@ export default function ActionsWorkspace() {
       !form.cityId
         ? []
         : (references.data?.suppliers ?? [])
-            .filter((supplier: any) =>
+            .filter((supplier: ActionSupplierReference) =>
               (references.data?.supplierCities ?? []).some(
-                (link: any) =>
+                (link: ActionReferenceData["supplierCities"][number]) =>
                   link.supplierId === supplier.id &&
                   link.cityId === Number(form.cityId)
               )
             )
-            .map((supplier: any) => ({
+            .map((supplier: ActionSupplierReference) => ({
               id: supplier.id,
               label: supplier.displayName,
             })),
@@ -212,11 +243,11 @@ export default function ActionsWorkspace() {
         ? []
         : (references.data?.stockItems ?? [])
             .filter(
-              (item: any) =>
+              (item: ActionReferenceData["stockItems"][number]) =>
                 item.regionalId === selectedCity.regionalId &&
                 (item.cityId === null || item.cityId === selectedCity.id)
             )
-            .map((item: any) => ({
+            .map((item: ActionReferenceData["stockItems"][number]) => ({
               id: item.id,
               label: item.name,
               description: `${item.sku} · ${item.unit}`,
@@ -229,10 +260,10 @@ export default function ActionsWorkspace() {
         ? []
         : (references.data?.actionPoints ?? [])
             .filter(
-              (point: any) =>
+              (point: ActionReferenceData["actionPoints"][number]) =>
                 point.active && point.cityId === Number(form.cityId)
             )
-            .map((point: any) => ({
+            .map((point: ActionReferenceData["actionPoints"][number]) => ({
               id: point.id,
               label: point.name,
               description: point.address || "Sem endereço cadastrado",
@@ -252,7 +283,7 @@ export default function ActionsWorkspace() {
     await uploadCover.mutateAsync({ actionId, originalName: file.name, mimeType: file.type as "image/jpeg" | "image/png" | "image/webp", dataBase64: await fileToBase64(file) });
   };
   const create = trpc.actions.create.useMutation({
-    onSuccess: async (created: any) => {
+    onSuccess: async (created: CreatedAction) => {
       await saveCover(created.id);
       toast.success("Ação planejada com sucesso.");
       utils.actions.list.invalidate();
@@ -297,7 +328,7 @@ export default function ActionsWorkspace() {
   const visibleActions = useMemo(
     () =>
       (actionList.data ?? []).filter(
-        (row: any) =>
+        (row: ActionRow) =>
           (status === "all" || row.action.status === status) &&
           (regionalFilter === "all" ||
             String(
@@ -314,8 +345,8 @@ export default function ActionsWorkspace() {
     [actionList.data, search, status, regionalFilter, cityFilter, supervisorFilter, ratingFilter, cities]
   );
   const selected = (actionList.data ?? []).find(
-    (row: any) => row.action.id === selectedId
-  ) as any;
+    (row: ActionRow) => row.action.id === selectedId
+  );
   useEffect(() => {
     if (!selected) return;
     const prior = selected.debrief;
@@ -334,7 +365,7 @@ export default function ActionsWorkspace() {
     });
   }, [selectedId]);
   const activeFilterCount = [search, status !== "all", regionalFilter !== "all", cityFilter !== "all", supervisorFilter !== "all", ratingFilter !== "all"].filter(Boolean).length;
-  const statusCounts = (actionList.data ?? []).reduce((counts: Record<string, number>, row: any) => {
+  const statusCounts = (actionList.data ?? []).reduce((counts: Record<string, number>, row: ActionRow) => {
     counts[row.action.status] = (counts[row.action.status] ?? 0) + 1;
     return counts;
   }, {});
@@ -352,7 +383,7 @@ export default function ActionsWorkspace() {
     setCoverFile(null);
     setFormOpen(true);
   };
-  const openEdit = (row: any) => {
+  const openEdit = (row: ActionRow) => {
     setCoverFile(null);
     setForm({
       name: row.action.name,
@@ -369,11 +400,11 @@ export default function ActionsWorkspace() {
       coordinates: coordinatePair(row.action.latitude, row.action.longitude),
       commercialSupervisorId: row.action.commercialSupervisorId ? String(row.action.commercialSupervisorId) : "",
       partnershipType: row.action.partnershipType,
-      supplierIds: (row.suppliers ?? []).map((item: any) => item.id ?? item.supplierId),
-      serviceTypeIds: (row.services ?? []).map((item: any) => item.id ?? item.serviceTypeId),
-      serviceAllocations: (row.services ?? []).map((item: any) => ({ serviceTypeId: item.id ?? item.serviceTypeId, supplierOfferingId: item.supplierOfferingId ?? null, estimatedAmount: String(item.estimatedAmount ?? "0") })),
-      teamMemberIds: (row.teamMembers ?? []).map((item: any) => item.userId),
-      stockAllocations: (row.stockItems ?? []).map((item: any) => ({ stockItemId: item.stockItemId, quantity: String(item.plannedQuantity ?? 0) })),
+      supplierIds: (row.suppliers ?? []).map((item: ActionSupplierRow) => item.supplierId),
+      serviceTypeIds: (row.services ?? []).map((item: ActionServiceRow) => item.serviceTypeId),
+      serviceAllocations: (row.services ?? []).map((item: ActionServiceRow) => ({ serviceTypeId: item.serviceTypeId, supplierOfferingId: item.supplierOfferingId ?? null, estimatedAmount: String(item.estimatedAmount ?? "0") })),
+      teamMemberIds: (row.teamMembers ?? []).map((item: ActionTeamMemberRow) => item.userId),
+      stockAllocations: (row.stockItems ?? []).map((item: ActionStockRow) => ({ stockItemId: item.stockItemId, quantity: String(item.plannedQuantity ?? 0) })),
     });
     setEditingActionId(row.action.id);
     setFormOpen(true);
@@ -391,7 +422,7 @@ export default function ActionsWorkspace() {
     }));
   const setPoint = (pointId: number | null) => {
     const point = (references.data?.actionPoints ?? []).find(
-      (item: any) => item.id === pointId
+      (item: ActionReferenceData["actionPoints"][number]) => item.id === pointId
     );
     setForm(current => ({
       ...current,
@@ -411,14 +442,14 @@ export default function ActionsWorkspace() {
       ),
     }));
   const matchingOffering = (serviceTypeId: number, supplierIds: number[]) => {
-    const serviceName = (references.data?.serviceTypes ?? []).find((service: any) => service.id === serviceTypeId)?.name?.toLocaleLowerCase("pt-BR") ?? "";
-    return (references.data?.supplierOfferings ?? []).find((offering: any) => supplierIds.includes(offering.supplierId) && offering.name?.toLocaleLowerCase("pt-BR").includes(serviceName));
+    const serviceName = (references.data?.serviceTypes ?? []).find((service: ActionServiceReference) => service.id === serviceTypeId)?.name?.toLocaleLowerCase("pt-BR") ?? "";
+    return (references.data?.supplierOfferings ?? []).find((offering: ActionOfferingReference) => supplierIds.includes(offering.supplierId) && offering.name?.toLocaleLowerCase("pt-BR").includes(serviceName));
   };
   const setSuppliers = (supplierIds: number[]) =>
     setForm(current => {
-      const allowedServiceIds = new Set((references.data?.supplierServiceTypes ?? []).filter((link: any) => supplierIds.includes(link.supplierId)).map((link: any) => link.serviceTypeId));
+      const allowedServiceIds = new Set((references.data?.supplierServiceTypes ?? []).filter((link: ActionServiceLink) => supplierIds.includes(link.supplierId)).map((link: ActionServiceLink) => link.serviceTypeId));
       const retainedAllocations = current.serviceAllocations.filter(allocation => allowedServiceIds.has(allocation.serviceTypeId)).map(allocation => {
-        const selectedOffering = (references.data?.supplierOfferings ?? []).find((offering: any) => offering.id === allocation.supplierOfferingId && supplierIds.includes(offering.supplierId));
+        const selectedOffering = (references.data?.supplierOfferings ?? []).find((offering: ActionOfferingReference) => offering.id === allocation.supplierOfferingId && supplierIds.includes(offering.supplierId));
         const fallbackOffering = selectedOffering ?? matchingOffering(allocation.serviceTypeId, supplierIds);
         return selectedOffering ? allocation : { ...allocation, supplierOfferingId: fallbackOffering?.id ?? null, estimatedAmount: fallbackOffering ? String(fallbackOffering.unitPrice ?? 0) : allocation.estimatedAmount };
       });
@@ -436,7 +467,7 @@ export default function ActionsWorkspace() {
       ),
     }));
   const applyActionTemplate = (templateId: string) => {
-    const template = (references.data?.actionTemplates ?? []).find((item: any) => item.id === Number(templateId));
+    const template = (references.data?.actionTemplates ?? []).find((item: ActionReferenceData["actionTemplates"][number]) => item.id === Number(templateId));
     if (!template) {
       setForm(current => ({ ...current, actionTemplateId: "" }));
       return;
@@ -460,7 +491,7 @@ export default function ActionsWorkspace() {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const selectedPoint = form.actionPointId
-      ? (references.data?.actionPoints ?? []).find((item: any) => item.id === Number(form.actionPointId))
+      ? (references.data?.actionPoints ?? []).find((item: ActionReferenceData["actionPoints"][number]) => item.id === Number(form.actionPointId))
       : null;
     const typedCoordinates = parseCoordinatePair(form.coordinates);
     if (typedCoordinates === undefined) {
@@ -663,7 +694,7 @@ export default function ActionsWorkspace() {
           </label>
           <SearchableMultiSelect id="action-filter-regional" label="Regional" placeholder="Todas as regionais" maxSelections={1} options={regionalOptions.map(regional => ({ id: Number(regional.id), label: regional.name }))} values={regionalFilter === "all" ? [] : [Number(regionalFilter)]} onChange={values => { setRegionalFilter(values[0] ? String(values[0]) : "all"); setCityFilter("all"); }} />
           <SearchableMultiSelect id="action-filter-city" label="Cidade" placeholder="Todas as cidades" maxSelections={1} options={cityFilterOptions.map(({ city }) => ({ id: city.id, label: city.name }))} values={cityFilter === "all" ? [] : [Number(cityFilter)]} onChange={values => setCityFilter(values[0] ? String(values[0]) : "all")} />
-          <SearchableMultiSelect id="action-filter-supervisor" label="Responsável" placeholder="Todos os responsáveis" maxSelections={1} options={(references.data?.supervisors ?? []).map((supervisor: any) => ({ id: supervisor.id, label: supervisor.name }))} values={supervisorFilter === "all" ? [] : [Number(supervisorFilter)]} onChange={values => setSupervisorFilter(values[0] ? String(values[0]) : "all")} />
+          <SearchableMultiSelect id="action-filter-supervisor" label="Responsável" placeholder="Todos os responsáveis" maxSelections={1} options={(references.data?.supervisors ?? []).map((supervisor: ActionReferenceData["supervisors"][number]) => ({ id: supervisor.id, label: supervisor.name }))} values={supervisorFilter === "all" ? [] : [Number(supervisorFilter)]} onChange={values => setSupervisorFilter(values[0] ? String(values[0]) : "all")} />
           <SearchableMultiSelect id="action-filter-rating" label="Nota" placeholder="Todas as notas" maxSelections={1} options={[5, 4, 3, 2, 1].map(rating => ({ id: rating, label: `${rating} · ${actionRatingLabel[rating]}` }))} values={ratingFilter === "all" ? [] : [Number(ratingFilter)]} onChange={values => setRatingFilter(values[0] ? String(values[0]) : "all")} />
         </div>
         <div>
@@ -681,7 +712,7 @@ export default function ActionsWorkspace() {
           </p>
         ) : visibleActions.length ? (
           <div className={compact ? "space-y-2" : "space-y-3"}>
-            {visibleActions.map((row: any) => (
+            {visibleActions.map((row: ActionRow) => (
               <button
                 key={row.action.id}
                 type="button"
@@ -689,7 +720,7 @@ export default function ActionsWorkspace() {
                 className={`grid w-full grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-[10px] border border-border bg-card px-4 text-left shadow-[0_2px_8px_rgba(19,53,35,0.025)] transition hover:border-primary/30 hover:bg-muted/40 lg:grid-cols-[76px_minmax(190px,1.15fr)_minmax(178px,.85fr)] lg:px-5 xl:grid-cols-[76px_minmax(190px,1.15fr)_minmax(165px,.76fr)_minmax(180px,.86fr)_minmax(190px,.9fr)_62px] xl:gap-x-3 ${compact ? "min-h-[112px] py-3" : "min-h-[150px] py-5"}`}
               >
                 <div className="row-span-2 grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-primary/5 text-primary md:h-[76px] md:w-[76px] xl:row-span-1">
-                  {row.action.coverImageUrl || row.coverImageUrl ? <img src={row.action.coverImageUrl || row.coverImageUrl} alt="" className="h-full w-full object-contain" /> : <CalendarClock className="h-6 w-6" />}
+                  {row.action.coverImageUrl || row.coverImageUrl ? <img src={row.action.coverImageUrl || row.coverImageUrl || undefined} alt="" className="h-full w-full object-contain" /> : <CalendarClock className="h-6 w-6" />}
                 </div>
                 <div className="min-w-0">
                   <h2 className="truncate font-semibold text-foreground">{row.action.name}</h2>
@@ -844,6 +875,35 @@ function StatusEvidenceFolder({
   );
 }
 
+type HistoryPayload = Record<string, unknown>;
+type ActionCityOption = {
+  city: ActionCityReference["city"];
+  regionalName: string;
+};
+type ActionFormProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  form: ActionFormState;
+  setForm: Dispatch<SetStateAction<ActionFormState>>;
+  cities: ActionCityOption[];
+  references: ActionReferenceData | undefined;
+  supplierOptions: SelectableOption[];
+  stockOptions: SelectableOption[];
+  pointOptions: SelectableOption[];
+  setCity: (cityId: string) => void;
+  setPoint: (pointId: number | null) => void;
+  setStock: (ids: number[]) => void;
+  setSuppliers: (ids: number[]) => void;
+  setServices: (ids: number[]) => void;
+  applyTemplate: (templateId: string) => void;
+  submit: (event: FormEvent<HTMLFormElement>) => void;
+  pending: boolean;
+  isEditing?: boolean;
+  coverFile: File | null;
+  onCoverChange: (file: File | null) => void;
+  currentCoverUrl?: string | null;
+};
+
 function ActionDetail({
   row,
   canWrite,
@@ -857,24 +917,24 @@ function ActionDetail({
   debriefPending,
   onReschedule,
 }: {
-  row: any;
+  row: ActionRow;
   canWrite: boolean;
   onBack: () => void;
   onEdit: () => void;
   onOpenCampaign: (campaignId: number) => void;
   onStatus: (status: "planned" | "in_progress" | "paused" | "completed" | "cancelled") => void;
-  debrief: any;
-  onDebriefChange: (next: any) => void;
+  debrief: ActionDebriefState;
+  onDebriefChange: (next: ActionDebriefState) => void;
   onSaveDebrief: () => void;
   debriefPending: boolean;
   onReschedule: () => void;
 }) {
   const regionalId = null;
-  const [historyDetail, setHistoryDetail] = useState<any | null>(null);
+  const [historyDetail, setHistoryDetail] = useState<ActionHistoryEntry | null>(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
   useEffect(() => setShowAllHistory(false), [row.action.id]);
   const orderedHistory = [...(row.history ?? [])].sort(
-    (left: any, right: any) =>
+    (left: ActionHistoryEntry, right: ActionHistoryEntry) =>
       new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()
   );
   const visibleHistory = showAllHistory ? orderedHistory : orderedHistory.slice(0, 5);
@@ -883,11 +943,11 @@ function ActionDetail({
       ? (() => { try { return JSON.parse(historyDetail.afterData); } catch { return {}; } })()
       : historyDetail.afterData ?? {}
     : {};
-  const historyPayloadFor = (entry: any) => {
+  const historyPayloadFor = (entry: ActionHistoryEntry): HistoryPayload => {
     if (typeof entry?.afterData !== "string") return entry?.afterData ?? {};
     try { return JSON.parse(entry.afterData); } catch { return {}; }
   };
-  const hasHistoryDetail = (entry: any) => {
+  const hasHistoryDetail = (entry: ActionHistoryEntry) => {
     const payload = historyPayloadFor(entry);
     return Boolean(String(payload?.reason ?? "").trim() || (Array.isArray(payload?.evidenceUrls) && payload.evidenceUrls.length));
   };
@@ -1026,9 +1086,9 @@ function ActionDetail({
             </div>
           </DetailSection>
         </section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Responsáveis e fornecedores"><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><UsersRound className="h-4 w-4" /> Responsáveis do trade</p>{row.teamMembers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.teamMembers.map((member: any) => <div key={member.userId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-contain" /> : (member.name || "U").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{member.name || `Usuário #${member.userId}`}</p><p className="truncate text-xs text-muted-foreground">{member.jobTitle || "Colaborador"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum responsável definido.</p>}</div><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Building2 className="h-4 w-4" /> Fornecedores envolvidos</p>{row.suppliers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.suppliers.map((supplier: any) => <div key={supplier.supplierId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{supplier.photoUrl ? <img src={supplier.photoUrl} alt="" className="h-full w-full object-cover" /> : (supplier.name || "F").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{supplier.name || `Fornecedor #${supplier.supplierId}`}</p><p className="truncate text-xs text-muted-foreground">{supplier.mainService || "Serviço principal não informado"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum fornecedor definido.</p>}</div></div></DetailSection></section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Serviços"><div className="space-y-2">{row.services?.length ? row.services.map((service: any) => <div key={service.serviceTypeId} className="grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium text-foreground">{service.name}</p><p className="mt-0.5 text-xs text-muted-foreground">Fornecedor: {service.supplierName || "não definido"}{service.offeringName ? ` · ${service.offeringName}` : ""}{service.unit ? ` · ${service.unit}` : ""}</p></div><strong className="text-sm tabular-nums text-primary">{Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum serviço planejado.</p>}</div>{row.services?.length ? <div className="mt-3 flex justify-end border-t border-border pt-3"><span className="text-sm font-semibold text-foreground">Total dos serviços: <strong className="text-primary">{Number((row.services ?? []).reduce((total: number, service: any) => total + Number(service.estimatedAmount ?? 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span></div> : null}</DetailSection></section>
-        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: any) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.sku || "Sem SKU"}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Number(item.plannedQuantity || 0))}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Responsáveis e fornecedores"><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><UsersRound className="h-4 w-4" /> Responsáveis do trade</p>{row.teamMembers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.teamMembers.map((member: ActionTeamMemberRow) => <div key={member.userId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-contain" /> : (member.name || "U").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{member.name || `Usuário #${member.userId}`}</p><p className="truncate text-xs text-muted-foreground">{member.jobTitle || "Colaborador"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum responsável definido.</p>}</div><div className="rounded-xl bg-muted/50 p-3"><p className="mb-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Building2 className="h-4 w-4" /> Fornecedores envolvidos</p>{row.suppliers?.length ? <div className="grid gap-2 sm:grid-cols-2">{row.suppliers.map((supplier: ActionSupplierRow) => <div key={supplier.supplierId} className="flex min-w-0 items-center gap-2 rounded-lg bg-background p-2"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">{supplier.photoUrl ? <img src={supplier.photoUrl} alt="" className="h-full w-full object-cover" /> : (supplier.name || "F").slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{supplier.name || `Fornecedor #${supplier.supplierId}`}</p><p className="truncate text-xs text-muted-foreground">{supplier.mainService || "Serviço principal não informado"}</p></div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum fornecedor definido.</p>}</div></div></DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Serviços"><div className="space-y-2">{row.services?.length ? row.services.map((service: ActionServiceRow) => <div key={service.serviceTypeId} className="grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium text-foreground">{service.name}</p><p className="mt-0.5 text-xs text-muted-foreground">Fornecedor: {service.supplierName || "não definido"}{service.offeringName ? ` · ${service.offeringName}` : ""}{service.unit ? ` · ${service.unit}` : ""}</p></div><strong className="text-sm tabular-nums text-primary">{Number(service.estimatedAmount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum serviço planejado.</p>}</div>{row.services?.length ? <div className="mt-3 flex justify-end border-t border-border pt-3"><span className="text-sm font-semibold text-foreground">Total dos serviços: <strong className="text-primary">{Number((row.services ?? []).reduce((total: number, service: ActionServiceRow) => total + Number(service.estimatedAmount ?? 0), 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span></div> : null}</DetailSection></section>
+        <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><DetailSection title="Recursos de estoque"><div className="grid gap-2 sm:grid-cols-2">{row.stockItems?.length ? row.stockItems.map((item: ActionStockRow) => <div key={item.stockItemId} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-3"><div className="min-w-0"><p className="truncate font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.unit || "Unidade não informada"}</p></div><strong className="shrink-0 text-sm tabular-nums text-primary">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Number(item.plannedQuantity || 0))}</strong></div>) : <p className="text-sm text-muted-foreground">Nenhum recurso de estoque planejado.</p>}</div></DetailSection></section>
         <section className="rounded-xl border border-border bg-card p-4">
           <DetailSection title="Debriefing e resultado">
             <form onSubmit={event => { event.preventDefault(); onSaveDebrief(); }} className="space-y-3">
@@ -1052,9 +1112,9 @@ function ActionDetail({
           <DetailSection title="Histórico da ação">
             {orderedHistory.length ? (
               <div className="space-y-3">
-                {visibleHistory.map((entry: any, index: number) => (
+                {visibleHistory.map((entry: ActionHistoryEntry, index: number) => (
                   <div
-                    key={entry.id ?? `${entry.auditAction}-${entry.occurredAt}-${index}`}
+                    key={`${entry.auditAction}-${entry.occurredAt}-${index}`}
                     className="border-l-2 border-primary/30 pl-3"
                   >
                     <p className="text-sm font-medium text-foreground">
@@ -1147,10 +1207,10 @@ function ActionForm({
   coverFile,
   onCoverChange,
   currentCoverUrl,
-}: any) {
-  const selectedSupplierOfferings = (references?.supplierOfferings ?? []).filter((offering: any) => form.supplierIds.includes(offering.supplierId));
-  const availableServiceTypeIds = new Set((references?.supplierServiceTypes ?? []).filter((link: any) => form.supplierIds.includes(link.supplierId)).map((link: any) => link.serviceTypeId));
-  const serviceOptions = (references?.serviceTypes ?? []).filter((service: any) => availableServiceTypeIds.has(service.id)).map((service: any) => ({ id: service.id, label: service.name }));
+}: ActionFormProps) {
+  const selectedSupplierOfferings = (references?.supplierOfferings ?? []).filter((offering: ActionOfferingReference) => form.supplierIds.includes(offering.supplierId));
+  const availableServiceTypeIds = new Set((references?.supplierServiceTypes ?? []).filter((link: ActionServiceLink) => form.supplierIds.includes(link.supplierId)).map((link: ActionServiceLink) => link.serviceTypeId));
+  const serviceOptions = (references?.serviceTypes ?? []).filter((service: ActionServiceReference) => availableServiceTypeIds.has(service.id)).map((service: ActionServiceReference) => ({ id: service.id, label: service.name }));
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-7xl overflow-y-auto p-4 sm:w-[calc(100vw-2rem)] sm:p-6">
@@ -1163,13 +1223,13 @@ function ActionForm({
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-3 md:col-span-2 sm:flex-row sm:items-center">
-            {(coverFile || currentCoverUrl) ? <img src={coverFile ? URL.createObjectURL(coverFile) : currentCoverUrl} alt="Capa da ação" className="h-20 w-full rounded-lg bg-background object-cover sm:w-32" /> : <div className="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-border bg-background text-xs text-muted-foreground sm:w-32">Sem capa</div>}
+            {(coverFile || currentCoverUrl) ? <img src={coverFile ? URL.createObjectURL(coverFile) : currentCoverUrl ?? undefined} alt="Capa da ação" className="h-20 w-full rounded-lg bg-background object-cover sm:w-32" /> : <div className="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-border bg-background text-xs text-muted-foreground sm:w-32">Sem capa</div>}
             <div className="grid flex-1 gap-2"><p className="text-sm font-medium text-foreground">Foto de capa</p><Label htmlFor="action-cover-upload" className="flex h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"><ImagePlus className="h-4 w-4" />{coverFile ? "Trocar imagem de capa" : "Subir imagem de capa"}<Input id="action-cover-upload" type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={event => onCoverChange(event.target.files?.[0] ?? null)} /></Label><span className="text-xs text-muted-foreground">JPEG, PNG ou WEBP. A capa identifica a ação na ficha.</span></div>
           </div>
           <SearchableMultiSelect
             id="action-template"
             label="Começar com um modelo"
-            options={(references?.actionTemplates ?? []).map((item: any) => ({ id: item.id, label: item.name, description: item.actionTypeName || item.description || "Modelo de planejamento" }))}
+            options={(references?.actionTemplates ?? []).map((item: ActionReferenceData["actionTemplates"][number]) => ({ id: item.id, label: item.name, description: item.actionTypeName || item.description || "Modelo de planejamento" }))}
             values={form.actionTemplateId ? [Number(form.actionTemplateId)] : []}
             onChange={ids => applyTemplate(ids[0] ? String(ids[0]) : "")}
             maxSelections={1}
@@ -1186,7 +1246,7 @@ function ActionForm({
           <SearchableMultiSelect
             id="action-campaign"
             label="Campanha"
-            options={(references?.campaigns ?? []).map((item: any) => ({ id: item.id, label: item.name, description: item.status === "active" ? "Em andamento" : undefined }))}
+            options={(references?.campaigns ?? []).map((item: ActionReferenceData["campaigns"][number]) => ({ id: item.id, label: item.name, description: item.status === "active" ? "Em andamento" : undefined }))}
             values={form.tradeCampaignId ? [Number(form.tradeCampaignId)] : []}
             onChange={ids => setForm({ ...form, tradeCampaignId: ids[0] ? String(ids[0]) : "" })}
             maxSelections={1}
@@ -1196,7 +1256,7 @@ function ActionForm({
           <SearchableMultiSelect
             id="action-event"
             label="Evento de contexto"
-            options={(Array.isArray(references?.events) ? references.events : []).filter((item: any) => item.status !== "cancelled" && (!form.cityId || item.cityId === Number(form.cityId)) && (!form.tradeCampaignId || !item.tradeCampaignId || item.tradeCampaignId === Number(form.tradeCampaignId))).map((item: any) => ({ id: item.id, label: item.name, description: item.startsAt ? `Evento em ${new Date(item.startsAt).toLocaleDateString("pt-BR")}` : undefined }))}
+            options={(Array.isArray(references?.events) ? references.events : []).filter((item: ActionReferenceData["events"][number]) => item.status !== "cancelled" && (!form.cityId || item.cityId === Number(form.cityId)) && (!form.tradeCampaignId || !item.tradeCampaignId || item.tradeCampaignId === Number(form.tradeCampaignId))).map((item: ActionReferenceData["events"][number]) => ({ id: item.id, label: item.name, description: item.startsAt ? `Evento em ${new Date(item.startsAt).toLocaleDateString("pt-BR")}` : undefined }))}
             values={form.eventId ? [Number(form.eventId)] : []}
             onChange={ids => setForm({ ...form, eventId: ids[0] ? String(ids[0]) : "" })}
             maxSelections={1}
@@ -1205,7 +1265,7 @@ function ActionForm({
           <SearchableMultiSelect
             id="action-city"
             label="Cidade"
-            options={cities.map(({ city, regionalName }: any) => ({ id: city.id, label: city.name, description: `${regionalName} · ${city.state}` }))}
+            options={cities.map(({ city, regionalName }: ActionCityOption) => ({ id: city.id, label: city.name, description: `${regionalName} · ${city.state}` }))}
             values={form.cityId ? [Number(form.cityId)] : []}
             onChange={ids => setCity(ids[0] ? String(ids[0]) : "")}
             maxSelections={1}
@@ -1214,7 +1274,7 @@ function ActionForm({
           <SearchableMultiSelect
             id="action-type"
             label="Tipo de ação"
-            options={(references?.actionTypes ?? []).map((item: any) => ({ id: item.id, label: item.name }))}
+            options={(references?.actionTypes ?? []).map((item: ActionReferenceData["actionTypes"][number]) => ({ id: item.id, label: item.name }))}
             values={form.actionTypeId ? [Number(form.actionTypeId)] : []}
             onChange={ids => setForm({ ...form, actionTypeId: ids[0] ? String(ids[0]) : "" })}
             maxSelections={1}
@@ -1224,7 +1284,7 @@ function ActionForm({
           <SearchableMultiSelect
             id="action-supervisor"
             label="Supervisor responsável"
-            options={(references?.supervisors ?? []).map((item: any) => ({ id: item.id, label: item.name }))}
+            options={(references?.supervisors ?? []).map((item: ActionReferenceData["supervisors"][number]) => ({ id: item.id, label: item.name }))}
             values={form.commercialSupervisorId ? [Number(form.commercialSupervisorId)] : []}
             onChange={ids => setForm({ ...form, commercialSupervisorId: ids[0] ? String(ids[0]) : "" })}
             maxSelections={1}
@@ -1251,7 +1311,7 @@ function ActionForm({
               }
             />
           </label>
-          <SearchableMultiSelect id="action-modality" label="Modalidade" options={[{ id: 1, label: "Pago" }, { id: 2, label: "Permuta" }, { id: 3, label: "Misto" }]} values={[form.partnershipType === "paid" ? 1 : form.partnershipType === "barter" ? 2 : 3]} onChange={ids => setForm({ ...form, partnershipType: ({ 1: "paid", 2: "barter", 3: "mixed" } as Record<number, string>)[ids[0]] ?? "paid" })} maxSelections={1} placeholder="Selecionar modalidade" />
+          <SearchableMultiSelect id="action-modality" label="Modalidade" options={[{ id: 1, label: "Pago" }, { id: 2, label: "Permuta" }, { id: 3, label: "Misto" }]} values={[form.partnershipType === "paid" ? 1 : form.partnershipType === "barter" ? 2 : 3]} onChange={ids => setForm({ ...form, partnershipType: ({ 1: "paid", 2: "barter", 3: "mixed" } as const)[ids[0] as 1 | 2 | 3] ?? "paid" })} maxSelections={1} placeholder="Selecionar modalidade" />
           <div className="md:col-span-2">
             <SearchableMultiSelect
               id="action-point"
@@ -1298,7 +1358,7 @@ function ActionForm({
           <SearchableMultiSelect
             id="action-team"
             label="Responsáveis do trade"
-            options={(references?.teamUsers ?? []).map((item: any) => ({
+            options={(references?.teamUsers ?? []).map((item: ActionReferenceData["teamUsers"][number]) => ({
               id: item.id,
               label: item.name || item.email || `Usuário #${item.id}`,
               description: item.jobTitle || undefined,
@@ -1342,8 +1402,8 @@ function ActionForm({
               <div className="flex flex-wrap items-baseline justify-between gap-2"><p className="text-sm font-semibold">Serviços e valores previstos</p><p className="text-xs text-muted-foreground">O valor de referência é trazido da oferta do fornecedor e pode ser ajustado para descontos.</p></div>
               <div className="mt-3 space-y-2">
                 {form.serviceAllocations.map((allocation: ServiceAllocation) => {
-                  const service = (references?.serviceTypes ?? []).find((item: any) => item.id === allocation.serviceTypeId);
-                  return <div key={allocation.serviceTypeId} className="grid gap-3 rounded-lg border border-border bg-background p-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,1.2fr)_150px] sm:items-end"><div className="min-w-0"><p className="text-sm font-medium text-foreground">{service?.name ?? "Serviço"}</p><p className="mt-1 text-xs text-muted-foreground">Fornecedor e valor aplicado à previsão.</p></div><SearchableMultiSelect id={`action-service-offering-${allocation.serviceTypeId}`} label="Oferta do fornecedor" options={selectedSupplierOfferings.map((offering: any) => ({ id: offering.id, label: `${offering.name}${offering.unit ? ` (${offering.unit})` : ""}`, description: offering.supplierName }))} values={allocation.supplierOfferingId ? [allocation.supplierOfferingId] : []} onChange={ids => { const offering = selectedSupplierOfferings.find((item: any) => item.id === ids[0]); setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, supplierOfferingId: offering?.id ?? null, estimatedAmount: offering ? String(offering.unitPrice ?? 0) : current.estimatedAmount } : current) }); }} maxSelections={1} placeholder="Selecionar oferta" /><label className="grid gap-1 text-xs font-medium text-muted-foreground">Valor aplicado<Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label></div>;
+                  const service = (references?.serviceTypes ?? []).find((item: ActionServiceReference) => item.id === allocation.serviceTypeId);
+                  return <div key={allocation.serviceTypeId} className="grid gap-3 rounded-lg border border-border bg-background p-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,1.2fr)_150px] sm:items-end"><div className="min-w-0"><p className="text-sm font-medium text-foreground">{service?.name ?? "Serviço"}</p><p className="mt-1 text-xs text-muted-foreground">Fornecedor e valor aplicado à previsão.</p></div><SearchableMultiSelect id={`action-service-offering-${allocation.serviceTypeId}`} label="Oferta do fornecedor" options={selectedSupplierOfferings.map((offering: ActionOfferingReference) => ({ id: offering.id, label: `${offering.name}${offering.unit ? ` (${offering.unit})` : ""}`, description: references?.suppliers.find(supplier => supplier.id === offering.supplierId)?.displayName }))} values={allocation.supplierOfferingId ? [allocation.supplierOfferingId] : []} onChange={ids => { const offering = selectedSupplierOfferings.find((item: ActionOfferingReference) => item.id === ids[0]); setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, supplierOfferingId: offering?.id ?? null, estimatedAmount: offering ? String(offering.unitPrice ?? 0) : current.estimatedAmount } : current) }); }} maxSelections={1} placeholder="Selecionar oferta" /><label className="grid gap-1 text-xs font-medium text-muted-foreground">Valor aplicado<Input type="number" min="0" step="0.01" value={allocation.estimatedAmount} onChange={event => setForm({ ...form, serviceAllocations: form.serviceAllocations.map((current: ServiceAllocation) => current.serviceTypeId === allocation.serviceTypeId ? { ...current, estimatedAmount: event.target.value } : current) })} /></label></div>;
                 })}
               </div>
               <div className="mt-3 flex justify-end border-t border-border pt-3 text-sm font-semibold text-foreground">Total previsto: <strong className="ml-1 text-primary">{form.serviceAllocations.reduce((total: number, item: ServiceAllocation) => total + Number(item.estimatedAmount || 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>
@@ -1375,7 +1435,7 @@ function ActionForm({
                         step="1"
                         value={allocation.quantity}
                         onChange={event =>
-                          setForm((current: any) => ({
+                          setForm((current: ActionFormState) => ({
                             ...current,
                             stockAllocations: current.stockAllocations.map(
                               (row: StockAllocation) =>

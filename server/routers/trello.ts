@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { appSettings, userTrelloBoards } from "../../drizzle/schema";
+import { ENV } from "../_core/env";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -64,8 +65,8 @@ export function mapTrelloBoard(payload: TrelloBoardPayload) {
 }
 
 async function loadBoardFromTrello(boardReference: string) {
-  const key = process.env.TRELLO_API_KEY;
-  const token = process.env.TRELLO_TOKEN;
+  const key = ENV.trelloApiKey;
+  const token = ENV.trelloToken;
   if (!key || !token) return { status: "not_configured" as const };
 
   const endpoint = new URL(`https://api.trello.com/1/boards/${encodeURIComponent(boardReference)}`);
@@ -102,8 +103,8 @@ async function getCurrentBoardReference(userId: number) {
 }
 
 async function trelloWrite(path: string, method: "POST" | "PUT", body: Record<string, string | boolean | null | undefined>) {
-  const key = process.env.TRELLO_API_KEY;
-  const token = process.env.TRELLO_TOKEN;
+  const key = ENV.trelloApiKey;
+  const token = ENV.trelloToken;
   if (!key || !token) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A integração autenticada do Trello não está configurada." });
   const endpoint = new URL(`https://api.trello.com/1/${path.replace(/^\//, "")}`);
   endpoint.searchParams.set("key", key);

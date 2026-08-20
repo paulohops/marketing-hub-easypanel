@@ -7,6 +7,7 @@ import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
+import { ENV } from "../_core/env";
 
 async function requireDatabase() { const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." }); return database; }
 
@@ -79,7 +80,7 @@ export const mediaRouter = router({
       }
     }
     return {
-      apiKey: storedApiKey || process.env.GOOGLE_MAPS_API_KEY?.trim() || process.env.GOOGLE_MAPS_BROWSER_API_KEY?.trim() || "",
+      apiKey: storedApiKey || ENV.googleMapsApiKey.trim() || "",
     };
   }),
   referenceData: protectedProcedure.query(async ({ ctx }) => {

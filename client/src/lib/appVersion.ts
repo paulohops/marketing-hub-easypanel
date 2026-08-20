@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.2.0";
+export const APP_VERSION = "1.5.3.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.3.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Refatoração estrutural para tornar routers, configuração e tipagem do frontend mais observáveis e fáceis de manter.",
+    changes: [
+      "Falhas parciais de settings.overview passaram a gerar logs estruturados, evitando o mascaramento silencioso de erros de banco.",
+      "Credenciais e chaves de integração de Trello, Google Maps e Mídias passaram a usar o objeto ENV centralizado.",
+      "O router monolítico de settings foi decomposto em overview, branding, cadastros e importação, preservando os endpoints tRPC públicos.",
+      "ActionsWorkspace deixou de usar any e passou a derivar tipos dos contratos actions.list e actions.referenceData.",
+      "Os testes do FinanceWorkspace foram atualizados para refletir todas as queries e a navegação financeira efetivamente usadas.",
+    ],
+  },
   {
     version: "1.5.2.0",
     date: "20/08/2026",
