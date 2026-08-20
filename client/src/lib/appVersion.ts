@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.1.0";
+export const APP_VERSION = "1.5.2.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,18 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.2.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Menu responsivo mobile adicionado ao shell principal do Marketing HUB.",
+    changes: [
+      "Criada barra superior mobile com acesso visível ao menu de navegação.",
+      "O menu lateral passou a abrir como drawer em telas menores que 768px, mantendo grupos e permissões do desktop.",
+      "A navegação mobile fecha automaticamente após trocar de rota e exibe a marca e a seção ativa.",
+      "Mantidos foco visível, rótulos acessíveis e suporte ao tema global.",
+    ],
+  },
   {
     version: "1.5.1.0",
     date: "20/08/2026",

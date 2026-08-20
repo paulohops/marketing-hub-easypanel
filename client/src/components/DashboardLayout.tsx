@@ -25,6 +25,7 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -60,7 +61,7 @@ import {
   UserRound,
   Volume2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import OnboardingTutorial from "./OnboardingTutorial";
@@ -270,6 +271,49 @@ const roleNames: Record<string, string> = {
   user: "Visualizador",
 };
 
+function MobileNavigationBar({
+  appName,
+  appSubtitle,
+  logoUrl,
+  activeLabel,
+  onHomeClick,
+}: {
+  appName: string;
+  appSubtitle: string;
+  logoUrl: string;
+  activeLabel: string;
+  onHomeClick: () => void;
+}) {
+  const { setOpenMobile } = useSidebar();
+  const [location] = useLocation();
+
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [location, setOpenMobile]);
+
+  return (
+    <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-border/80 bg-background/95 px-4 py-2 shadow-sm backdrop-blur md:hidden">
+      <SidebarTrigger
+        aria-label="Abrir menu de navegação"
+        className="h-9 w-9 shrink-0 rounded-lg border border-border bg-card text-foreground hover:bg-secondary"
+      />
+      <button
+        type="button"
+        onClick={onHomeClick}
+        className="flex min-w-0 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 p-1">
+          <img src={logoUrl} alt={appName} className="h-full w-full object-contain" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-xs font-bold text-foreground">{appName}</span>
+          <span className="block truncate text-[10px] text-muted-foreground">{activeLabel || appSubtitle}</span>
+        </span>
+      </button>
+    </header>
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -301,6 +345,14 @@ export default function DashboardLayout({
   const initials = profileName.slice(0, 2).toUpperCase();
   const isPathActive = (path: string, aliases: string[] = []) =>
     [path, ...aliases].some(candidate => location === candidate || location.startsWith(`${candidate}/`));
+  const activeNavLabel = [
+    overviewItem,
+    ...quickAccessItems,
+    ...navigationGroups.flatMap(group => group.items.flatMap(item => [
+      ...(item.children ?? []),
+      item,
+    ])),
+  ].find(item => canNavigate(item.permission) && isPathActive(item.path, item.aliases))?.label ?? "Visão geral";
   const renderItem = (item: NavItem) => {
     const visibleChildren =
       item.children?.filter(child => canNavigate(child.permission)) ?? [];
@@ -534,6 +586,13 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0 bg-background">
+        <MobileNavigationBar
+          appName={branding.appName}
+          appSubtitle={branding.appSubtitle}
+          logoUrl={branding.logoUrl}
+          activeLabel={activeNavLabel}
+          onHomeClick={() => setLocation("/")}
+        />
         <div className="min-h-screen">{children}</div>
         <OnboardingTutorial />
       </SidebarInset>
