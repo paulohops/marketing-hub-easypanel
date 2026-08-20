@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.0.0";
+export const APP_VERSION = "1.5.1.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,18 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.1.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Solicitações conectadas aos registros operacionais de Trade.",
+    changes: [
+      "Solicitações passaram a manter vínculos explícitos com Ações, Eventos, Pontos de Mídia e Veiculações.",
+      "O formulário de Solicitações recebeu seleção pesquisável do tipo e do registro operacional relacionado.",
+      "A fila e a ficha da solicitação exibem o registro vinculado e permitem abrir diretamente a página correspondente.",
+      "Criada a migration 0065 com chaves estrangeiras, atualização de vínculos legados e preservação do histórico.",
+    ],
+  },
   {
     version: "1.5.0.0",
     date: "20/08/2026",
