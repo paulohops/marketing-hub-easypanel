@@ -5,7 +5,7 @@ import { Download, FileText, Loader2, Paperclip, Play, Video, Volume2 } from "lu
 import { ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 
-type EntityType = "media_campaign" | "media_point" | "action" | "event" | "invoice" | "stock" | "regional_media";
+type EntityType = "process" | "media_campaign" | "media_point" | "action" | "event" | "invoice" | "stock" | "regional_media";
 type DocumentKind = "evidence" | "history_evidence" | "art" | "spot";
 type UploadMimeType = "application/pdf" | "image/jpeg" | "image/png" | "image/webp" | "audio/mpeg" | "audio/wav" | "audio/x-wav" | "video/mp4" | "video/webm";
 
@@ -25,7 +25,7 @@ export default function EvidenceUpload({ entityType, entityId, regionalId, canWr
   const documents = trpc.documents.listForEntity.useQuery({ entityType, entityId });
   const upload = trpc.documents.upload.useMutation({
     onSuccess: document => {
-      toast.success("Evidência anexada com segurança.");
+      toast.success(entityType === "process" ? "Arquivo do processo anexado com segurança." : "Evidência anexada com segurança.");
       onUploadComplete?.({ id: document.id, url: document.url });
       utils.documents.listForEntity.invalidate({ entityType, entityId });
     },

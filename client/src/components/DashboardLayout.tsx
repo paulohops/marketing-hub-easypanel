@@ -36,6 +36,7 @@ import {
   Building2,
   CalendarDays,
   ChevronDown,
+  ClipboardList,
   CircleHelp,
   Database,
   FileSpreadsheet,
@@ -95,6 +96,12 @@ const quickAccessItems: NavItem[] = [
     path: "/trello",
     icon: Trello,
     permission: "settings.read",
+  },
+  {
+    label: "Central de conhecimento",
+    path: "/ajuda",
+    icon: CircleHelp,
+    permission: "dashboard.read",
   },
 ];
 
@@ -181,6 +188,12 @@ const navigationGroups: NavGroup[] = [
         path: "/cadastros",
         icon: Database,
         permission: "settings.read",
+      },
+      {
+        label: "Processos",
+        path: "/processos",
+        icon: ClipboardList,
+        permission: "operations.read",
       },
     ],
   },

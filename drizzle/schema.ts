@@ -159,7 +159,14 @@ export const financialAllocationMethodEnum = pgEnum("financial_allocation_method
   "by_percent",
   "by_city",
 ]);
+export const processStatusEnum = pgEnum("process_status", [
+  "draft",
+  "active",
+  "under_review",
+  "archived",
+]);
 export const documentEntityEnum = pgEnum("document_entity_type", [
+  "process",
   "media_campaign",
   "media_point",
   "action",
@@ -2163,6 +2170,32 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
     .notNull(),
+});
+
+export const processes = pgTable("processes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 40 }).notNull().unique(),
+  name: varchar("name", { length: 180 }).notNull(),
+  category: varchar("category", { length: 120 }).notNull(),
+  version: varchar("version", { length: 32 }).default("1.0").notNull(),
+  status: processStatusEnum("status").default("draft").notNull(),
+  ownerUserId: integer("ownerUserId").references(() => users.id, { onDelete: "set null" }),
+  regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "set null" }),
+  objective: text("objective"),
+  scope: text("scope"),
+  description: text("description").notNull(),
+  inputs: text("inputs"),
+  outputs: text("outputs"),
+  controls: text("controls"),
+  exceptions: text("exceptions"),
+  sla: text("sla"),
+  relatedModules: text("relatedModules"),
+  kpis: text("kpis"),
+  effectiveFrom: date("effectiveFrom"),
+  reviewDate: date("reviewDate"),
+  createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const documents = pgTable("documents", {

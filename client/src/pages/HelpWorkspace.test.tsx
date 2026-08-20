@@ -6,14 +6,14 @@ describe("HelpWorkspace", () => {
   it("apresenta documentação operacional e formulário de solicitação", () => {
     render(<HelpWorkspace />);
 
-    expect(screen.getByRole("heading", { name: "Ajuda e suporte" })).toBeInTheDocument();
-    expect(screen.getByText("Ações e eventos")).toBeInTheDocument();
-    expect(screen.getByText("Cadastros e acessos")).toBeInTheDocument();
-    expect(screen.getByText("Documentação completa")).toBeInTheDocument();
-    expect(screen.getByText("Estoque de materiais")).toBeInTheDocument();
-    expect(screen.getByText("Suporte e boas práticas")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Como trabalhar no Marketing HUB" })).toBeInTheDocument();
+    expect(screen.getByText("Cadastros e relacionamentos")).toBeInTheDocument();
+    expect(screen.getByText("Mídias: urbana, audiovisual e externa")).toBeInTheDocument();
+    expect(screen.getByText("Processos e governança operacional")).toBeInTheDocument();
+    expect(screen.getByText("Financeiro integrado")).toBeInTheDocument();
+    expect(screen.getByLabelText("Pesquisar na Central de Conhecimento")).toBeInTheDocument();
     expect(screen.getByLabelText("Assunto")).toBeInTheDocument();
-    expect(screen.getByLabelText("Descreva a solicitação")).toBeInTheDocument();
+    expect(screen.getByLabelText("Descrição")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Preparar solicitação" })).toBeInTheDocument();
   });
 });

@@ -33,6 +33,7 @@ import SystemWorkspace from "./SystemWorkspace";
 import DataCenterWorkspace from "./DataCenterWorkspace";
 import CampaignsWorkspace from "./CampaignsWorkspace";
 import CampaignTemplatesWorkspace from "./CampaignTemplatesWorkspace";
+import ProcessesWorkspace from "./ProcessesWorkspace";
 import ActionTemplatesWorkspace from "./ActionTemplatesWorkspace";
 import RegionalMediaPanel from "@/components/RegionalMediaPanel";
 import MediaCampaignLibrary from "@/components/MediaCampaignLibrary";
@@ -40,7 +41,7 @@ import MediaCoverageExplorer from "@/components/MediaCoverageExplorer";
 import UrbanVeiculationPage from "./UrbanVeiculationPage";
 import TraditionalProgramDetails from "./TraditionalProgramDetails";
 import ExternalMediaPointDetails from "./ExternalMediaPointDetails";
-import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, FileSpreadsheet, Flag, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound } from "lucide-react";
+import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, ClipboardList, FileSpreadsheet, Flag, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound } from "lucide-react";
 
 const definitions = {
   estoque: { permission: "inventory.read", eyebrow: "Operação e materiais", title: "Estoque de materiais", description: "Controle entradas, saídas, saldo, transferências e histórico de materiais por regional e cidade.", icon: Boxes, resources: [{ title: "Catálogo de materiais", description: "Itens, SKU, categoria, unidade e estoque mínimo." }, { title: "Movimentações", description: "Entradas, saídas, ajustes e responsáveis." }, { title: "Saldo por território", description: "Visão consolidada por regional e cidade." }], accent: "var(--primary)" },
@@ -68,6 +69,7 @@ const definitions = {
   "cadastro-entidade": { permission: "settings.read", eyebrow: "Gestão operacional", title: "Cadastro operacional", description: "Consulte e mantenha as informações detalhadas do cadastro selecionado.", icon: Settings2, resources: [], accent: "var(--primary)" },
   empresas: { permission: "settings.read", eyebrow: "Gestão operacional", title: "Empresas", description: "Consulte empresas, dados de faturamento e relações territoriais.", icon: Building2, resources: [], accent: "var(--primary)" },
   trello: { permission: "settings.read", eyebrow: "Gestão integrada", title: "Trello", description: "Acesse o quadro integrado de gestão da equipe.", icon: Flag, resources: [], accent: "var(--primary)" },
+  processos: { permission: "operations.read", eyebrow: "Gestão integrada", title: "Processos", description: "Documente processos do Trade com descritivo operacional, governança de versão e arquivos oficiais.", icon: ClipboardList, resources: [], accent: "var(--primary)" },
   importacao: { permission: "settings.write", eyebrow: "Administração do sistema", title: "Importar cadastros", description: "Valide e importe dados estruturados por planilha.", icon: Settings2, resources: [], accent: "var(--primary)" },
   exportacao: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Exportar relatórios", description: "Exporte dados operacionais e financeiros por período.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
   perfil: { permission: "dashboard.read", eyebrow: "Conta e segurança", title: "Meu perfil", description: "Mantenha seus dados pessoais atualizados.", icon: UserRound, resources: [], accent: "var(--primary)" },
@@ -112,6 +114,7 @@ export default function ProtectedModule({ module }: { module: keyof typeof defin
   if (module === "cadastro-entidade") return <DashboardLayout><div className="cluster-workspace"><RegistryEntityWorkspace /></div></DashboardLayout>;
   if (module === "empresas") return <DashboardLayout><div className="cluster-workspace"><CompaniesWorkspace /></div></DashboardLayout>;
   if (module === "trello") return <DashboardLayout><div className="cluster-workspace"><TrelloWorkspace /></div></DashboardLayout>;
+  if (module === "processos") return <DashboardLayout><div className="cluster-workspace"><ProcessesWorkspace /></div></DashboardLayout>;
   if (module === "importacao") return <DashboardLayout><div className="cluster-workspace"><DataImportWorkspace /></div></DashboardLayout>;
   if (module === "exportacao") return <DashboardLayout><div className="cluster-workspace"><ReportExportWorkspace /></div></DashboardLayout>;
   const canWrite = (permission: string) => canPermission(permission);

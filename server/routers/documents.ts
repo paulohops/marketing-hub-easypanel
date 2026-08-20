@@ -1,14 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { actions, documents, events, invoices, mediaCampaigns, mediaPoints, regionals, stockItems, supplierContracts, tradeOperations } from "../../drizzle/schema";
+import { actions, documents, events, invoices, mediaCampaigns, mediaPoints, processes, regionals, stockItems, supplierContracts, tradeOperations } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 
-const entityTypes = ["media_campaign", "media_point", "action", "event", "trade_operation", "invoice", "stock", "regional_media", "supplier_contract"] as const;
+const entityTypes = ["process", "media_campaign", "media_point", "action", "event", "trade_operation", "invoice", "stock", "regional_media", "supplier_contract"] as const;
 export const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/x-wav", "video/mp4", "video/webm"] as const;
 
 export function permissionForEntity(entityType: (typeof entityTypes)[number], write: boolean) {
@@ -17,7 +17,7 @@ export function permissionForEntity(entityType: (typeof entityTypes)[number], wr
   if (entityType === "stock") return `inventory.${mode}`;
   if (entityType === "action") return `actions.${mode}`;
   if (entityType === "event") return `events.${mode}`;
-  if (entityType === "trade_operation") return `operations.${mode}`;
+  if (entityType === "trade_operation" || entityType === "process") return `operations.${mode}`;
   return `media.${mode}`;
 }
 
@@ -44,6 +44,10 @@ export const documentsRouter = router({
     const database = await requireDatabase();
     if (input.documentKind === "art" && (input.entityType !== "media_campaign" || !["application/pdf", "image/png", "image/jpeg"].includes(input.mimeType))) throw new TRPCError({ code: "BAD_REQUEST", message: "A arte da veiculação deve ser PDF, PNG ou JPEG e estar vinculada a uma veiculação." });
     if (input.documentKind === "spot" && (input.entityType !== "media_campaign" || !["audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg", "audio/mp4", "video/mp4", "video/webm"].includes(input.mimeType))) throw new TRPCError({ code: "BAD_REQUEST", message: "O spot deve ser MP3, WAV, áudio compatível ou vídeo e estar vinculado a uma veiculação." });
+    if (input.entityType === "process") {
+      const [process] = await database.select({ id: processes.id }).from(processes).where(eq(processes.id, input.entityId));
+      if (!process) throw new TRPCError({ code: "NOT_FOUND", message: "Processo não encontrado." });
+    }
     if (input.entityType === "invoice") {
       const [invoice] = await database.select({ id: invoices.id }).from(invoices).where(eq(invoices.id, input.entityId));
       if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Nota fiscal não encontrada." });

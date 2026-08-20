@@ -11,6 +11,18 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
+    version: "1.3.0.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Central de Conhecimento completa e Processos operacionais com governança documental.",
+    changes: [
+      "Central de Conhecimento reorganizada em cards por tópico, com relacionamentos, instruções de preenchimento, campos importantes e regras de uso para os módulos do sistema.",
+      "Novo módulo Processos adicionado ao menu Gestão, com código, versão, status, categoria, responsáveis, abrangência, vigência, revisão, descritivo estruturado e indicadores de processo.",
+      "Processos passaram a aceitar PDF, PNG, JPEG e WEBP no card de documentos oficiais, com galeria e visualização ampliada em tela inteira.",
+      "Criada a migração idempotente 0060 para persistir Processos e permitir documentos associados à nova entidade.",
+    ],
+  },
+  {
     version: "1.2.1.0",
     date: "20/08/2026",
     label: "Patch update",
