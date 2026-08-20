@@ -100,3 +100,20 @@ O `hub-card` e os componentes `Card` semânticos recebem padding interno obrigat
 O header canônico é um card independente e fica separado do primeiro conteúdo por `1,25rem`. Filtros ficam em painel próprio com `1rem` de padding, controles separados por `0,75rem` e menus pesquisáveis com `0,75rem` de padding. A mesma régua deve ser preservada em desktop, tablet e mobile; apenas a largura externa se torna fluida.
 
 Checklist adicional de espaçamento: confirmar que a rota passa pelo `cluster-workspace`; confirmar que o DashboardLayout não duplica padding; confirmar que o primeiro bloco não encosta no header; confirmar que headers e cards usam `1,25rem` de respiro; confirmar que grids usam gap de `1rem`; confirmar que seções usam `1,25rem`; confirmar que cards de entidade preservam colunas independentes; e testar a tela em modo claro, escuro, desktop e mobile.
+
+
+## Módulo de Tarefas
+
+O módulo de Tarefas usa a anatomia de entidade baseada em `/midias/3`: header-card, seção principal com respiro canônico, colunas de conteúdo e cards operacionais com padding interno único. O Kanban mantém colunas legíveis, cards com título, descrição, prioridade, responsável e prazo, além de estados visuais consistentes.
+
+As tarefas são acessíveis por escopo de equipe ou por minhas tarefas. A criação, edição, delegação, movimentação de status e exclusão devem respeitar as permissões `tasks.create`, `tasks.update` e `tasks.delete`. Notificações podem originar tarefas, mas a origem precisa permanecer rastreável no card e no histórico.
+
+Toda alteração operacional relevante deve ser registrada no histórico da tarefa. Novas telas de tarefas devem reutilizar os tokens globais de espaçamento, o header canônico, os cards de entidade e os controles existentes, sem criar paddings ou margens locais divergentes.
+
+### Checklist do módulo de Tarefas
+
+Antes de criar ou alterar uma tarefa, confirmar que o módulo está protegido por permissão; que o card informa responsabilidade, prazo e prioridade; que a movimentação de status gera histórico; que uma tarefa originada de notificação preserva seu vínculo; e que a composição permanece responsiva em telas menores.
+
+### Migração
+
+A migração `0063_tasks_and_workflow.sql` cria os enums, tabelas de tarefas, participantes e histórico necessários ao módulo. O deploy deve aplicar essa migração depois das migrações anteriores, respeitando a ordem registrada no journal do Drizzle.

@@ -11,6 +11,20 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
+    version: "1.4.0.0",
+    date: "20/08/2026",
+    label: "Major update",
+    summary: "Módulo de Tarefas com Kanban, responsabilidades, histórico e integração com notificações.",
+    changes: [
+      "Adicionado o módulo protegido de Tarefas no menu Gestão, com visão compartilhada da equipe e visão Minhas tarefas.",
+      "Criado painel Kanban com Backlog, A fazer, Em andamento, Bloqueadas e Concluídas, incluindo movimentação por arrastar e soltar.",
+      "Tarefas passaram a aceitar prioridade, responsável, prazo, descrição, delegação e edição conforme as permissões do usuário.",
+      "Notificações podem ser convertidas em tarefas preservando a origem e o vínculo com o registro operacional.",
+      "Incluído histórico de alterações de status e responsável no diálogo de edição da tarefa.",
+      "Criadas as tabelas persistentes de tarefas, histórico, participantes e a migração 0063 com permissões específicas do módulo.",
+    ],
+  },
+  {
     version: "1.3.5.0",
     date: "20/08/2026",
     label: "Minor update",

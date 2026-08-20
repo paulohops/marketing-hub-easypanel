@@ -187,6 +187,16 @@ export const notificationCategoryEnum = pgEnum("notification_category", [
   "action_pending",
   "stock_minimum",
 ]);
+export const taskStatusEnum = pgEnum("task_status", [
+  "backlog",
+  "todo",
+  "in_progress",
+  "blocked",
+  "done",
+  "cancelled",
+]);
+export const taskPriorityEnum = pgEnum("task_priority", ["low", "normal", "high", "urgent"]);
+export const taskSourceEnum = pgEnum("task_source", ["manual", "notification"]);
 export const partnershipTypeEnum = pgEnum("partnership_type", [
   "paid",
   "barter",
@@ -221,6 +231,7 @@ export const permissionModuleEnum = pgEnum("permission_module", [
   "documents",
   "map",
   "notifications",
+  "tasks",
 ]);
 export const permissionActionEnum = pgEnum("permission_action", [
   "read",
@@ -2263,6 +2274,52 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
     .notNull(),
+});
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 180 }).notNull(),
+    description: text("description"),
+    status: taskStatusEnum("status").default("todo").notNull(),
+    priority: taskPriorityEnum("priority").default("normal").notNull(),
+    source: taskSourceEnum("source").default("manual").notNull(),
+    assignedToUserId: integer("assignedToUserId").references(() => users.id, { onDelete: "set null" }),
+    createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+    sourceNotificationId: integer("sourceNotificationId").references(() => notifications.id, { onDelete: "set null" }),
+    entityType: varchar("entityType", { length: 64 }),
+    entityId: integer("entityId"),
+    dueDate: date("dueDate"),
+    position: integer("position").default(0).notNull(),
+    completedAt: timestamp("completedAt", { withTimezone: true }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [uniqueIndex("tasks_source_notification_uq").on(table.sourceNotificationId)]
+);
+
+export const taskParticipants = pgTable(
+  "task_participants",
+  {
+    id: serial("id").primaryKey(),
+    taskId: integer("taskId").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+    userId: integer("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 32 }).default("watcher").notNull(),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [uniqueIndex("task_participants_task_user_uq").on(table.taskId, table.userId)]
+);
+
+export const taskHistory = pgTable("task_history", {
+  id: serial("id").primaryKey(),
+  taskId: integer("taskId").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  actorUserId: integer("actorUserId").references(() => users.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 64 }).notNull(),
+  fromStatus: taskStatusEnum("fromStatus"),
+  toStatus: taskStatusEnum("toStatus"),
+  note: text("note"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const auditLogs = pgTable("audit_logs", {

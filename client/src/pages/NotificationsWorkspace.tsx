@@ -4,8 +4,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { trpc } from "@/lib/trpc";
-import { BellRing, CheckCheck, ExternalLink, FilterX, Loader2, MapPin, UserRound } from "lucide-react";
+import { BellRing, CheckCheck, ClipboardCheck, ExternalLink, FilterX, Loader2, MapPin, UserRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -23,7 +24,9 @@ function selectedNumber(value: string) { return value === "all" ? undefined : Nu
 
 export default function NotificationsWorkspace() {
   const { user } = useAuth();
+  const { can } = useEffectivePermissions();
   const isAdmin = user?.role === "admin";
+  const canCreateTask = can("tasks.create");
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const input = useMemo(() => ({ ...filters, limit: 100 }), [filters]);
   const utils = trpc.useUtils();
@@ -31,6 +34,10 @@ export default function NotificationsWorkspace() {
   const referencesQuery = trpc.notifications.referenceData.useQuery(undefined, { enabled: isAdmin });
   const complete = trpc.notifications.complete.useMutation({
     onSuccess: () => utils.notifications.list.invalidate(),
+    onError: error => toast.error(error.message),
+  });
+  const createTaskFromNotification = trpc.tasks.createFromNotification.useMutation({
+    onSuccess: () => toast.success("Tarefa criada a partir da notificação."),
     onError: error => toast.error(error.message),
   });
   const cities = (referencesQuery.data?.cities ?? []).filter(city => !filters.regionalId || city.regionalId === filters.regionalId);
@@ -64,7 +71,7 @@ export default function NotificationsWorkspace() {
         const recipient = notification.userName || notification.userEmail;
         return <article key={notification.id} className={`flex flex-col gap-4 rounded-2xl border p-5 shadow-sm transition sm:flex-row sm:items-start sm:justify-between ${notification.completedAt ? "border-border bg-card" : "border-primary/25 bg-primary/[0.045]"}`}>
           <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="rounded-full border-border bg-card text-[11px] font-semibold text-muted-foreground">{categoryLabels[notification.category]}</Badge>{!notification.completedAt && <Badge className="rounded-full bg-primary text-[11px] text-primary-foreground">Pendente</Badge>}{notification.completedAt && <Badge variant="outline" className="rounded-full border-emerald-300 text-[11px] text-emerald-700">Concluído</Badge>}</div><h2 className="mt-3 font-display text-lg font-semibold text-foreground">{notification.title}</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">{notification.message}</p><div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">{recipient && <span className="inline-flex items-center gap-1.5"><UserRound className="h-3.5 w-3.5" />{recipient}</span>}{territory && <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{territory}</span>}<span>{new Date(notification.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>{notification.completedAt && <span>Concluído por {notification.completedByUserName || "usuário"} em {new Date(notification.completedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>}</div></div>
-          <div className="flex shrink-0 flex-col gap-2 sm:items-end">{notification.actionUrl && <Button variant="outline" size="sm" onClick={() => window.location.assign(notification.actionUrl!)} className="rounded-lg border-border text-xs text-primary"><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> {notification.actionLabel || "Abrir relacionado"}</Button>}{!notification.completedAt && <Button variant="outline" size="sm" disabled={complete.isPending} onClick={() => complete.mutate({ notificationId: notification.id })} className="rounded-lg border-border text-xs text-primary"><CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Concluir</Button>}</div>
+          <div className="flex shrink-0 flex-col gap-2 sm:items-end">{notification.actionUrl && <Button variant="outline" size="sm" onClick={() => window.location.assign(notification.actionUrl!)} className="rounded-lg border-border text-xs text-primary"><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> {notification.actionLabel || "Abrir relacionado"}</Button>}{canCreateTask && <Button variant="outline" size="sm" disabled={createTaskFromNotification.isPending} onClick={() => createTaskFromNotification.mutate({ notificationId: notification.id })} className="rounded-lg border-border text-xs text-primary"><ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Criar tarefa</Button>}{!notification.completedAt && <Button variant="outline" size="sm" disabled={complete.isPending} onClick={() => complete.mutate({ notificationId: notification.id })} className="rounded-lg border-border text-xs text-primary"><CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Concluir</Button>}</div>
         </article>;
       })}</div>
     </section>
