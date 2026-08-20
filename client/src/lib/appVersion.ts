@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.3.5.0";
+export const APP_VERSION = "1.4.1.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -11,10 +11,10 @@ export type AppVersionEntry = {
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
   {
-    version: "1.4.0.0",
+    version: "1.4.1.0",
     date: "20/08/2026",
     label: "Major update",
-    summary: "Módulo de Tarefas com Kanban, responsabilidades, histórico e integração com notificações.",
+    summary: "Módulo de Tarefas integrado às notificações e BI Trade com visão gerencial filtrável.",
     changes: [
       "Adicionado o módulo protegido de Tarefas no menu Gestão, com visão compartilhada da equipe e visão Minhas tarefas.",
       "Criado painel Kanban com Backlog, A fazer, Em andamento, Bloqueadas e Concluídas, incluindo movimentação por arrastar e soltar.",
@@ -22,6 +22,9 @@ export const APP_VERSION_HISTORY: AppVersionEntry[] = [
       "Notificações podem ser convertidas em tarefas preservando a origem e o vínculo com o registro operacional.",
       "Incluído histórico de alterações de status e responsável no diálogo de edição da tarefa.",
       "Criadas as tabelas persistentes de tarefas, histórico, participantes e a migração 0063 com permissões específicas do módulo.",
+      "Criado o router analítico do BI Trade com filtros por período, regional, cidade e status.",
+      "Adicionada dashboard gerencial com cards, desempenho por frente, leitura por cidade, fornecedores e qualidade operacional.",
+      "Corrigida a compatibilidade dos indicadores de atividade com os status globais planejado e em andamento.",
     ],
   },
   {
