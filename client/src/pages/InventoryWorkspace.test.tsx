@@ -46,16 +46,22 @@ describe("estoque territorial", () => {
     territorialQuery.mockReturnValue({ data: [], isLoading: false });
     render(<InventoryWorkspace />);
 
-    fireEvent.change(screen.getByLabelText("Regional"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Regional" }));
+    expect(screen.getByRole("option", { name: "Central" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Norte" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: "Central" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Cidade" }));
     expect(screen.getByRole("option", { name: "Belo Horizonte - MG" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Montes Claros - MG" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: "Belo Horizonte - MG" }));
 
-    fireEvent.change(screen.getByLabelText("Cidade"), { target: { value: "10" } });
-    fireEvent.change(screen.getByLabelText("Categoria"), { target: { value: "brinde_vip" } });
+    fireEvent.click(screen.getByRole("button", { name: "Categoria" }));
+    fireEvent.click(screen.getByRole("option", { name: "Brinde VIP" }));
 
     expect(listQuery).toHaveBeenLastCalledWith({ regionalId: 3, cityId: 10, category: "brinde_vip" });
     expect(territorialQuery).toHaveBeenLastCalledWith({ regionalId: 3, cityId: 10 });
-    expect(screen.getByRole("option", { name: "Brinde VIP" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Categoria" })).toHaveTextContent("Brinde VIP");
   });
 
   it("declara estrutura responsiva para os filtros em móvel e desktop", () => {
@@ -91,7 +97,7 @@ describe("estoque territorial", () => {
     fireEvent.change(screen.getByLabelText("Estoque mínimo"), { target: { value: "3" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar edição" }));
 
-    expect(updateMutation).toHaveBeenCalledWith({ id: 21, sku: "TENDA-01", name: "Tenda promocional 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: 3, active: true });
+    expect(updateMutation).toHaveBeenCalledWith({ id: 21, productTypeId: null, sku: "TENDA-01", name: "Tenda promocional 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: 3, active: true });
     expect(screen.getByText(/Saldo transacional atualizado de forma atômica/i)).toBeInTheDocument();
   });
 });

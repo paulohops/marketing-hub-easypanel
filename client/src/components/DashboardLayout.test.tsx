@@ -77,7 +77,7 @@ describe("DashboardLayout", () => {
     expect(screen.getAllByText("Trade").length).toBeGreaterThan(0);
     expect(screen.getByText("Gestão")).toBeInTheDocument();
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
-    expect(screen.queryByText("Ajuda e suporte")).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Ajuda e suporte" })).not.toBeInTheDocument();
     expect(screen.queryByText("Operações unificadas")).not.toBeInTheDocument();
   });
 
@@ -148,7 +148,7 @@ describe("DashboardLayout", () => {
 
     const profileItem = await screen.findByText("Meu perfil");
     const menu = profileItem.closest('[role="menu"]');
-    expect(screen.queryByText("Ajuda e suporte")).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Ajuda e suporte" })).toBeInTheDocument();
     expect(document.documentElement).toHaveClass("dark");
     expect(menu).toBeInTheDocument();
     expect(menu).toHaveClass("bg-popover");

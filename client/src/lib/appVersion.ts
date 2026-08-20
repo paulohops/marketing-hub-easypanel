@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.3.1.0";
+export const APP_VERSION = "1.3.2.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.3.2.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Processos com BPMN por setor, navegação de ajuda revisada e espaçamento global dos cards.",
+    changes: [
+      "Central de Conhecimento deixou de aparecer no menu principal e permanece acessível pelo botão Ver ajuda e suporte da página inicial e pelo menu do perfil.",
+      "Cards globais passaram a aplicar padding interno canônico de 1,25rem, inclusive em Processos e na Central de Conhecimento.",
+      "Processos passou a usar os Setores oficiais de Cadastros > Operação, com passos nomeados, explicação, gateways de decisão Sim/Não e BPMN gerado automaticamente com pools por setor.",
+      "Documentos de Processos passaram a ser abertos em nova guia, sem exibição inline no formulário ou na página de detalhe.",
+      "Tipos de arquivo de evidência foram ampliados para suportar também áudio OGG e MP4.",
+    ],
+  },
   {
     version: "1.3.1.0",
     date: "20/08/2026",

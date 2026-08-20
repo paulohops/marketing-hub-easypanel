@@ -52,7 +52,6 @@ describe("rotas protegidas", () => {
     ["/cadastros/modelos-acoes", "modelos-acao"],
     ["/pontos-de-acao", "pontos-de-acao"],
     ["/configuracoes", "configuracoes"],
-    ["/ajuda", "ajuda"],
     ["/midias/27", "midias-graficas"],
     ["/midias/veiculacao/27", "midias-veiculacao"],
   ])("renderiza o módulo protegido %s", (path, module) => {
@@ -61,6 +60,14 @@ describe("rotas protegidas", () => {
 
     expect(screen.getByTestId("protected-module")).toHaveTextContent(`Módulo protegido: ${module}`);
     expect(screen.queryByText("Página não encontrada")).not.toBeInTheDocument();
+  });
+
+  it("redireciona Ajuda e suporte para a Central de Conhecimento", async () => {
+    window.history.pushState({}, "", "/ajuda");
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe("/central-conhecimento"));
+    expect(screen.getByTestId("protected-module")).toHaveTextContent("Módulo protegido: central-conhecimento");
   });
 
   it.each([

@@ -165,6 +165,10 @@ export const processStatusEnum = pgEnum("process_status", [
   "under_review",
   "archived",
 ]);
+export const processStepTypeEnum = pgEnum("process_step_type", [
+  "task",
+  "gateway",
+]);
 export const documentEntityEnum = pgEnum("document_entity_type", [
   "process",
   "media_campaign",
@@ -2202,8 +2206,14 @@ export const processSteps = pgTable("process_steps", {
   id: serial("id").primaryKey(),
   processId: integer("processId").references(() => processes.id, { onDelete: "cascade" }).notNull(),
   stepOrder: integer("stepOrder").notNull(),
+  sectorId: integer("sectorId").references(() => campaignSectors.id, { onDelete: "restrict" }),
   sectorName: varchar("sectorName", { length: 160 }).notNull(),
+  stepType: processStepTypeEnum("stepType").default("task").notNull(),
+  stepName: varchar("stepName", { length: 180 }).default("Etapa operacional").notNull(),
   description: text("description").notNull(),
+  gatewayQuestion: text("gatewayQuestion"),
+  yesNextStepOrder: integer("yesNextStepOrder"),
+  noNextStepOrder: integer("noNextStepOrder"),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });

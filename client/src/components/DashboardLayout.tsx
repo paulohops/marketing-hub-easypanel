@@ -97,12 +97,6 @@ const quickAccessItems: NavItem[] = [
     icon: Trello,
     permission: "settings.read",
   },
-  {
-    label: "Central de conhecimento",
-    path: "/central-conhecimento",
-    icon: CircleHelp,
-    permission: "dashboard.read",
-  },
 ];
 
 const navigationGroups: NavGroup[] = [
@@ -479,6 +473,12 @@ export default function DashboardLayout({
                 onClick={() => setLocation("/perfil")}
               >
                 <UserRound className="h-4 w-4" /> Meu perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => setLocation("/ajuda")}
+              >
+                <CircleHelp className="h-4 w-4" /> Ajuda e suporte
               </DropdownMenuItem>
               {user.role === "admin" && (
                 <DropdownMenuItem

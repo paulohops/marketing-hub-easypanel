@@ -17,7 +17,6 @@ describe("documentos operacionais", () => {
   });
 
   it("permite anexar áudios de campanha em formatos controlados", () => {
-    expect(allowedMimeTypes).toEqual(expect.arrayContaining(["audio/mpeg", "audio/wav", "audio/x-wav"]));
-    expect(allowedMimeTypes).not.toContain("audio/ogg");
+    expect(allowedMimeTypes).toEqual(expect.arrayContaining(["audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg", "audio/mp4"]));
   });
 });
