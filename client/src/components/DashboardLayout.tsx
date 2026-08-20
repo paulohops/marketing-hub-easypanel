@@ -39,7 +39,6 @@ import {
   ChevronDown,
   ClipboardCheck,
   ClipboardList,
-  Inbox,
   CircleHelp,
   Database,
   FileSpreadsheet,
@@ -99,14 +98,12 @@ const quickAccessItems: NavItem[] = [
     path: "/trello",
     icon: Trello,
     permission: "settings.read",
-    children: [
-      {
-        label: "Tarefas",
-        path: "/tarefas",
-        icon: ClipboardCheck,
-        permission: "tasks.read",
-      },
-    ],
+  },
+  {
+    label: "Tarefas",
+    path: "/tarefas",
+    icon: ClipboardCheck,
+    permission: "tasks.read",
   },
 ];
 
@@ -190,22 +187,10 @@ const navigationGroups: NavGroup[] = [
         permission: "finance.read",
       },
       {
-        label: "Cadastros",
-        path: "/cadastros",
-        icon: Database,
-        permission: "settings.read",
-      },
-      {
         label: "Processos",
         path: "/processos",
         icon: ClipboardList,
         permission: "operations.read",
-      },
-      {
-        label: "Solicitações",
-        path: "/solicitacoes",
-        icon: Inbox,
-        permission: "requests.read",
       },
     ],
   },
@@ -249,6 +234,12 @@ const navigationGroups: NavGroup[] = [
         icon: Settings2,
         permission: "settings.read",
         children: [
+          {
+            label: "Cadastros",
+            path: "/cadastros",
+            icon: Database,
+            permission: "settings.read",
+          },
           {
             label: "Acessos",
             path: "/configuracoes/acessos",
@@ -354,6 +345,20 @@ export default function DashboardLayout({
   );
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const { can: canNavigate } = useEffectivePermissions();
+  const isPathActive = (path: string, aliases: string[] = []) =>
+    [path, ...aliases].some(candidate => location === candidate || location.startsWith(`${candidate}/`));
+  const isExactPathActive = (path: string, aliases: string[] = []) =>
+    [path, ...aliases].some(candidate => location === candidate);
+  useEffect(() => {
+    const activeParents = [...quickAccessItems, ...navigationGroups.flatMap(group => group.items)]
+      .filter(item => item.children?.some(child => isPathActive(child.path, child.aliases)))
+      .map(item => item.path);
+    if (!activeParents.length) return;
+    setExpandedMenus(current => ({
+      ...current,
+      ...Object.fromEntries(activeParents.map(path => [path, true])),
+    }));
+  }, [location]);
 
   if (loading) return <DashboardLayoutSkeleton />;
   if (!user) return null;
@@ -366,16 +371,14 @@ export default function DashboardLayout({
     .filter(group => group.items.length > 0);
   const profileName = user.name?.trim() || "Paulo Oliveira";
   const initials = profileName.slice(0, 2).toUpperCase();
-  const isPathActive = (path: string, aliases: string[] = []) =>
-    [path, ...aliases].some(candidate => location === candidate || location.startsWith(`${candidate}/`));
   const activeNavLabel = [
     overviewItem,
     ...quickAccessItems,
     ...navigationGroups.flatMap(group => group.items.flatMap(item => [
-      ...(item.children ?? []),
+      ...(item.children ?? []).map(child => ({ ...child, exactOnly: true })),
       item,
     ])),
-  ].find(item => canNavigate(item.permission) && isPathActive(item.path, item.aliases))?.label ?? "Visão geral";
+  ].find(item => canNavigate(item.permission) && ("exactOnly" in item ? isExactPathActive(item.path, item.aliases) : isPathActive(item.path, item.aliases)))?.label ?? "Visão geral";
   const renderItem = (item: NavItem) => {
     const visibleChildren =
       item.children?.filter(child => canNavigate(child.permission)) ?? [];
@@ -423,9 +426,11 @@ export default function DashboardLayout({
               <SidebarMenuSubItem key={child.path}>
                 <SidebarMenuSubButton
                   href={child.path}
-                  isActive={isPathActive(child.path, child.aliases)}
+                  isActive={isExactPathActive(child.path, child.aliases)}
                   onClick={event => {
                     event.preventDefault();
+                    event.stopPropagation();
+                    setExpandedMenus(current => ({ ...current, [item.path]: true }));
                     setLocation(child.path);
                   }}
                   className="text-white/85 hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-white/[0.16] data-[active=true]:text-white"

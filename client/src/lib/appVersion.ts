@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.4.0";
+export const APP_VERSION = "1.5.6.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,21 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.6.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Padronização global de navegação, formulários e botões, integração de CNPJ e auditoria técnica do Marketing HUB.",
+    changes: [
+      "Tarefas passou a ser um módulo independente, apenas posicionado próximo de Trello, e Cadastros foi movido para Configurações.",
+      "Dropdowns do menu passaram a preservar a expansão durante a navegação por subitens.",
+      "Criado um padrão global de botões, diálogos e formulários responsivos, aplicado especialmente a Estoque e Financeiro.",
+      "Corrigida a permissão de aprovação e rejeição de pedidos de compra para administradores e perfis autorizados.",
+      "Solicitações foi removido do frontend e do agregador tRPC, preservando os dados para uma futura recriação do módulo.",
+      "Fornecedores passaram a consultar CNPJ na BrasilAPI com normalização, timeout e preenchimento assistido dos dados cadastrais.",
+      "Corrigida a indicação visual das visões de BI e documentada a auditoria técnica, incluindo recomendações de segurança e governança para IA.",
+    ],
+  },
   {
     version: "1.5.5.0",
     date: "20/08/2026",

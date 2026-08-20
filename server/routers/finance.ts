@@ -554,7 +554,7 @@ export const financeRouter = router({
   }),
 
   reviewPurchaseOrder: protectedProcedure.input(z.object({ purchaseOrderId: z.number().int().positive(), status: z.enum(["approved", "rejected", "cancelled"]) })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "finance.approve");
+    await assertPermission(ctx.user, "finance.update");
     const database = await requireDatabase();
     const [existing] = await database.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.purchaseOrderId));
     if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido de compra não encontrado." });

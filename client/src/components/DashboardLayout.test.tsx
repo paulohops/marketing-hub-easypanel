@@ -91,9 +91,9 @@ describe("DashboardLayout", () => {
     );
 
     const midias = screen.getAllByText("Mídias").map(element => element.closest("button")).find(button => button?.hasAttribute("aria-expanded"));
-    const cadastros = screen.getByText("Cadastros").closest("button");
+    const configuracoes = screen.getAllByText("Configurações").map(element => element.closest("button")).find(button => button?.hasAttribute("aria-expanded"));
     expect(midias).toHaveAttribute("aria-expanded", "false");
-    expect(cadastros).not.toHaveAttribute("aria-expanded");
+    expect(configuracoes).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(midias!);
     expect(midias).toHaveAttribute("aria-expanded", "true");
@@ -101,9 +101,12 @@ describe("DashboardLayout", () => {
     expect(screen.getByText("Mídia Urbana")).toBeInTheDocument();
     expect(screen.getByText("Mídia Audiovisual")).toBeInTheDocument();
 
+    fireEvent.click(configuracoes!);
+    expect(configuracoes).toHaveAttribute("aria-expanded", "true");
+    const cadastros = screen.getByText("Cadastros").closest("a");
+    expect(cadastros).toBeInTheDocument();
     fireEvent.click(cadastros!);
     expect(window.location.pathname).toBe("/cadastros");
-    expect(cadastros).not.toHaveAttribute("aria-expanded");
   });
 
   it("mantém os rótulos de grupos no fluxo vertical normal da barra lateral", () => {

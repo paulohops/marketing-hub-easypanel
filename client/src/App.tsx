@@ -86,7 +86,6 @@ function Router() {
     <Route path="/tarefas">{() => <ProtectedModule module="tarefas" />}</Route>
     <Route path="/processos/:processId">{({ processId }) => <ProtectedModule module="processos" processId={processId} />}</Route>
     <Route path="/processos">{() => <ProtectedModule module="processos" />}</Route>
-    <Route path="/solicitacoes">{() => <ProtectedModule module="solicitacoes" />}</Route>
     <Route path="/importar-dados">{() => <ProtectedModule module="importacao" />}</Route>
     <Route path="/exportar-relatorios">{() => <ProtectedModule module="exportacao" />}</Route>
     <Route path="/configuracoes">{() => <ProtectedModule module="configuracoes" />}</Route>

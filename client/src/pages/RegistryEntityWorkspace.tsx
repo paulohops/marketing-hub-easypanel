@@ -3203,6 +3203,28 @@ function SupplierEditor({
   saving: boolean;
   isCreating?: boolean;
 }) {
+  const lookupCnpj = trpc.settings.lookupSupplierCnpj.useQuery(
+    { cnpj: form.cnpj ?? "" },
+    { enabled: false, retry: false }
+  );
+  const searchSupplierCnpj = async () => {
+    try {
+      const result = await lookupCnpj.refetch();
+      if (!result.data) return;
+      setForm({
+        ...form,
+        cnpj: result.data.cnpj,
+        name: form.name || result.data.displayName,
+        legalName: form.legalName || result.data.legalName,
+        address: form.address || result.data.address,
+        phone: form.phone || result.data.phone,
+        email: form.email || result.data.email,
+      });
+      toast.success("Dados do CNPJ carregados. Revise antes de salvar.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível consultar o CNPJ.");
+    }
+  };
   const field = (
     key: string,
     label: string,
@@ -3274,7 +3296,30 @@ function SupplierEditor({
             "Nome usado nas operações"
           )}
           {field("legalName", "Razão social")}
-          {field("document", "CNPJ")}
+          <label className="grid gap-1.5 text-sm font-medium">
+            <span>CNPJ</span>
+            <div className="flex items-center gap-2">
+              <Input
+                value={form.cnpj ?? ""}
+                inputMode="numeric"
+                placeholder="00.000.000/0000-00"
+                onChange={event => setForm({ ...form, cnpj: event.target.value })}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => void searchSupplierCnpj()}
+                disabled={lookupCnpj.isFetching || !form.cnpj}
+              >
+                {lookupCnpj.isFetching ? "Consultando…" : "Buscar"}
+              </Button>
+            </div>
+            <span className="text-xs font-normal text-muted-foreground">
+              Consulta razão social, endereço, telefone e e-mail na BrasilAPI.
+            </span>
+          </label>
           {select(
             "providerId",
             "Empresa vinculada",

@@ -430,7 +430,7 @@ export default function InventoryWorkspace() {
 
       {showCreate && (
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogContent className="max-h-[86vh] max-w-4xl overflow-y-auto">
+          <DialogContent className="hub-form-dialog">
             <DialogHeader>
               <DialogTitle>Novo item de estoque</DialogTitle>
               <DialogDescription>
@@ -440,7 +440,7 @@ export default function InventoryWorkspace() {
             </DialogHeader>
             <form
               onSubmit={submitItem}
-              className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm md:grid-cols-6"
+              className="hub-form hub-form-grid hub-form-grid--3 rounded-2xl border border-border bg-card p-5 shadow-sm md:grid-cols-6"
             >
               <div className="md:col-span-2">
                 <Label htmlFor="item-name">Nome do material</Label>
@@ -841,7 +841,7 @@ export default function InventoryWorkspace() {
                         if (!open) setEditingItemId(null);
                       }}
                     >
-                      <DialogContent className="max-h-[86vh] max-w-3xl overflow-y-auto">
+                      <DialogContent className="hub-form-dialog">
                         <DialogHeader>
                           <DialogTitle>Editar item de estoque</DialogTitle>
                           <DialogDescription>
@@ -851,7 +851,7 @@ export default function InventoryWorkspace() {
                         </DialogHeader>
                         <form
                           onSubmit={submitEditItem}
-                          className="grid gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 md:grid-cols-6"
+                          className="hub-form hub-form-grid hub-form-grid--3 rounded-xl border border-primary/20 bg-primary/5 p-4 md:grid-cols-6"
                         >
                           <div className="md:col-span-2">
                             <Label

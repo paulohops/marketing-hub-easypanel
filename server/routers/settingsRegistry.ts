@@ -273,7 +273,85 @@ export function normalizeSpreadsheetKey(value: string) {
     .toLocaleLowerCase("pt-BR");
 }
 
+type BrasilApiCompany = {
+  cnpj?: string;
+  razao_social?: string;
+  nome_fantasia?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  municipio?: string;
+  uf?: string;
+  cep?: string;
+  ddd_telefone_1?: string;
+  ddd_telefone_2?: string;
+  email?: string | null;
+  descricao_situacao_cadastral?: string;
+};
+
 export const settingsRegistryProcedures = {
+  lookupSupplierCnpj: protectedProcedure
+    .input(z.object({ cnpj: z.string().trim().min(1).max(32) }))
+    .query(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.read");
+      const cnpj = normalizeCnpj(input.cnpj);
+      if (cnpj.length !== 14) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Informe um CNPJ válido com 14 dígitos.",
+        });
+      }
+      try {
+        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+          headers: { accept: "application/json" },
+          signal: AbortSignal.timeout(8_000),
+        });
+        if (response.status === 404) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "CNPJ não encontrado na BrasilAPI.",
+          });
+        }
+        if (!response.ok) {
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message: "A BrasilAPI não conseguiu consultar este CNPJ agora.",
+          });
+        }
+        const company = (await response.json()) as BrasilApiCompany;
+        const address = [
+          company.logradouro,
+          company.numero,
+          company.complemento,
+          company.bairro,
+          company.cep,
+          company.municipio && company.uf
+            ? `${company.municipio} - ${company.uf}`
+            : company.municipio ?? company.uf,
+        ]
+          .filter(Boolean)
+          .join(", ");
+        return {
+          cnpj,
+          displayName: company.nome_fantasia || company.razao_social || "",
+          legalName: company.razao_social || "",
+          address,
+          phone: [company.ddd_telefone_1, company.ddd_telefone_2]
+            .filter(Boolean)
+            .join(" / "),
+          email: company.email ?? "",
+          status: company.descricao_situacao_cadastral ?? "",
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: "Não foi possível consultar a BrasilAPI. Tente novamente.",
+        });
+      }
+    }),
+
   listFiscalEntities: protectedProcedure
     .input(z.object({ providerId: z.number().int().positive().optional() }).optional())
     .query(async ({ ctx, input }) => {
