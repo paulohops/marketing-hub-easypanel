@@ -154,7 +154,7 @@ export function OperationalHistory({
     }
   };
   return (
-    <section className="rounded-2xl border border-border bg-card p-5">
+    <section className="hub-entity-card">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold text-foreground">{title}</h2>
         {ordered.length > 5 ? <Button type="button" variant="outline" size="sm" onClick={() => setShowAll(current => !current)}>{showAll ? "Mostrar últimos 5" : `Mostrar tudo (${ordered.length})`}</Button> : null}
@@ -215,7 +215,7 @@ export function OperationalDebriefing({
   summaryLabel?: string;
 }) {
   const update = (patch: Partial<OperationalDebriefValue>) => onChange({ ...value, ...patch });
-  return <section className="rounded-2xl border border-border bg-card p-5"><h2 className="font-display text-lg font-semibold text-foreground">{title}</h2><form className="mt-3 space-y-3" onSubmit={event => { event.preventDefault(); onSave(); }}>
+  return <section className="hub-entity-card"><h2 className="font-display text-lg font-semibold text-foreground">{title}</h2><form className="mt-3 space-y-3" onSubmit={event => { event.preventDefault(); onSave(); }}>
     <div className="grid gap-3 sm:grid-cols-[minmax(260px,0.9fr)_minmax(0,1.1fr)]">
       <div className="grid content-start gap-2 rounded-xl border border-border bg-muted/25 p-4"><p className="text-xs font-semibold text-muted-foreground">Nota geral</p><strong className="text-2xl font-semibold tabular-nums text-foreground">{value.rating || "—"}</strong><Badge variant="outline" className="w-fit text-[10px]">{value.rating ? `${value.rating}/5 · ${ratingLabel[Number(value.rating)]}` : "Avaliação pendente"}</Badge><select aria-label="Nota geral" value={value.rating} onChange={event => update({ rating: event.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground"><option value="">Selecionar nota</option>{[5, 4, 3, 2, 1].map(rating => <option key={rating} value={rating}>{rating} · {ratingLabel[rating]}</option>)}</select></div>
       <div className="grid gap-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">{summaryLabel}<Textarea className="min-h-24" value={value.resultSummary} onChange={event => update({ resultSummary: event.target.value })} placeholder="Contexto, resultado alcançado e impacto percebido" /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Avaliação e aprendizados<Textarea className="min-h-24" value={value.notes} onChange={event => update({ notes: event.target.value })} placeholder="O que funcionou e o que deve ser aprimorado" /></label></div>

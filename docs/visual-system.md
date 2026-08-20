@@ -6,7 +6,7 @@ O Marketing HUB usa uma linguagem operacional única: a pessoa deve reconhecer o
 
 ## Estrutura de página
 
-Toda página interna deve usar o shell `WorkspaceShell`, com largura máxima de `1480px`, padding responsivo e espaçamento vertical consistente. A página começa com um `WorkspaceHeader` e depois organiza o conteúdo em `WorkspaceSection` e `WorkspaceCard`.
+Toda página interna deve usar o shell `WorkspaceShell`, centralizado em um container de conteúdo de aproximadamente `1180px`, com o espaçamento externo fornecido uma única vez pelo `cluster-workspace`. A página começa com um `WorkspaceHeader` e depois organiza o conteúdo em `WorkspaceSection` e `WorkspaceCard`, seguindo a composição validada em `/midias/3`.
 
 ```tsx
 <WorkspaceShell>
@@ -49,7 +49,7 @@ Ações primárias usam `primary`; ações secundárias usam `outline` ou `secon
 
 ## Cards e seções
 
-Cards usam borda semântica, raio entre `0.875rem` e `1rem`, fundo `card` e padding padrão de `1.25rem`. Títulos de seção usam uma única hierarquia visual. Informações resumidas podem aparecer em cards; formulários extensos devem ficar em diálogos ou seções claramente nomeadas.
+Cards usam borda semântica, raio de `1rem`, fundo `card`, sombra discreta e padding padrão de `1.25rem`. O card é uma unidade completa: borda, superfície, respiro e conteúdo pertencem ao mesmo componente. Títulos de seção usam uma única hierarquia visual. Informações resumidas podem aparecer em cards; formulários extensos devem ficar em diálogos ou seções claramente nomeadas.
 
 ## Filtros
 
@@ -61,11 +61,11 @@ Páginas de entidade usam duas colunas em telas grandes: a coluna menor concentr
 
 ## Checklist de revisão
 
-Antes de publicar uma tela nova, confirmar: shell de `1480px`; header com eyebrow, título, descrição e ações; botão primário único; botões em `h-9` ou `sm`; filtros recolhidos; status global; histórico com motivo e evidências; cards sem cores inventadas; layout responsivo; foco visível; textos em português; versão e changelog atualizados.
+Antes de publicar uma tela nova, confirmar: shell centralizado de aproximadamente `1180px`; header-card com eyebrow, título, descrição e ações; botão primário único; botões em `h-9` ou `sm`; filtros recolhidos; status global; histórico com motivo e evidências; cards sem cores inventadas; layout responsivo; foco visível; textos em português; versão e changelog atualizados.
 
 ## Regras de alinhamento e dropdowns — agosto de 2026
 
-Todos os módulos de Trade usam o mesmo `WorkspaceHeader`: altura desktop fixa de `7.25rem`, alinhamento vertical central, ações agrupadas à direita e descrição limitada a duas linhas. Os painéis de filtros usam `hub-filter-panel`, mantêm os controles centralizados verticalmente e só são renderizados após o acionamento do botão **Filtros**. Em telas menores, o header passa a ter altura automática para preservar a leitura.
+Todos os módulos de Trade usam o mesmo `WorkspaceHeader`: um card de identidade com padding de `1,25rem`, alinhamento superior controlado, ações agrupadas à direita e descrição limitada a duas linhas. O header não usa altura fixa; sua altura é determinada pelo conteúdo para evitar desalinhamentos entre módulos. Os painéis de filtros usam `hub-filter-panel`, mantêm os controles centralizados verticalmente e só são renderizados após o acionamento do botão **Filtros**. Em telas menores, o header empilha identidade e ações preservando o mesmo padding.
 
 Dropdowns pesquisáveis devem seguir o padrão visual de referência: conteúdo com raio de `0.875rem`, campo de pesquisa com `2.25rem` de altura, borda de foco na cor primária e lista com itens de pelo menos `3rem` de altura, área clicável integral e descrição truncada. Não criar selects customizados com alturas, raios ou sombras diferentes sem atualizar este documento e os tokens globais.
 
@@ -75,7 +75,7 @@ O eyebrow de Mídia Audiovisual é **Trade**. Novos módulos devem preservar a m
 
 ## Auditoria de alinhamento e dropdowns
 
-Todos os workspaces devem usar a mesma régua visual: `WorkspaceShell` centralizado, `WorkspaceHeader` com altura mínima de `7.25rem`, identidade verticalmente centralizada, área de ações alinhada ao centro e espaçamento de `0.5rem` entre controles. Os painéis de filtros devem começar ocultos, usar controles com altura mínima de `2.25rem`, manter os campos alinhados no eixo vertical e posicionar o botão de redefinição no centro do conjunto.
+Todos os workspaces devem usar a mesma régua visual: `WorkspaceShell` centralizado, `WorkspaceHeader` em superfície de card com padding de `1,25rem`, identidade alinhada no topo, área de ações alinhada ao topo e espaçamento de `0.5rem` entre controles. Os painéis de filtros devem começar ocultos, usar controles com altura mínima de `2.25rem`, manter os campos alinhados no eixo vertical e posicionar o botão de redefinição no centro do conjunto.
 
 Menus de seleção devem preferir `SearchableSelect` ou `SearchableMultiSelect`, reproduzindo o padrão de referência: trigger compacto, popover com bordas arredondadas, campo `Pesquisar…` com foco destacado, opções em linhas com área de toque confortável, descrição secundária quando houver e opção explícita de limpar. Selects legados recebem os mesmos tokens de altura, raio, borda e foco para não quebrar módulos ainda em migração.
 
@@ -91,12 +91,12 @@ Filtros, headers, seções e cards devem respeitar o mesmo ritmo: header canôni
 
 ## Escala global de margem, padding e gaps — agosto de 2026
 
-Todo conteúdo autenticado deve estar dentro de `cluster-workspace` ou `WorkspaceShell`. O container global fornece o respiro externo da página, com padding horizontal responsivo, padding vertical superior de `1,25rem` e padding inferior de `2rem`. O `DashboardLayout` não deve adicionar um segundo padding ao conteúdo, evitando margem dupla entre módulos.
+Todo conteúdo autenticado deve estar dentro de `cluster-workspace` ou `WorkspaceShell`. O container global fornece o único respiro externo da página, com padding horizontal responsivo entre `1rem` e `2,5rem`, padding superior fluido entre `0,75rem` e `1,5rem` e padding inferior de `2,5rem`. O `DashboardLayout` não deve adicionar um segundo padding ao conteúdo, evitando margem dupla entre módulos.
 
-A escala oficial usa os tokens CSS `--hub-space-1` a `--hub-space-10`. O ritmo padrão é: `0,5rem` para agrupamentos compactos, `0,75rem` entre controles relacionados, `1rem` entre itens de uma grade, `1,25rem` entre seções e como padding interno de cards, `1,5rem` para respiros maiores e `2rem` no final das páginas. Novas telas devem preferir esses tokens ou as classes compartilhadas `hub-page`, `hub-section`, `hub-filter-panel` e `hub-card` em vez de valores isolados.
+A escala oficial usa os tokens CSS `--hub-space-1` a `--hub-space-10`. O ritmo padrão é: `0,5rem` para agrupamentos compactos, `0,75rem` entre controles relacionados, `1rem` entre itens de uma grade, `1,25rem` entre seções e como padding interno de cards, `1,5rem` para respiros maiores e `2,5rem` no final das páginas. Novas telas devem preferir esses tokens ou as classes compartilhadas `hub-page`, `hub-section`, `hub-filter-panel` e `hub-card` em vez de valores isolados.
 
 O `hub-card` e os componentes `Card` semânticos recebem padding interno obrigatório de `1,25rem`. Classes locais como `p-0`, `px-0` ou `py-0` só podem existir em áreas técnicas ou overlays cuja ausência de respiro seja intencional, como uma imagem ocupando toda a superfície de um card; elas não devem ser usadas para remover o padding de uma unidade de conteúdo, formulário ou ação.
 
-O header canônico é separado do primeiro conteúdo por `1,25rem`. Filtros ficam em painel próprio com `1rem` de padding, controles separados por `0,75rem` e menus pesquisáveis com `0,75rem` de padding. A mesma régua deve ser preservada em desktop, tablet e mobile; apenas a largura externa se torna fluida.
+O header canônico é um card independente e fica separado do primeiro conteúdo por `1,25rem`. Filtros ficam em painel próprio com `1rem` de padding, controles separados por `0,75rem` e menus pesquisáveis com `0,75rem` de padding. A mesma régua deve ser preservada em desktop, tablet e mobile; apenas a largura externa se torna fluida.
 
-Checklist adicional de espaçamento: confirmar que a rota passa pelo `cluster-workspace`; confirmar que o DashboardLayout não duplica padding; confirmar que o primeiro bloco não encosta no header; confirmar que cards têm `1,25rem` de respiro; confirmar que grids usam gap de `1rem`; confirmar que seções usam `1,25rem`; e testar a tela em modo claro, escuro, desktop e mobile.
+Checklist adicional de espaçamento: confirmar que a rota passa pelo `cluster-workspace`; confirmar que o DashboardLayout não duplica padding; confirmar que o primeiro bloco não encosta no header; confirmar que headers e cards usam `1,25rem` de respiro; confirmar que grids usam gap de `1rem`; confirmar que seções usam `1,25rem`; confirmar que cards de entidade preservam colunas independentes; e testar a tela em modo claro, escuro, desktop e mobile.

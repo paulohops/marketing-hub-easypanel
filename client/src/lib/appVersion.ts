@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.3.4.0";
+export const APP_VERSION = "1.3.5.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.3.5.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Reconstrução da identidade visual global a partir da página de detalhe de Mídia Urbana.",
+    changes: [
+      "A anatomia de entidades da rota /midias/3 passou a definir o padrão oficial de shell, header-card, colunas, cards de dados e listas operacionais.",
+      "Páginas de detalhe de Mídia Urbana, Mídia Audiovisual e mídias externas foram alinhadas ao mesmo shell de entidade, sem alterar suas regras operacionais.",
+      "Cards legados passaram a receber compatibilidade visual global de raio, superfície, sombra e padding canônico, reduzindo divergências entre módulos.",
+      "O componente Card semântico e os históricos operacionais passaram a utilizar uma única fonte de espaçamento interno.",
+      "A documentação visual foi atualizada para registrar a referência /midias/3, tokens, anatomia de entidade e exceções controladas.",
+    ],
+  },
   {
     version: "1.3.4.0",
     date: "20/08/2026",

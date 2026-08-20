@@ -52,7 +52,7 @@
   --destructive: #c73710; --destructive-foreground: #ffffff; --border: color-mix(in srgb, var(--app-primary, #0e723b) 16%, #ffffff); --input: color-mix(in srgb, var(--app-primary, #0e723b) 22%, #ffffff); --ring: var(--app-accent, #f45103);
   --sidebar: var(--app-primary, #0e723b); --sidebar-foreground: #ecf8f0; --sidebar-accent: color-mix(in srgb, var(--app-primary, #0e723b) 88%, #000000); --sidebar-accent-foreground: #ffffff; --sidebar-border: color-mix(in srgb, var(--app-primary, #0e723b) 70%, #ffffff); --sidebar-ring: var(--app-accent, #f45103);
 
-  /* Escala oficial de espaçamento: todo módulo deve usar estes tokens. */
+  /* Identidade de espaçamento v2: baseada na composição da página /midias/3. */
   --hub-space-1: 0.25rem;
   --hub-space-2: 0.5rem;
   --hub-space-3: 0.75rem;
@@ -61,13 +61,17 @@
   --hub-space-6: 1.5rem;
   --hub-space-8: 2rem;
   --hub-space-10: 2.5rem;
-  --hub-page-inline-padding: clamp(1rem, 2vw, 2rem);
-  --hub-page-bottom-padding: var(--hub-space-8);
-  --hub-section-gap: var(--hub-space-5);
-  --hub-grid-gap: var(--hub-space-4);
-  --hub-card-padding: var(--hub-space-5);
-  --hub-card-internal-gap: var(--hub-space-4);
-  --hub-control-gap: var(--hub-space-3);
+  --hub-shell-inline: clamp(1rem, 2.8vw, 2.5rem);
+  --hub-shell-top: clamp(0.75rem, 1.8vw, 1.5rem);
+  --hub-shell-bottom: 2.5rem;
+  --hub-content-max: 1180px;
+  --hub-section-gap: 1.25rem;
+  --hub-grid-gap: 1rem;
+  --hub-card-padding: 1.25rem;
+  --hub-card-internal-gap: 0.75rem;
+  --hub-control-gap: 0.75rem;
+  --hub-card-radius: 1rem;
+  --hub-control-radius: 0.625rem;
 }
 
 .dark {
@@ -187,19 +191,31 @@
     display: flex;
     min-height: calc(100vh - 40px);
     flex-direction: column;
-    gap: var(--hub-section-gap);
-    padding: var(--hub-space-5) var(--hub-page-inline-padding) var(--hub-page-bottom-padding);
+    gap: 0;
+    padding: var(--hub-shell-top) var(--hub-shell-inline) var(--hub-shell-bottom);
   }
 
   .cluster-workspace > * {
     min-width: 0;
   }
 
-  /* O shell compartilhado herda o padding do cluster, evitando margens duplas. */
-  .cluster-workspace > .hub-page {
-    max-width: none;
-    margin: 0;
+  /* O shell compartilhado recebe o único espaçamento externo da aplicação. */
+  .cluster-workspace > .hub-page,
+  .cluster-workspace > main.max-w-6xl {
+    width: 100%;
+    max-width: var(--hub-content-max);
+    margin: 0 auto;
     padding: 0;
+  }
+
+  .cluster-workspace > main.max-w-6xl {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hub-section-gap);
+  }
+
+  .cluster-workspace > main.max-w-6xl > * {
+    margin-top: 0 !important;
   }
 
   .cluster-workspace::before {
@@ -297,45 +313,162 @@
 
 
 @layer components {
-  /* Marketing HUB visual system: one rhythm for every internal workspace. */
+  /* Shell canônico: a composição de /midias/3 é a referência de todo workspace. */
   .hub-page {
+    display: flex;
     width: 100%;
-    max-width: 1480px;
+    max-width: var(--hub-content-max);
     margin-inline: auto;
-    padding: 0 var(--hub-page-inline-padding) var(--hub-page-bottom-padding);
+    flex-direction: column;
+    gap: var(--hub-section-gap);
+    padding: 0;
   }
 
   .hub-header {
     display: flex;
-    align-items: center;
+    min-width: 0;
+    align-items: flex-start;
     justify-content: space-between;
     gap: var(--hub-space-5);
-    height: 7.25rem;
-    min-height: 7.25rem;
-    padding: var(--hub-space-5) 0 var(--hub-space-6);
-    border-bottom: 1px solid var(--border);
+    min-height: 0;
+    padding: var(--hub-card-padding);
+    border: 1px solid var(--border);
+    border-radius: var(--hub-card-radius);
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
   }
 
   .hub-page > .hub-header + * {
-    margin-top: var(--hub-section-gap);
+    margin-top: 0;
+  }
+
+  /* Anatomia de entidade baseada em /midias/3: retorno, header-card, operação e histórico. */
+  .hub-entity-page {
+    display: flex;
+    width: 100%;
+    max-width: var(--hub-content-max);
+    margin-inline: auto;
+    flex-direction: column;
+    gap: var(--hub-section-gap);
+  }
+
+  .hub-entity-page > * {
+    min-width: 0;
+    margin-top: 0 !important;
+  }
+
+  .hub-entity-back {
+    align-self: flex-start;
+  }
+
+  .hub-entity-header {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--hub-space-5);
+    padding: var(--hub-card-padding) !important;
+    border: 1px solid var(--border);
+    border-radius: var(--hub-card-radius);
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+  }
+
+  .hub-entity-layout {
+    display: grid;
+    min-width: 0;
+    align-items: start;
+    gap: var(--hub-grid-gap);
+  }
+
+  .hub-entity-layout > * {
+    min-width: 0;
+  }
+
+  .hub-entity-column {
+    display: grid;
+    min-width: 0;
+    align-content: start;
+    gap: var(--hub-grid-gap);
+  }
+
+  .hub-entity-card {
+    box-sizing: border-box;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--hub-card-radius);
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    padding: var(--hub-card-padding) !important;
+  }
+
+  .hub-entity-card--flush {
+    overflow: hidden;
+    padding: 0 !important;
+  }
+
+  .hub-entity-card__header {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--hub-space-3);
+    padding: var(--hub-card-padding);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hub-entity-card__body {
+    min-width: 0;
+    padding: var(--hub-card-padding);
+  }
+
+  .hub-data-list {
+    display: grid;
+    gap: var(--hub-control-gap);
+  }
+
+  .hub-data-tile {
+    min-width: 0;
+    padding: var(--hub-space-3);
+    border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--border));
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--secondary) 72%, var(--card));
+  }
+
+  .hub-record-list {
+    display: grid;
+    gap: 0;
+  }
+
+  .hub-record-row {
+    min-width: 0;
+    padding: var(--hub-space-4) 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hub-record-row:first-child {
+    padding-top: 0;
+  }
+
+  .hub-record-row:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
   .hub-header__identity {
     display: flex;
     min-width: 0;
-    min-height: 4.5rem;
-    align-items: center;
-    gap: 0.875rem;
+    align-items: flex-start;
+    gap: var(--hub-space-3);
   }
 
   .hub-header__icon {
     display: grid;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2.5rem;
+    height: 2.5rem;
     flex: 0 0 auto;
     place-items: center;
-    margin-top: 0.15rem;
-    border-radius: 0.875rem;
+    border-radius: 0.75rem;
     color: var(--primary-foreground);
     background: var(--primary);
     box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 18%, transparent);
@@ -352,20 +485,19 @@
   }
 
   .hub-header__title {
-    margin: 0.25rem 0 0;
+    margin: var(--hub-space-2) 0 0;
     color: var(--foreground);
     font-family: var(--app-font-family, "Montserrat"), ui-sans-serif, system-ui, sans-serif;
-    font-size: clamp(1.65rem, 1.3rem + 1vw, 2.25rem);
+    font-size: clamp(1.5rem, 1.2rem + 0.9vw, 2rem);
     font-weight: 650;
     letter-spacing: -0.035em;
-    line-height: 1.05;
+    line-height: 1.08;
   }
 
   .hub-header__description {
     display: -webkit-box;
     max-width: 48rem;
-    min-height: 2.5rem;
-    margin: 0.5rem 0 0;
+    margin: var(--hub-space-2) 0 0;
     overflow: hidden;
     color: var(--muted-foreground);
     font-size: 0.8125rem;
@@ -517,7 +649,7 @@
   .hub-section {
     display: grid;
     gap: var(--hub-grid-gap);
-    margin-top: var(--hub-section-gap);
+    margin-top: 0;
   }
 
   .hub-section__header {
@@ -543,7 +675,7 @@
     line-height: 1.5;
   }
 
-  /* Padrão global: todo card tem respiro interno para separar conteúdo, borda e ações. */
+  /* Card canônico: unidade visual completa, com borda, respiro e superfície próprios. */
   .hub-card,
   [data-slot="card"] {
     box-sizing: border-box;
@@ -551,19 +683,23 @@
     min-width: 0;
     margin: 0;
     border: 1px solid var(--border);
-    border-radius: 0.875rem;
+    border-radius: var(--hub-card-radius);
     background: var(--card);
     box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
     gap: var(--hub-card-internal-gap);
     padding: var(--hub-card-padding) !important;
   }
 
-  /* Card, CardHeader, CardContent e CardFooter compartilham a mesma borda interna. */
+  /* O card é a única superfície com padding; seus subcomponentes ocupam o conteúdo interno. */
   [data-slot="card"] > [data-slot="card-header"],
   [data-slot="card"] > [data-slot="card-content"],
   [data-slot="card"] > [data-slot="card-footer"] {
-    padding-right: 0 !important;
-    padding-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  [data-slot="card"] > [data-slot="card-header"].border-b,
+  [data-slot="card"] > [data-slot="card-footer"].border-t {
+    padding-bottom: var(--hub-space-3) !important;
   }
 
   /* Compatibilidade para cards antigos que já declaravam o modificador. */
@@ -583,23 +719,51 @@
 
   @media (min-width: 640px) {
     .hub-page {
-      padding-inline: var(--hub-page-inline-padding);
+      padding-inline: 0;
     }
   }
 
   @media (min-width: 1024px) {
     .hub-page {
-      padding-inline: var(--hub-page-inline-padding);
+      padding-inline: 0;
     }
   }
 
+  @media (min-width: 1024px) {
+    .hub-entity-layout {
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    }
+  }
+
+  /* Compatibilidade: cards legados dentro de módulos passam pela mesma anatomia da referência. */
+  .hub-entity-card--muted {
+    background: var(--secondary);
+  }
+
+  .hub-page :where(
+    [class~="rounded-xl"][class~="border"][class~="border-border"][class~="bg-card"],
+    [class~="rounded-2xl"][class~="border"][class~="border-border"][class~="bg-card"],
+    [class~="rounded-xl"][class~="border"][class~="border-border"][class~="bg-secondary"],
+    [class~="rounded-2xl"][class~="border"][class~="border-border"][class~="bg-secondary"]
+  ),
+  .cluster-workspace :where(
+    [class~="rounded-xl"][class~="border"][class~="border-border"][class~="bg-card"],
+    [class~="rounded-2xl"][class~="border"][class~="border-border"][class~="bg-card"],
+    [class~="rounded-xl"][class~="border"][class~="border-border"][class~="bg-secondary"],
+    [class~="rounded-2xl"][class~="border"][class~="border-border"][class~="bg-secondary"]
+  ) {
+    box-sizing: border-box;
+    border-radius: var(--hub-card-radius);
+    padding: var(--hub-card-padding) !important;
+    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+  }
+
   @media (max-width: 639px) {
-    .hub-header {
+    .hub-header,
+    .hub-entity-header {
       align-items: stretch;
       flex-direction: column;
-      height: auto;
-      min-height: 0;
-      padding-bottom: var(--hub-space-5);
+      padding: var(--hub-space-4);
     }
 
     .hub-header__actions,
