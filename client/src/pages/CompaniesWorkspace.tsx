@@ -31,8 +31,8 @@ async function fileAsBase64(file: File) {
 
 function ProviderLogo({ provider, large = false }: { provider: Provider; large?: boolean }) {
   const dimensions = large ? "h-28 w-28 sm:h-32 sm:w-32" : "h-16 w-16 sm:h-20 sm:w-20";
-  return <div className={`grid ${dimensions} shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-secondary p-2 shadow-sm`}>
-    {provider.logoUrl ? <img src={provider.logoUrl} alt={`Logotipo de ${provider.name}`} className="h-full w-full object-contain" /> : <Building2 className="h-8 w-8 text-primary" />}
+  return <div className={`grid ${dimensions} shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-secondary shadow-sm`}>
+    {provider.logoUrl ? <img src={provider.logoUrl} alt={`Logotipo de ${provider.name}`} className="h-full w-full object-cover" /> : <Building2 className="h-8 w-8 text-primary" />}
   </div>;
 }
 

@@ -57,11 +57,13 @@ export const tasksRouter = router({
     await assertPermission(ctx.user, "tasks.read");
     const database = await databaseOrThrow();
     const conditions = [];
-    if (ctx.user.role !== "admin" || input?.scope === "mine") {
+    if (input?.scope === "mine") {
+      conditions.push(eq(tasks.assignedToUserId, ctx.user.id));
+    } else if (ctx.user.role !== "admin") {
       conditions.push(or(eq(tasks.assignedToUserId, ctx.user.id), eq(tasks.createdByUserId, ctx.user.id)));
     }
     if (input?.status) conditions.push(eq(tasks.status, input.status));
-    if (input?.assignedToUserId) conditions.push(eq(tasks.assignedToUserId, input.assignedToUserId));
+    if (input?.scope !== "mine" && input?.assignedToUserId) conditions.push(eq(tasks.assignedToUserId, input.assignedToUserId));
     return database.select(selectTask).from(tasks).leftJoin(users, eq(tasks.assignedToUserId, users.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(desc(tasks.createdAt));
   }),
 

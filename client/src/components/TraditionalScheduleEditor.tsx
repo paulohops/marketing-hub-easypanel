@@ -8,6 +8,7 @@ export type TraditionalScheduleItem = {
   programName: string;
   weekdays: number[];
   specificDate: string | null;
+  neighborhoodId?: number | null;
   startsAt: string;
   endsAt: string;
   notes?: string;
@@ -24,10 +25,10 @@ const weekdays = [
 ] as const;
 
 export function createEmptyTraditionalSchedule(): TraditionalScheduleItem {
-  return { programName: "", weekdays: [1], specificDate: null, startsAt: "08:00", endsAt: "08:30", notes: "" };
+  return { programName: "", weekdays: [1], specificDate: null, neighborhoodId: null, startsAt: "08:00", endsAt: "08:30", notes: "" };
 }
 
-export default function TraditionalScheduleEditor({ value, onChange }: { value: TraditionalScheduleItem[]; onChange: (value: TraditionalScheduleItem[]) => void }) {
+export default function TraditionalScheduleEditor({ value, onChange, neighborhoodOptions = [] }: { value: TraditionalScheduleItem[]; onChange: (value: TraditionalScheduleItem[]) => void; neighborhoodOptions?: Array<{ id: number; label: string; description?: string }> }) {
   const update = (index: number, patch: Partial<TraditionalScheduleItem>) => onChange(value.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   const remove = (index: number) => onChange(value.filter((_, itemIndex) => itemIndex !== index));
   const add = () => onChange([...value, createEmptyTraditionalSchedule()]);
@@ -49,6 +50,7 @@ export default function TraditionalScheduleEditor({ value, onChange }: { value: 
         <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-10 w-10 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Remover horário ${index + 1}`}><Trash2 className="h-4 w-4" /></Button>
       </div>
       <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-end">
+        {neighborhoodOptions.length ? <SearchableMultiSelect id={`schedule-neighborhood-${index}`} label="Bairro da rodada" options={neighborhoodOptions} values={item.neighborhoodId ? [item.neighborhoodId] : []} maxSelections={1} onChange={values => update(index, { neighborhoodId: values[0] ?? null })} placeholder="Selecionar bairro" emptyMessage="Nenhum bairro disponível" /> : null}
         {item.specificDate ? <label className="space-y-1.5"><Label htmlFor={`schedule-date-${index}`}>Data da entrevista ou inserção</Label><Input id={`schedule-date-${index}`} type="date" value={item.specificDate} onChange={event => update(index, { specificDate: event.target.value || null })} required /></label> : <div className="space-y-1.5"><Label>Dias da semana</Label><div className="flex flex-wrap gap-1.5">{weekdays.map(([day, label]) => { const selected = item.weekdays.includes(day); return <Button key={day} type="button" variant={selected ? "default" : "outline"} size="sm" onClick={() => update(index, { weekdays: selected ? item.weekdays.filter(value => value !== day) : [...item.weekdays, day], specificDate: null })} className="h-8 px-2 text-[11px]">{label.slice(0, 3)}</Button>; })}</div><p className="mt-1 text-[11px] text-muted-foreground">Selecione um ou mais dias.</p></div>}
         <label className="space-y-1.5"><Label htmlFor={`schedule-notes-${index}`}>Observação</Label><Input id={`schedule-notes-${index}`} value={item.notes ?? ""} onChange={event => update(index, { notes: event.target.value })} placeholder="Ex.: entrevista ao vivo" /></label>
       </div>

@@ -91,10 +91,10 @@ export default function TasksWorkspace() {
       <WorkspaceSection
         title="Acompanhamento operacional"
         description="Arraste as tarefas entre as colunas ou abra um card para editar seus detalhes."
-        actions={<div className="flex items-center gap-2"><Button size="sm" variant={scope === "team" ? "default" : "outline"} onClick={() => setScope("team")}>Equipe</Button><Button size="sm" variant={scope === "mine" ? "default" : "outline"} onClick={() => setScope("mine")}>Minhas tarefas</Button></div>}
+        actions={<div className="flex items-center gap-2"><Button size="sm" variant={scope === "team" ? "default" : "outline"} onClick={() => setScope("team")}>Equipe</Button><Button size="sm" variant={scope === "mine" ? "default" : "outline"} onClick={() => { setScope("mine"); setAssignedToUserId(""); }}>Minhas tarefas</Button></div>}
       >
         <div className="mb-4 flex min-w-0 flex-wrap items-end justify-between gap-3">
-          <SearchableSelect id="tasks-user-filter" label="Usuário responsável" value={assignedToUserId} onChange={setAssignedToUserId} placeholder="Todos os usuários" options={users.map(user => ({ value: user.id, label: user.name || user.email || `Usuário #${user.id}` }))} />
+          <SearchableSelect id="tasks-user-filter" label="Usuário responsável" value={assignedToUserId} onChange={setAssignedToUserId} placeholder="Todos os usuários" options={users.map(user => ({ value: user.id, label: user.name || user.email || `Usuário #${user.id}` }))} disabled={scope === "mine"} />
           {assignedToUserId ? <Button type="button" size="sm" variant="ghost" onClick={() => setAssignedToUserId("")}>Limpar usuário</Button> : null}
         </div>
         <div className="grid gap-5 xl:grid-cols-3">

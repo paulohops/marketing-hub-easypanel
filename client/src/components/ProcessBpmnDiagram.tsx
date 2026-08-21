@@ -1,5 +1,5 @@
-import { ArrowRight, GitBranch, Maximize2, Minus, Plus } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { ArrowRight, Expand, GitBranch, Maximize2, Minus, Plus, Shrink } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type BpmnStep = {
   stepOrder: number;
@@ -63,7 +63,47 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Pan>({ x: 0, y: 0 });
   const [selectedStep, setSelectedStep] = useState<BpmnStep | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const diagramRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === diagramRef.current);
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.fullscreenElement) setIsFullscreen(false);
+    };
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreen);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    if (!diagramRef.current) return;
+    if (isFullscreen) {
+      if (document.fullscreenElement === diagramRef.current) {
+        try {
+          await document.exitFullscreen();
+        } catch {
+          setIsFullscreen(false);
+        }
+      } else {
+        setIsFullscreen(false);
+      }
+      return;
+    }
+    try {
+      if (document.fullscreenEnabled && diagramRef.current.requestFullscreen) {
+        await diagramRef.current.requestFullscreen();
+      } else {
+        setIsFullscreen(true);
+      }
+    } catch {
+      setIsFullscreen(true);
+    }
+  };
 
   const width = Math.max(
     1120,
@@ -98,7 +138,7 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
   const endY = lastPosition.centerY;
 
   return (
-    <div className="rounded-xl border border-border bg-secondary/10 p-3">
+    <div ref={diagramRef} className={`rounded-xl border border-border bg-secondary/10 p-3 ${isFullscreen ? "fixed inset-0 z-50 flex min-h-screen flex-col rounded-none bg-background p-4 shadow-2xl" : ""}`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <GitBranch className="h-4 w-4 text-primary" />
@@ -109,11 +149,12 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
           <span className="min-w-12 text-center text-[11px] font-semibold text-muted-foreground">{Math.round(zoom * 100)}%</span>
           <button type="button" className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground" onClick={() => setZoom(value => clampZoom(value + 0.1))} aria-label="Aumentar zoom"><Plus className="h-4 w-4" /></button>
           <button type="button" className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground" onClick={resetView} aria-label="Restaurar visão"><Maximize2 className="h-4 w-4" /></button>
+          <button type="button" className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground" onClick={() => void toggleFullscreen()} aria-label={isFullscreen ? "Sair da tela cheia" : "Abrir em tela cheia"}>{isFullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}</button>
         </div>
       </div>
 
       <div
-        className="relative max-h-[620px] min-h-[300px] touch-none cursor-grab overflow-auto rounded-lg border border-border bg-background/70 active:cursor-grabbing"
+        className={`relative min-h-[300px] touch-none cursor-grab overflow-auto rounded-lg border border-border bg-background/70 active:cursor-grabbing ${isFullscreen ? "min-h-0 max-h-none flex-1" : "max-h-[620px]"}`}
         onWheel={event => {
           if (!event.ctrlKey) return;
           event.preventDefault();

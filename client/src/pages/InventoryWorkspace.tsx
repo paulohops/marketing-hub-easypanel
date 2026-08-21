@@ -404,13 +404,13 @@ export default function InventoryWorkspace() {
       )
     : [];
   const totalQuantity = useMemo(
-    () =>
-              visibleItems.reduce(
-        (total, item) => total + Number(item.balance ?? 0),
-        0
-      ),
+    () => visibleItems.reduce((total, item) => total + Number(item.balance ?? 0), 0),
     [visibleItems]
   );
+  const consolidatedItemCount = useMemo(() => {
+    const keys = new Set(visibleItems.map(item => `${item.sku}|${item.name}|${item.unit}|${item.category}`));
+    return keys.size;
+  }, [visibleItems]);
 
   return (
     <WorkspaceShell>
@@ -676,13 +676,13 @@ export default function InventoryWorkspace() {
               variant="outline"
               className="border-border bg-secondary text-xs text-foreground"
             >
-              {visibleItems.length} itens
+              {consolidatedItemCount} materiais
             </Badge>
             <Badge
               variant="outline"
               className="border-primary/30 bg-primary/5 text-xs text-primary"
             >
-              Total: {totalQuantity.toLocaleString("pt-BR", {
+              Saldo consolidado: {totalQuantity.toLocaleString("pt-BR", {
                 maximumFractionDigits: 2,
               })} unidades
             </Badge>

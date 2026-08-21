@@ -1681,6 +1681,7 @@ export const mediaCampaignSchedules = pgTable(
     programName: varchar("programName", { length: 180 }).notNull(),
     weekday: integer("weekday"),
     specificDate: date("specificDate"),
+    neighborhoodId: integer("neighborhoodId").references(() => neighborhoods.id, { onDelete: "set null" }),
     startsAt: varchar("startsAt", { length: 5 }).notNull(),
     endsAt: varchar("endsAt", { length: 5 }).notNull(),
     notes: text("notes"),
@@ -1700,6 +1701,7 @@ export const mediaCampaignSchedules = pgTable(
       table.programName,
       table.weekday,
       table.specificDate,
+      table.neighborhoodId,
       table.startsAt,
       table.endsAt
     ),
@@ -1723,6 +1725,27 @@ export const mediaCampaignCityDistributions = pgTable(
     uniqueIndex("media_campaign_city_distributions_uq").on(
       table.mediaCampaignId,
       table.cityId
+    ),
+  ]
+);
+
+export const mediaCampaignNeighborhoodDistributions = pgTable(
+  "media_campaign_neighborhood_distributions",
+  {
+    id: serial("id").primaryKey(),
+    mediaCampaignId: integer("mediaCampaignId")
+      .notNull()
+      .references(() => mediaCampaigns.id, { onDelete: "cascade" }),
+    neighborhoodId: integer("neighborhoodId")
+      .notNull()
+      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+    quantity: integer("quantity").notNull().default(1),
+    notes: text("notes"),
+  },
+  table => [
+    uniqueIndex("media_campaign_neighborhood_distributions_uq").on(
+      table.mediaCampaignId,
+      table.neighborhoodId
     ),
   ]
 );

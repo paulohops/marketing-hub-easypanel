@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.9.0";
+export const APP_VERSION = "1.6.0.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,22 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.6.0.0",
+    date: "21/08/2026",
+    label: "Minor update",
+    summary: "Padronização operacional e programação territorial da Mídia Volante.",
+    changes: [
+      "Logotipos de empresas passaram a preencher corretamente o contêiner quadrado, sem padding interno indevido.",
+      "Minhas tarefas passou a filtrar exclusivamente as tarefas atribuídas ao usuário logado, com o filtro de usuário desabilitado nesse escopo.",
+      "O BPMN de Processos recebeu tela cheia real com Fullscreen API e fallback visual, mantendo a saída por Escape.",
+      "Estoque passou a exibir o saldo consolidado por material/SKU, sem separar a contabilização por posição territorial.",
+      "Eventos recebeu cabeçalho com status compacto, debriefing e histórico básico no padrão visual de Ações, sem inventar contratos de auditoria inexistentes.",
+      "Veiculações de Mídia Urbana receberam espaçamento horizontal padronizado e miniaturas com object-contain para preservar a arte completa.",
+      "Mídia Volante passou a selecionar bairros vinculados à cidade, persistir distribuições territoriais, exibir bairro na programação e mostrar bairros, datas e horários nos cards e no calendário.",
+      "Criada a migration 0067 para programação por bairro e distribuição territorial da Mídia Volante, com migração idempotente dos dados existentes.",
+    ],
+  },
   {
     version: "1.5.9.0",
     date: "21/08/2026",

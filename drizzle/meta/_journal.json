@@ -470,6 +470,13 @@
       "when": 1787241000000,
       "tag": "0066_neighborhoods_and_media_variations",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1787242000000,
+      "tag": "0067_sound_car_neighborhood_scheduling",
+      "breakpoints": true
     }
   ]
 }

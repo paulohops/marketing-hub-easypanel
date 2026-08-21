@@ -2505,7 +2505,7 @@ function ProviderLogoPanel({
   return (
     <Card>
       <CardContent className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
-        <div className="grid h-28 w-40 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/50">
+        <div className="grid aspect-square h-32 w-32 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/50">
           <input
             id="provider-logo-upload"
             type="file"
@@ -2527,7 +2527,7 @@ function ProviderLogoPanel({
             <img
               src={logoUrl}
               alt={`Logotipo de ${recordName(provider)}`}
-              className="h-full w-full object-contain p-2"
+              className="h-full w-full object-cover"
             />
           ) : (
             <ImageIcon className="h-8 w-8 text-muted-foreground" />
@@ -2541,8 +2541,8 @@ function ProviderLogoPanel({
             Logotipo
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Envie PNG, JPG ou WEBP de até 3 MB. A imagem é exibida sem corte na
-            ficha empresarial.
+            Envie PNG, JPG ou WEBP de até 3 MB. A imagem preenche o quadrado da
+            ficha empresarial para manter a identidade visual padronizada.
           </p>
           {canWrite ? (
             <label htmlFor="provider-logo-upload">
