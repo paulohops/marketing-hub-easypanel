@@ -45,7 +45,8 @@ type RegistryCollection =
   | "campaignTypes"
   | "campaignSectors"
   | "financialCategories"
-  | "fiscalEntities";
+  | "fiscalEntities"
+  | "neighborhoods";
 
 type RegistryItem = {
   slug: string;
@@ -158,6 +159,16 @@ const registryItems: RegistryItem[] = [
     collection: "stores",
     icon: Store,
     relation: "Cidade e supervisor comercial",
+  },
+  {
+    slug: "bairros",
+    title: "Bairros",
+    description: "Bairros ativos vinculados às cidades para planejar as rodadas territoriais.",
+    group: "territorio",
+    route: "/cadastros/bairros",
+    collection: "neighborhoods",
+    icon: MapPinned,
+    relation: "Cidade, Mídia Volante e Panfletagem",
   },
   {
     slug: "pontos-de-acao",

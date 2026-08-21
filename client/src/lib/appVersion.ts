@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.6.0.0";
+export const APP_VERSION = "1.6.1.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,19 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.6.1.0",
+    date: "21/08/2026",
+    label: "Minor update",
+    summary: "Programação territorial para Mídia Volante e Panfletagem.",
+    changes: [
+      "Mídia Volante passou a usar somente calendário territorial por datas específicas, horários e bairros, sem comportamento semanal de rádio.",
+      "Removido o campo Investimento previsto do formulário de nova veiculação de Mídia Volante.",
+      "Panfletagem passou a permitir nome, campanha, vigência, formato, quantidade, bairros, observações e calendário territorial por datas e horários.",
+      "O mapa do ponto externo foi retirado da Panfletagem e os cards e botões foram alinhados ao padrão operacional global.",
+      "Bairros foi disponibilizado no grupo Território de Cadastros, com vínculo obrigatório à cidade.",
+    ],
+  },
   {
     version: "1.6.0.0",
     date: "21/08/2026",
