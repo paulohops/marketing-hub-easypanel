@@ -425,18 +425,22 @@ export default function DashboardLayout({
             {visibleChildren.map(child => (
               <SidebarMenuSubItem key={child.path}>
                 <SidebarMenuSubButton
-                  href={child.path}
+                  asChild
                   isActive={isExactPathActive(child.path, child.aliases)}
-                  onClick={event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setExpandedMenus(current => ({ ...current, [item.path]: true }));
-                    setLocation(child.path);
-                  }}
                   className="text-white/85 hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-white/[0.16] data-[active=true]:text-white"
                 >
-                  <child.icon className="h-3.5 w-3.5 text-white/70" />
-                  <span>{child.label}</span>
+                  <button
+                    type="button"
+                    onClick={event => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setExpandedMenus(current => ({ ...current, [item.path]: true }));
+                      setLocation(child.path);
+                    }}
+                  >
+                    <child.icon className="h-3.5 w-3.5 text-white/70" />
+                    <span>{child.label}</span>
+                  </button>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             ))}

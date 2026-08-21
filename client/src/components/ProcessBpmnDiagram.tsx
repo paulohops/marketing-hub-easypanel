@@ -113,13 +113,16 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
       </div>
 
       <div
-        className="relative max-h-[620px] min-h-[300px] cursor-grab overflow-auto rounded-lg border border-border bg-background/70 active:cursor-grabbing"
+        className="relative max-h-[620px] min-h-[300px] touch-none cursor-grab overflow-auto rounded-lg border border-border bg-background/70 active:cursor-grabbing"
         onWheel={event => {
+          if (!event.ctrlKey) return;
           event.preventDefault();
           setZoom(value => clampZoom(value + (event.deltaY > 0 ? -0.08 : 0.08)));
         }}
         onPointerDown={event => {
-          if (event.target !== event.currentTarget) return;
+          if (event.button !== 0) return;
+          const target = event.target;
+          if (target instanceof Element && target.closest("[data-bpmn-step]")) return;
           event.currentTarget.setPointerCapture(event.pointerId);
           dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, panX: pan.x, panY: pan.y };
         }}
@@ -129,7 +132,10 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
           setPan({ x: drag.panX + event.clientX - drag.startX, y: drag.panY + event.clientY - drag.startY });
         }}
         onPointerUp={event => {
-          if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+          if (dragRef.current?.pointerId === event.pointerId) {
+            dragRef.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+          }
         }}
         onPointerCancel={() => { dragRef.current = null; }}
       >
@@ -165,7 +171,7 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
             const yesStep = ordered.find(stepItem => stepItem.stepOrder === step.yesNextStepOrder);
             const noStep = ordered.find(stepItem => stepItem.stepOrder === step.noNextStepOrder);
             return (
-              <g key={step.stepOrder} role="button" tabIndex={0} aria-label={`Abrir etapa ${step.stepName}`} onPointerDown={event => event.stopPropagation()} onClick={() => setSelectedStep(step)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") setSelectedStep(step); }} className="cursor-pointer">
+              <g data-bpmn-step key={step.stepOrder} role="button" tabIndex={0} aria-label={`Abrir etapa ${step.stepName}`} onPointerDown={event => event.stopPropagation()} onClick={() => setSelectedStep(step)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") setSelectedStep(step); }} className="cursor-pointer">
                 {!isGateway && nextPosition ? <path d={orthogonalPath({ x: position.x + nodeWidth, y: position.centerY }, nextPosition, next?.stepType === "gateway", (index % 3 - 1) * 16)} fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinejoin="round" markerEnd="url(#bpmn-arrow-primary)" /> : null}
                 {isGateway && yesTarget ? <path d={orthogonalPath({ x: diamondCenterX + 28, y: diamondCenterY - 12 }, yesTarget, yesStep?.stepType === "gateway", -10)} fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinejoin="round" markerEnd="url(#bpmn-arrow-primary)" /> : null}
                 {isGateway && noTarget ? <path d={orthogonalPath({ x: diamondCenterX + 28, y: diamondCenterY + 12 }, noTarget, noStep?.stepType === "gateway", 14)} fill="none" stroke="#b45309" strokeWidth="2" strokeLinejoin="round" markerEnd="url(#bpmn-arrow-no)" /> : null}
@@ -194,7 +200,7 @@ export default function ProcessBpmnDiagram({ steps }: { steps: BpmnStep[] }) {
         </svg>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1.5"><ArrowRight className="h-3.5 w-3.5 text-primary" />Fluxo sequencial</span><span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rotate-45 border-2 border-[#111827] bg-[#facc15]" />Gateway de decisão</span><span>Use a roda do mouse para zoom e arraste o quadro para navegar.</span></div>
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1.5"><ArrowRight className="h-3.5 w-3.5 text-primary" />Fluxo sequencial</span><span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rotate-45 border-2 border-[#111827] bg-[#facc15]" />Gateway de decisão</span><span>Arraste o quadro com o botão esquerdo. Para zoom, mantenha Ctrl pressionado enquanto rola o mouse.</span></div>
       {selectedStep ? <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Etapa {String(selectedStep.stepOrder).padStart(2, "0")} · {selectedStep.sectorName || "Setor não informado"}</p><h3 className="mt-1 text-base font-semibold text-foreground">{selectedStep.stepName}</h3></div><button type="button" className="text-xs font-medium text-muted-foreground hover:text-foreground" onClick={() => setSelectedStep(null)}>Fechar</button></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{selectedStep.description || selectedStep.gatewayQuestion || "Este passo ainda não possui descrição."}</p></div> : <p className="mt-4 text-xs text-muted-foreground">Clique em uma etapa ou gateway para consultar o nome do passo e sua descrição.</p>}
     </div>
   );

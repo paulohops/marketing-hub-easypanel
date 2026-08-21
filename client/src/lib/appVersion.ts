@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.6.0";
+export const APP_VERSION = "1.5.8.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,21 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.8.0",
+    date: "20/08/2026",
+    label: "Minor update",
+    summary: "Correções de navegação, BPMN, responsividade, filtros, CNPJ e legibilidade dos módulos operacionais.",
+    changes: [
+      "Submenus do menu principal passaram a navegar sem salto de scroll e preservam a seleção da seção ativa.",
+      "O BPMN de Processos passou a permitir arraste no canvas e zoom somente com Ctrl + rolagem, com melhor suporte a toque.",
+      "Cards, tabelas, formulários e filtros receberam regras globais de largura mínima, quebra de conteúdo, responsividade e contraste no tema escuro.",
+      "Estoque, Eventos, Panfletagem e Tarefas foram alinhados ao padrão global; Tarefas recebeu filtro por usuário responsável.",
+      "A consulta de CNPJ de Fornecedores passou a usar o campo document e a preencher cidade/UF da matriz por normalização da BrasilAPI.",
+      "A criação inline de cadastros dentro de dropdowns foi desativada para manter os formulários consistentes e evitar rotas quebradas.",
+      "Removido o texto introdutório redundante da Central de Conhecimento.",
+    ],
+  },
   {
     version: "1.5.7.0",
     date: "20/08/2026",

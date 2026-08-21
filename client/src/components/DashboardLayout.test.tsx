@@ -103,7 +103,7 @@ describe("DashboardLayout", () => {
 
     fireEvent.click(configuracoes!);
     expect(configuracoes).toHaveAttribute("aria-expanded", "true");
-    const cadastros = screen.getByText("Cadastros").closest("a");
+    const cadastros = screen.getByText("Cadastros").closest("button");
     expect(cadastros).toBeInTheDocument();
     fireEvent.click(cadastros!);
     expect(window.location.pathname).toBe("/cadastros");

@@ -76,9 +76,9 @@
 
 .dark {
   --primary: color-mix(in srgb, var(--app-primary, #0e723b) 72%, #ffffff); --primary-foreground: #062613; --sidebar-primary: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff); --sidebar-primary-foreground: #ffffff;
-  --background: color-mix(in srgb, var(--app-primary, #0e723b) 0%, var(--app-dark-background, #07100A)); --foreground: #eef8f1; --card: color-mix(in srgb, var(--app-primary, #0e723b) 80%, #07120b); --card-foreground: #eef8f1; --popover: color-mix(in srgb, var(--app-primary, #0e723b) 76%, #07120b); --popover-foreground: #eef8f1;
-  --secondary: color-mix(in srgb, var(--app-primary, #0e723b) 34%, #0b1b11); --secondary-foreground: color-mix(in srgb, var(--app-primary, #0e723b) 64%, #ffffff); --muted: color-mix(in srgb, var(--app-primary, #0e723b) 28%, #0b1b11); --muted-foreground: #aac3b2; --accent: color-mix(in srgb, var(--app-accent, #f45103) 26%, #1d160f); --accent-foreground: color-mix(in srgb, var(--app-accent, #f45103) 55%, #ffffff);
-  --destructive: #f47f57; --destructive-foreground: #301007; --border: color-mix(in srgb, var(--app-primary, #0e723b) 48%, #14291b); --input: color-mix(in srgb, var(--app-primary, #0e723b) 56%, #14291b); --ring: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff);
+  --background: color-mix(in srgb, var(--app-primary, #0e723b) 12%, var(--app-dark-background, #07100a)); --foreground: #f3fbf5; --card: color-mix(in srgb, var(--app-primary, #0e723b) 10%, var(--app-dark-background, #07100a) 78%, #173a23); --card-foreground: #f3fbf5; --popover: color-mix(in srgb, var(--app-primary, #0e723b) 12%, var(--app-dark-background, #07100a) 66%, #1b482b); --popover-foreground: #f3fbf5;
+  --secondary: color-mix(in srgb, var(--app-dark-background, #07100a) 64%, #1b4930); --secondary-foreground: #e5f5e9; --muted: color-mix(in srgb, var(--app-dark-background, #07100a) 56%, #173b26); --muted-foreground: #c1d9c8; --accent: color-mix(in srgb, var(--app-accent, #f45103) 28%, #2b2016); --accent-foreground: #fff3e9;
+  --destructive: #ff9673; --destructive-foreground: #35130a; --border: color-mix(in srgb, #b9e8c4 48%, var(--app-dark-background, #07100a)); --input: color-mix(in srgb, #c4efd0 58%, var(--app-dark-background, #07100a)); --ring: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff);
   --chart-1: color-mix(in srgb, var(--app-primary, #0e723b) 62%, #ffffff); --chart-2: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff); --chart-3: color-mix(in srgb, var(--app-primary, #0e723b) 38%, #ffffff); --chart-4: color-mix(in srgb, var(--app-accent, #f45103) 55%, #ffffff); --chart-5: color-mix(in srgb, var(--app-primary, #0e723b) 42%, #000000);
   --sidebar: color-mix(in srgb, var(--app-primary, #0e723b) 78%, #041009); --sidebar-foreground: #ecf8f0; --sidebar-accent: color-mix(in srgb, var(--app-primary, #0e723b) 72%, #07140b); --sidebar-accent-foreground: #ffffff; --sidebar-border: color-mix(in srgb, var(--app-primary, #0e723b) 50%, #174025); --sidebar-ring: color-mix(in srgb, var(--app-accent, #f45103) 86%, #ffffff);
 }
@@ -277,12 +277,16 @@
   }
 
   /* Compatibilidade: módulos antigos que ainda usam divisórias são exibidos como itens independentes. */
-  .divide-y.divide-border {
+  .divide-y.divide-border:not(tbody) {
     display: grid;
     gap: var(--hub-grid-gap);
   }
 
-  .divide-y.divide-border > :not([hidden]) {
+  tbody.divide-y.divide-border {
+    display: table-row-group;
+  }
+
+  .divide-y.divide-border:not(tbody) > :not([hidden]) {
     border: 1px solid var(--border) !important;
     border-radius: 10px;
     background: var(--card);
@@ -290,14 +294,14 @@
     box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
   }
 
-  .divide-y.divide-border > button:not([hidden]),
-  .divide-y.divide-border > a:not([hidden]) {
+  .divide-y.divide-border:not(tbody) > button:not([hidden]),
+  .divide-y.divide-border:not(tbody) > a:not([hidden]) {
     text-align: left;
     transition: border-color 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), transform 160ms var(--ease-out, ease-out);
   }
 
-  .divide-y.divide-border > button:not([hidden]):hover,
-  .divide-y.divide-border > a:not([hidden]):hover {
+  .divide-y.divide-border:not(tbody) > button:not([hidden]):hover,
+  .divide-y.divide-border:not(tbody) > a:not([hidden]):hover {
     border-color: color-mix(in srgb, var(--primary) 28%, var(--border)) !important;
     box-shadow: 0 8px 18px rgba(19, 53, 35, 0.07);
     transform: translateY(-1px);
@@ -548,8 +552,10 @@
 
   .hub-filter-panel__controls {
     display: grid;
+    min-width: 0;
     align-items: center;
     gap: var(--hub-space-3);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   }
   .hub-filter-panel__label {
     display: flex;
@@ -605,16 +611,28 @@
 
   /* Padrão global de formulários: modal amplo, grid responsivo e ações previsíveis. */
   .hub-form-dialog {
-    width: min(calc(100vw - 2rem), 72rem) !important;
-    max-width: 72rem !important;
+    box-sizing: border-box;
+    width: min(calc(100vw - 1.5rem), 82rem) !important;
+    min-width: min(0, calc(100vw - 1.5rem));
+    max-width: 82rem !important;
     max-height: calc(100vh - 2rem) !important;
+    overflow-x: hidden;
     overflow-y: auto;
     padding: clamp(1rem, 2vw, 1.5rem) !important;
   }
 
   .hub-form {
     display: grid;
+    min-width: 0;
+    width: 100%;
     gap: var(--hub-section-gap);
+  }
+
+  .hub-form > *,
+  .hub-form-section > *,
+  .hub-form-grid > * {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .hub-form-section {
@@ -656,7 +674,18 @@
   }
 
   .hub-form-field > :is(input, select, textarea, [data-slot='select-trigger']) {
+    box-sizing: border-box;
     min-width: 0;
+    max-width: 100%;
+  }
+
+  .hub-form :is(input, select, textarea, button, [data-slot='select-trigger']) {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .hub-form :is(input, textarea) {
+    overflow-wrap: anywhere;
   }
 
   @media (min-width: 640px) {
@@ -758,6 +787,7 @@
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
+    overflow-wrap: anywhere;
     margin: 0;
     border: 1px solid var(--border);
     border-radius: var(--hub-card-radius);
@@ -835,7 +865,75 @@
     box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
   }
 
+  .hub-card > *,
+  [data-slot="card"] > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hub-page :where(h1, h2, h3, h4, p, span, td, th, label) {
+    overflow-wrap: anywhere;
+  }
+
+  /* Tabelas e listas densas preservam suas colunas em cards responsivos. */
+  .hub-card table,
+  [data-slot="card"] table,
+  .hub-page table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+  }
+
+  .hub-card .overflow-x-auto,
+  [data-slot="card"] .overflow-x-auto {
+    min-width: 0;
+    max-width: 100%;
+    scrollbar-width: thin;
+  }
+
+  .dark .hub-card,
+  .dark [data-slot="card"],
+  .dark .hub-filter-panel,
+  .dark .hub-form-section {
+    border-color: color-mix(in srgb, #c5efd1 34%, var(--border));
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  .dark .hub-card :where(.text-muted-foreground, .text-slate-500, .text-gray-500, .text-zinc-500),
+  .dark [data-slot="card"] :where(.text-muted-foreground, .text-slate-500, .text-gray-500, .text-zinc-500) {
+    color: #d1e6d7;
+  }
+
+  .dark .hub-page input,
+  .dark .hub-page select,
+  .dark .hub-page textarea,
+  .dark .hub-form-dialog input,
+  .dark .hub-form-dialog select,
+  .dark .hub-form-dialog textarea {
+    border-color: color-mix(in srgb, #c5efd1 46%, var(--input));
+    color: var(--foreground);
+    background-color: color-mix(in srgb, var(--card) 88%, #000000);
+  }
+
+  .dark .hub-page input::placeholder,
+  .dark .hub-page textarea::placeholder,
+  .dark .hub-form-dialog input::placeholder,
+  .dark .hub-form-dialog textarea::placeholder {
+    color: #b8d2c0;
+    opacity: 1;
+  }
+
   @media (max-width: 639px) {
+    .hub-form-grid--2,
+    .hub-form-grid--3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hub-filter-panel__controls {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .hub-header,
     .hub-entity-header {
       align-items: stretch;

@@ -341,6 +341,8 @@ export const settingsRegistryProcedures = {
             .filter(Boolean)
             .join(" / "),
           email: company.email ?? "",
+          municipality: company.municipio ?? "",
+          state: company.uf ?? "",
           status: company.descricao_situacao_cadastral ?? "",
         };
       } catch (error) {

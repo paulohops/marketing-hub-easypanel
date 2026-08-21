@@ -3204,23 +3204,26 @@ function SupplierEditor({
   isCreating?: boolean;
 }) {
   const lookupCnpj = trpc.settings.lookupSupplierCnpj.useQuery(
-    { cnpj: form.cnpj ?? "" },
+    { cnpj: form.document ?? "" },
     { enabled: false, retry: false }
   );
   const searchSupplierCnpj = async () => {
     try {
       const result = await lookupCnpj.refetch();
       if (!result.data) return;
+      const normalizeCity = (value: unknown) => String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR");
+      const matrixCity = cities.find(city => normalizeCity(city.name ?? city.displayName) === normalizeCity(result.data.municipality) && normalizeCity(city.state) === normalizeCity(result.data.state));
       setForm({
         ...form,
-        cnpj: result.data.cnpj,
+        document: result.data.cnpj,
         name: form.name || result.data.displayName,
         legalName: form.legalName || result.data.legalName,
         address: form.address || result.data.address,
         phone: form.phone || result.data.phone,
         email: form.email || result.data.email,
+        ...(matrixCity ? { cityId: String(matrixCity.id) } : {}),
       });
-      toast.success("Dados do CNPJ carregados. Revise antes de salvar.");
+      toast.success(matrixCity ? "Dados do CNPJ e cidade matriz carregados. Revise antes de salvar." : "Dados do CNPJ carregados. Revise antes de salvar.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível consultar o CNPJ.");
     }
@@ -3300,10 +3303,10 @@ function SupplierEditor({
             <span>CNPJ</span>
             <div className="flex items-center gap-2">
               <Input
-                value={form.cnpj ?? ""}
+                value={form.document ?? ""}
                 inputMode="numeric"
                 placeholder="00.000.000/0000-00"
-                onChange={event => setForm({ ...form, cnpj: event.target.value })}
+                onChange={event => setForm({ ...form, document: event.target.value })}
               />
               <Button
                 type="button"
@@ -3311,7 +3314,7 @@ function SupplierEditor({
                 size="sm"
                 className="shrink-0"
                 onClick={() => void searchSupplierCnpj()}
-                disabled={lookupCnpj.isFetching || !form.cnpj}
+                disabled={lookupCnpj.isFetching || !form.document}
               >
                 {lookupCnpj.isFetching ? "Consultando…" : "Buscar"}
               </Button>

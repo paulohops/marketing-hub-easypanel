@@ -161,7 +161,7 @@ export default function HelpWorkspace() {
 
   return <WorkspaceShell>
     <WorkspaceHeader eyebrow="Central de conhecimento" title="Como trabalhar no Marketing HUB" description="Consulte os relacionamentos entre módulos, o significado dos campos e o modo correto de registrar planejamento, execução, custos, evidências e resultados." icon={CircleHelp} meta={<span className="inline-flex items-center gap-1.5"><BookOpenCheck className="h-3.5 w-3.5" />Documentação operacional por tópicos</span>} />
-    <WorkspaceSection title="Mapa de conhecimento" description="Cada card abre uma página própria com explicações detalhadas, campos, regras e um fluxo visual do tópico.">
+    <WorkspaceSection title="Mapa de conhecimento">
       <div className="hub-filter-panel mb-5 p-4"><label className="grid gap-1.5"><span className="text-xs font-semibold text-foreground">Pesquisar na Central de Conhecimento</span><div className="relative"><BookOpenCheck className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Ex.: subserviço, nota fiscal, evidência, cidade…" className="h-9 pl-9" /></div></label></div>
       {visibleCards.length ? <div className="grid gap-4 xl:grid-cols-2">{visibleCards.map(card => <KnowledgeTopicCard key={card.id} card={card} />)}</div> : <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Nenhum tópico corresponde à pesquisa.</div>}
     </WorkspaceSection>

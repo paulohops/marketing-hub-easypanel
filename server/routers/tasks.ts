@@ -53,7 +53,7 @@ const selectTask = {
 };
 
 export const tasksRouter = router({
-  list: protectedProcedure.input(z.object({ scope: z.enum(["mine", "team"]).default("team"), status: z.enum(taskStatuses).optional() }).optional()).query(async ({ ctx, input }) => {
+  list: protectedProcedure.input(z.object({ scope: z.enum(["mine", "team"]).default("team"), status: z.enum(taskStatuses).optional(), assignedToUserId: z.number().int().positive().optional().nullable() }).optional()).query(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "tasks.read");
     const database = await databaseOrThrow();
     const conditions = [];
@@ -61,6 +61,7 @@ export const tasksRouter = router({
       conditions.push(or(eq(tasks.assignedToUserId, ctx.user.id), eq(tasks.createdByUserId, ctx.user.id)));
     }
     if (input?.status) conditions.push(eq(tasks.status, input.status));
+    if (input?.assignedToUserId) conditions.push(eq(tasks.assignedToUserId, input.assignedToUserId));
     return database.select(selectTask).from(tasks).leftJoin(users, eq(tasks.assignedToUserId, users.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(desc(tasks.createdAt));
   }),
 

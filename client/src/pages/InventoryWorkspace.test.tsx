@@ -100,6 +100,6 @@ describe("estoque territorial", () => {
     fireEvent.click(screen.getByRole("button", { name: "Salvar edição" }));
 
     expect(updateMutation).toHaveBeenCalledWith({ id: 21, productTypeId: null, sku: "TENDA-01", name: "Tenda promocional 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: 3, active: true });
-    expect(screen.getByText(/Saldo transacional atualizado de forma atômica/i)).toBeInTheDocument();
+    expect(screen.getByText(/Saldos,\s*movimentações e transferências já registradas\s*permanecem preservados\./i)).toBeInTheDocument();
   });
 });

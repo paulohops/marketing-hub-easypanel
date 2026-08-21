@@ -141,7 +141,7 @@ export default function MediaWorkspace({ initialChannel, initialCategory }: { in
       description={categoryMeta?.description ?? (initialChannel === "external" ? "Controle carros de som, panfletagem e outras ativações externas com contratação, vigência, agenda, comprovações e histórico." : "Controle mídia tradicional e externa, contratação, vigência, agenda, comprovações e histórico por ponto de cobertura.")}
       icon={RadioTower}
       actions={<WorkspaceActions>
-        {(initialCategory === "graphics" || initialCategory === "audio_video") && <Button type="button" variant="outline" onClick={() => setShowFilters(value => !value)} aria-expanded={showFilters}>
+        {(initialCategory === "graphics" || initialCategory === "audio_video" || initialCategory === "leafleting") && <Button type="button" variant="outline" onClick={() => setShowFilters(value => !value)} aria-expanded={showFilters}>
           <SlidersHorizontal />
           Filtros
         </Button>}

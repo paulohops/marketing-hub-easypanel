@@ -15,7 +15,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { trpc } from "@/lib/trpc";
 import ImageViewer from "@/components/ImageViewer";
-import InlineRegistryCreateDialog from "@/components/InlineRegistryCreateDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import SearchableSelect from "@/components/SearchableSelect";
 import {
@@ -424,7 +423,7 @@ export default function InventoryWorkspace() {
       />
 
       <section className="hub-section-card">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="hub-section-card__eyebrow">Consulta operacional</p><h2 className="hub-section-card__title">Posição de estoque</h2><p className="hub-section-card__description">Encontre materiais por nome, SKU, localização, situação ou categoria.</p></div><div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen(value => !value)}><Filter className="mr-2 h-4 w-4" />Filtros<ChevronDown className={`ml-2 h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} /></Button>{(filtersState.search || filtersState.regionalId || filtersState.cityId || filtersState.category || filtersState.availability) && <Button type="button" variant="ghost" size="sm" onClick={() => setFiltersState({ regionalId: "", cityId: "", category: "", search: "", availability: "" })}>Limpar</Button>}</div></div>
+        <div className="flex flex-wrap items-center justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen(value => !value)} aria-expanded={filtersOpen}><Filter className="mr-2 h-4 w-4" />Filtros<ChevronDown className={`ml-2 h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} /></Button>{(filtersState.search || filtersState.regionalId || filtersState.cityId || filtersState.category || filtersState.availability) && <Button type="button" variant="ghost" size="sm" onClick={() => setFiltersState({ regionalId: "", cityId: "", category: "", search: "", availability: "" })}>Limpar</Button>}</div>
         {filtersOpen && <div className="mt-4 grid gap-3 rounded-xl border border-border bg-secondary/30 p-4 sm:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-medium text-foreground sm:col-span-2 xl:col-span-4">Buscar material<div className="relative mt-1.5"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input id="inventory-filter-search" value={filtersState.search} onChange={event => setFiltersState({ ...filtersState, search: event.target.value })} placeholder="Nome do material ou SKU" className="h-9 pl-9" /></div></label><SearchableSelect id="inventory-filter-regional" label="Regional" value={filtersState.regionalId} onChange={value => setFiltersState({ ...filtersState, regionalId: value, cityId: "" })} placeholder="Todas as regionais" options={(references.data?.regionals ?? []).map(regional => ({ value: regional.id, label: regional.name }))} /><SearchableSelect id="inventory-filter-city" label="Cidade" value={filtersState.cityId} onChange={value => setFiltersState({ ...filtersState, cityId: value })} placeholder="Todas as cidades" options={(references.data?.cities ?? []).filter(city => !filtersState.regionalId || city.regionalId === Number(filtersState.regionalId)).map(city => ({ value: city.id, label: `${city.name} - ${city.state}` }))} /><SearchableSelect id="inventory-filter-availability" label="Situação" value={filtersState.availability} onChange={value => setFiltersState({ ...filtersState, availability: value })} placeholder="Todas as situações" options={[{ value: "out", label: "Sem saldo" }, { value: "low", label: "Estoque baixo" }, { value: "active", label: "Itens ativos" }, { value: "inactive", label: "Itens inativos" }]} /><SearchableSelect id="inventory-filter-category" label="Categoria" value={filtersState.category} onChange={value => setFiltersState({ ...filtersState, category: value })} placeholder="Todas as categorias" options={stockCategories.map(category => ({ value: category.value, label: category.label }))} /></div>}
       </section>
 
@@ -455,20 +454,7 @@ export default function InventoryWorkspace() {
                 />
               </div>
               <div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="item-product">Produto do catálogo</Label>
-                  <InlineRegistryCreateDialog
-                    kind="product"
-                    triggerLabel="Novo"
-                    onCreated={created =>
-                      setItemForm(current => ({
-                        ...current,
-                        productTypeId: String(created.id),
-                        name: current.name || created.name,
-                      }))
-                    }
-                  />
-                </div>
+                <Label htmlFor="item-product">Produto do catálogo</Label>
                 <SearchableSelect id="item-product" label="Produto do catálogo" value={itemForm.productTypeId} onChange={value => setItemForm({ ...itemForm, productTypeId: value })} placeholder="Sem produto vinculado" options={(references.data?.productTypes ?? []).map(product => ({ value: product.id, label: product.name }))} />
               </div>
               <div>
@@ -683,10 +669,6 @@ export default function InventoryWorkspace() {
           <div>
             <p className="font-display text-lg font-semibold text-foreground">
               Posição de estoque
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Saldo transacional atualizado de forma atômica para cada
-              movimentação e transferência.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">

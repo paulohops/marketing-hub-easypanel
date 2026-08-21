@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Plus, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { ReactNode, useMemo, useState } from "react";
 
 export type SelectableOption = { id: number; label: string; description?: string };
@@ -171,13 +171,7 @@ export default function SearchableMultiSelect({
                 Limpar seleção
               </Button>
             )}
-            {onCreate && (
-              <Button type="button" variant="outline" size="sm" onClick={onCreate} className="h-7 px-2 text-xs text-primary">
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                {createLabel}
-              </Button>
-            )}
-            {createAction}
+            {/* Criação inline desativada: novos cadastros acontecem pelas telas próprias. */}
           </div>
         </PopoverContent>
       </Popover>
