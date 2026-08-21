@@ -115,6 +115,15 @@ const entities: Record<string, EntityConfig> = {
       "Localização, dados de território, lojas, fornecedores e referências operacionais.",
     icon: MapPin,
   },
+  bairros: {
+    singular: "Bairro",
+    plural: "Bairros",
+    collection: "neighborhoods",
+    kind: "neighborhood",
+    importModule: "neighborhoods",
+    description: "Bairros vinculados às cidades para segmentação territorial das veiculações.",
+    icon: MapPin,
+  },
   lojas: {
     singular: "Loja",
     plural: "Lojas",
@@ -247,6 +256,7 @@ const registryPaths: Record<string, string> = {
   provider_fiscal_entity: "empresas-fiscais",
   regional: "regionais",
   city: "cidades",
+  neighborhood: "bairros",
   store: "lojas",
   supplier: "fornecedores",
   partner: "parceiros-comerciais",
@@ -266,6 +276,7 @@ const registryGroups: Record<string, string> = {
   provider_fiscal_entity: "financeiro",
   regional: "territorio",
   city: "territorio",
+  neighborhood: "territorio",
   store: "territorio",
   supplier: "parceiros",
   partner: "parceiros",
@@ -431,6 +442,14 @@ export default function RegistryEntityWorkspace() {
       setEditing(false);
     },
   });
+  const updateNeighborhood = trpc.settings.updateNeighborhood.useMutation({
+    onSuccess: () => {
+      toast.success("Bairro atualizado.");
+      utils.settings.overview.invalidate();
+      setEditing(false);
+    },
+    onError: error => toast.error(error.message),
+  });
   const updateSupplier = trpc.settings.updateSupplier.useMutation({
     onSuccess: () => {
       toast.success("Fornecedor atualizado.");
@@ -456,6 +475,9 @@ export default function RegistryEntityWorkspace() {
     onError: error => toast.error(error.message),
   });
   const createCity = trpc.settings.createCity.useMutation({
+    onError: error => toast.error(error.message),
+  });
+  const createNeighborhood = trpc.settings.createNeighborhood.useMutation({
     onError: error => toast.error(error.message),
   });
   const createSupplier = trpc.settings.createSupplier.useMutation({
@@ -1262,6 +1284,22 @@ export default function RegistryEntityWorkspace() {
             onSuccess: finishCreate("Cidade criada."),
           });
     }
+    if (entity.kind === "neighborhood") {
+      if (!form.cityId) {
+        toast.error("Selecione uma cidade para o bairro.");
+        return;
+      }
+      const payload = {
+        cityId: Number(form.cityId),
+        name: form.name.trim(),
+        code: form.code.trim() || undefined,
+      };
+      return selected
+        ? updateNeighborhood.mutate({ id: selected.id, ...payload })
+        : createNeighborhood.mutate(payload, {
+            onSuccess: finishCreate("Bairro criado."),
+          });
+    }
     if (entity.kind === "store") {
       const payload = {
         cityId: Number(form.cityId),
@@ -1560,6 +1598,7 @@ export default function RegistryEntityWorkspace() {
                   updateFiscalEntity.isPending ||
                   createRegional.isPending ||
                   createCity.isPending ||
+                  createNeighborhood.isPending ||
                   createStore.isPending ||
                   createPartner.isPending ||
                   createSupervisor.isPending ||
@@ -1884,6 +1923,7 @@ export default function RegistryEntityWorkspace() {
                   updateFiscalEntity.isPending ||
                   updateRegional.isPending ||
                   updateCity.isPending ||
+                  updateNeighborhood.isPending ||
                   updateStore.isPending ||
                   updatePartner.isPending ||
                   updateSupervisor.isPending ||
@@ -3775,6 +3815,26 @@ function RegistryEditor({
               {field("latitude", "Latitude", "number")}
               {field("longitude", "Longitude", "number")}
               {field("locationNotes", "Observações de localização")}
+            </>
+          ) : null}
+          {kind === "neighborhood" ? (
+            <>
+              <label className="grid gap-2 text-sm font-medium">
+                <span>Cidade</span>
+                <select
+                  value={form.cityId ?? ""}
+                  onChange={event => setForm({ ...form, cityId: event.target.value })}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Selecione uma cidade</option>
+                  {cities.map(city => (
+                    <option key={city.id} value={city.id}>
+                      {recordName(city)}{city.state ? `/${city.state}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {field("code", "Código opcional")}
             </>
           ) : null}
           {kind === "store" ? (

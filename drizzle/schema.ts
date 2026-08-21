@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   date,
+  index,
   integer,
   jsonb,
   numeric,
@@ -492,6 +493,28 @@ export const cities = pgTable(
   ]
 );
 
+export const neighborhoods = pgTable(
+  "neighborhoods",
+  {
+    id: serial("id").primaryKey(),
+    cityId: integer("cityId")
+      .notNull()
+      .references(() => cities.id, { onDelete: "restrict" }),
+    name: varchar("name", { length: 160 }).notNull(),
+    code: varchar("code", { length: 32 }),
+    active: boolean("active").default(true).notNull(),
+    createdAt: timestamp("createdAt", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => [
+    uniqueIndex("neighborhoods_city_name_uq").on(table.cityId, table.name),
+    index("neighborhoods_city_active_idx").on(table.cityId, table.active),
+  ]
+);
 export const userRegionals = pgTable(
   "user_regionals",
   {

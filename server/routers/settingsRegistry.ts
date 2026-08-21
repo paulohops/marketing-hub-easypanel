@@ -26,6 +26,7 @@ import {
   mediaCampaigns,
   mediaPoints,
   mediaTypes,
+  neighborhoods,
   partners,
   providerDocuments,
   providerFiscalEntities,
@@ -922,6 +923,39 @@ export const settingsRegistryProcedures = {
         action: "create",
         afterData: created,
       });
+      return created;
+    }),
+
+  createNeighborhood: protectedProcedure
+    .input(
+      z.object({
+        cityId: z.number().int().positive(),
+        name: z.string().trim().min(2).max(160),
+        code: z.string().trim().max(32).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const [city] = await database
+        .select({ id: cities.id, active: cities.active })
+        .from(cities)
+        .where(eq(cities.id, input.cityId))
+        .limit(1);
+      if (!city || !city.active)
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione uma cidade ativa para o bairro." });
+      const [existing] = await database
+        .select({ id: neighborhoods.id })
+        .from(neighborhoods)
+        .where(and(eq(neighborhoods.cityId, input.cityId), sql`lower(${neighborhoods.name}) = lower(${input.name})`))
+        .limit(1);
+      if (existing)
+        throw new TRPCError({ code: "CONFLICT", message: "Este bairro já está cadastrado nesta cidade." });
+      const [created] = await database
+        .insert(neighborhoods)
+        .values({ cityId: input.cityId, name: input.name, code: input.code || null })
+        .returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "neighborhood", entityId: created.id, action: "create", afterData: created });
       return created;
     }),
 
@@ -1874,6 +1908,29 @@ export const settingsRegistryProcedures = {
         beforeData: before,
         afterData: updated,
       });
+      return updated;
+    }),
+
+  updateNeighborhood: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        cityId: z.number().int().positive(),
+        name: z.string().trim().min(2).max(160),
+        code: z.string().trim().max(32).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const [before] = await database.select().from(neighborhoods).where(eq(neighborhoods.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Bairro não encontrado." });
+      const [city] = await database.select({ id: cities.id, active: cities.active }).from(cities).where(eq(cities.id, input.cityId)).limit(1);
+      if (!city || !city.active) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione uma cidade ativa para o bairro." });
+      const [existing] = await database.select({ id: neighborhoods.id }).from(neighborhoods).where(and(eq(neighborhoods.cityId, input.cityId), sql`lower(${neighborhoods.name}) = lower(${input.name})`, sql`${neighborhoods.id} <> ${input.id}`)).limit(1);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Este bairro já está cadastrado nesta cidade." });
+      const [updated] = await database.update(neighborhoods).set({ cityId: input.cityId, name: input.name, code: input.code || null, updatedAt: new Date() }).where(eq(neighborhoods.id, input.id)).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "neighborhood", entityId: input.id, action: "update", beforeData: before, afterData: updated });
       return updated;
     }),
 
@@ -2916,6 +2973,7 @@ export const settingsRegistryProcedures = {
           "provider_fiscal_entity",
           "regional",
           "city",
+          "neighborhood",
           "store",
           "supplier",
           "partner",
@@ -2976,6 +3034,13 @@ export const settingsRegistryProcedures = {
             .set({ active: input.active })
             .where(eq(cities.id, input.id))
             .returning({ id: cities.id, active: cities.active });
+          break;
+        case "neighborhood":
+          [updated] = await database
+            .update(neighborhoods)
+            .set({ active: input.active, updatedAt: now })
+            .where(eq(neighborhoods.id, input.id))
+            .returning({ id: neighborhoods.id, active: neighborhoods.active });
           break;
         case "store":
           [updated] = await database
@@ -3097,6 +3162,7 @@ export const settingsRegistryProcedures = {
           "provider_fiscal_entity",
           "regional",
           "city",
+          "neighborhood",
           "store",
           "supplier",
           "partner",
@@ -3122,6 +3188,7 @@ export const settingsRegistryProcedures = {
         provider_fiscal_entity: providerFiscalEntities,
         regional: regionals,
         city: cities,
+        neighborhood: neighborhoods,
         store: stores,
         supplier: suppliers,
         partner: partners,
@@ -3147,7 +3214,9 @@ export const settingsRegistryProcedures = {
           code: "NOT_FOUND",
           message: "Cadastro não encontrado.",
         });
-      if (input.kind === "city") {
+      if (input.kind === "neighborhood") {
+        await database.delete(neighborhoods).where(eq(neighborhoods.id, input.id));
+      } else if (input.kind === "city") {
         const [store, actionPoint, operation, action, event, mediaPoint] =
           await Promise.all([
             database
@@ -3480,6 +3549,7 @@ export const settingsRegistryProcedures = {
           "provider_fiscal_entity",
           "regional",
           "city",
+          "neighborhood",
           "store",
           "supplier",
           "partner",
@@ -3527,6 +3597,11 @@ export const settingsRegistryProcedures = {
                 message: "Uma ou mais regionais possuem cidades ou estoque vinculados.",
               });
             const removed = await tx.delete(regionals).where(inArray(regionals.id, ids)).returning({ id: regionals.id });
+            deleted = removed.length;
+            break;
+          }
+          case "neighborhood": {
+            const removed = await tx.delete(neighborhoods).where(inArray(neighborhoods.id, ids)).returning({ id: neighborhoods.id });
             deleted = removed.length;
             break;
           }

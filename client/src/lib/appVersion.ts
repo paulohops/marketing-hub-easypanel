@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.5.8.0";
+export const APP_VERSION = "1.5.9.0";
 
 export type AppVersionEntry = {
   version: string;
@@ -10,6 +10,18 @@ export type AppVersionEntry = {
 
 // Atualize a versão e acrescente uma entrada a cada release publicado.
 export const APP_VERSION_HISTORY: AppVersionEntry[] = [
+  {
+    version: "1.5.9.0",
+    date: "21/08/2026",
+    label: "Minor update",
+    summary: "Cadastro territorial de Bairros, SubTipos de mídia disponíveis e Mídia Volante simplificada por cidade.",
+    changes: [
+      "Criado o cadastro de Bairros vinculado a Cidades, com criação, edição, ativação, exclusão protegida e auditoria no fluxo padrão de Cadastros.",
+      "SubTipos opcionais passaram a ser carregados diretamente a partir do Tipo de mídia pai em Mídia Urbana, Mídia Audiovisual e Mídia Volante.",
+      "Mídia Volante passou a usar o campo Nome do responsável e a manter somente a Cidade no cadastro do programa, removendo localização física, coordenadas, rota e mapa.",
+      "A ficha de Mídia Volante foi alinhada ao novo modelo e mantém o contrato do backend com coordenadas nulas para registros sem localização física.",
+    ],
+  },
   {
     version: "1.5.8.0",
     date: "20/08/2026",

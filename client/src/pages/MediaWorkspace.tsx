@@ -129,7 +129,10 @@ export default function MediaWorkspace({ initialChannel, initialCategory }: { in
   }, [mediaTypesById, pointForm.cityId, pointForm.mediaTypeId, pointForm.operationCategory, supplierCities, supplierMediaTypes]);
   const eligibleSuppliers = useMemo(() => (references.data?.suppliers ?? []).filter(supplier => eligibleSupplierIds.has(supplier.id)), [eligibleSupplierIds, references.data?.suppliers]);
   const availableMediaTypes = useMemo(() => categoryMediaTypes.filter(type => type.parentMediaTypeId === null && (!selectedSupplierId || supplierMediaTypes.some(link => link.supplierId === selectedSupplierId && link.mediaTypeId === type.id))), [categoryMediaTypes, selectedSupplierId, supplierMediaTypes]);
-  const availableMediaVariations = useMemo(() => categoryMediaTypes.filter(type => type.parentMediaTypeId === Number(pointForm.mediaTypeId) && (!selectedSupplierId || supplierMediaTypes.some(link => link.supplierId === selectedSupplierId && link.mediaTypeId === type.id))), [categoryMediaTypes, pointForm.mediaTypeId, selectedSupplierId, supplierMediaTypes]);
+  // O fornecedor é validado contra o tipo principal no backend. SubTipos são opções
+  // operacionais do tipo selecionado e não precisam de um vínculo duplicado no catálogo
+  // do fornecedor para aparecerem no formulário opcional.
+  const availableMediaVariations = useMemo(() => mediaTypes.filter(type => type.parentMediaTypeId === Number(pointForm.mediaTypeId)), [mediaTypes, pointForm.mediaTypeId]);
   const addDistribution = () => { if (!distributionDraft.cityId || !distributionDraft.quantity) return; setCityDistributions(current => [...current, distributionDraft]); setDistributionDraft({ cityId: "", quantity: "", notes: "" }); };
 
   if (routeMediaPointId) return initialCategory === "graphics" || !initialCategory ? <UrbanPointDetails /> : <MediaDetailPage mediaPointId={routeMediaPointId} />;

@@ -17,6 +17,7 @@ import {
   mediaPoints,
   mediaServiceCatalog,
   mediaTypes,
+  neighborhoods,
   partners,
   productMediaTypes,
   productTypes,
@@ -54,6 +55,7 @@ export const settingsOverviewProcedure = protectedProcedure.query(async ({ ctx }
       providerRows,
       regionalRows,
       cityRows,
+      neighborhoodRows,
       supplierRows,
       storeRows,
       partnerRows,
@@ -104,6 +106,14 @@ export const settingsOverviewProcedure = protectedProcedure.query(async ({ ctx }
         .select()
         .from(cities)
         .orderBy(asc(cities.name))
+        .catch((error) => {
+          console.error("[settings.overview] Falha ao carregar catálogo opcional; resultado parcial mantido.", error);
+          return [];
+        }),
+      database
+        .select()
+        .from(neighborhoods)
+        .orderBy(asc(neighborhoods.name))
         .catch((error) => {
           console.error("[settings.overview] Falha ao carregar catálogo opcional; resultado parcial mantido.", error);
           return [];
@@ -345,6 +355,7 @@ export const settingsOverviewProcedure = protectedProcedure.query(async ({ ctx }
       providers: providerRows,
       regionals: regionalRows,
       cities: cityRows,
+      neighborhoods: neighborhoodRows,
       suppliers: supplierRows,
       stores: storeRows,
       partners: partnerRows,
