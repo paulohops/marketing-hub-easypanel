@@ -12,7 +12,7 @@ export function WorkspaceShell({
   className?: string;
   as?: "main" | "div" | "section";
 }) {
-  return <Component className={cn("hub-page", className)}>{children}</Component>;
+  return <Component className={cn("hub-page hub-runtime-shell", className)}>{children}</Component>;
 }
 
 export function WorkspaceHeader({
@@ -86,5 +86,5 @@ export function WorkspaceSection({
 }
 
 export function WorkspaceCard({ children, className }: { children: ReactNode; className?: string }) {
-  return <article className={cn("hub-card", className)}>{children}</article>;
+  return <article className={cn("hub-card bg-card text-card-foreground", className)}>{children}</article>;
 }

@@ -309,14 +309,14 @@ function MobileNavigationBar({
     <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-border/80 bg-background/95 px-4 py-2 shadow-sm backdrop-blur md:hidden">
       <SidebarTrigger
         aria-label="Abrir menu de navegação"
-        className="h-9 w-9 shrink-0 rounded-lg border border-border bg-card text-foreground hover:bg-secondary"
+        className="h-[var(--hub-control-height)] w-[var(--hub-control-height)] shrink-0 rounded-[var(--hub-control-radius)] border border-border bg-card text-foreground hover:bg-secondary"
       />
       <button
         type="button"
         onClick={onHomeClick}
-        className="flex min-w-0 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex min-w-0 items-center gap-2 rounded-[var(--hub-control-radius)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 p-1">
+        <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-[var(--hub-control-radius)] bg-primary/10 p-1">
           <img src={logoUrl} alt={appName} className="h-full w-full object-contain" />
         </span>
         <span className="min-w-0">
@@ -407,7 +407,7 @@ export default function DashboardLayout({
                 : () => setLocation(item.path)
             }
             style={active ? { backgroundColor: "var(--app-accent)", color: "var(--app-accent-foreground, #fff)" } : undefined}
-            className="h-10 rounded-lg px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto"
+            className="h-[var(--hub-sidebar-item-height)] rounded-[var(--hub-control-radius)] px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto"
           >
             <item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />
             <span>{item.label}</span>
@@ -427,7 +427,7 @@ export default function DashboardLayout({
                 <SidebarMenuSubButton
                   asChild
                   isActive={isExactPathActive(child.path, child.aliases)}
-                  className="text-white/85 hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-white/[0.16] data-[active=true]:text-white"
+                  className="rounded-[var(--hub-control-radius)] text-white/85 hover:bg-white/[0.12] hover:text-white data-[active=true]:bg-white/[0.16] data-[active=true]:text-white"
                 >
                   <button
                     type="button"
@@ -459,9 +459,9 @@ export default function DashboardLayout({
         <SidebarHeader className="flex-row items-center gap-1 px-3 pb-3 pt-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
           <button
             onClick={() => setLocation("/")}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--hub-control-radius)] px-2 text-left focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-sidebar-accent p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-[var(--hub-control-radius)] bg-sidebar-accent p-1 shadow-[0_8px_20px_rgba(7,63,31,0.24)]">
               <img
                 src={branding.logoUrl}
                 alt={branding.appName}
@@ -479,7 +479,7 @@ export default function DashboardLayout({
           </button>
           <SidebarTrigger
             aria-label="Recolher ou expandir menu"
-            className="h-8 w-8 shrink-0 rounded-lg text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:mx-auto"
+            className="h-8 w-8 shrink-0 rounded-[var(--hub-control-radius)] text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:mx-auto"
           />
         </SidebarHeader>
 
@@ -515,7 +515,7 @@ export default function DashboardLayout({
                   theme === "dark" ? "Usar tema claro" : "Usar tema escuro"
                 }
                 onClick={toggleTheme}
-                className="h-10 rounded-lg px-3 text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:!mx-auto group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!gap-0 group-data-[collapsible=icon]:!px-0 [&>svg]:shrink-0"
+                className="h-[var(--hub-sidebar-item-height)] rounded-[var(--hub-control-radius)] px-3 text-sidebar-foreground hover:bg-white/[0.12] hover:text-white group-data-[collapsible=icon]:!mx-auto group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!gap-0 group-data-[collapsible=icon]:!px-0 [&>svg]:shrink-0"
               >
                 {theme === "dark" ? (
                   <Sun className="h-4 w-4" />
@@ -530,7 +530,7 @@ export default function DashboardLayout({
             <DropdownMenuTrigger asChild>
               <button
                 aria-label={`Abrir menu de usuário: ${profileName}`}
-                className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/[0.12] focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                className="flex w-full items-center gap-3 rounded-[var(--hub-control-radius)] p-2 text-left transition-colors hover:bg-white/[0.12] focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               >
                 <Avatar className="h-8 w-8 border border-white/30 bg-sidebar-accent">
                   <AvatarImage

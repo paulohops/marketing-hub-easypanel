@@ -59,6 +59,7 @@
   --hub-space-4: 1rem;
   --hub-space-5: 1.25rem;
   --hub-space-6: 1.5rem;
+  --hub-space-7: 1.75rem;
   --hub-space-8: 2rem;
   --hub-space-10: 2.5rem;
   --hub-shell-inline: clamp(1rem, 2.8vw, 2.5rem);
@@ -72,6 +73,11 @@
   --hub-control-gap: 0.75rem;
   --hub-card-radius: 1rem;
   --hub-control-radius: 0.625rem;
+  --hub-control-height: 2.25rem;
+  --hub-sidebar-item-height: 2.5rem;
+  --hub-card-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+  --hub-card-shadow-hover: 0 8px 18px rgba(19, 53, 35, 0.07);
+  --hub-focus-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
 }
 
 .dark {
@@ -118,6 +124,11 @@
     @apply bg-background text-foreground;
     font-family: var(--app-font-family, "Montserrat"), ui-sans-serif, system-ui, sans-serif;
   }
+  .cluster-workspace :where(button, a):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: var(--hub-focus-shadow);
+  }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -133,11 +144,23 @@
 
 @layer components {
   select:not([class*="sr-only"]) {
-    @apply h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition-colors;
+    width: 100%;
+    height: var(--hub-control-height);
+    min-height: var(--hub-control-height);
+    border: 1px solid var(--input);
+    border-radius: var(--hub-control-radius);
+    background: var(--background);
+    padding-inline: 0.75rem;
+    color: var(--foreground);
+    font-size: 0.875rem;
+    box-shadow: 0 1px 2px rgba(19, 53, 35, 0.04);
+    outline: none;
+    transition: border-color 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), background-color 160ms var(--ease-out, ease-out);
   }
 
   select:not([class*="sr-only"]):focus {
-    @apply border-ring ring-2 ring-ring/20;
+    border-color: var(--ring);
+    box-shadow: var(--hub-focus-shadow);
   }
 
   select:not([class*="sr-only"]):disabled {
@@ -195,8 +218,26 @@
     padding: var(--hub-shell-top) var(--hub-shell-inline) var(--hub-shell-bottom);
   }
 
-  .cluster-workspace > * {
+  .hub-runtime-shell {
+    width: 100%;
+    max-width: var(--hub-content-max);
     min-width: 0;
+    margin-inline: auto;
+  }
+
+  .hub-runtime-shell > * {
+    min-width: 0;
+  }
+
+  .cluster-workspace > * {
+    width: 100%;
+    max-width: var(--hub-content-max);
+    min-width: 0;
+    margin-inline: auto;
+  }
+
+  .cluster-workspace > *:not(.hub-page):not(.hub-entity-page) {
+    margin-top: 0 !important;
   }
 
   /* O shell compartilhado recebe o único espaçamento externo da aplicação. */
@@ -247,15 +288,15 @@
 
   .hub-list-item {
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--hub-card-radius);
     background: var(--card);
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
     transition: border-color 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), transform 160ms var(--ease-out, ease-out);
   }
 
   .hub-list-item:hover {
     border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
-    box-shadow: 0 8px 18px rgba(19, 53, 35, 0.07);
+    box-shadow: var(--hub-card-shadow-hover);
   }
 
   .hub-list-item:has(button:hover),
@@ -291,7 +332,7 @@
     border-radius: 10px;
     background: var(--card);
     padding: var(--hub-space-4) !important;
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
   }
 
   .divide-y.divide-border:not(tbody) > button:not([hidden]),
@@ -303,7 +344,7 @@
   .divide-y.divide-border:not(tbody) > button:not([hidden]):hover,
   .divide-y.divide-border:not(tbody) > a:not([hidden]):hover {
     border-color: color-mix(in srgb, var(--primary) 28%, var(--border)) !important;
-    box-shadow: 0 8px 18px rgba(19, 53, 35, 0.07);
+    box-shadow: var(--hub-card-shadow-hover);
     transform: translateY(-1px);
   }
 
@@ -347,7 +388,7 @@
     border: 1px solid var(--border);
     border-radius: var(--hub-card-radius);
     background: var(--card);
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
   }
 
   .hub-page > .hub-header + * {
@@ -383,7 +424,7 @@
     border: 1px solid var(--border);
     border-radius: var(--hub-card-radius);
     background: var(--card);
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
   }
 
   .hub-entity-layout {
@@ -410,7 +451,7 @@
     border: 1px solid var(--border);
     border-radius: var(--hub-card-radius);
     background: var(--card);
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
     padding: var(--hub-card-padding) !important;
   }
 
@@ -547,7 +588,7 @@
     border: 1px solid var(--border);
     border-radius: 0.875rem;
     background: var(--card);
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
   }
 
   .hub-filter-panel__controls {
@@ -752,6 +793,90 @@
     min-height: 2.25rem;
   }
 
+  .hub-section__icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: var(--hub-control-radius);
+    background: var(--secondary);
+    color: var(--primary);
+  }
+
+  .hub-metric-card {
+    min-height: 8.5rem;
+    justify-content: center;
+  }
+
+  .hub-metric-card__label {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .hub-metric-card__value {
+    margin: var(--hub-space-2) 0 0;
+    color: var(--foreground);
+    font-size: 1.75rem;
+    font-weight: 650;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  .hub-metric-card__description {
+    margin: var(--hub-space-2) 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .hub-empty-state {
+    border: 1px dashed var(--border);
+    border-radius: var(--hub-control-radius);
+    background: var(--background);
+    padding: var(--hub-space-8) var(--hub-space-5);
+    text-align: center;
+  }
+
+  .hub-priority-item {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--hub-space-3);
+    width: 100%;
+    border-radius: var(--hub-control-radius);
+    padding: var(--hub-space-4);
+    text-align: left;
+    transition: transform 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), border-color 160ms var(--ease-out, ease-out);
+  }
+
+  .hub-priority-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--hub-card-shadow-hover);
+  }
+
+  .hub-priority-item:focus-visible {
+    outline: none;
+    box-shadow: var(--hub-focus-shadow);
+  }
+
+  .hub-status-note {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--hub-control-radius);
+    background: var(--secondary);
+    padding: var(--hub-space-3) var(--hub-space-4);
+  }
+
+  .hub-status-note p {
+    min-width: 0;
+    margin: 0;
+  }
+
   .hub-section {
     display: grid;
     gap: var(--hub-grid-gap);
@@ -792,7 +917,7 @@
     border: 1px solid var(--border);
     border-radius: var(--hub-card-radius);
     background: var(--card);
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
     gap: var(--hub-card-internal-gap);
     padding: var(--hub-card-padding) !important;
   }
@@ -820,7 +945,7 @@
 
   .hub-card--interactive:hover {
     border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
-    box-shadow: 0 8px 18px rgba(19, 53, 35, 0.07);
+    box-shadow: var(--hub-card-shadow-hover);
     transform: translateY(-1px);
   }
 
@@ -862,7 +987,7 @@
     box-sizing: border-box;
     border-radius: var(--hub-card-radius);
     padding: var(--hub-card-padding) !important;
-    box-shadow: 0 2px 8px rgba(19, 53, 35, 0.025);
+    box-shadow: var(--hub-card-shadow);
   }
 
   .hub-card > *,
@@ -935,10 +1060,15 @@
     }
 
     .hub-header,
-    .hub-entity-header {
+    .hub-entity-header,
+    .hub-section__header {
       align-items: stretch;
       flex-direction: column;
       padding: var(--hub-space-4);
+    }
+
+    .hub-section__header {
+      padding: 0;
     }
 
     .hub-header__actions,

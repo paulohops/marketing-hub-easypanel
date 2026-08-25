@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   return (
     <div className="trade-login cluster-grid min-h-screen bg-background p-4 sm:p-7">
-      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[1440px] overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_32px_80px_rgba(14,114,59,0.12)] sm:min-h-[calc(100vh-3.5rem)] lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[1440px] overflow-hidden rounded-[var(--hub-card-radius)] border border-border bg-card shadow-[var(--hub-card-shadow-hover)] sm:min-h-[calc(100vh-3.5rem)] lg:grid-cols-[1.1fr_0.9fr]">
         <section className="relative overflow-hidden bg-primary px-7 py-8 text-white sm:px-12 sm:py-12">
           <div className="pointer-events-none absolute -left-24 top-1/4 h-72 w-72 rounded-full border border-white/20" />
           <div className="pointer-events-none absolute bottom-[-25%] right-[-15%] h-[34rem] w-[34rem] rounded-full border-[40px] border-sidebar-primary opacity-90" />
@@ -57,7 +57,7 @@ export default function LoginPage() {
             </div>
           </div>
         </section>
-        <section className="flex items-center justify-center px-7 py-12 sm:px-14">
+        <section className="flex items-center justify-center p-[var(--hub-card-padding)] sm:p-[var(--hub-space-10)]">
           <div className="w-full max-w-sm">
             <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[11px] font-bold tracking-wide text-primary">ACESSO RESTRITO</span>
             <h2 className="mt-6 font-display text-3xl font-extrabold tracking-tight text-foreground">Acesse sua operação</h2>
@@ -66,7 +66,7 @@ export default function LoginPage() {
             {stage === "credentials" && <form className="mt-7 space-y-4" onSubmit={submit}>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-email">E-mail</label><Input id="local-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="nome@empresa.com" /></div>
               <div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="local-password">Senha</label><Input id="local-password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} placeholder="Sua senha local" /></div>
-              <Button type="submit" disabled={login.isPending} className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-[0_10px_18px_rgba(14,114,59,0.2)] hover:bg-primary/90">{login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}Continuar</Button>
+              <Button type="submit" disabled={login.isPending} className="h-12 w-full rounded-[var(--hub-control-radius)] bg-primary text-sm font-bold text-primary-foreground shadow-[0_10px_18px_rgba(14,114,59,0.2)] hover:bg-primary/90">{login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}Continuar</Button>
               <button type="button" className="w-full text-sm font-semibold text-primary hover:underline" onClick={() => setStage("reset-request")}>Esqueci minha senha</button>
             </form>}
             {stage === "login-code" && <form className="mt-7 space-y-4" onSubmit={submitLoginCode}><p className="text-sm text-muted-foreground">Enviamos um código de acesso para o seu e-mail.</p><div className="space-y-2"><label className="text-sm font-semibold text-foreground" htmlFor="login-code">Código recebido</label><Input id="login-code" inputMode="numeric" maxLength={6} required value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" /></div><Button type="submit" disabled={verifyLoginCode.isPending} className="h-12 w-full bg-primary text-primary-foreground">{verifyLoginCode.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Confirmar código</Button><button type="button" className="inline-flex items-center text-sm font-semibold text-primary" onClick={() => { setCode(""); setStage("credentials"); }}><ArrowLeft className="mr-1 h-4 w-4" />Voltar ao login</button></form>}

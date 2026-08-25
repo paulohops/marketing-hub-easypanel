@@ -10,7 +10,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full border-separate border-spacing-y-2 caption-bottom text-sm", className)}
+        className={cn("w-full border-separate border-spacing-y-[var(--hub-space-2)] caption-bottom text-sm", className)}
         {...props}
       />
     </div>
@@ -32,7 +32,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
     <tbody
       data-slot="table-body"
       className={cn(
-        "[&_tr>td]:border-y [&_tr>td]:border-border [&_tr>td]:bg-card [&_tr>td:first-child]:rounded-l-[10px] [&_tr>td:first-child]:border-l [&_tr>td:last-child]:rounded-r-[10px] [&_tr>td:last-child]:border-r [&_tr:hover>td]:border-primary/25 [&_tr:hover>td]:bg-secondary/45",
+        "[&_tr>td]:border-y [&_tr>td]:border-border [&_tr>td]:bg-card [&_tr>td:first-child]:rounded-l-[var(--hub-control-radius)] [&_tr>td:first-child]:border-l [&_tr>td:last-child]:rounded-r-[var(--hub-control-radius)] [&_tr>td:last-child]:border-r [&_tr:hover>td]:border-primary/25 [&_tr:hover>td]:bg-secondary/45",
         className
       )}
       {...props}
@@ -71,7 +71,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "text-foreground h-[var(--hub-control-height)] px-[var(--hub-space-3)] text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -84,7 +84,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "px-[var(--hub-space-3)] py-[var(--hub-space-3)] align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -99,7 +99,7 @@ function TableCaption({
   return (
     <caption
       data-slot="table-caption"
-      className={cn("text-muted-foreground mt-4 text-sm", className)}
+      className={cn("text-muted-foreground mt-[var(--hub-space-4)] text-sm", className)}
       {...props}
     />
   );

@@ -111,7 +111,7 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   }
   if (user?.mustChangePassword && module !== "perfil") return <Redirect to="/perfil?primeiro-acesso=1" replace />;
   const loadingFallback = <div className="grid min-h-[calc(100vh-220px)] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  const workspace = (content: ReactNode) => <DashboardLayout><div className="cluster-workspace"><Suspense fallback={loadingFallback}>{content}</Suspense></div></DashboardLayout>;
+  const workspace = (content: ReactNode) => <DashboardLayout><div className="cluster-workspace"><div className="hub-runtime-shell"><Suspense fallback={loadingFallback}>{content}</Suspense></div></div></DashboardLayout>;
   if (module === "estoque") return workspace(<InventoryWorkspace />);
   if (module === "financeiro") return workspace(<FinanceWorkspace />);
   if (module === "operacoes") return workspace(<TradeOperationsWorkspace />);

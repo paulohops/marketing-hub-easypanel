@@ -14,10 +14,10 @@ export default function NotFound() {
 
   return (
     <div className="cluster-grid min-h-screen w-full flex items-center justify-center bg-background p-4">
-      <Card className="mx-4 w-full max-w-lg overflow-hidden border-border bg-card shadow-[0_20px_50px_rgba(14,114,59,0.12)] backdrop-blur-sm">
-        <CardContent className="pt-8 pb-8 text-center">
+      <Card className="mx-4 w-full max-w-lg overflow-hidden border-border bg-card shadow-[var(--hub-card-shadow-hover)] backdrop-blur-sm">
+        <CardContent className="p-[var(--hub-card-padding)] text-center">
           <div className="mb-6 flex items-center justify-center gap-2">
-            <img src={branding.logoUrl} alt={branding.appName} className="h-8 w-8 rounded-lg bg-background object-contain p-0.5" />
+            <img src={branding.logoUrl} alt={branding.appName} className="h-8 w-8 rounded-[var(--hub-control-radius)] bg-background object-contain p-0.5" />
             <span className="font-display text-sm font-extrabold tracking-tight text-foreground">{branding.appName} {branding.appSubtitle && <span className="text-primary">— {branding.appSubtitle}</span>}</span>
           </div>
           <div className="flex justify-center mb-6">
@@ -45,7 +45,7 @@ export default function NotFound() {
           >
             <Button
               onClick={handleGoHome}
-              className="rounded-xl bg-sidebar-primary px-6 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-accent-foreground hover:shadow-lg"
+              className="bg-sidebar-primary px-6 text-white shadow-md transition-all duration-200 hover:bg-accent-foreground hover:shadow-lg"
             >
               <Home className="w-4 h-4 mr-2" />
               Voltar ao início
