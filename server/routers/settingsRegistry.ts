@@ -86,7 +86,7 @@ const supplierInputSchema = z.object({
   displayName: z.string().trim().min(2).max(180),
   address: z.string().trim().max(1000).optional(),
   legalName: z.string().trim().max(220).optional(),
-  document: z.string().trim().min(14).max(32).optional(),
+  document: z.string().trim().min(14, "Informe o CNPJ do fornecedor.").max(32),
   contactName: z.string().trim().max(160).optional(),
   phone: z.string().trim().min(8).max(32).optional(),
   email: z.string().trim().email().max(320).optional(),
@@ -2538,6 +2538,43 @@ export const settingsRegistryProcedures = {
         afterData: { ...updated, cityId: input.cityId },
       });
       return updated;
+    }),
+
+  deleteActionPoint: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const [before] = await database
+        .select()
+        .from(actionPoints)
+        .where(eq(actionPoints.id, input.id))
+        .limit(1);
+      if (!before)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ponto de ação não encontrado.",
+        });
+      const [linkedAction] = await database
+        .select({ id: actions.id })
+        .from(actions)
+        .where(eq(actions.actionPointId, input.id))
+        .limit(1);
+      if (linkedAction)
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "Este ponto de ação está vinculado a uma ação. Inative-o para preservar o histórico.",
+        });
+      await database.delete(actionPoints).where(eq(actionPoints.id, input.id));
+      await writeAuditLog({
+        actorUserId: ctx.user.id,
+        entityType: "action_point",
+        entityId: input.id,
+        action: "delete",
+        beforeData: before,
+      });
+      return { success: true } as const;
     }),
 
   updateSupplier: protectedProcedure

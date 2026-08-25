@@ -2,6 +2,7 @@
 import ImageViewer from "@/components/ImageViewer";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ import {
   Plus,
   RefreshCw,
   SlidersHorizontal,
+  Trash2,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -94,7 +96,7 @@ const blankPromotion = () => ({
   description: "",
   active: true,
   cityIds: [],
-  plans: [blankPlan()],
+  plans: [],
 });
 const blankForm = () => ({
   id: undefined,
@@ -574,7 +576,6 @@ function Editor({
                           type="button"
                           variant="ghost"
                           size="icon"
-                          disabled={promotion.plans.length === 1}
                           onClick={() =>
                             updatePromotion(promotionIndex, {
                               plans: promotion.plans.filter(
@@ -640,6 +641,8 @@ function Detail({
   renew,
   renewing,
   saving,
+  onDelete,
+  deleting,
 }) {
   const [rating, setRating] = useState(campaign.debriefRating ?? 5);
   const [notes, setNotes] = useState(campaign.debriefNotes ?? "");
@@ -724,6 +727,10 @@ function Detail({
             <Button variant="outline" onClick={edit}>
               <Edit3 className="mr-2 h-4 w-4" />
               Editar campanha
+            </Button>
+            <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={deleting}>
+              {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Excluir campanha
             </Button>
           </div>
         )}
@@ -1078,6 +1085,7 @@ export default function CampaignsWorkspace() {
   const [campaignSectorFilter, setCampaignSectorFilter] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
   const [form, setForm] = useState(blankForm());
   const listInput = useMemo(
     () => (providerId ? { providerId } : undefined),
@@ -1105,6 +1113,15 @@ export default function CampaignsWorkspace() {
       toast.success("Campanha atualizada.");
       refresh();
       setOpen(false);
+    },
+    onError: error => toast.error(error.message),
+  });
+  const remove = trpc.campaigns.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Campanha excluída.");
+      setConfirmDelete(null);
+      setLocation("/campanhas");
+      refresh();
     },
     onError: error => toast.error(error.message),
   });
@@ -1246,6 +1263,8 @@ export default function CampaignsWorkspace() {
           renew={renewCampaign.mutateAsync}
           renewing={renewCampaign.isPending}
           saving={promotionCities.isPending}
+          onDelete={() => setConfirmDelete({ id: selected.id, name: selected.name })}
+          deleting={remove.isPending}
         />
         <Editor
           open={open}
@@ -1257,6 +1276,7 @@ export default function CampaignsWorkspace() {
           onSubmit={submit}
           pending={update.isPending}
         />
+        <AlertDialog open={Boolean(confirmDelete)} onOpenChange={open => { if (!open && !remove.isPending) setConfirmDelete(null); }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir campanha?</AlertDialogTitle><AlertDialogDescription>Você está prestes a excluir <strong>{confirmDelete?.name}</strong>. A exclusão é permanente e só será permitida quando não houver ações, eventos, mídias ou publicações vinculadas. Para preservar o histórico, inative a campanha quando ela já tiver sido utilizada.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={remove.isPending}>Cancelar</AlertDialogCancel><AlertDialogAction disabled={remove.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (confirmDelete) remove.mutate({ id: confirmDelete.id }); }}>{remove.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Excluir campanha</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
       </>
     ) : (
       <main className="mx-auto max-w-[1480px] p-6 text-muted-foreground">

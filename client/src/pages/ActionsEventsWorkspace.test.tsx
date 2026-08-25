@@ -5,6 +5,7 @@ const createAction = vi.hoisted(() => vi.fn());
 const createEvent = vi.hoisted(() => vi.fn());
 const saveActionDebrief = vi.hoisted(() => vi.fn());
 const savePostEvent = vi.hoisted(() => vi.fn());
+const deleteEvent = vi.hoisted(() => vi.fn());
 const updateExecutionStatus = vi.hoisted(() => vi.fn());
 const actionListQuery = vi.hoisted(() => vi.fn());
 const eventListQuery = vi.hoisted(() => vi.fn());
@@ -13,7 +14,7 @@ const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ actions: { list: { invalidate: vi.fn() }, referenceData: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } }, campaigns: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
   actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadCover: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadStatusEvidence: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: updateExecutionStatus, isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
-  events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) } },
+  events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) }, delete: { useMutation: () => ({ mutate: deleteEvent, isPending: false }) } },
   campaigns: { create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
 }));
 
@@ -197,6 +198,6 @@ describe("formulários operacionais ampliados", () => {
     fireEvent.click(screen.getByText("Feira"));
     expect(screen.queryByLabelText("Vale renovar")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Salvar acompanhamento" }));
-    expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, rating: null, worthRenewing: null, resultAchieved: true }));
+    expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, rating: null, worthRenewing: null, resultAchieved: false, status: "planned" }));
   });
 });

@@ -221,3 +221,56 @@ describe("campaigns router", () => {
     ]);
   });
 });
+
+
+describe("campaigns deletion", () => {
+  const query = (rows: unknown[]) => ({
+    from: vi.fn(() => ({
+      where: vi.fn(() => ({ limit: vi.fn(() => rows) })),
+    })),
+  });
+
+  it("exclui campanha sem vínculos e remove sua estrutura configuracional em transação", async () => {
+    const before = { id: 81, regionalId: 3, name: "Campanha descartável", status: "scheduled" };
+    const deleteWhere = vi.fn(() => []);
+    const transaction = { delete: vi.fn(() => ({ where: deleteWhere })) };
+    const select = vi.fn()
+      .mockReturnValueOnce(query([before]))
+      .mockReturnValueOnce(query([]))
+      .mockReturnValueOnce(query([]))
+      .mockReturnValueOnce(query([]))
+      .mockReturnValueOnce(query([]));
+    getDbMock.mockResolvedValue({ select, transaction: vi.fn(async callback => callback(transaction)) });
+    const caller = appRouter.createCaller(context());
+
+    await expect(caller.campaigns.delete({ id: 81 })).resolves.toEqual({ success: true });
+
+    expect(transaction.delete).toHaveBeenCalledTimes(4);
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "trade_campaign", entityId: 81, action: "delete", beforeData: before }));
+  });
+
+  it("bloqueia exclusão quando existe operação vinculada", async () => {
+    const before = { id: 82, regionalId: 3, name: "Campanha com ação", status: "scheduled" };
+    const select = vi.fn()
+      .mockReturnValueOnce(query([before]))
+      .mockReturnValueOnce(query([{ id: 91 }]))
+      .mockReturnValueOnce(query([]))
+      .mockReturnValueOnce(query([]))
+      .mockReturnValueOnce(query([]));
+    getDbMock.mockResolvedValue({ select });
+    const caller = appRouter.createCaller(context());
+
+    await expect(caller.campaigns.delete({ id: 82 })).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: expect.stringContaining("ações"),
+    });
+    expect(writeAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("retorna não encontrado sem iniciar exclusão", async () => {
+    getDbMock.mockResolvedValue({ select: vi.fn(() => query([])) });
+    const caller = appRouter.createCaller(context());
+
+    await expect(caller.campaigns.delete({ id: 999 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});

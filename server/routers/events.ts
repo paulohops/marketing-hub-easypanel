@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionPoints, cities, commercialSupervisors, events, eventServices, eventStockItems, eventSuppliers, eventTeamMembers, eventTypes, invoices, payments, regionals, serviceTypes, stockItems, supplierCities, suppliers, tradeCampaigns, users } from "../../drizzle/schema";
+import { actionPoints, actions, cities, commercialSupervisors, documents, events, eventServices, eventStockItems, eventSuppliers, eventTeamMembers, eventTypes, invoices, payments, regionals, requests, serviceTypes, stockItems, supplierCities, suppliers, tradeCampaigns, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -108,5 +108,45 @@ export const eventsRouter = router({
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "event", entityId: created.id, action: "create", afterData: { ...created, teamMemberIds: input.teamMemberIds, stockAllocations, estimatedCost: input.estimatedCost } });
     return created;
   }),
+  delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "events.write");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(events).where(eq(events.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Evento não encontrado." });
+    if (before.status !== "planned" && before.status !== "cancelled")
+      throw new TRPCError({
+        code: "CONFLICT",
+        message:
+          "Somente eventos planejados ou cancelados podem ser excluídos. Preserve o histórico de eventos em andamento ou concluídos.",
+      });
+    const [linkedAction, linkedRequest, linkedInvoice, linkedDocument] = await Promise.all([
+      database.select({ id: actions.id }).from(actions).where(eq(actions.eventId, input.id)).limit(1),
+      database.select({ id: requests.id }).from(requests).where(eq(requests.eventId, input.id)).limit(1),
+      database.select({ id: invoices.id }).from(invoices).where(and(eq(invoices.operationType, "event"), eq(invoices.operationId, input.id))).limit(1),
+      database.select({ id: documents.id }).from(documents).where(and(eq(documents.entityType, "event"), eq(documents.entityId, input.id))).limit(1),
+    ]);
+    if (linkedAction[0] || linkedRequest[0] || linkedInvoice[0] || linkedDocument[0])
+      throw new TRPCError({
+        code: "CONFLICT",
+        message:
+          "Este evento possui ações, solicitações, faturas ou evidências vinculadas. Remova ou encerre esses vínculos de forma independente para preservar o histórico.",
+      });
+    await database.transaction(async transaction => {
+      await transaction.delete(eventTeamMembers).where(eq(eventTeamMembers.eventId, input.id));
+      await transaction.delete(eventStockItems).where(eq(eventStockItems.eventId, input.id));
+      await transaction.delete(eventSuppliers).where(eq(eventSuppliers.eventId, input.id));
+      await transaction.delete(eventServices).where(eq(eventServices.eventId, input.id));
+      await transaction.delete(events).where(eq(events.id, input.id));
+    });
+    await writeAuditLog({
+      actorUserId: ctx.user.id,
+      entityType: "event",
+      entityId: input.id,
+      action: "delete",
+      beforeData: before,
+    });
+    return { success: true } as const;
+  }),
+
   savePostEvent: protectedProcedure.input(z.object({ eventId: z.number().int().positive(), postEventNotes: z.string().trim().max(3000).optional(), rating: z.number().int().min(1).max(5).nullable(), resultAchieved: z.boolean().nullable(), worthRenewing: z.boolean().nullable(), status: z.enum(["planned", "in_progress", "completed", "cancelled"]) })).mutation(async ({ ctx, input }) => { await assertPermission(ctx.user, "events.write"); const database = await requireDatabase(); const [updated] = await database.update(events).set({ postEventNotes: input.postEventNotes || null, rating: input.rating, resultAchieved: input.resultAchieved, worthRenewing: input.worthRenewing, status: input.status, updatedAt: new Date() }).where(eq(events.id, input.eventId)).returning(); if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Evento não encontrado." }); await writeAuditLog({ actorUserId: ctx.user.id, entityType: "event", entityId: updated.id, action: "update", afterData: updated }); return updated; }),
 });

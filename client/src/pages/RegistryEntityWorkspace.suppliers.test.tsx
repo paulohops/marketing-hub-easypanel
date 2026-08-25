@@ -39,6 +39,14 @@ describe("fornecedores", () => {
     expect(screen.getByRole("button", { name: /Salvar fornecedor/ })).toBeInTheDocument();
   });
 
+  it("sinaliza CNPJ obrigatório e orienta o formato no editor", () => {
+    window.history.replaceState({}, "", "/cadastros/fornecedores/7");
+    render(<RegistryEntityWorkspace />);
+    fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
+    expect(screen.getByRole("textbox", { name: /CNPJ/ })).toBeRequired();
+    expect(screen.getByText(/Obrigatório\. Informe 14 dígitos/)).toBeInTheDocument();
+  });
+
   it("envia a alteração de status de fornecedor ao endpoint persistente", () => {
     window.history.replaceState({}, "", "/cadastros/fornecedores/7");
     render(<RegistryEntityWorkspace />);

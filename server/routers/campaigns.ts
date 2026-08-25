@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { actionTypes, actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignRegionals, campaignSectors, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, campaignTypes, cities, documents, events, eventTypes, mediaCampaigns, mediaPoints, mediaTypes, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
+import { actionTypes, actions, campaignCities, campaignPromotionCities, campaignPromotionPlans, campaignPromotions, campaignRegionals, campaignSectors, campaignTemplatePromotionPlans, campaignTemplatePromotions, campaignTemplates, campaignTypes, cities, documents, events, eventTypes, influencerPosts, mediaCampaigns, mediaPoints, mediaTypes, providers, regionals, tradeCampaigns } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
@@ -237,6 +237,46 @@ export const campaignsRouter = router({
     });
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: input.regionalId ?? input.regionalIds[0], entityType: "trade_campaign", entityId: updated.id, action: "update", beforeData: before, afterData: { ...updated, regionalIds: input.regionalIds, cityIds: input.cityIds, promotionCount: input.promotions.length } });
     return updated;
+  }),
+
+  delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "actions.write");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(tradeCampaigns).where(eq(tradeCampaigns.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Campanha não encontrada." });
+    if (before.status === "completed" || before.debriefAt || before.debriefRating != null || before.debriefNotes || before.debriefResult)
+      throw new TRPCError({
+        code: "CONFLICT",
+        message:
+          "Campanhas concluídas ou com debriefing não podem ser excluídas. Inative-as para preservar o histórico.",
+      });
+    const [linkedActions, linkedEvents, linkedMedia, linkedPosts] = await Promise.all([
+      database.select({ id: actions.id }).from(actions).where(eq(actions.tradeCampaignId, input.id)).limit(1),
+      database.select({ id: events.id }).from(events).where(eq(events.tradeCampaignId, input.id)).limit(1),
+      database.select({ id: mediaCampaigns.id }).from(mediaCampaigns).where(eq(mediaCampaigns.tradeCampaignId, input.id)).limit(1),
+      database.select({ id: influencerPosts.id }).from(influencerPosts).where(eq(influencerPosts.tradeCampaignId, input.id)).limit(1),
+    ]);
+    if (linkedActions[0] || linkedEvents[0] || linkedMedia[0] || linkedPosts[0])
+      throw new TRPCError({
+        code: "CONFLICT",
+        message:
+          "Esta campanha possui ações, eventos, mídias ou publicações vinculadas. Inative-a ou remova esses vínculos de forma independente para preservar o histórico.",
+      });
+    await database.transaction(async transaction => {
+      await transaction.delete(campaignCities).where(eq(campaignCities.campaignId, input.id));
+      await transaction.delete(campaignRegionals).where(eq(campaignRegionals.campaignId, input.id));
+      await transaction.delete(campaignPromotions).where(eq(campaignPromotions.campaignId, input.id));
+      await transaction.delete(tradeCampaigns).where(eq(tradeCampaigns.id, input.id));
+    });
+    await writeAuditLog({
+      actorUserId: ctx.user.id,
+      regionalId: before.regionalId ?? undefined,
+      entityType: "trade_campaign",
+      entityId: input.id,
+      action: "delete",
+      beforeData: before,
+    });
+    return { success: true } as const;
   }),
 
   renew: protectedProcedure.input(z.object({ campaignId: z.number().int().positive(), startsAt: z.coerce.date(), endsAt: z.coerce.date() })).mutation(async ({ ctx, input }) => {

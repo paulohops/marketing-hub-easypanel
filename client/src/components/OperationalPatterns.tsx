@@ -228,7 +228,7 @@ export function OperationalDebriefing({
 }
 
 export function createEmptyOperationalDebrief(): OperationalDebriefValue {
-  return { rating: "", resultSummary: "", notes: "", leadCount: "0", saleCount: "0", renewalCount: "0", positives: "", negatives: "", resultAchieved: true, worthRepeating: true, completedAt: new Date().toISOString().slice(0, 16) };
+  return { rating: "", resultSummary: "", notes: "", leadCount: "0", saleCount: "0", renewalCount: "0", positives: "", negatives: "", resultAchieved: false, worthRepeating: false, completedAt: new Date().toISOString().slice(0, 16) };
 }
 
 export function resolveHistoryEvidence(payload: Record<string, unknown>, documents: Array<{ id: number; url: string; originalName?: string }>): HistoryEvidence[] {

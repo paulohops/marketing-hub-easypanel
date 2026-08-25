@@ -101,6 +101,7 @@ export function InlineRegistryCreateDialog({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [supplierDocument, setSupplierDocument] = useState("");
   const [unit, setUnit] = useState("unidade");
   const utils = trpc.useUtils();
   const toCreatedRecord = (record: { id: number; name?: string; displayName?: string | null; unit?: string | null }): CreatedRecord => ({
@@ -118,6 +119,7 @@ export function InlineRegistryCreateDialog({
     void utils.campaigns.referenceData.invalidate();
     setName("");
     setDescription("");
+    setSupplierDocument("");
     setUnit("unidade");
     setOpen(false);
     onCreated?.(record);
@@ -152,6 +154,7 @@ export function InlineRegistryCreateDialog({
         providerId: null,
         cityId: supplierCityId ?? null,
         displayName: trimmedName,
+        document: supplierDocument.trim(),
         mainService: description.trim() || undefined,
       });
       return;
@@ -211,6 +214,13 @@ export function InlineRegistryCreateDialog({
               required
             />
           </div>
+          {kind === "supplier" && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="quick-create-supplier-document">CNPJ <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only"> obrigatório</span></Label>
+              <Input id="quick-create-supplier-document" value={supplierDocument} onChange={event => setSupplierDocument(event.target.value)} inputMode="numeric" maxLength={18} pattern="[0-9./()\-]{14,18}" placeholder="00.000.000/0000-00" required />
+              <p className="text-xs font-normal text-muted-foreground">Obrigatório. Informe 14 dígitos, com ou sem máscara.</p>
+            </div>
+          )}
           {kind === "subservice" && (
             <div className="grid gap-1.5">
               <Label htmlFor="quick-create-subservice-unit">Unidade padrão</Label>

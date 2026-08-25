@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ campaigns: { list: { invalidate: vi.fn() } } }),
@@ -18,6 +18,7 @@ const trpcStub = vi.hoisted(() => ({
     savePromotionCities: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     uploadLogo: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     renew: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    delete: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
 }));
 
@@ -36,5 +37,14 @@ describe("densidade persistida em Campanhas", () => {
 
     expect(screen.queryByRole("button", { name: "Compacto" })).not.toBeInTheDocument();
     expect(screen.getByText("Campanha Compacta").closest("button")).toHaveClass("min-h-[112px]", "py-3");
+  });
+
+  it("não cria plano vazio ao adicionar uma promoção", () => {
+    render(<CampaignsWorkspace />);
+    fireEvent.click(screen.getByRole("button", { name: "Nova campanha" }));
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar promoção" }));
+
+    expect(screen.queryByPlaceholderText("Nome do plano")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Adicionar plano" })).toBeInTheDocument();
   });
 });

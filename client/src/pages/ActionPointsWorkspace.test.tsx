@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const createActionPoint = vi.hoisted(() => vi.fn());
+const deleteActionPoint = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -10,6 +11,7 @@ vi.mock("@/lib/trpc", () => ({
       overview: { useQuery: () => ({ isLoading: false, data: { cities: [{ id: 8, name: "Uberlândia", state: "MG", active: true }], actionPoints: [] } }) },
       createActionPoint: { useMutation: () => ({ mutate: createActionPoint, isPending: false }) },
       updateActionPoint: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+      deleteActionPoint: { useMutation: () => ({ mutate: deleteActionPoint, isPending: false }) },
     },
   },
 }));

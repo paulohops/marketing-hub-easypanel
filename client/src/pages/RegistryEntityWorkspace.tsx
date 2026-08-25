@@ -3340,11 +3340,14 @@ function SupplierEditor({
           )}
           {field("legalName", "Razão social")}
           <label className="grid gap-1.5 text-sm font-medium">
-            <span>CNPJ</span>
+            <span>CNPJ <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only"> obrigatório</span></span>
             <div className="flex items-center gap-2">
               <Input
                 value={form.document ?? ""}
                 inputMode="numeric"
+                required
+                maxLength={18}
+                pattern="[0-9./()\-]{14,18}"
                 placeholder="00.000.000/0000-00"
                 onChange={event => setForm({ ...form, document: event.target.value })}
               />
@@ -3360,7 +3363,7 @@ function SupplierEditor({
               </Button>
             </div>
             <span className="text-xs font-normal text-muted-foreground">
-              Consulta razão social, endereço, telefone e e-mail na BrasilAPI.
+              Obrigatório. Informe 14 dígitos, com ou sem máscara. A busca consulta razão social, endereço, telefone e e-mail na BrasilAPI.
             </span>
           </label>
           {select(
