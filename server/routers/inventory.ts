@@ -6,7 +6,7 @@ import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
-import { storagePut } from "../storage";
+import { hasSupportedFileSignature, storagePut } from "../storage";
 
 type Movement = { movementType: "entry" | "exit" | "adjustment"; quantity: string };
 
@@ -163,6 +163,7 @@ export const inventoryRouter = router({
     if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "Item de estoque não encontrado." });
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 3 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A foto do item deve ter até 3 MB." });
+    if (!hasSupportedFileSignature(bytes, input.mimeType)) throw new TRPCError({ code: "BAD_REQUEST", message: "O conteúdo da foto não corresponde ao formato informado." });
     const stored = await storagePut(`trade/stock/${item.id}/foto-${Date.now()}-${safeFileName(input.originalName)}`, bytes, input.mimeType);
     const [updated] = await database.update(stockItems).set({ photoStorageKey: stored.key, photoUrl: stored.url, updatedAt: new Date() }).where(eq(stockItems.id, item.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: item.regionalId, entityType: "stock_item", entityId: item.id, action: "upload_photo", beforeData: { photoStorageKey: item.photoStorageKey }, afterData: { photoStorageKey: updated.photoStorageKey } });

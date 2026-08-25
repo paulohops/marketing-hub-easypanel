@@ -56,3 +56,17 @@ A centralização total do catálogo de rotas e os testes E2E autenticados perma
 [4]: ../server/_core/index.ts "Bootstrap de produção e readiness"
 [5]: ../server/_core/dev-index.ts "Bootstrap de desenvolvimento"
 [6]: ../.github/workflows/ci.yml "Workflow de CI"
+
+## Segunda fase: uploads e telemetria
+
+A segunda fase estendeu a validação por assinatura para uploads de campanhas, documentos genéricos, estoque, mídia, alvarás e avatares. Os contratos continuam controlando MIME e tamanho, mas agora o conteúdo binário precisa corresponder ao formato declarado antes de ser persistido.
+
+O servidor também passou a emitir `X-Request-ID` e logs estruturados de conclusão para requisições de API, `/health` e `/ready`, incluindo método, caminho, status e duração. O valor recebido em `X-Request-ID` só é reutilizado quando segue um conjunto restrito de caracteres; caso contrário, um UUID é gerado. Isso permite correlacionar falhas de API com registros de auditoria e logs do container sem registrar payloads ou credenciais.
+
+O endpoint `/ready` continua sendo um readiness check de infraestrutura, não uma rota de diagnóstico detalhado. Em caso de falha, ele retorna apenas HTTP 503 e um corpo genérico; a causa deve ser investigada nos logs do servidor.
+
+## Itens deliberadamente não automatizados nesta fase
+
+A política de rate limiting ainda não foi migrada para Redis porque isso exige uma decisão de infraestrutura e uma URL/credencial fornecida pelo ambiente de produção. O código local continua seguro para processo único, mas não deve ser tratado como controle compartilhado entre réplicas.
+
+A autorização granular por entidade em downloads futuros também exige migrar os consumidores que hoje recebem URLs de storage diretamente. O proxy já requer sessão para arquivos não públicos, mas a próxima evolução deve emitir uma URL de download por documento e validar a permissão do usuário sobre a entidade antes de servir o arquivo.

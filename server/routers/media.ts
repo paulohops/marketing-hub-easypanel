@@ -5,7 +5,7 @@ import { appSettings, auditLogs, cities, documents, influencerGroupMembers, infl
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
-import { storagePut } from "../storage";
+import { hasSupportedFileSignature, storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 import { ENV } from "../_core/env";
 
@@ -424,6 +424,7 @@ export const mediaRouter = router({
     if (!spot) throw new TRPCError({ code: "NOT_FOUND", message: "Spot não encontrado." });
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 50 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O spot deve ter até 50 MB." });
+    if (!hasSupportedFileSignature(bytes, input.mimeType)) throw new TRPCError({ code: "BAD_REQUEST", message: "O conteúdo do spot não corresponde ao formato informado." });
     const stored = await storagePut(`trade/media/spots/${spot.id}/${Date.now()}-${safeFileName(input.originalName)}`, bytes, input.mimeType);
     const [updated] = await database.update(mediaSpots).set({ storageKey: stored.key, url: stored.url, mimeType: input.mimeType, updatedAt: new Date() }).where(eq(mediaSpots.id, spot.id)).returning();
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_spot", entityId: spot.id, action: "upload", beforeData: spot, afterData: updated });
@@ -433,6 +434,7 @@ export const mediaRouter = router({
     await assertPermission(ctx.user, "media.write");
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 50 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A evidência deve ter até 50 MB." });
+    if (!hasSupportedFileSignature(bytes, input.mimeType)) throw new TRPCError({ code: "BAD_REQUEST", message: "O conteúdo da evidência não corresponde ao formato informado." });
     const stored = await storagePut(`trade/media/evidence/${ctx.user.id}/${Date.now()}-${safeFileName(input.originalName)}`, bytes, input.mimeType);
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_evidence_upload", entityId: ctx.user.id, action: "upload", afterData: { originalName: input.originalName, mimeType: input.mimeType, storageKey: stored.key } });
     return { url: stored.url, storageKey: stored.key, originalName: input.originalName, mimeType: input.mimeType };

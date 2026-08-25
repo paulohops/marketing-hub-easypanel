@@ -4,7 +4,7 @@ import { z } from "zod";
 import { actions, documents, events, invoices, mediaCampaigns, mediaPoints, processes, regionals, stockItems, supplierContracts, tradeOperations } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
-import { storagePut } from "../storage";
+import { hasSupportedFileSignature, storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 
@@ -86,6 +86,7 @@ export const documentsRouter = router({
     }
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 50 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O arquivo deve ter até 50 MB." });
+    if (!hasSupportedFileSignature(bytes, input.mimeType)) throw new TRPCError({ code: "BAD_REQUEST", message: "O conteúdo do arquivo não corresponde ao formato informado." });
     const filename = safeName(input.originalName);
     const stored = await storagePut(`trade/${input.entityType}/${input.documentKind}/${input.entityId}/${filename}`, bytes, input.mimeType);
     const [created] = await database.insert(documents).values({ regionalId: input.regionalId, entityType: input.entityType, entityId: input.entityId, storageKey: stored.key, url: stored.url, originalName: filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: input.documentKind, uploadedByUserId: ctx.user.id }).returning();

@@ -20,12 +20,14 @@ export function hasSupportedFileSignature(data: Uint8Array, contentType: string)
     case "application/pdf":
       return startsWithBytes(data, [0x25, 0x50, 0x44, 0x46]);
     case "video/mp4":
+    case "audio/mp4":
       return startsWithBytes(data, [0x66, 0x74, 0x79, 0x70], 4);
     case "video/webm":
       return startsWithBytes(data, [0x1a, 0x45, 0xdf, 0xa3]);
     case "audio/mpeg":
       return startsWithBytes(data, [0x49, 0x44, 0x33]) || (data[0] === 0xff && (data[1] & 0xe0) === 0xe0);
     case "audio/wav":
+    case "audio/x-wav":
       return startsWithBytes(data, [0x52, 0x49, 0x46, 0x46]) && startsWithBytes(data, [0x57, 0x41, 0x56, 0x45], 8);
     case "audio/ogg":
       return startsWithBytes(data, [0x4f, 0x67, 0x67, 0x53]);

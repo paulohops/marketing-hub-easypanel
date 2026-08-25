@@ -6,7 +6,7 @@ import { cities, rolePermissions, userCities, userModuleSettings, userPermission
 import { effectivePermissionKeys, permissionActions, permissionModules } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
-import { storagePut } from "../storage";
+import { hasSupportedFileSignature, storagePut } from "../storage";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { hashLocalPassword, localPasswordInput, verifyLocalPassword } from "../auth/localPasswords";
 import { sendTemporaryPasswordEmail } from "../_core/notification";
@@ -128,6 +128,7 @@ export const usersRouter = router({
   uploadAvatar: protectedProcedure.input(z.object({ originalName: z.string().trim().min(1).max(255), mimeType: z.enum(avatarMimeTypes), dataBase64: z.string().min(1).max(4_000_000) })).mutation(async ({ ctx, input }) => {
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A foto de perfil deve ter até 2 MB." });
+    if (!hasSupportedFileSignature(bytes, input.mimeType)) throw new TRPCError({ code: "BAD_REQUEST", message: "O conteúdo do avatar não corresponde ao formato informado." });
     const extension = input.mimeType === "image/jpeg" ? "jpg" : input.mimeType === "image/png" ? "png" : "webp";
     const stored = await storagePut(`trade/profiles/${ctx.user.id}/avatar-${Date.now()}.${extension}`, bytes, input.mimeType);
     const database = await requireDatabase();
@@ -140,6 +141,7 @@ export const usersRouter = router({
   adminUploadAvatar: adminProcedure.input(z.object({ userId: z.number().int().positive(), originalName: z.string().trim().min(1).max(255), mimeType: z.enum(avatarMimeTypes), dataBase64: z.string().min(1).max(4_000_000) })).mutation(async ({ ctx, input }) => {
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "A foto de perfil deve ter até 2 MB." });
+    if (!hasSupportedFileSignature(bytes, input.mimeType)) throw new TRPCError({ code: "BAD_REQUEST", message: "O conteúdo do avatar não corresponde ao formato informado." });
     const target = await findUserOrFail(await requireDatabase(), input.userId);
     const extension = input.mimeType === "image/jpeg" ? "jpg" : input.mimeType === "image/png" ? "png" : "webp";
     const stored = await storagePut(`trade/profiles/${target.id}/avatar-${Date.now()}.${extension}`, bytes, input.mimeType);

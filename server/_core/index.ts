@@ -12,6 +12,7 @@ import { serveStatic } from "./static";
 import { ensureStorageDir } from "../storage";
 import { getDb } from "../db";
 import { appError, appLog, registerProcessLogging } from "./logger";
+import { registerHttpTelemetry } from "./httpTelemetry";
 
 registerProcessLogging();
 
@@ -23,6 +24,7 @@ async function startServer() {
   const server = createServer(app);
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
+  registerHttpTelemetry(app);
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "SAMEORIGIN");

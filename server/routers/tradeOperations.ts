@@ -5,7 +5,7 @@ import { actionTypes, cities, documents, eventTypes, mediaTypes, suppliers, trad
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
-import { storagePut } from "../storage";
+import { hasSupportedFileSignature, storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const operationTypeValues = ["trade_action", "media", "event"] as const;
@@ -114,6 +114,7 @@ export const tradeOperationsRouter = router({
     if (!operation.operation.requiresPermit) throw new TRPCError({ code: "BAD_REQUEST", message: "Esta operação não exige alvará." });
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 5 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "O comprovante deve ter até 5 MB." });
+    if (!hasSupportedFileSignature(bytes, input.mimeType)) throw new TRPCError({ code: "BAD_REQUEST", message: "O conteúdo do comprovante não corresponde ao formato informado." });
     const originalName = safeFileName(input.originalName);
     const stored = await storagePut(`trade/operations/${input.operationId}/alvara-${Date.now()}-${originalName}`, bytes, input.mimeType);
     const [updated] = await database.transaction(async transaction => {
