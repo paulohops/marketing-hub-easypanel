@@ -110,7 +110,7 @@ const blankForm = () => ({
   templateId: null,
   startsAt: "",
   endsAt: "",
-  status: "active",
+  status: "scheduled",
   promotions: [],
 });
 const money = value =>
@@ -1091,7 +1091,7 @@ export default function CampaignsWorkspace() {
     () => (providerId ? { providerId } : undefined),
     [providerId]
   );
-  const { data: campaigns = [], isLoading } =
+  const { data: campaigns = [], isLoading, isError, refetch } =
     trpc.campaigns.list.useQuery(listInput);
   const { data: refs } = trpc.campaigns.referenceData.useQuery();
   const { data: templates = [] } = trpc.campaigns.listTemplates.useQuery();
@@ -1350,7 +1350,12 @@ export default function CampaignsWorkspace() {
         <div><p className="mb-2 text-xs font-medium text-muted-foreground">Situação da campanha</p><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5"><Button type="button" variant={statusFilter === "all" ? "default" : "outline"} onClick={() => setStatusFilter("all")} className="justify-between">Todas <span className="rounded bg-background/20 px-1.5 text-xs">{campaigns.length}</span></Button>{statuses.map(status => <Button key={status.value} type="button" variant="outline" onClick={() => setStatusFilter(status.value)} className={`justify-between ${statusFilter === status.value ? status.className : ""}`}><span>{status.label}</span><span className="rounded bg-background/20 px-1.5 text-xs">{statusCounts[status.value]}</span></Button>)}</div></div>
       </section>}
       {isLoading ? (
-        <p className="text-muted-foreground">Carregando campanhas...</p>
+        <p className="text-muted-foreground" aria-live="polite">Carregando campanhas...</p>
+      ) : isError ? (
+        <div role="alert" className="rounded-[10px] border border-destructive/30 bg-destructive/5 p-8 text-center text-sm text-destructive">
+          <p>Não foi possível carregar as campanhas.</p>
+          <Button type="button" variant="outline" className="mt-4 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => void refetch()}>Tentar novamente</Button>
+        </div>
       ) : (
         <div className={compact ? "space-y-2" : "space-y-3"}>
           {visible.map(item => (

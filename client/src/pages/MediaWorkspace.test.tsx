@@ -71,6 +71,18 @@ describe("detalhe de mídias", () => {
     expect(container.firstElementChild).toHaveClass("media-list-compact");
   });
 
+  it("informa erro de carregamento e permite tentar novamente", () => {
+    const refetch = vi.fn();
+    listQuery.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch });
+    detailQuery.mockReturnValue({ data: undefined, isLoading: false });
+
+    render(<MediaWorkspace />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar as mídias.");
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
   it("abre a criação de ponto em modal, sem expandir o formulário na cobertura", () => {
     listQuery.mockReturnValue({ data: [], isLoading: false });
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });

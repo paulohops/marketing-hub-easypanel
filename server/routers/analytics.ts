@@ -72,7 +72,8 @@ export const analyticsRouter = router({
     const selectedPoints = pointRows.filter(point => cityMatches(point.cityId) && isStatusMatch(point.status, input) && overlapsPeriod(point.contractStartsOn, point.contractEndsOn, input));
     const selectedPointIds = new Set(selectedPoints.map(point => point.id));
     const selectedCampaigns = campaignRows.filter(campaign => selectedPointIds.has(campaign.mediaPointId) && isStatusMatch(campaign.status, input) && overlapsPeriod(campaign.startsOn, campaign.endsOn, input));
-    const selectedCampaignIds = new Set(selectedCampaigns.map(campaign => campaign.id));
+    const mediaPointById = new Map(pointRows.map(point => [point.id, point]));
+    const selectedLeafletingCampaigns = selectedCampaigns.filter(campaign => mediaPointById.get(campaign.mediaPointId)?.operationCategory === "leafleting");
     const selectedActions = actionRows.filter(action => cityMatches(action.cityId) && isStatusMatch(action.status, input) && isDateInPeriod(action.scheduledFor, input));
     const selectedActionIds = new Set(selectedActions.map(action => action.id));
     const selectedEvents = eventRows.filter(event => cityMatches(event.cityId) && isStatusMatch(event.status, input) && isDateInPeriod(event.startsAt, input));
@@ -98,7 +99,7 @@ export const analyticsRouter = router({
       return row;
     };
     for (const point of selectedPoints) ensureCity(point.cityId)!.media += 1;
-    for (const campaign of selectedCampaigns) { const cityId = mediaCampaigns ? pointRows.find(point => point.id === campaign.mediaPointId)?.cityId : undefined; if (cityId) { const row = ensureCity(cityId); if (row) { row.campaigns += 1; row.estimatedCost += Number(campaign.estimatedCost); } } }
+    for (const campaign of selectedCampaigns) { const cityId = mediaPointById.get(campaign.mediaPointId)?.cityId; if (cityId) { const row = ensureCity(cityId); if (row) { row.campaigns += 1; row.estimatedCost += Number(campaign.estimatedCost); } } }
     for (const action of selectedActions) { const row = ensureCity(action.cityId); if (row) { row.actions += 1; row.estimatedCost += Number(action.estimatedCost); } }
     for (const event of selectedEvents) { const row = ensureCity(event.cityId); if (row) { row.events += 1; row.estimatedCost += Number(event.estimatedCost); } }
 
@@ -108,7 +109,7 @@ export const analyticsRouter = router({
         id: supplier.id,
         name: supplier.displayName,
         mediaPoints: selectedPoints.filter(point => point.supplierId === supplier.id).length,
-        campaigns: selectedCampaigns.filter(campaign => pointRows.find(point => point.id === campaign.mediaPointId)?.supplierId === supplier.id).length,
+        campaigns: selectedCampaigns.filter(campaign => mediaPointById.get(campaign.mediaPointId)?.supplierId === supplier.id).length,
         actions: actionSupplierRows.filter(link => link.supplierId === supplier.id && selectedActionIds.has(link.actionId)).length,
         events: eventSupplierRows.filter(link => link.supplierId === supplier.id && selectedEventIds.has(link.eventId)).length,
         invoicedAmount: selectedInvoices.filter(invoice => invoice.supplierId === supplier.id).reduce((sum, invoice) => sum + Number(invoice.amount), 0),
@@ -138,12 +139,13 @@ export const analyticsRouter = router({
       byModule: [
         { key: "media", label: "Mídias", total: selectedPoints.length, active: selectedPoints.filter(point => point.status === "active").length, cost: 0 },
         { key: "campaigns", label: "Veiculações", total: selectedCampaigns.length, active: selectedCampaigns.filter(campaign => campaign.status === "active").length, cost: selectedCampaigns.reduce((sum, item) => sum + Number(item.estimatedCost), 0) },
+        { key: "leafleting", label: "Panfletagem", total: selectedLeafletingCampaigns.length, active: selectedLeafletingCampaigns.filter(campaign => campaign.status === "active").length, cost: selectedLeafletingCampaigns.reduce((sum, item) => sum + Number(item.estimatedCost), 0) },
         { key: "actions", label: "Ações", total: selectedActions.length, active: selectedActions.filter(action => action.status === "in_progress" || action.status === "planned").length, cost: selectedActions.reduce((sum, item) => sum + Number(item.estimatedCost), 0) },
         { key: "events", label: "Eventos", total: selectedEvents.length, active: selectedEvents.filter(event => event.status === "in_progress" || event.status === "planned").length, cost: selectedEvents.reduce((sum, item) => sum + Number(item.estimatedCost), 0) },
       ],
       byCity: Array.from(cityAggregation.values()).sort((a, b) => (b.estimatedCost + b.campaigns + b.actions + b.events) - (a.estimatedCost + a.campaigns + a.actions + a.events)).slice(0, 10),
       supplierPerformance,
-      media: { totalPoints: selectedPoints.length, activeCampaigns: selectedCampaigns.filter(campaign => campaign.status === "active").length, averageRating: average(selectedCampaigns.map(campaign => campaign.rating)) },
+      media: { totalPoints: selectedPoints.length, activeCampaigns: selectedCampaigns.filter(campaign => campaign.status === "active").length, leafletingCampaigns: selectedLeafletingCampaigns.length, averageRating: average(selectedCampaigns.map(campaign => campaign.rating)) },
       actions: { total: selectedActions.length, completed: selectedActions.filter(action => action.status === "completed").length, debriefed: selectedDebriefs.length, averageRating: average(selectedDebriefs.map(debrief => debrief.rating)) },
       events: { total: selectedEvents.length, completed: selectedEvents.filter(event => event.status === "completed").length, averageRating: average(selectedEvents.map(event => event.rating)) },
       territories: regionalRows.filter(regional => !input?.regionalId || regional.id === input.regionalId).map(regional => ({ id: regional.id, name: regional.name })).filter(regional => Array.from(cityAggregation.values()).some(city => city.regionalName === regional.name)),

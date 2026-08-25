@@ -20,6 +20,12 @@ O formulário de fornecedor passou a sinalizar o CNPJ como obrigatório nos flux
 
 Eventos planejados agora iniciam com `Resultado atingido` desmarcado. O helper compartilhado de debriefing também usa `false` para `resultAchieved` e `worthRepeating`. Promoções de Campanha começam sem plano vazio, e o editor permite remover o único plano antes de adicionar outro. A tabela de desempenho do BI informa explicitamente quando nenhum módulo corresponde ao recorte.
 
+## Segunda rodada de otimizações
+
+A visão de Panfletagem do BI foi corrigida na origem. O backend agora identifica as veiculações por meio da categoria `leafleting` do ponto de mídia e expõe um módulo próprio, enquanto os cartões da tela usam somente os totais e custos dessa frente. O problema anterior era uma combinação de dados válidos com um filtro textual que não encontrava nenhum rótulo correspondente.
+
+O default de nova Campanha foi alinhado ao fluxo de planejamento e passou a ser `scheduled`. Também foram adicionados estados de erro recuperáveis nas listas de Campanhas, Eventos, Mídias e Indicadores, com `role="alert"`, carregamento anunciado e botão de reconsulta. As fichas de Mídias passaram a diferenciar erro de rede de registro inexistente.
+
 ## Validação automatizada
 
 A cobertura adicionada inclui exclusões permitidas, registros inexistentes, conflitos por vínculos operacionais, status concluído, fatura de evento, auditoria do estado anterior, CNPJ obrigatório e promoção sem plano inicial. A suíte completa deve ser executada com:

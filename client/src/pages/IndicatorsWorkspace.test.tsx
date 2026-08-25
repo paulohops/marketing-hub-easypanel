@@ -4,7 +4,7 @@ import IndicatorsWorkspace from "./IndicatorsWorkspace";
 
 const trpcStub = vi.hoisted(() => ({
   media: { referenceData: { useQuery: () => ({ data: { regionals: [{ id: 1, name: "Regional Norte" }], cities: [{ city: { id: 2, name: "Uberlândia", state: "MG", regionalId: 1 } }] } }) } },
-  analytics: { overview: { useQuery: () => ({ data: { summary: { mediaPoints: 4, activeMediaPoints: 2, campaigns: 3, activeCampaigns: 2, actions: 5, completedActions: 2, events: 2, completedEvents: 1, estimatedCost: 12000, outstandingAmount: 3000, debriefRate: 40, averageActionRating: 4, averageEventRating: 5 }, byModule: [{ key: "media", label: "Mídias", total: 4, active: 2, cost: 0 }], byCity: [{ cityId: 2, cityName: "Uberlândia", regionalName: "Regional Norte", media: 4, campaigns: 3, actions: 5, events: 2, estimatedCost: 12000 }], supplierPerformance: [{ id: 1, name: "Fornecedor Alfa", mediaPoints: 2, campaigns: 1, actions: 2, events: 1, invoicedAmount: 10000, paidAmount: 7000 }] } }) } },
+  analytics: { overview: { useQuery: () => ({ data: { summary: { mediaPoints: 4, activeMediaPoints: 2, campaigns: 3, activeCampaigns: 2, actions: 5, completedActions: 2, events: 2, completedEvents: 1, estimatedCost: 12000, outstandingAmount: 3000, debriefRate: 40, averageActionRating: 4, averageEventRating: 5 }, byModule: [{ key: "media", label: "Mídias", total: 4, active: 2, cost: 0 }, { key: "campaigns", label: "Veiculações", total: 3, active: 2, cost: 12000 }, { key: "leafleting", label: "Panfletagem", total: 2, active: 1, cost: 3000 }], byCity: [{ cityId: 2, cityName: "Uberlândia", regionalName: "Regional Norte", media: 4, campaigns: 3, actions: 5, events: 2, estimatedCost: 12000 }], supplierPerformance: [{ id: 1, name: "Fornecedor Alfa", mediaPoints: 2, campaigns: 1, actions: 2, events: 1, invoicedAmount: 10000, paidAmount: 7000 }] } }) } },
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));
@@ -21,5 +21,14 @@ describe("BI & Indicadores — Trade", () => {
     expect(screen.getByText("Fornecedores em destaque")).toBeInTheDocument();
     expect(container.querySelectorAll(".hub-card").length).toBeGreaterThan(0);
     expect(container.querySelector(".bg-white")).toBeNull();
+  });
+
+  it("exibe os totais específicos na visão de Panfletagem", () => {
+    window.history.replaceState({}, "", "/bi/panfletagem");
+    render(<IndicatorsWorkspace />);
+
+    expect(screen.getByText("Veiculações de panfletagem")).toBeInTheDocument();
+    expect(screen.getAllByText("Panfletagem").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Custo da frente")).toBeInTheDocument();
   });
 });
