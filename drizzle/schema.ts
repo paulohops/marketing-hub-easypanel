@@ -1941,7 +1941,15 @@ export const actions = pgTable("actions", {
   updatedAt: timestamp("updatedAt", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+  },
+  table => [
+    index("actions_scheduled_for_idx").on(table.scheduledFor, table.id),
+    index("actions_status_scheduled_for_idx").on(table.status, table.scheduledFor, table.id),
+    index("actions_city_scheduled_for_idx").on(table.cityId, table.scheduledFor, table.id),
+    index("actions_supervisor_scheduled_for_idx").on(table.commercialSupervisorId, table.scheduledFor, table.id),
+    index("actions_campaign_scheduled_for_idx").on(table.tradeCampaignId, table.scheduledFor, table.id),
+  ]
+);
 
 export const actionSuppliers = pgTable(
   "action_suppliers",

@@ -18,19 +18,38 @@ const loginInput = z.object({
 const codeInput = z.object({ email: z.string().trim().email("Informe um e-mail válido.").max(320), code: z.string().trim().regex(/^\d{6}$/, "Informe o código de 6 dígitos.") });
 const resetInput = codeInput.extend({ newPassword: localPasswordInput });
 const CODE_TTL_MS = 10 * 60 * 1000;
-const attemptsByEmail = new Map<string, { attempts: number; until: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCK_WINDOW_MS = 15 * 60 * 1000;
+const MAX_TRACKED_KEYS = 5_000;
 
-function registerFailedAttempt(email: string) {
-  const current = attemptsByEmail.get(email);
-  const now = Date.now();
-  if (!current || current.until <= now) { attemptsByEmail.set(email, { attempts: 1, until: now + LOCK_WINDOW_MS }); return; }
-  attemptsByEmail.set(email, { attempts: current.attempts + 1, until: current.until });
+type FailedAttempt = { attempts: number; until: number };
+const attemptsByKey = new Map<string, FailedAttempt>();
+
+function pruneExpiredAttempts(now = Date.now()) {
+  attemptsByKey.forEach((value, key) => {
+    if (value.until <= now) attemptsByKey.delete(key);
+  });
+  if (attemptsByKey.size <= MAX_TRACKED_KEYS) return;
+  const oldestKeys = Array.from(attemptsByKey.entries())
+    .sort(([, left], [, right]) => left.until - right.until)
+    .slice(0, attemptsByKey.size - MAX_TRACKED_KEYS)
+    .map(([key]) => key);
+  oldestKeys.forEach(key => attemptsByKey.delete(key));
 }
-function assertNotRateLimited(email: string) {
-  const current = attemptsByEmail.get(email);
+
+function registerFailedAttempt(key: string) {
+  const now = Date.now();
+  pruneExpiredAttempts(now);
+  const current = attemptsByKey.get(key);
+  if (!current || current.until <= now) { attemptsByKey.set(key, { attempts: 1, until: now + LOCK_WINDOW_MS }); return; }
+  attemptsByKey.set(key, { attempts: current.attempts + 1, until: current.until });
+}
+function assertNotRateLimited(key: string) {
+  const current = attemptsByKey.get(key);
   if (current && current.until > Date.now() && current.attempts >= MAX_ATTEMPTS) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente." });
+}
+function rateLimitKeys(req: { ip?: string }, email: string) {
+  return [`email:${email}`, `ip:${req.ip || "unknown"}`];
 }
 function hashCode(code: string) { return createHash("sha256").update(code).digest("hex"); }
 function generateCode() { return String(randomInt(0, 1_000_000)).padStart(6, "0"); }
@@ -66,13 +85,15 @@ async function createSession(ctx: { req: any; res: any }, database: NonNullable<
 
 export const localAuthRouter = router({
   login: publicProcedure.input(loginInput).mutation(async ({ ctx, input }) => {
-    const email = input.email.toLowerCase(); assertNotRateLimited(email);
+    const email = input.email.toLowerCase();
+    const keys = rateLimitKeys(ctx.req, email);
+    keys.forEach(assertNotRateLimited);
     const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
     let account;
     try { account = await findAccount(database, email); } catch (error) { console.error("[Auth] Local login query failed; schema may be outdated", error); throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "O banco está em uma versão antiga. Faça o deploy mais recente com RUN_MIGRATIONS=true." }); }
     const validPassword = Boolean(account?.passwordHash) && await verifyLocalPassword(input.password, account.passwordHash!);
-    if (!account || !account.isActive || !validPassword) { registerFailedAttempt(email); throw new TRPCError({ code: "UNAUTHORIZED", message: "E-mail ou senha inválidos." }); }
-    attemptsByEmail.delete(email);
+    if (!account || !account.isActive || !validPassword) { keys.forEach(registerFailedAttempt); throw new TRPCError({ code: "UNAUTHORIZED", message: "E-mail ou senha inválidos." }); }
+    keys.forEach(key => attemptsByKey.delete(key));
     if (await isEmailLoginCodeEnabled(database)) {
       await issueCode(database, account, "login");
       return { success: true, requiresCode: true, mustChangePassword: account.mustChangePassword } as const;
@@ -100,4 +121,4 @@ export const localAuthRouter = router({
   }),
 });
 
-export const __localAuthInternals = { hashCode, generateCode };
+export const __localAuthInternals = { hashCode, generateCode, pruneExpiredAttempts };

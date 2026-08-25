@@ -67,7 +67,7 @@ describe("actions and events routers via tRPC", () => {
     expect(values.serviceValues).toHaveBeenCalledWith([{ actionId: 91, serviceTypeId: 5, supplierOfferingId: null, estimatedAmount: "500.00" }]);
     expect(values.teamValues).toHaveBeenCalledWith([{ actionId: 91, userId: 7 }]);
     expect(values.stockValues).toHaveBeenCalledWith([{ actionId: 91, stockItemId: 8, plannedQuantity: "2" }]);
-    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "action", entityId: 91, action: "create" }));
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "action", entityId: 91, action: "create" }), transaction);
   });
 
   it("persiste evento com modalidade, custo, supervisor e recursos planejados", async () => {
@@ -91,12 +91,13 @@ describe("actions and events routers via tRPC", () => {
     const database = {
       select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => []) })) })),
       insert: vi.fn(() => ({ values: vi.fn(() => ({ returning: vi.fn(() => [saved]) })) })),
+      transaction: vi.fn(async (callback: (transaction: typeof database) => unknown) => callback(database)),
     };
     getDbMock.mockResolvedValue(database);
     const caller = appRouter.createCaller(createContext());
 
     await expect(caller.actions.saveDebrief({ actionId: 91, rating: 4, notes: "Boa conversão", positives: "Abordagem", negatives: "Chuva", resultAchieved: true, worthRepeating: false, completedAt: new Date("2026-08-14T12:00:00Z") })).resolves.toEqual(saved);
-    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "action_debrief", entityId: 31, action: "create" }));
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "action_debrief", entityId: 31, action: "create" }), database);
   });
 
   it("persiste avaliação e decisão de renovação no pós-evento", async () => {

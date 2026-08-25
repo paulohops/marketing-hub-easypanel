@@ -5,6 +5,35 @@ import { ENV } from "./_core/env";
 
 const storageRoot = path.resolve(ENV.storageDir);
 
+function startsWithBytes(data: Uint8Array, signature: number[], offset = 0) {
+  return signature.every((byte, index) => data[offset + index] === byte);
+}
+
+export function hasSupportedFileSignature(data: Uint8Array, contentType: string) {
+  switch (contentType) {
+    case "image/jpeg":
+      return startsWithBytes(data, [0xff, 0xd8, 0xff]);
+    case "image/png":
+      return startsWithBytes(data, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    case "image/webp":
+      return startsWithBytes(data, [0x52, 0x49, 0x46, 0x46]) && startsWithBytes(data, [0x57, 0x45, 0x42, 0x50], 8);
+    case "application/pdf":
+      return startsWithBytes(data, [0x25, 0x50, 0x44, 0x46]);
+    case "video/mp4":
+      return startsWithBytes(data, [0x66, 0x74, 0x79, 0x70], 4);
+    case "video/webm":
+      return startsWithBytes(data, [0x1a, 0x45, 0xdf, 0xa3]);
+    case "audio/mpeg":
+      return startsWithBytes(data, [0x49, 0x44, 0x33]) || (data[0] === 0xff && (data[1] & 0xe0) === 0xe0);
+    case "audio/wav":
+      return startsWithBytes(data, [0x52, 0x49, 0x46, 0x46]) && startsWithBytes(data, [0x57, 0x41, 0x56, 0x45], 8);
+    case "audio/ogg":
+      return startsWithBytes(data, [0x4f, 0x67, 0x67, 0x53]);
+    default:
+      return false;
+  }
+}
+
 export async function ensureStorageDir() {
   await mkdir(storageRoot, { recursive: true });
 }

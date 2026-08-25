@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { getStorageFilePath } from "../storage";
+import { sdk } from "./sdk";
 
 const MIME_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -26,10 +27,26 @@ function getKey(req: Request): string {
   return decodeURIComponent(raw);
 }
 
+const PUBLIC_STORAGE_PREFIXES = ["trade/app-branding/"];
+
+async function canReadStoredFile(req: Request, key: string) {
+  if (PUBLIC_STORAGE_PREFIXES.some(prefix => key.startsWith(prefix))) return true;
+  try {
+    return Boolean(await sdk.authenticateRequest(req));
+  } catch {
+    return false;
+  }
+}
+
 async function serveStoredFile(req: Request, res: Response) {
   const key = getKey(req);
   if (!key) {
     res.status(400).send("Missing storage key");
+    return;
+  }
+
+  if (!(await canReadStoredFile(req, key))) {
+    res.status(401).send("Authentication required");
     return;
   }
 
@@ -41,9 +58,12 @@ async function serveStoredFile(req: Request, res: Response) {
       return;
     }
 
+    const isPublic = PUBLIC_STORAGE_PREFIXES.some(prefix => key.startsWith(prefix));
     res.setHeader("Content-Type", MIME_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream");
     res.setHeader("Content-Length", String(fileInfo.size));
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Content-Disposition", "inline");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", isPublic ? "public, max-age=31536000, immutable" : "private, no-store");
     res.sendFile(filePath);
   } catch (error) {
     const code = (error as NodeJS.ErrnoException)?.code;

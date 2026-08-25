@@ -11,8 +11,8 @@ type AuditEvent = {
   afterData?: unknown;
 };
 
-export async function writeAuditLog(event: AuditEvent) {
-  const database = await getDb();
+export async function writeAuditLog(event: AuditEvent, databaseOverride?: any) {
+  const database = databaseOverride ?? await getDb();
   if (!database) return;
   await database.insert(auditLogs).values({
     actorUserId: event.actorUserId,

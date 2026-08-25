@@ -68,6 +68,7 @@ type ActionDebriefState = {
 };
 type StockAllocation = { stockItemId: number; quantity: string };
 type ServiceAllocation = { serviceTypeId: number; supplierOfferingId: number | null; estimatedAmount: string };
+const ACTION_PAGE_SIZE = 25;
 const statusLabel: Record<string, string> = {
   planned: "Planejada",
   in_progress: "Em execução",
@@ -152,8 +153,6 @@ export default function ActionsWorkspace() {
   const canWrite = can("actions.write");
   const { compact } = useListDensity();
   const utils = trpc.useUtils();
-  const references = trpc.actions.referenceData.useQuery();
-  const actionList = trpc.actions.list.useQuery();
   const [form, setForm] = useState(blankForm);
   const [formOpen, setFormOpen] = useState(false);
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
@@ -164,6 +163,7 @@ export default function ActionsWorkspace() {
   const [cityFilter, setCityFilter] = useState("all");
   const [supervisorFilter, setSupervisorFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -188,6 +188,20 @@ export default function ActionsWorkspace() {
     reason: "",
     evidenceUrls: [] as string[],
   });
+  const actionListInput = useMemo(() => selectedId
+    ? { actionId: selectedId }
+    : {
+        page,
+        pageSize: ACTION_PAGE_SIZE + 1,
+        search: search.trim() || undefined,
+        status: status === "all" ? undefined : status as "planned" | "in_progress" | "paused" | "completed" | "cancelled",
+        regionalId: regionalFilter === "all" ? undefined : Number(regionalFilter),
+        cityId: cityFilter === "all" ? undefined : Number(cityFilter),
+        supervisorId: supervisorFilter === "all" ? undefined : Number(supervisorFilter),
+        rating: ratingFilter === "all" ? undefined : Number(ratingFilter),
+      }, [selectedId, page, search, status, regionalFilter, cityFilter, supervisorFilter, ratingFilter]);
+  const references = trpc.actions.referenceData.useQuery();
+  const actionList = trpc.actions.list.useQuery(actionListInput);
   const cities = useMemo(
     () =>
       (references.data?.cities ?? []).map((entry: ActionCityReference) => ({
@@ -324,25 +338,8 @@ export default function ActionsWorkspace() {
     },
     onError: (error: { message: string }) => toast.error(error.message),
   });
-  const visibleActions = useMemo(
-    () =>
-      (actionList.data ?? []).filter(
-        (row: ActionRow) =>
-          (status === "all" || row.action.status === status) &&
-          (regionalFilter === "all" ||
-            String(
-              cities.find(({ city }) => city.id === row.action.cityId)?.city
-                .regionalId ?? ""
-            ) === regionalFilter) &&
-          (cityFilter === "all" || String(row.action.cityId) === cityFilter) &&
-          (supervisorFilter === "all" || String(row.action.commercialSupervisorId ?? "") === supervisorFilter) &&
-          (ratingFilter === "all" || String(row.debrief?.rating ?? "") === ratingFilter) &&
-          `${row.action.name} ${row.cityName} ${row.actionTypeName}`
-            .toLocaleLowerCase("pt-BR")
-            .includes(search.toLocaleLowerCase("pt-BR"))
-      ),
-    [actionList.data, search, status, regionalFilter, cityFilter, supervisorFilter, ratingFilter, cities]
-  );
+  const visibleActions = useMemo(() => (actionList.data ?? []).slice(0, ACTION_PAGE_SIZE), [actionList.data]);
+  const hasNextPage = !selectedId && (actionList.data?.length ?? 0) > ACTION_PAGE_SIZE;
   const selected = (actionList.data ?? []).find(
     (row: ActionRow) => row.action.id === selectedId
   );
@@ -375,6 +372,7 @@ export default function ActionsWorkspace() {
     setCityFilter("all");
     setSupervisorFilter("all");
     setRatingFilter("all");
+    setPage(1);
   };
   const openForm = () => {
     setForm(blankForm());
@@ -689,18 +687,18 @@ export default function ActionsWorkspace() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="grid gap-1.5 text-sm font-medium">
             Pesquisa
-            <span className="relative min-w-0"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Ação, cidade ou tipo" className="pl-9" /></span>
+            <span className="relative min-w-0"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} placeholder="Ação, cidade ou tipo" className="pl-9" /></span>
           </label>
-          <SearchableMultiSelect id="action-filter-regional" label="Regional" placeholder="Todas as regionais" maxSelections={1} options={regionalOptions.map(regional => ({ id: Number(regional.id), label: regional.name }))} values={regionalFilter === "all" ? [] : [Number(regionalFilter)]} onChange={values => { setRegionalFilter(values[0] ? String(values[0]) : "all"); setCityFilter("all"); }} />
-          <SearchableMultiSelect id="action-filter-city" label="Cidade" placeholder="Todas as cidades" maxSelections={1} options={cityFilterOptions.map(({ city }) => ({ id: city.id, label: city.name }))} values={cityFilter === "all" ? [] : [Number(cityFilter)]} onChange={values => setCityFilter(values[0] ? String(values[0]) : "all")} />
-          <SearchableMultiSelect id="action-filter-supervisor" label="Responsável" placeholder="Todos os responsáveis" maxSelections={1} options={(references.data?.supervisors ?? []).map((supervisor: ActionReferenceData["supervisors"][number]) => ({ id: supervisor.id, label: supervisor.name }))} values={supervisorFilter === "all" ? [] : [Number(supervisorFilter)]} onChange={values => setSupervisorFilter(values[0] ? String(values[0]) : "all")} />
-          <SearchableMultiSelect id="action-filter-rating" label="Nota" placeholder="Todas as notas" maxSelections={1} options={[5, 4, 3, 2, 1].map(rating => ({ id: rating, label: `${rating} · ${actionRatingLabel[rating]}` }))} values={ratingFilter === "all" ? [] : [Number(ratingFilter)]} onChange={values => setRatingFilter(values[0] ? String(values[0]) : "all")} />
+          <SearchableMultiSelect id="action-filter-regional" label="Regional" placeholder="Todas as regionais" maxSelections={1} options={regionalOptions.map(regional => ({ id: Number(regional.id), label: regional.name }))} values={regionalFilter === "all" ? [] : [Number(regionalFilter)]} onChange={values => { setRegionalFilter(values[0] ? String(values[0]) : "all"); setCityFilter("all"); setPage(1); }} />
+          <SearchableMultiSelect id="action-filter-city" label="Cidade" placeholder="Todas as cidades" maxSelections={1} options={cityFilterOptions.map(({ city }) => ({ id: city.id, label: city.name }))} values={cityFilter === "all" ? [] : [Number(cityFilter)]} onChange={values => { setCityFilter(values[0] ? String(values[0]) : "all"); setPage(1); }} />
+          <SearchableMultiSelect id="action-filter-supervisor" label="Responsável" placeholder="Todos os responsáveis" maxSelections={1} options={(references.data?.supervisors ?? []).map((supervisor: ActionReferenceData["supervisors"][number]) => ({ id: supervisor.id, label: supervisor.name }))} values={supervisorFilter === "all" ? [] : [Number(supervisorFilter)]} onChange={values => { setSupervisorFilter(values[0] ? String(values[0]) : "all"); setPage(1); }} />
+          <SearchableMultiSelect id="action-filter-rating" label="Nota" placeholder="Todas as notas" maxSelections={1} options={[5, 4, 3, 2, 1].map(rating => ({ id: rating, label: `${rating} · ${actionRatingLabel[rating]}` }))} values={ratingFilter === "all" ? [] : [Number(ratingFilter)]} onChange={values => { setRatingFilter(values[0] ? String(values[0]) : "all"); setPage(1); }} />
         </div>
         <div>
           <p className="mb-2 text-xs font-medium text-muted-foreground">Situação da ação</p>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
             <Button type="button" variant={status === "all" ? "default" : "outline"} onClick={() => setStatus("all")} className="justify-between">Todas <span className="rounded bg-background/20 px-1.5 text-xs">{(actionList.data ?? []).length}</span></Button>
-            {(["planned", "in_progress", "paused", "completed", "cancelled"] as const).map(value => <Button key={value} type="button" variant="outline" onClick={() => setStatus(value)} className={`justify-between ${status === value ? actionStatusClass[value] : ""}`}><span>{statusLabel[value]}</span><span className="rounded bg-background/20 px-1.5 text-xs">{statusCounts[value] ?? 0}</span></Button>)}
+            {["planned", "in_progress", "paused", "completed", "cancelled"].map(value => <Button key={value} type="button" variant="outline" onClick={() => { setStatus(value); setPage(1); }} className={`justify-between ${status === value ? actionStatusClass[value] : ""}`}><span>{statusLabel[value]}</span><span className="rounded bg-background/20 px-1.5 text-xs">{statusCounts[value] ?? 0}</span></Button>)}
           </div>
         </div>
       </section>}
@@ -740,6 +738,13 @@ export default function ActionsWorkspace() {
             Nenhuma ação encontrada para os filtros selecionados.
           </p>
         )}
+        {!selectedId && (visibleActions.length > 0 || page > 1) && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground">Página {page} · {visibleActions.length} ação(ões) exibida(s)</p>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={page === 1 || actionList.isFetching} onClick={() => setPage(current => Math.max(1, current - 1))}>Anterior</Button>
+            <Button type="button" variant="outline" size="sm" disabled={!hasNextPage || actionList.isFetching} onClick={() => setPage(current => current + 1)}>Próxima</Button>
+          </div>
+        </div>}
       </section>
       <ActionForm
         open={formOpen}
