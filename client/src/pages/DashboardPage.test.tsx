@@ -19,6 +19,7 @@ describe("DashboardPage", () => {
   it("prioriza os indicadores operacionais e direciona para a central de ajuda", () => {
     render(<DashboardPage />);
 
+    expect(screen.getByAltText("Logo MARKETING HUB")).toBeInTheDocument();
     expect(screen.getByText("Mídias ativas")).toBeInTheDocument();
     expect(screen.getByText("Ações realizadas")).toBeInTheDocument();
     expect(screen.getByText("Eventos realizados")).toBeInTheDocument();

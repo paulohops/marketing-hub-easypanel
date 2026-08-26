@@ -34,6 +34,7 @@ function operationalDatabase(created: { id: number }) {
   const teamValues = vi.fn();
   const stockValues = vi.fn();
   const transaction = {
+    delete: vi.fn(() => ({ where: vi.fn() })),
     insert: vi.fn()
       .mockReturnValueOnce({ values: entityValues })
       .mockReturnValueOnce({ values: supplierValues })
@@ -83,7 +84,7 @@ describe("actions and events routers via tRPC", () => {
     expect(values.serviceValues).toHaveBeenCalledWith([{ eventId: 92, serviceTypeId: 5 }]);
     expect(values.teamValues).toHaveBeenCalledWith([{ eventId: 92, userId: 7 }]);
     expect(values.stockValues).toHaveBeenCalledWith([{ eventId: 92, stockItemId: 8, plannedQuantity: "1.00" }]);
-    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "event", entityId: 92, action: "create" }));
+    expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "event", entityId: 92, action: "create" }), transaction);
   });
 
   it("persiste a decisão de repetição no debriefing de ação", async () => {

@@ -39,3 +39,13 @@ pnpm build
 A validação de navegador móvel e a utilização da instância de produção permanecem fora deste pacote: o navegador conectado operou em 1560×768 e apresentou instabilidade de rede durante a auditoria. Os controles devem ser publicados e testados em homologação antes de qualquer limpeza dos fixtures `TESTE AUDITORIA 20260825` ainda existentes em produção.
 
 > Não foram executadas operações diretas no banco de produção. A remoção dos fixtures remanescentes deve ocorrer pela interface após o deploy e somente se as regras de segurança permitirem a operação.
+
+## Home e paridade de Eventos
+
+A composição anterior da Home foi restaurada: hero verde, indicadores compactos, agenda operacional e bloco de prioridades. A marca configurada agora aparece no hero ao lado do título e subtítulo, com fallback para o favicon quando não houver logo carregada.
+
+O módulo de Eventos passou a seguir o padrão de Ações na listagem e na ficha individual. A listagem oferece cards densos com status, modalidade, território, período, supervisor, custo e contagem de vínculos. A ficha organiza planejamento/local, contexto comercial, campanha, responsáveis, fornecedores, serviços, estoque, financeiro, debriefing, evidências e histórico auditado.
+
+A migration `0069_event_rich_detail.sql` adiciona o vínculo persistente de ponto de ação e os campos de resultado do evento (`resultSummary`, leads, vendas, renovações, pontos positivos, pontos a melhorar e `completedAt`). O deploy deve aplicar as migrations normalmente antes de disponibilizar a edição e o debriefing ampliado de Eventos.
+
+A criação e edição de Evento agora validam o ponto selecionado contra a cidade e preservam os vínculos em transação. A exclusão de Ponto de ação também bloqueia referências vindas de Eventos, além das referências existentes em Ações.

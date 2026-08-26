@@ -205,6 +205,7 @@ export function OperationalDebriefing({
   canWrite = true,
   title = "Debriefing e resultado",
   summaryLabel = "História e resultado",
+  repeatLabel = "Vale repetir",
 }: {
   value: OperationalDebriefValue;
   onChange: (value: OperationalDebriefValue) => void;
@@ -213,6 +214,7 @@ export function OperationalDebriefing({
   canWrite?: boolean;
   title?: string;
   summaryLabel?: string;
+  repeatLabel?: string;
 }) {
   const update = (patch: Partial<OperationalDebriefValue>) => onChange({ ...value, ...patch });
   return <section className="hub-entity-card"><h2 className="font-display text-lg font-semibold text-foreground">{title}</h2><form className="mt-3 space-y-3" onSubmit={event => { event.preventDefault(); onSave(); }}>
@@ -222,7 +224,7 @@ export function OperationalDebriefing({
     </div>
     <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Leads<Input type="number" min="0" value={value.leadCount} onChange={event => update({ leadCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Vendas<Input type="number" min="0" value={value.saleCount} onChange={event => update({ saleCount: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Renovações<Input type="number" min="0" value={value.renewalCount} onChange={event => update({ renewalCount: event.target.value })} /></label></div>
     <div className="grid gap-2 sm:grid-cols-2"><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Pontos positivos<Textarea value={value.positives} onChange={event => update({ positives: event.target.value })} /></label><label className="grid gap-1 text-xs font-semibold text-muted-foreground">Pontos a melhorar<Textarea value={value.negatives} onChange={event => update({ negatives: event.target.value })} /></label></div>
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs"><label className="flex items-center gap-2"><input type="checkbox" checked={value.resultAchieved} onChange={event => update({ resultAchieved: event.target.checked })} /> Objetivo atingido</label><label className="flex items-center gap-2"><input type="checkbox" checked={value.worthRepeating} onChange={event => update({ worthRepeating: event.target.checked })} /> Vale repetir</label><label className="ml-auto grid gap-1 text-xs font-semibold text-muted-foreground">Concluída em<Input type="datetime-local" required value={value.completedAt} onChange={event => update({ completedAt: event.target.value })} /></label></div>
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs"><label className="flex items-center gap-2"><input type="checkbox" checked={value.resultAchieved} onChange={event => update({ resultAchieved: event.target.checked })} /> Objetivo atingido</label><label className="flex items-center gap-2"><input type="checkbox" checked={value.worthRepeating} onChange={event => update({ worthRepeating: event.target.checked })} /> {repeatLabel}</label><label className="ml-auto grid gap-1 text-xs font-semibold text-muted-foreground">Concluída em<Input type="datetime-local" required value={value.completedAt} onChange={event => update({ completedAt: event.target.value })} /></label></div>
     {canWrite ? <Button type="submit" className="w-full bg-primary" disabled={pending}>Salvar debriefing</Button> : null}
   </form></section>;
 }

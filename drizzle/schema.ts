@@ -2058,6 +2058,10 @@ export const events = pgTable("events", {
     () => tradeCampaigns.id,
     { onDelete: "set null" }
   ),
+  actionPointId: integer("actionPointId").references(
+    () => actionPoints.id,
+    { onDelete: "set null" }
+  ),
   cityId: integer("cityId")
     .notNull()
     .references(() => cities.id, { onDelete: "restrict" }),
@@ -2087,6 +2091,13 @@ export const events = pgTable("events", {
   postEventNotes: text("postEventNotes"),
   rating: integer("rating"),
   resultAchieved: boolean("resultAchieved"),
+  resultSummary: text("resultSummary"),
+  leadCount: integer("leadCount").default(0).notNull(),
+  saleCount: integer("saleCount").default(0).notNull(),
+  renewalCount: integer("renewalCount").default(0).notNull(),
+  positives: text("positives"),
+  negatives: text("negatives"),
+  completedAt: timestamp("completedAt", { withTimezone: true }),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -2555,16 +2555,23 @@ export const settingsRegistryProcedures = {
           code: "NOT_FOUND",
           message: "Ponto de ação não encontrado.",
         });
-      const [linkedAction] = await database
-        .select({ id: actions.id })
-        .from(actions)
-        .where(eq(actions.actionPointId, input.id))
-        .limit(1);
-      if (linkedAction)
+      const [linkedAction, linkedEvent] = await Promise.all([
+        database
+          .select({ id: actions.id })
+          .from(actions)
+          .where(eq(actions.actionPointId, input.id))
+          .limit(1),
+        database
+          .select({ id: events.id })
+          .from(events)
+          .where(eq(events.actionPointId, input.id))
+          .limit(1),
+      ]);
+      if (linkedAction[0] || linkedEvent[0])
         throw new TRPCError({
           code: "CONFLICT",
           message:
-            "Este ponto de ação está vinculado a uma ação. Inative-o para preservar o histórico.",
+            "Este ponto de ação está vinculado a uma ação ou evento. Inative-o para preservar o histórico.",
         });
       await database.delete(actionPoints).where(eq(actionPoints.id, input.id));
       await writeAuditLog({

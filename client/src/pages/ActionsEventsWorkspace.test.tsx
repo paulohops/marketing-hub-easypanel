@@ -5,6 +5,7 @@ const createAction = vi.hoisted(() => vi.fn());
 const createEvent = vi.hoisted(() => vi.fn());
 const saveActionDebrief = vi.hoisted(() => vi.fn());
 const savePostEvent = vi.hoisted(() => vi.fn());
+const updateEvent = vi.hoisted(() => vi.fn());
 const deleteEvent = vi.hoisted(() => vi.fn());
 const updateExecutionStatus = vi.hoisted(() => vi.fn());
 const actionListQuery = vi.hoisted(() => vi.fn());
@@ -14,7 +15,7 @@ const trpcStub = vi.hoisted(() => ({
   useUtils: () => ({ actions: { list: { invalidate: vi.fn() }, referenceData: { invalidate: vi.fn() } }, events: { list: { invalidate: vi.fn() } }, campaigns: { list: { invalidate: vi.fn() } } }),
   users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["actions.read", "actions.create", "actions.update", "events.read", "events.create", "events.update"] }) } },
   actions: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: actionListQuery }, create: { useMutation: () => ({ mutate: createAction, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadCover: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, uploadStatusEvidence: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) }, updateExecutionStatus: { useMutation: () => ({ mutate: updateExecutionStatus, isPending: false }) }, reschedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, saveDebrief: { useMutation: () => ({ mutate: saveActionDebrief, isPending: false }) } },
-  events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) }, delete: { useMutation: () => ({ mutate: deleteEvent, isPending: false }) } },
+  events: { referenceData: { useQuery: () => ({ data: references, isLoading: false }) }, list: { useQuery: eventListQuery }, create: { useMutation: () => ({ mutate: createEvent, isPending: false }) }, updateDetails: { useMutation: () => ({ mutate: updateEvent, isPending: false }) }, savePostEvent: { useMutation: () => ({ mutate: savePostEvent, isPending: false }) }, delete: { useMutation: () => ({ mutate: deleteEvent, isPending: false }) } },
   campaigns: { create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
 }));
 
@@ -195,9 +196,9 @@ describe("formulários operacionais ampliados", () => {
   it("persiste a decisão de renovação dentro da ficha do evento", () => {
     eventListQuery.mockReturnValue({ data: [{ event: { id: 22, name: "Feira", status: "planned", partnershipType: "paid", startsAt: new Date("2026-08-20T10:00:00Z"), endsAt: null, estimatedCost: "0", partnershipReason: null, preEventNotes: null, rating: null, worthRenewing: null }, cityName: "Belo Horizonte", eventTypeName: "Feira", supervisorName: null, teamMembers: [], stockItems: [] }], isLoading: false });
     render(<EventsWorkspace />);
-    fireEvent.click(screen.getByText("Feira"));
-    expect(screen.queryByLabelText("Vale renovar")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Salvar acompanhamento" }));
-    expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, rating: null, worthRenewing: null, resultAchieved: false, status: "planned" }));
+    fireEvent.click(screen.getByRole("heading", { name: "Feira" }));
+    expect(screen.getByLabelText("Vale renovar")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar debriefing" }));
+    expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, rating: null, worthRenewing: false, resultAchieved: false, status: "planned", leadCount: 0, saleCount: 0, renewalCount: 0 }));
   });
 });

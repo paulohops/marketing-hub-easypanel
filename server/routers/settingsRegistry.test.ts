@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "../_core/context";
 
@@ -39,13 +38,12 @@ describe("action point deletion", () => {
     const before = { id: 31, cityId: 4, name: "Ponto descartável" };
     const where = vi.fn(() => []);
     getDbMock.mockResolvedValue({
-      select: vi.fn().mockReturnValueOnce(query([before])).mockReturnValueOnce(query([])),
+      select: vi.fn().mockReturnValueOnce(query([before])).mockReturnValueOnce(query([])).mockReturnValueOnce(query([])),
       delete: vi.fn(() => ({ where })),
     });
     const caller = appRouter.createCaller(context());
 
     await expect(caller.settings.deleteActionPoint({ id: 31 })).resolves.toEqual({ success: true });
-
     expect(where).toHaveBeenCalled();
     expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({ entityType: "action_point", entityId: 31, action: "delete", beforeData: before }));
   });
@@ -53,13 +51,27 @@ describe("action point deletion", () => {
   it("bloqueia ponto usado por ação para preservar o histórico operacional", async () => {
     const before = { id: 32, cityId: 4, name: "Ponto utilizado" };
     getDbMock.mockResolvedValue({
-      select: vi.fn().mockReturnValueOnce(query([before])).mockReturnValueOnce(query([{ id: 77 }])),
+      select: vi.fn().mockReturnValueOnce(query([before])).mockReturnValueOnce(query([{ id: 77 }])).mockReturnValueOnce(query([])),
     });
     const caller = appRouter.createCaller(context());
 
     await expect(caller.settings.deleteActionPoint({ id: 32 })).rejects.toMatchObject({
       code: "CONFLICT",
       message: expect.stringContaining("vinculado a uma ação"),
+    });
+    expect(writeAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("bloqueia ponto usado por evento para preservar a referência operacional", async () => {
+    const before = { id: 33, cityId: 4, name: "Ponto de evento" };
+    getDbMock.mockResolvedValue({
+      select: vi.fn().mockReturnValueOnce(query([before])).mockReturnValueOnce(query([])).mockReturnValueOnce(query([{ id: 88 }])),
+    });
+    const caller = appRouter.createCaller(context());
+
+    await expect(caller.settings.deleteActionPoint({ id: 33 })).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: expect.stringContaining("ação ou evento"),
     });
     expect(writeAuditLogMock).not.toHaveBeenCalled();
   });
