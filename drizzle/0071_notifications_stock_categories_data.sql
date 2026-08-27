@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS "notification_rules" (
   "eventType" varchar(64) NOT NULL,
   "titleTemplate" varchar(240) DEFAULT '{{entity}} atualizado' NOT NULL,
   "messageTemplate" text DEFAULT 'O registro {{entity}} #{{entityId}} foi atualizado.' NOT NULL,
-  "category" "notification_category" DEFAULT 'entity_updated' NOT NULL,
+  -- Use an existing enum value while Drizzle runs all pending migrations in one transaction.
+  "category" "notification_category" DEFAULT 'action_pending' NOT NULL,
   "active" boolean DEFAULT true NOT NULL,
   "inAppEnabled" boolean DEFAULT true NOT NULL,
   "emailEnabled" boolean DEFAULT false NOT NULL,

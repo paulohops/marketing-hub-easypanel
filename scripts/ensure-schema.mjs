@@ -77,6 +77,59 @@ if (migration.status !== 0) {
 const verificationPool = createPool();
 try {
   await verificationPool.query(`
+    DO $migration$
+    BEGIN
+      -- Enum values added by migrations are usable only after Drizzle commits.
+      -- Run the dependent seed and default repair in this separate connection.
+      IF EXISTS (
+        SELECT 1
+        FROM pg_enum enum_value
+        JOIN pg_type enum_type ON enum_type.oid = enum_value.enumtypid
+        WHERE enum_type.typname = 'permission_module'
+          AND enum_value.enumlabel = 'operations'
+      ) AND to_regclass('public.role_permissions') IS NOT NULL THEN
+        EXECUTE $seed$
+          INSERT INTO "role_permissions" ("role", "module", "action", "allowed")
+          SELECT
+            role_value::"user_role",
+            'operations'::"permission_module",
+            action_value::"permission_action",
+            CASE
+              WHEN role_value = 'admin' THEN true
+              WHEN role_value = 'regional_manager' AND action_value IN ('read', 'create', 'update') THEN true
+              WHEN role_value = 'operator' AND action_value IN ('read', 'create', 'update') THEN true
+              WHEN role_value IN ('viewer', 'user') AND action_value = 'read' THEN true
+              ELSE false
+            END
+          FROM (VALUES ('admin'), ('regional_manager'), ('operator'), ('viewer'), ('user')) AS roles(role_value)
+          CROSS JOIN (VALUES ('read'), ('create'), ('update'), ('delete')) AS actions(action_value)
+          ON CONFLICT ("role", "module", "action") DO NOTHING
+        $seed$;
+      END IF;
+
+      IF EXISTS (
+        SELECT 1
+        FROM pg_enum enum_value
+        JOIN pg_type enum_type ON enum_type.oid = enum_value.enumtypid
+        WHERE enum_type.typname = 'notification_category'
+          AND enum_value.enumlabel = 'entity_updated'
+      ) AND EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'notification_rules'
+          AND column_name = 'category'
+      ) THEN
+        EXECUTE $default$
+          ALTER TABLE "notification_rules"
+          ALTER COLUMN "category" SET DEFAULT 'entity_updated'::"notification_category"
+        $default$;
+      END IF;
+    END $migration$;
+  `);
+  console.log("[Database] Compatibilidade pós-migration verificada.");
+
+  await verificationPool.query(`
     CREATE TABLE IF NOT EXISTS "media_campaign_schedules" (
       "id" SERIAL PRIMARY KEY,
       "mediaCampaignId" INTEGER NOT NULL REFERENCES "media_campaigns"("id") ON DELETE CASCADE,
