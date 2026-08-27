@@ -505,6 +505,20 @@
       "when": 1787841000000,
       "tag": "0071_notifications_stock_categories_data",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1787842000000,
+      "tag": "0072_repair_operations_permission_enum",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1787843000000,
+      "tag": "0073_seed_operations_permissions_repair",
+      "breakpoints": true
     }
   ]
 }
