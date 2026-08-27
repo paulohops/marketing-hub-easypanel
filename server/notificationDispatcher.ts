@@ -177,11 +177,16 @@ export async function notifyConfiguredRules(database: DatabaseLike, event: Audit
     }
     if (rule.emailEnabled) {
       const emailRows = await database.select({ email: users.email }).from(users).where(and(inArray(users.id, recipientIdList), eq(users.isActive, true)));
-      const emails = emailRows.map((row: { email: string | null }) => row.email).filter((email: string | null): email is string => Boolean(email));
-      try {
-        await sendNotificationEmail({ to: emails, title, content: message });
-      } catch (error) {
-        console.warn("Não foi possível enviar e-mail de notificação:", error);
+      const emails = emailRows.map((row: { email: string | null }) => row.email?.trim()).filter((email: string | null): email is string => Boolean(email));
+      if (!emails.length) {
+        console.warn(`[Notification] Regra ${rule.id} sem destinatários com e-mail cadastrado.`);
+      } else {
+        try {
+          const sent = await sendNotificationEmail({ to: emails, title, content: message, actionUrl: actionUrl(event.entityType, event.entityId), actionLabel: "Abrir registro" });
+          if (!sent) console.warn(`[Notification] Regra ${rule.id}: e-mail não enviado; verifique SMTP global e a opção de notificações por e-mail.`);
+        } catch (error) {
+          console.warn(`[Notification] Regra ${rule.id}: falha ao enviar e-mail de notificação.`, error);
+        }
       }
     }
   }

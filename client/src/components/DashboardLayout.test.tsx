@@ -41,6 +41,9 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
     },
+    notifications: {
+      unreadCount: { useQuery: () => ({ data: { count: 0 }, isLoading: false }) },
+    },
   },
 }));
 

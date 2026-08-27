@@ -11,7 +11,7 @@ const authState = vi.hoisted(() => ({
 }));
 
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => authState }));
-vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read"] }) } } } }));
+vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: true, data: ["media.read"] }) } }, notifications: { unreadCount: { useQuery: () => ({ data: { count: 0 }, isLoading: false }) } } } }));
 vi.mock("./MediaWorkspace", () => ({
   default: ({ initialCategory }: { initialCategory?: string }) => <h1>{initialCategory === "audio_video" ? "Mídia Tradicional urbana acoplada" : "Mídias e campanhas"}</h1>,
 }));

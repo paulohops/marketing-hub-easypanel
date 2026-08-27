@@ -42,6 +42,13 @@ async function createTransporter(settings: SystemSettings) {
   return nodemailer.createTransport({ host: settings.smtpHost, port, secure: port === 465, auth: settings.smtpUser ? { user: settings.smtpUser, pass: settings.smtpPassword || "" } : undefined });
 }
 
+export async function getNotificationEmailStatus() {
+  const settings = await loadSystemSettings();
+  const enabled = settings.notificationEmailEnabled === true;
+  const configured = Boolean(settings.smtpHost && settings.smtpFrom);
+  return { enabled, configured, ready: enabled && configured };
+}
+
 function escapeHtml(value: string) { return value.replace(/[&<>\"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[character] ?? character)); }
 
 const INTERNAL_APP_URL = "http://10.159.245.28:8978/";
@@ -123,7 +130,7 @@ export async function notifyOwner(payload: NotificationPayload): Promise<boolean
   return delivered;
 }
 
-export async function sendNotificationEmail(input: { to: string[]; title: string; content: string }): Promise<boolean> {
+export async function sendNotificationEmail(input: { to: string[]; title: string; content: string; actionUrl?: string | null; actionLabel?: string | null }): Promise<boolean> {
   const validated = validatePayload({ title: input.title, content: input.content });
   const settings = await loadSystemSettings();
   if (!settings.notificationEmailEnabled || !input.to.length) return false;
@@ -131,12 +138,23 @@ export async function sendNotificationEmail(input: { to: string[]; title: string
   if (!transporter) return false;
   const recipients = Array.from(new Set(input.to.map(email => email.trim()).filter(Boolean)));
   if (!recipients.length) return false;
+  const appName = settings.appName || "Marketing HUB";
+  const safeAppName = escapeHtml(appName);
+  const safeTitle = escapeHtml(validated.title);
+  const safeContent = escapeHtml(validated.content).replace(/\n/g, "<br />");
+  const baseUrl = ENV.publicAppUrl || INTERNAL_APP_URL;
+  let resolvedActionUrl: string | null = null;
+  if (input.actionUrl) {
+    try { resolvedActionUrl = new URL(input.actionUrl, baseUrl).toString(); } catch { resolvedActionUrl = null; }
+  }
+  const safeActionLabel = escapeHtml(input.actionLabel || "Abrir no Marketing HUB");
+  const textAction = resolvedActionUrl ? `\n\nAbrir no sistema: ${resolvedActionUrl}` : "";
   await transporter.sendMail({
     from: settings.smtpFrom,
     to: recipients,
-    subject: validated.title,
-    text: validated.content,
-    html: `<h2>${escapeHtml(validated.title)}</h2><p>${escapeHtml(validated.content).replace(/\n/g, "<br />")}</p>`,
+    subject: validated.title.slice(0, 180),
+    text: `${validated.content}${textAction}\n\nEste é um aviso automático do ${appName}.`,
+    html: `<div style="background:#f4f7f5;padding:32px 16px;font-family:Arial,sans-serif;color:#183329"><div style="max-width:620px;margin:0 auto;background:#fff;border:1px solid #dce8df;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(24,51,41,.08)"><div style="background:#0e723b;padding:28px 32px;color:#fff"><div style="font-size:20px;font-weight:700;letter-spacing:-.2px">${safeAppName}</div><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.82;margin-top:7px">Notificação operacional</div></div><div style="padding:32px"><div style="display:inline-block;background:#eef8f1;border:1px solid #bfe3c9;border-radius:999px;padding:6px 11px;color:#0e723b;font-size:11px;font-weight:700;letter-spacing:.4px">AVISO DO SISTEMA</div><h1 style="font-size:24px;line-height:1.25;margin:18px 0 12px;color:#183329">${safeTitle}</h1><p style="font-size:15px;line-height:1.7;margin:0;color:#52665b">${safeContent}</p>${resolvedActionUrl ? `<div style="margin-top:28px"><a href="${escapeHtml(resolvedActionUrl)}" style="display:inline-block;background:#0e723b;border-radius:10px;padding:13px 18px;color:#fff;font-size:14px;font-weight:700;text-decoration:none">${safeActionLabel}</a></div>` : ""}</div><div style="border-top:1px solid #e7eee9;padding:18px 32px;background:#fbfdfb;color:#718077;font-size:12px;line-height:1.6">Você recebeu este aviso porque uma regra de notificações do ${safeAppName} foi acionada. Este é um e-mail automático; não é necessário respondê-lo.</div></div></div>`,
   });
   return true;
 }

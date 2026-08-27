@@ -14,7 +14,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({
   }),
 }));
 
-vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: false }) } } } }));
+vi.mock("@/lib/trpc", () => ({ trpc: { users: { effectivePermissions: { useQuery: () => ({ isSuccess: false }) } }, notifications: { unreadCount: { useQuery: () => ({ data: { count: 0 }, isLoading: false }) } } } }));
 
 it("não apresenta violações automatizadas de acessibilidade na navegação", async () => {
   const { container } = render(<DashboardLayout><div>Conteúdo protegido</div></DashboardLayout>);

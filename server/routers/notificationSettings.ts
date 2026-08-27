@@ -11,10 +11,11 @@ import {
 } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { writeAuditLog } from "../audit";
+import { getNotificationEmailStatus } from "../_core/notification";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 
-const eventTypes = ["created", "updated", "status_changed", "deleted", "due", "expiry", "*"] as const;
+const eventTypes = ["created", "assigned", "updated", "status_changed", "deleted", "due", "expiry", "*"] as const;
 const categories = ["campaign_expiry", "payment_due", "action_pending", "stock_minimum", "entity_created", "entity_updated", "entity_status_changed", "entity_deleted", "task_assigned", "task_due"] as const;
 const recipientTypes = ["user", "regional", "city", "company"] as const;
 const entityOptions = [
@@ -74,13 +75,14 @@ export const notificationSettingsRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
-    const [userRows, regionalRows, cityRows, companyRows] = await Promise.all([
+    const [userRows, regionalRows, cityRows, companyRows, emailStatus] = await Promise.all([
       database.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)),
       database.select({ id: regionals.id, name: regionals.name }).from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
       database.select({ id: cities.id, regionalId: cities.regionalId, name: cities.name, state: cities.state }).from(cities).where(eq(cities.active, true)).orderBy(asc(cities.name)),
       database.select({ id: financeCompanies.id, name: financeCompanies.name, code: financeCompanies.code }).from(financeCompanies).where(eq(financeCompanies.active, true)).orderBy(asc(financeCompanies.name)),
+      getNotificationEmailStatus(),
     ]);
-    return { users: userRows, regionals: regionalRows, cities: cityRows, companies: companyRows, entityOptions, eventTypes, categories, recipientTypes };
+    return { users: userRows, regionals: regionalRows, cities: cityRows, companies: companyRows, entityOptions, eventTypes, categories, recipientTypes, emailStatus };
   }),
 
   listRules: protectedProcedure.query(async ({ ctx }) => {

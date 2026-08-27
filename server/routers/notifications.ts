@@ -1,8 +1,9 @@
-import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { cities, notifications, regionals, userCities, userRegionals, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
+import { writeAuditLog } from "../audit";
 import { z } from "zod";
 import { alias } from "drizzle-orm/pg-core";
 
@@ -65,6 +66,19 @@ function notificationScopeCondition(userId: number, regionalIds: number[], cityI
   return or(...territorialClauses);
 }
 
+function unreadCondition() {
+  return and(isNull(notifications.readAt), isNull(notifications.completedAt));
+}
+
+async function assertNotificationAccess(database: Awaited<ReturnType<typeof requireDatabase>>, user: { id: number; role: string }, notification: { userId: number | null; regionalId: number | null; cityId: number | null }) {
+  if (user.role === "admin") return;
+  const { regionalIds, cityIds } = await notificationScope(database, user.id);
+  const isGlobal = !notification.userId && !notification.regionalId && !notification.cityId;
+  const isAssignedRegional = notification.regionalId !== null && regionalIds.includes(notification.regionalId);
+  const isAssignedCity = notification.cityId !== null && cityIds.includes(notification.cityId);
+  if (notification.userId !== user.id && !isGlobal && !isAssignedRegional && !isAssignedCity) throw new Error("Sem acesso à notificação.");
+}
+
 export const notificationsRouter = router({
   list: protectedProcedure.input(listInput).query(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
@@ -78,7 +92,7 @@ export const notificationsRouter = router({
       conditions.push(notificationScopeCondition(ctx.user.id, regionalIds, cityIds));
     }
     if (input?.category) conditions.push(eq(notifications.category, input.category));
-    if (input?.unreadOnly) conditions.push(isNull(notifications.completedAt));
+    if (input?.unreadOnly) conditions.push(unreadCondition());
     const rows = await database.select(notificationSelect).from(notifications)
       .leftJoin(users, eq(notifications.userId, users.id))
       .leftJoin(completedUsers, eq(notifications.completedByUserId, completedUsers.id))
@@ -87,6 +101,16 @@ export const notificationsRouter = router({
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(notifications.createdAt)).limit(input?.limit ?? 100);
     return rows.map(row => ({ ...row, actionUrl: notificationDestination(row.entityType, row.entityId, row.actionUrl) }));
+  }),
+  unreadCount: protectedProcedure.query(async ({ ctx }) => {
+    await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
+    const conditions = [unreadCondition()];
+    if (ctx.user.role !== "admin") {
+      const { regionalIds, cityIds } = await notificationScope(database, ctx.user.id);
+      conditions.push(notificationScopeCondition(ctx.user.id, regionalIds, cityIds));
+    }
+    const [row] = await database.select({ count: count(notifications.id) }).from(notifications).where(and(...conditions));
+    return { count: Number(row?.count ?? 0) };
   }),
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
@@ -102,17 +126,26 @@ export const notificationsRouter = router({
     await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
     const [notification] = await database.select().from(notifications).where(eq(notifications.id, input.notificationId)).limit(1);
     if (!notification) throw new Error("Notificação não encontrada.");
-    if (ctx.user.role !== "admin") {
-      const { regionalIds, cityIds } = await notificationScope(database, ctx.user.id);
-      const isGlobal = !notification.userId && !notification.regionalId && !notification.cityId;
-      const isAssignedRegional = notification.regionalId !== null && regionalIds.includes(notification.regionalId);
-      const isAssignedCity = notification.cityId !== null && cityIds.includes(notification.cityId);
-      if (notification.userId !== ctx.user.id && !isGlobal && !isAssignedRegional && !isAssignedCity) throw new Error("Sem acesso à notificação.");
-    }
+    await assertNotificationAccess(database, ctx.user, notification);
     const [updated] = await database.update(notifications).set({ readAt: new Date(), completedAt: new Date(), completedByUserId: ctx.user.id }).where(eq(notifications.id, input.notificationId)).returning(); return updated;
   }),
   markRead: protectedProcedure.input(z.object({ notificationId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "dashboard.read"); const database = await requireDatabase();
+    const [notification] = await database.select({ userId: notifications.userId, regionalId: notifications.regionalId, cityId: notifications.cityId, readAt: notifications.readAt }).from(notifications).where(eq(notifications.id, input.notificationId)).limit(1);
+    if (!notification) throw new Error("Notificação não encontrada.");
+    await assertNotificationAccess(database, ctx.user, notification);
+    if (notification.readAt) return notification;
     const [updated] = await database.update(notifications).set({ readAt: new Date() }).where(eq(notifications.id, input.notificationId)).returning(); return updated;
+  }),
+  delete: protectedProcedure.input(z.object({ notificationId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "notifications.delete"); const database = await requireDatabase();
+    const [notification] = await database.select().from(notifications).where(eq(notifications.id, input.notificationId)).limit(1);
+    if (!notification) throw new Error("Notificação não encontrada.");
+    await assertNotificationAccess(database, ctx.user, notification);
+    await database.transaction(async tx => {
+      await tx.delete(notifications).where(eq(notifications.id, input.notificationId));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "notification", entityId: input.notificationId, action: "delete", beforeData: notification }, tx);
+    });
+    return { success: true as const };
   }),
 });

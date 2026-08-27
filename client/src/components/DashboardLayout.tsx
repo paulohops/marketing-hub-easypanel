@@ -28,6 +28,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useBranding } from "@/contexts/BrandingContext";
+import { trpc } from "@/lib/trpc";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import {
@@ -296,16 +297,18 @@ function MobileNavigationBar({
   appSubtitle,
   logoUrl,
   activeLabel,
+  unreadNotificationCount,
   onHomeClick,
 }: {
   appName: string;
   appSubtitle: string;
   logoUrl: string;
   activeLabel: string;
+  unreadNotificationCount: number;
   onHomeClick: () => void;
 }) {
   const { setOpenMobile } = useSidebar();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   useEffect(() => {
     setOpenMobile(false);
@@ -320,7 +323,7 @@ function MobileNavigationBar({
       <button
         type="button"
         onClick={onHomeClick}
-        className="flex min-w-0 items-center gap-2 rounded-[var(--hub-control-radius)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--hub-control-radius)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-[var(--hub-control-radius)] bg-primary/10 p-1">
           <img src={logoUrl} alt={appName} className="h-full w-full object-contain" />
@@ -329,6 +332,15 @@ function MobileNavigationBar({
           <span className="block truncate text-xs font-bold text-foreground">{appName}</span>
           <span className="block truncate text-[10px] text-muted-foreground">{activeLabel || appSubtitle}</span>
         </span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setLocation("/notificacoes")}
+        aria-label={unreadNotificationCount > 0 ? `Abrir notificações: ${unreadNotificationCount} não vista${unreadNotificationCount === 1 ? "" : "s"}` : "Abrir notificações"}
+        className="relative grid h-[var(--hub-control-height)] w-[var(--hub-control-height)] shrink-0 place-items-center rounded-[var(--hub-control-radius)] border border-border bg-card text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <BellRing className="h-4 w-4" />
+        {unreadNotificationCount > 0 && <span aria-hidden="true" className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[var(--app-accent)] shadow-[0_0_0_2px_hsl(var(--background))]" />}
       </button>
     </header>
   );
@@ -351,6 +363,8 @@ export default function DashboardLayout({
   );
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const { can: canNavigate } = useEffectivePermissions();
+  const unreadNotificationsQuery = trpc.notifications.unreadCount.useQuery(undefined, { enabled: Boolean(user), refetchInterval: 30_000, staleTime: 10_000 });
+  const unreadNotificationCount = unreadNotificationsQuery.data?.count ?? 0;
   const isPathActive = (path: string, aliases: string[] = []) =>
     [path, ...aliases].some(candidate => location === candidate || location.startsWith(`${candidate}/`));
   const isExactPathActive = (path: string, aliases: string[] = []) =>
@@ -415,8 +429,9 @@ export default function DashboardLayout({
             style={active ? { backgroundColor: "var(--app-accent)", color: "var(--app-accent-foreground, #fff)" } : undefined}
             className="h-[var(--hub-sidebar-item-height)] rounded-[var(--hub-control-radius)] px-3 text-sidebar-foreground transition-all hover:bg-white/[0.12] hover:text-white data-[active=true]:font-bold data-[active=true]:text-white group-data-[collapsible=icon]:mx-auto"
           >
-            <item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />
+            <span className="relative shrink-0"><item.icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} />{item.path === "/notificacoes" && unreadNotificationCount > 0 && <span aria-hidden="true" className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full bg-[var(--app-accent)] shadow-[0_0_0_2px_hsl(var(--sidebar-background))]" />}</span>
             <span>{item.label}</span>
+            {item.path === "/notificacoes" && unreadNotificationCount > 0 && <span aria-label={`${unreadNotificationCount} notificação${unreadNotificationCount === 1 ? "" : "ões"} não vista${unreadNotificationCount === 1 ? "" : "s"}`} className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--app-accent)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-[var(--app-accent-foreground,#fff)] group-data-[collapsible=icon]:hidden">{unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}</span>}
             {visibleChildren.length > 0 ? (
               <ChevronDown
                 className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 group-data-[collapsible=icon]:hidden ${isExpanded ? "rotate-180" : ""}`}
@@ -629,6 +644,7 @@ export default function DashboardLayout({
           appSubtitle={branding.appSubtitle}
           logoUrl={branding.logoUrl}
           activeLabel={activeNavLabel}
+          unreadNotificationCount={unreadNotificationCount}
           onHomeClick={() => setLocation("/")}
         />
         <div className="min-h-screen">{children}</div>
