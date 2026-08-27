@@ -4,6 +4,7 @@ import { settingsBrandingProcedures } from "./settingsBranding";
 import { settingsRegistryProcedures, getTrelloEmbedUrl, normalizeCnpj, normalizeTrelloUrl, normalizeWebsiteUrl, uniqueIds } from "./settingsRegistry";
 import { settingsImportProcedures, normalizeSpreadsheetKey } from "./settingsImport";
 import { normalizeAppBranding } from "./settingsBranding";
+import { notificationSettingsRouter } from "./notificationSettings";
 
 export { getTrelloEmbedUrl, normalizeAppBranding, normalizeCnpj, normalizeSpreadsheetKey, normalizeTrelloUrl, normalizeWebsiteUrl, uniqueIds };
 
@@ -12,4 +13,5 @@ export const settingsRouter = router({
   ...settingsBrandingProcedures,
   ...settingsRegistryProcedures,
   ...settingsImportProcedures,
+  notificationRules: notificationSettingsRouter,
 });

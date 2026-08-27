@@ -34,6 +34,8 @@ import {
   suppliers,
   campaignSectors,
   campaignTypes,
+  stockCategories,
+  financeCompanies,
 } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
@@ -71,6 +73,8 @@ export const settingsOverviewProcedure = protectedProcedure.query(async ({ ctx }
       campaignTypeRows,
       campaignSectorRows,
       financialCategoryRows,
+      stockCategoryRows,
+      financeCompanyRows,
       supplierOfferingRows,
       supervisorRows,
       actionPointRows,
@@ -238,6 +242,22 @@ export const settingsOverviewProcedure = protectedProcedure.query(async ({ ctx }
         }),
       database
         .select()
+        .from(stockCategories)
+        .orderBy(asc(stockCategories.name))
+        .catch((error) => {
+          console.error("[settings.overview] Falha ao carregar catálogo opcional; resultado parcial mantido.", error);
+          return [];
+        }),
+      database
+        .select({ id: financeCompanies.id, name: financeCompanies.name, code: financeCompanies.code, active: financeCompanies.active })
+        .from(financeCompanies)
+        .orderBy(asc(financeCompanies.name))
+        .catch((error) => {
+          console.error("[settings.overview] Falha ao carregar catálogo opcional; resultado parcial mantido.", error);
+          return [];
+        }),
+      database
+        .select()
         .from(supplierOfferings)
         .orderBy(asc(supplierOfferings.name))
         .catch((error) => {
@@ -371,6 +391,8 @@ export const settingsOverviewProcedure = protectedProcedure.query(async ({ ctx }
       campaignTypes: campaignTypeRows,
       campaignSectors: campaignSectorRows,
       financialCategories: financialCategoryRows,
+      stockCategories: stockCategoryRows,
+      financeCompanies: financeCompanyRows,
       supplierOfferings: supplierOfferingRows,
       commercialSupervisors: supervisorRows,
       actionPoints: actionPointRows,

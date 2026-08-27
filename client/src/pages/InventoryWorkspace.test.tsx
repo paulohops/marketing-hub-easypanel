@@ -99,7 +99,7 @@ describe("estoque territorial", () => {
     fireEvent.change(screen.getByLabelText("Estoque mínimo"), { target: { value: "3" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar edição" }));
 
-    expect(updateMutation).toHaveBeenCalledWith({ id: 21, productTypeId: null, sku: "TENDA-01", name: "Tenda promocional 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: 3, active: true });
+    expect(updateMutation).toHaveBeenCalledWith({ id: 21, productTypeId: null, stockCategoryId: null, sku: "TENDA-01", name: "Tenda promocional 3x3", description: "Estrutura dobrável", unit: "un", category: "material_suporte", minimumQuantity: 3, active: true });
     expect(screen.getByText(/Saldos,\s*movimentações e transferências já registradas\s*permanecem preservados\./i)).toBeInTheDocument();
   });
 });

@@ -22,6 +22,7 @@ import {
   eventSuppliers,
   eventTypes,
   financialCategories,
+  financeCompanies,
   mediaCampaignCityDistributions,
   mediaCampaigns,
   mediaPoints,
@@ -39,6 +40,7 @@ import {
   serviceTypeRelations,
   serviceSubservices,
   subserviceTypes,
+  stockCategories,
   stockItems,
   stores,
   supplierCities,
@@ -1589,6 +1591,50 @@ export const settingsRegistryProcedures = {
       return created;
     }),
 
+  createStockCategory: protectedProcedure
+    .input(z.object({
+      name: z.string().trim().min(2).max(160),
+      description: z.string().trim().max(600).optional(),
+      companyId: z.number().int().positive().nullable().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      if (input.companyId) {
+        const [company] = await database.select({ id: financeCompanies.id }).from(financeCompanies).where(and(eq(financeCompanies.id, input.companyId), eq(financeCompanies.active, true))).limit(1);
+        if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa operacional não encontrada ou inativa." });
+      }
+      const categoryCondition = input.companyId
+        ? and(eq(stockCategories.companyId, input.companyId), sql`lower(${stockCategories.name}) = lower(${input.name})`)
+        : sql`${stockCategories.companyId} IS NULL AND lower(${stockCategories.name}) = lower(${input.name})`;
+      const existing = await database.select({ id: stockCategories.id }).from(stockCategories).where(categoryCondition).limit(1);
+      if (existing[0]) throw new TRPCError({ code: "CONFLICT", message: "Já existe uma categoria de estoque com este nome neste escopo." });
+      const [created] = await database.insert(stockCategories).values({ name: input.name, description: input.description || null, companyId: input.companyId || null, createdByUserId: ctx.user.id }).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "stock_category", entityId: created.id, action: "create", afterData: created });
+      return created;
+    }),
+
+  updateStockCategory: protectedProcedure
+    .input(z.object({ id: z.number().int().positive(), name: z.string().trim().min(2).max(160), description: z.string().trim().max(600).optional(), companyId: z.number().int().positive().nullable().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertPermission(ctx.user, "settings.write");
+      const database = await requireDatabase();
+      const [before] = await database.select().from(stockCategories).where(eq(stockCategories.id, input.id)).limit(1);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Categoria de estoque não encontrada." });
+      if (input.companyId) {
+        const [company] = await database.select({ id: financeCompanies.id }).from(financeCompanies).where(and(eq(financeCompanies.id, input.companyId), eq(financeCompanies.active, true))).limit(1);
+        if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa operacional não encontrada ou inativa." });
+      }
+      const categoryCondition = input.companyId
+        ? and(eq(stockCategories.companyId, input.companyId), sql`lower(${stockCategories.name}) = lower(${input.name})`)
+        : sql`${stockCategories.companyId} IS NULL AND lower(${stockCategories.name}) = lower(${input.name})`;
+      const duplicate = await database.select({ id: stockCategories.id }).from(stockCategories).where(and(ne(stockCategories.id, input.id), categoryCondition)).limit(1);
+      if (duplicate[0]) throw new TRPCError({ code: "CONFLICT", message: "Já existe uma categoria de estoque com este nome neste escopo." });
+      const [updated] = await database.update(stockCategories).set({ name: input.name, description: input.description || null, companyId: input.companyId || null, updatedAt: new Date() }).where(eq(stockCategories.id, input.id)).returning();
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "stock_category", entityId: input.id, action: "update", beforeData: before, afterData: updated });
+      return updated;
+    }),
+
   createFinancialCategory: protectedProcedure
     .input(
       z.object({
@@ -3030,6 +3076,7 @@ export const settingsRegistryProcedures = {
           "campaign",
           "campaign_sector",
           "financial_category",
+          "stock_category",
           "supplier_offering",
         ]),
         id: z.number().int().positive(),
@@ -3042,6 +3089,11 @@ export const settingsRegistryProcedures = {
       const now = new Date();
       let updated: { id: number; active: boolean } | undefined;
       switch (input.kind) {
+        case "stock_category": {
+          const [row] = await database.update(stockCategories).set({ active: input.active, updatedAt: now }).where(eq(stockCategories.id, input.id)).returning({ id: stockCategories.id, active: stockCategories.active });
+          updated = row;
+          break;
+        }
         case "product": {
           const [row] = await database
             .update(productTypes)
@@ -3219,6 +3271,7 @@ export const settingsRegistryProcedures = {
           "campaign",
           "campaign_sector",
           "financial_category",
+          "stock_category",
           "supplier_offering",
         ]),
         id: z.number().int().positive(),
@@ -3245,6 +3298,7 @@ export const settingsRegistryProcedures = {
         campaign: campaignTypes,
         campaign_sector: campaignSectors,
         financial_category: financialCategories,
+        stock_category: stockCategories,
         supplier_offering: supplierOfferings,
       } as const;
       const table = tables[input.kind];
@@ -3462,6 +3516,12 @@ export const settingsRegistryProcedures = {
             .where(eq(serviceTypeRelations.subserviceTypeId, input.id));
           await tx.delete(serviceTypes).where(eq(serviceTypes.id, input.id));
         });
+      } else if (input.kind === "stock_category") {
+        await database.transaction(async tx => {
+          const [item] = await tx.select({ id: stockItems.id }).from(stockItems).where(eq(stockItems.stockCategoryId, input.id)).limit(1);
+          if (item) throw new TRPCError({ code: "CONFLICT", message: "Esta categoria está vinculada a itens de estoque. Inative-a para preservar o histórico." });
+          await tx.delete(stockCategories).where(eq(stockCategories.id, input.id));
+        });
       } else if (input.kind === "media") {
         const [mediaPoint, operation, registration, child] =
           await Promise.all([
@@ -3606,6 +3666,7 @@ export const settingsRegistryProcedures = {
           "campaign",
           "campaign_sector",
           "financial_category",
+          "stock_category",
           "supplier_offering",
         ]),
         ids: z.array(z.number().int().positive()).min(1).max(500),
@@ -3775,6 +3836,13 @@ export const settingsRegistryProcedures = {
           }
           case "financial_category": {
             const removed = await tx.delete(financialCategories).where(inArray(financialCategories.id, ids)).returning({ id: financialCategories.id });
+            deleted = removed.length;
+            break;
+          }
+          case "stock_category": {
+            const linked = await tx.select({ id: stockItems.id }).from(stockItems).where(inArray(stockItems.stockCategoryId, ids)).limit(1);
+            if (linked[0]) throw new TRPCError({ code: "CONFLICT", message: "Uma ou mais categorias estão vinculadas a itens de estoque. Inative-as para preservar o histórico." });
+            const removed = await tx.delete(stockCategories).where(inArray(stockCategories.id, ids)).returning({ id: stockCategories.id });
             deleted = removed.length;
             break;
           }

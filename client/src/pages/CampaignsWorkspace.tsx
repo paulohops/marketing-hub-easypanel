@@ -1,5 +1,6 @@
 // @ts-nocheck
 import ImageViewer from "@/components/ImageViewer";
+import ContextTaskDialog from "@/components/ContextTaskDialog";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -633,6 +634,7 @@ function Editor({
 function Detail({
   campaign,
   canWrite,
+  canCreateTask,
   back,
   edit,
   upload,
@@ -720,6 +722,7 @@ function Detail({
         </div>
         {canWrite && (
           <div className="flex flex-wrap gap-2 xl:justify-end">
+            {canCreateTask ? <ContextTaskDialog entityType="media_campaign" entityId={campaign.id} entityName={campaign.name} defaultDescription={`Acompanhar a campanha ${campaign.name}.`} /> : null}
             <Button variant="outline" onClick={() => { setRenewalStartsAt(""); setRenewalEndsAt(""); setRenewalOpen(true); }}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Renovar campanha
@@ -1255,6 +1258,7 @@ export default function CampaignsWorkspace() {
         <Detail
           campaign={selected}
           canWrite={canWrite}
+          canCreateTask={can("tasks.create")}
           back={() => setLocation("/campanhas")}
           edit={() => edit(selected)}
           upload={upload}

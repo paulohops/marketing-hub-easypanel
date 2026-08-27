@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import EvidenceUpload from "@/components/EvidenceUpload";
+import ContextTaskDialog from "@/components/ContextTaskDialog";
 import SearchableMultiSelect, { type SelectableOption } from "@/components/SearchableMultiSelect";
 import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
@@ -539,6 +540,7 @@ export default function ActionsWorkspace() {
         <ActionDetail
           row={selected}
           canWrite={canWrite}
+          canCreateTask={can("tasks.create")}
           onBack={() => setLocation("/acoes")}
           onEdit={() => openEdit(selected)}
           onOpenCampaign={campaignId => setLocation(`/campanhas/${campaignId}`)}
@@ -911,6 +913,7 @@ type ActionFormProps = {
 function ActionDetail({
   row,
   canWrite,
+  canCreateTask,
   onBack,
   onEdit,
   onOpenCampaign,
@@ -923,6 +926,7 @@ function ActionDetail({
 }: {
   row: ActionRow;
   canWrite: boolean;
+  canCreateTask: boolean;
   onBack: () => void;
   onEdit: () => void;
   onOpenCampaign: (campaignId: number) => void;
@@ -998,6 +1002,7 @@ function ActionDetail({
         </div>
         {canWrite && (
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+            {canCreateTask ? <ContextTaskDialog entityType="action" entityId={row.action.id} entityName={row.action.name} cityId={row.action.cityId} defaultDescription={`Acompanhar a ação ${row.action.name}.`} /> : null}
             <Button variant="outline" onClick={onEdit}>
                 Editar ação
             </Button>

@@ -270,6 +270,12 @@ const navigationGroups: NavGroup[] = [
             icon: Settings2,
             permission: "settings.read",
           },
+          {
+            label: "Central de notificações",
+            path: "/configuracoes/notificacoes",
+            icon: BellRing,
+            permission: "settings.read",
+          },
         ],
       },
     ],

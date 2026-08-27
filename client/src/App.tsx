@@ -94,6 +94,7 @@ function Router() {
     <Route path="/configuracoes/central-de-dados">{() => <ProtectedModule module="central-de-dados" />}</Route>
     <Route path="/configuracoes/design">{() => <ProtectedModule module="design" />}</Route>
     <Route path="/configuracoes/sistema">{() => <ProtectedModule module="sistema" />}</Route>
+    <Route path="/configuracoes/notificacoes">{() => <ProtectedModule module="notificacoes-config" />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>
     <Route path="/administracao-usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>

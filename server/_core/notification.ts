@@ -123,6 +123,24 @@ export async function notifyOwner(payload: NotificationPayload): Promise<boolean
   return delivered;
 }
 
+export async function sendNotificationEmail(input: { to: string[]; title: string; content: string }): Promise<boolean> {
+  const validated = validatePayload({ title: input.title, content: input.content });
+  const settings = await loadSystemSettings();
+  if (!settings.notificationEmailEnabled || !input.to.length) return false;
+  const transporter = await createTransporter(settings);
+  if (!transporter) return false;
+  const recipients = Array.from(new Set(input.to.map(email => email.trim()).filter(Boolean)));
+  if (!recipients.length) return false;
+  await transporter.sendMail({
+    from: settings.smtpFrom,
+    to: recipients,
+    subject: validated.title,
+    text: validated.content,
+    html: `<h2>${escapeHtml(validated.title)}</h2><p>${escapeHtml(validated.content).replace(/\n/g, "<br />")}</p>`,
+  });
+  return true;
+}
+
 export async function sendTestNotification(): Promise<boolean> {
   return notifyOwner({ title: "Teste de notificações", content: "A configuração de notificações do sistema foi validada com sucesso." });
 }

@@ -1,9 +1,12 @@
 import { auditLogs } from "../drizzle/schema";
 import { getDb } from "./db";
+import { notifyConfiguredRules } from "./notificationDispatcher";
 
 type AuditEvent = {
   actorUserId: number;
   regionalId?: number | null;
+  cityId?: number | null;
+  companyId?: number | null;
   entityType: string;
   entityId: number;
   action: string;
@@ -24,4 +27,13 @@ export async function writeAuditLog(event: AuditEvent, databaseOverride?: any) {
     afterData: event.afterData ? JSON.stringify(event.afterData) : null,
     occurredAt: new Date(),
   });
+  try {
+    await notifyConfiguredRules(database, event);
+    const afterData = event.afterData && typeof event.afterData === "object" ? event.afterData as Record<string, unknown> : null;
+    if (event.entityType === "task" && event.action === "create" && Number(afterData?.assignedToUserId ?? 0) > 0) {
+      await notifyConfiguredRules(database, { ...event, action: "assigned" });
+    }
+  } catch (error) {
+    console.warn("Não foi possível materializar notificações configuráveis:", error);
+  }
 }

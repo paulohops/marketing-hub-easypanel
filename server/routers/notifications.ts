@@ -8,7 +8,7 @@ import { alias } from "drizzle-orm/pg-core";
 
 async function requireDatabase() { const database = await getDb(); if (!database) throw new Error("Banco de dados indisponível."); return database; }
 
-const notificationCategories = ["campaign_expiry", "payment_due", "action_pending", "stock_minimum"] as const;
+const notificationCategories = ["campaign_expiry", "payment_due", "action_pending", "stock_minimum", "entity_created", "entity_updated", "entity_status_changed", "entity_deleted", "task_assigned", "task_due"] as const;
 const listInput = z.object({
   userId: z.number().int().positive().optional(),
   regionalId: z.number().int().positive().optional(),

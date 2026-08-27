@@ -194,4 +194,29 @@ export const budgetsRouter = router({
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "operation_cost", entityId: updated.id, action: input.status, beforeData: before, afterData: updated });
     return { ...updated, total: totalCost(updated) };
   }),
+
+  deleteCost: protectedProcedure.input(z.object({ costId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.delete");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(operationCosts).where(eq(operationCosts.id, input.costId)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Custo operacional não encontrado." });
+    if (!["draft", "pending_approval"].includes(before.status)) throw new TRPCError({ code: "CONFLICT", message: "Custos aprovados ou rejeitados não podem ser excluídos. Preserve o histórico financeiro." });
+    await database.transaction(async tx => {
+      await tx.delete(operationCosts).where(eq(operationCosts.id, input.costId));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "operation_cost", entityId: input.costId, action: "delete", beforeData: before }, tx);
+    });
+    return { success: true as const };
+  }),
+
+  deleteBudget: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.delete");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(monthlyBudgets).where(eq(monthlyBudgets.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Verba mensal não encontrada." });
+    await database.transaction(async tx => {
+      await tx.delete(monthlyBudgets).where(eq(monthlyBudgets.id, input.id));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "monthly_budget", entityId: input.id, action: "delete", beforeData: before }, tx);
+    });
+    return { success: true as const };
+  }),
 });

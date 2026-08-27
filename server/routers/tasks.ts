@@ -2,12 +2,13 @@ import { and, desc, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { notifications, taskHistory, tasks, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
+import { writeAuditLog } from "../audit";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const taskStatuses = ["backlog", "todo", "in_progress", "blocked", "done", "cancelled"] as const;
 const taskPriorities = ["low", "normal", "high", "urgent"] as const;
-const taskSources = ["manual", "notification"] as const;
+const taskSources = ["manual", "notification", "context"] as const;
 
 const taskInput = z.object({
   title: z.string().trim().min(1).max(180),
@@ -18,6 +19,7 @@ const taskInput = z.object({
   dueDate: z.string().date().optional().nullable(),
   entityType: z.string().trim().max(64).optional().nullable(),
   entityId: z.number().int().positive().optional().nullable(),
+  source: z.enum(taskSources).default("manual"),
 });
 
 async function databaseOrThrow() {
@@ -84,14 +86,15 @@ export const tasksRouter = router({
         description: input.description || null,
         status: input.status,
         priority: input.priority,
-        source: "manual",
+        source: input.source,
         assignedToUserId: input.assignedToUserId || null,
         createdByUserId: ctx.user.id,
         dueDate: input.dueDate || null,
         entityType: input.entityType || null,
         entityId: input.entityId || null,
       }).returning();
-      await tx.insert(taskHistory).values({ taskId: created.id, actorUserId: ctx.user.id, action: "created", toStatus: created.status, note: "Tarefa criada" });
+      await tx.insert(taskHistory).values({ taskId: created.id, actorUserId: ctx.user.id, action: "created", toStatus: created.status, note: input.source === "context" ? "Tarefa contextual criada" : "Tarefa criada" });
+      await writeAuditLog({ actorUserId: ctx.user.id, regionalId: null, entityType: "task", entityId: created.id, action: "create", afterData: created }, tx);
       return created;
     });
   }),
@@ -118,6 +121,7 @@ export const tasksRouter = router({
         entityId: notification.entityId,
       }).returning();
       await tx.insert(taskHistory).values({ taskId: created.id, actorUserId: ctx.user.id, action: "created_from_notification", toStatus: created.status, note: "Tarefa criada a partir de notificação" });
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "task", entityId: created.id, action: "create", afterData: created }, tx);
       return created;
     });
   }),
@@ -145,6 +149,7 @@ export const tasksRouter = router({
     if (current.status !== updated.status || current.assignedToUserId !== updated.assignedToUserId) {
       await database.insert(taskHistory).values({ taskId: updated.id, actorUserId: ctx.user.id, action: current.status !== updated.status ? "status_changed" : "assigned", fromStatus: current.status, toStatus: updated.status, note: current.assignedToUserId !== updated.assignedToUserId ? "Responsável atualizado" : null });
     }
+    await writeAuditLog({ actorUserId: ctx.user.id, entityType: "task", entityId: updated.id, action: current.assignedToUserId !== updated.assignedToUserId ? "assigned" : current.status !== updated.status ? "status_changed" : "update", beforeData: current, afterData: updated });
     return updated;
   }),
 
@@ -157,10 +162,13 @@ export const tasksRouter = router({
   delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "tasks.delete");
     const database = await databaseOrThrow();
-    const [current] = await database.select({ id: tasks.id, createdByUserId: tasks.createdByUserId }).from(tasks).where(eq(tasks.id, input.id)).limit(1);
+    const [current] = await database.select().from(tasks).where(eq(tasks.id, input.id)).limit(1);
     if (!current) throw new Error("Tarefa não encontrada.");
     if (ctx.user.role !== "admin" && current.createdByUserId !== ctx.user.id) throw new Error("Somente o criador ou administrador pode excluir a tarefa.");
-    await database.delete(tasks).where(eq(tasks.id, input.id));
-    return { success: true };
+    await database.transaction(async tx => {
+      await tx.delete(tasks).where(eq(tasks.id, input.id));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "task", entityId: input.id, action: "delete", beforeData: current }, tx);
+    });
+    return { success: true as const };
   }),
 });

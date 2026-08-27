@@ -249,6 +249,15 @@ const entities: Record<string, EntityConfig> = {
       "Classificações de estimativas, verbas e controles financeiros.",
     icon: Building2,
   },
+  "categorias-estoque": {
+    singular: "Categoria de estoque",
+    plural: "Categorias de estoque",
+    collection: "stockCategories",
+    kind: "stock_category",
+    importModule: "stockCategories",
+    description: "Categorias globais ou específicas de uma empresa para organizar os itens de estoque.",
+    icon: Building2,
+  },
 };
 
 const registryPaths: Record<string, string> = {
@@ -270,6 +279,7 @@ const registryPaths: Record<string, string> = {
   campaign: "tipos-de-campanha",
   campaign_sector: "setores-de-campanha",
   financial_category: "categorias-financeiras",
+  stock_category: "categorias-estoque",
 };
 const registryGroups: Record<string, string> = {
   provider: "territorio",
@@ -289,6 +299,7 @@ const registryGroups: Record<string, string> = {
   campaign: "operacao",
   campaign_sector: "operacao",
   financial_category: "financeiro",
+  stock_category: "produtos-servicos",
 };
 
 function recordName(record: RegistryRecord) {
@@ -377,6 +388,7 @@ function blankRegistryForm(kind: string) {
     stateRegistration: "",
     municipalRegistration: "",
     isDefault: "no",
+    companyId: "",
   };
   return kind === "supplier" ? blankSupplierForm() : base;
 }
@@ -537,6 +549,17 @@ export default function RegistryEntityWorkspace() {
         setEditing(false);
       },
     });
+  const createStockCategory = trpc.settings.createStockCategory.useMutation({
+    onError: error => toast.error(error.message),
+  });
+  const updateStockCategory = trpc.settings.updateStockCategory.useMutation({
+    onSuccess: () => {
+      toast.success("Categoria de estoque atualizada.");
+      utils.settings.overview.invalidate();
+      setEditing(false);
+    },
+    onError: error => toast.error(error.message),
+  });
   const uploadProviderLogo = trpc.settings.uploadProviderLogo.useMutation({
     onSuccess: () => {
       toast.success("Logotipo atualizado.");
@@ -777,6 +800,7 @@ export default function RegistryEntityWorkspace() {
       stateRegistration: String(selected.stateRegistration ?? ""),
       municipalRegistration: String(selected.municipalRegistration ?? ""),
       isDefault: selected.isDefault ? "yes" : "no",
+      companyId: selected.companyId ? String(selected.companyId) : "",
       contactName: String(selected.contactName ?? ""),
       phone: String(selected.phone ?? ""),
       email: String(selected.email ?? ""),
@@ -1467,6 +1491,18 @@ export default function RegistryEntityWorkspace() {
             onSuccess: finishCreate("Categoria financeira criada."),
           });
     }
+    if (entity.kind === "stock_category") {
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        companyId: form.companyId ? Number(form.companyId) : null,
+      };
+      return selected
+        ? updateStockCategory.mutate({ id: selected.id, ...payload })
+        : createStockCategory.mutate(payload, {
+            onSuccess: finishCreate("Categoria de estoque criada."),
+          });
+    }
   };
 
   return (
@@ -1581,6 +1617,7 @@ export default function RegistryEntityWorkspace() {
                 form={form}
                 setForm={setForm}
                 providers={providers}
+                financeCompanies={((overview.data as Record<string, unknown> | undefined)?.financeCompanies ?? []) as RegistryRecord[]}
                 regionals={regionals}
                 cities={cities}
                 mediaTypes={mediaTypes}
@@ -1603,7 +1640,8 @@ export default function RegistryEntityWorkspace() {
                   createPartner.isPending ||
                   createSupervisor.isPending ||
                   createType.isPending ||
-                  createFinancialCategory.isPending
+                  createFinancialCategory.isPending ||
+                  createStockCategory.isPending
                 }
                 isCreating
               />
@@ -1907,6 +1945,7 @@ export default function RegistryEntityWorkspace() {
                 form={form}
                 setForm={setForm}
                 providers={providers}
+                financeCompanies={((overview.data as Record<string, unknown> | undefined)?.financeCompanies ?? []) as RegistryRecord[]}
                 regionals={regionals}
                 cities={cities}
                 mediaTypes={mediaTypes}
@@ -1928,7 +1967,8 @@ export default function RegistryEntityWorkspace() {
                   updatePartner.isPending ||
                   updateSupervisor.isPending ||
                   updateType.isPending ||
-                  updateFinancialCategory.isPending
+                  updateFinancialCategory.isPending ||
+                  updateStockCategory.isPending
                 }
               />
             )
@@ -3558,6 +3598,7 @@ function RegistryEditor({
   form,
   setForm,
   providers,
+  financeCompanies,
   regionals,
   cities,
   mediaTypes,
@@ -3577,6 +3618,7 @@ function RegistryEditor({
   form: Record<string, string>;
   setForm: (value: Record<string, string>) => void;
   providers: RegistryRecord[];
+  financeCompanies: RegistryRecord[];
   regionals: RegistryRecord[];
   cities: RegistryRecord[];
   mediaTypes: RegistryRecord[];
@@ -4097,6 +4139,28 @@ function RegistryEditor({
                 }
               />
             </label>
+          ) : null}
+          {kind === "stock_category" ? (
+            <>
+              <label className="grid gap-2 text-sm font-medium">
+                <span>Escopo da categoria</span>
+                <select
+                  value={form.companyId ?? ""}
+                  onChange={event => setForm({ ...form, companyId: event.target.value })}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Global / compartilhada</option>
+                  {financeCompanies.filter(company => company.active !== false).map(company => (
+                    <option key={company.id} value={company.id}>{recordName(company)}{company.code ? ` · ${company.code}` : ""}</option>
+                  ))}
+                </select>
+                <span className="text-xs font-normal text-muted-foreground">Global fica disponível para todas as empresas. Selecione uma empresa para restringir o uso.</span>
+              </label>
+              <label className="grid gap-2 text-sm font-medium md:col-span-2">
+                <span>Descrição</span>
+                <Textarea value={form.description ?? ""} onChange={event => setForm({ ...form, description: event.target.value })} />
+              </label>
+            </>
           ) : null}
         </div>
         <div className="mt-6 flex justify-end">

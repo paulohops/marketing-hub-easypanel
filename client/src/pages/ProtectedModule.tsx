@@ -28,6 +28,7 @@ const HelpWorkspace = lazy(() => import("./HelpWorkspace"));
 const KnowledgeTopicWorkspace = lazy(() => import("./KnowledgeTopicWorkspace"));
 const OperationalRegistriesWorkspace = lazy(() => import("./OperationalRegistriesWorkspace"));
 const NotificationsWorkspace = lazy(() => import("./NotificationsWorkspace"));
+const NotificationSettingsWorkspace = lazy(() => import("./NotificationSettingsWorkspace"));
 const CompaniesWorkspace = lazy(() => import("./CompaniesWorkspace"));
 const RegistryEntityWorkspace = lazy(() => import("./RegistryEntityWorkspace"));
 const TrelloWorkspace = lazy(() => import("./TrelloWorkspace"));
@@ -88,6 +89,7 @@ const definitions = {
   "pontos-de-acao": { permission: "settings.read", eyebrow: "Cadastros operacionais", title: "Pontos de ação", description: "Gerencie locais recorrentes para ações de trade.", icon: MapPinned, resources: [], accent: "var(--primary)" },
   "central-conhecimento": { permission: "dashboard.read", eyebrow: "Central de conhecimento", title: "Central de Conhecimento", description: "Consulte páginas detalhadas sobre os módulos, relacionamentos, preenchimento dos campos e fluxos operacionais.", icon: CircleHelp, resources: [], accent: "var(--primary)" },
   notificacoes: { permission: "dashboard.read", eyebrow: "Acompanhamento operacional", title: "Notificações", description: "Acompanhe alertas direcionados a pessoas, regionais e cidades.", icon: BellRing, resources: [], accent: "var(--primary)" },
+  "notificacoes-config": { permission: "settings.read", eyebrow: "Governança operacional", title: "Central de notificações", description: "Configure eventos, canais e destinatários das notificações do sistema.", icon: BellRing, resources: [], accent: "var(--primary)" },
   "central-de-dados": { permission: "settings.read", eyebrow: "Administração do sistema", title: "Central de Dados", description: "Importe cadastros e exporte relatórios.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
   design: { permission: "settings.read", eyebrow: "Identidade visual", title: "Design", description: "Personalize o tema e a identidade visual.", icon: Settings2, resources: [], accent: "var(--primary)" },
   sistema: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Sistema", description: "Configure SMTP, notificações por e-mail e chaves de integrações.", icon: Settings2, resources: [], accent: "var(--primary)" },
@@ -154,5 +156,6 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   if (module === "pontos-de-acao") return workspace(<ActionPointsWorkspace />);
   if (module === "central-conhecimento") return workspace(topicId ? <KnowledgeTopicWorkspace topicId={topicId} /> : <HelpWorkspace />);
   if (module === "notificacoes") return workspace(<NotificationsWorkspace />);
+  if (module === "notificacoes-config") return workspace(<NotificationSettingsWorkspace />);
   return <DashboardLayout><div className="cluster-workspace"><ModulePage {...definition} /></div></DashboardLayout>;
 }

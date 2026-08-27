@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -634,6 +634,17 @@ export const financeRouter = router({
     return result;
   }),
 
+  listPayments: protectedProcedure.query(async ({ ctx }) => {
+    await assertPermission(ctx.user, "finance.read");
+    const database = await requireDatabase();
+    const rows = await database.select({ payment: payments, invoiceNumber: invoices.invoiceNumber, invoiceAmount: invoices.amount, invoiceStatus: invoices.status, supplierName: suppliers.displayName })
+      .from(payments)
+      .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
+      .innerJoin(suppliers, eq(invoices.supplierId, suppliers.id))
+      .orderBy(desc(payments.paidAt), desc(payments.id));
+    return rows.map(row => ({ ...row.payment, invoiceNumber: row.invoiceNumber, invoiceAmount: row.invoiceAmount, invoiceStatus: row.invoiceStatus, supplierName: row.supplierName }));
+  }),
+
   listInvoices: protectedProcedure.input(invoiceListFiltersInput.optional()).query(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "finance.read");
     const database = await requireDatabase();
@@ -702,6 +713,88 @@ export const financeRouter = router({
       }
       await writeAuditLog({ actorUserId: ctx.user.id, entityType: "invoice", entityId: created.id, action: "create", afterData: { ...created, itemCount: items.length } });
       return created;
+    });
+  }),
+
+  deleteSupplierContract: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.delete");
+    const database = await requireDatabase();
+    const [contract] = await database.select().from(supplierContracts).where(eq(supplierContracts.id, input.id)).limit(1);
+    if (!contract) throw new TRPCError({ code: "NOT_FOUND", message: "Contrato financeiro não encontrado." });
+    if (contract.status !== "draft") throw new TRPCError({ code: "CONFLICT", message: "Somente contratos em rascunho podem ser excluídos. Inative ou encerre o contrato para preservar o histórico." });
+    const contractBillings = await database.select({ id: financeBillings.id }).from(financeBillings).where(eq(financeBillings.supplierContractId, input.id));
+    const billingIds = contractBillings.map(row => row.id);
+    const [invoice, document] = await Promise.all([
+      database.select({ id: invoices.id }).from(invoices).where(billingIds.length ? or(eq(invoices.supplierContractId, input.id), inArray(invoices.billingId, billingIds)) : eq(invoices.supplierContractId, input.id)).limit(1),
+      database.select({ id: documents.id }).from(documents).where(and(eq(documents.entityType, "supplier_contract"), eq(documents.entityId, input.id))).limit(1),
+    ]);
+    if (invoice[0] || document[0]) throw new TRPCError({ code: "CONFLICT", message: "Este contrato possui nota fiscal, competência faturada ou documento anexado. Preserve o histórico e altere o status em vez de excluir." });
+    return database.transaction(async tx => {
+      await tx.delete(supplierContracts).where(eq(supplierContracts.id, input.id));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "supplier_contract", entityId: input.id, action: "delete", beforeData: contract }, tx);
+      return { success: true as const };
+    });
+  }),
+
+  deletePurchaseOrder: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.delete");
+    const database = await requireDatabase();
+    const [order] = await database.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.id)).limit(1);
+    if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Ordem de compra não encontrada." });
+    if (!["draft", "cancelled"].includes(order.status)) throw new TRPCError({ code: "CONFLICT", message: "Somente ordens em rascunho ou canceladas podem ser excluídas. Ordens aprovadas ou recebidas preservam o histórico financeiro." });
+    const [orderItems, orderBillings] = await Promise.all([
+      database.select({ id: purchaseOrderItems.id, receivedQuantity: purchaseOrderItems.receivedQuantity }).from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, input.id)),
+      database.select({ id: financeBillings.id }).from(financeBillings).where(eq(financeBillings.purchaseOrderId, input.id)),
+    ]);
+    if (orderItems.some(item => Number(item.receivedQuantity) > 0)) throw new TRPCError({ code: "CONFLICT", message: "Esta ordem possui produtos recebidos. Preserve o histórico de estoque e financeiro." });
+    const itemIds = orderItems.map(item => item.id);
+    const billingIds = orderBillings.map(row => row.id);
+    const invoice = itemIds.length || billingIds.length
+      ? await database.select({ id: invoiceItems.invoiceId }).from(invoiceItems).where(itemIds.length && billingIds.length ? or(inArray(invoiceItems.purchaseOrderItemId, itemIds), inArray(invoices.billingId, billingIds)) : itemIds.length ? inArray(invoiceItems.purchaseOrderItemId, itemIds) : inArray(invoices.billingId, billingIds)).leftJoin(invoices, eq(invoices.id, invoiceItems.invoiceId)).limit(1)
+      : [];
+    if (invoice[0]) throw new TRPCError({ code: "CONFLICT", message: "Esta ordem possui nota fiscal vinculada. Preserve o histórico financeiro." });
+    return database.transaction(async tx => {
+      await tx.delete(purchaseOrders).where(eq(purchaseOrders.id, input.id));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "purchase_order", entityId: input.id, action: "delete", beforeData: order }, tx);
+      return { success: true as const };
+    });
+  }),
+
+  deleteInvoice: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.delete");
+    const database = await requireDatabase();
+    const [invoice] = await database.select().from(invoices).where(eq(invoices.id, input.id)).limit(1);
+    if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Nota fiscal não encontrada." });
+    if (invoice.status !== "open") throw new TRPCError({ code: "CONFLICT", message: "Somente notas fiscais em aberto podem ser excluídas. Notas pagas, parciais ou canceladas devem permanecer no histórico." });
+    const [payment, document, invoiceItemRows] = await Promise.all([
+      database.select({ id: payments.id }).from(payments).where(eq(payments.invoiceId, input.id)).limit(1),
+      database.select({ id: documents.id }).from(documents).where(and(eq(documents.entityType, "invoice"), eq(documents.entityId, input.id))).limit(1),
+      database.select({ receivedQuantity: invoiceItems.receivedQuantity }).from(invoiceItems).where(eq(invoiceItems.invoiceId, input.id)),
+    ]);
+    if (payment[0] || document[0] || invoiceItemRows.some(item => Number(item.receivedQuantity) > 0)) throw new TRPCError({ code: "CONFLICT", message: "Esta nota possui pagamento, recebimento de estoque ou comprovante anexado. Preserve o histórico financeiro." });
+    return database.transaction(async tx => {
+      if (invoice.billingId) await tx.update(financeBillings).set({ status: "planned", updatedAt: new Date() }).where(eq(financeBillings.id, invoice.billingId));
+      await tx.delete(invoices).where(eq(invoices.id, input.id));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "invoice", entityId: input.id, action: "delete", beforeData: invoice }, tx);
+      return { success: true as const };
+    });
+  }),
+
+  deletePayment: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.delete");
+    const database = await requireDatabase();
+    const [payment] = await database.select().from(payments).where(eq(payments.id, input.id)).limit(1);
+    if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Pagamento não encontrado." });
+    const [invoice] = await database.select().from(invoices).where(eq(invoices.id, payment.invoiceId)).limit(1);
+    if (!invoice) throw new TRPCError({ code: "CONFLICT", message: "A nota fiscal deste pagamento não foi encontrada; não é seguro remover o lançamento." });
+    return database.transaction(async tx => {
+      await tx.delete(payments).where(eq(payments.id, input.id));
+      const remaining = await tx.select().from(payments).where(eq(payments.invoiceId, payment.invoiceId));
+      const nextStatus = paymentStatus(Number(invoice.amount), remaining.reduce((sum, item) => sum + Number(item.amount), 0));
+      await tx.update(invoices).set({ status: nextStatus, updatedAt: new Date() }).where(eq(invoices.id, invoice.id));
+      if (invoice.billingId) await tx.update(financeBillings).set({ status: nextStatus === "paid" ? "paid" : nextStatus === "partially_paid" ? "partially_paid" : "invoiced", updatedAt: new Date() }).where(eq(financeBillings.id, invoice.billingId));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "payment", entityId: input.id, action: "delete", beforeData: payment }, tx);
+      return { success: true as const, invoiceStatus: nextStatus };
     });
   }),
 

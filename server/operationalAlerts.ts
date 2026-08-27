@@ -1,12 +1,13 @@
 import type { Request, Response } from "express";
 import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { actions, cities, invoices, mediaCampaigns, mediaPoints, notifications } from "../drizzle/schema";
+import { notifyConfiguredRules } from "./notificationDispatcher";
 import { getDb } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { sdk } from "./_core/sdk";
 
 type AlertCategory = "campaign_expiry" | "payment_due" | "action_pending";
-type NewAlert = { category: AlertCategory; title: string; message: string; entityType: string; entityId: number; regionalId?: number | null };
+type NewAlert = { category: AlertCategory; title: string; message: string; entityType: string; entityId: number; regionalId?: number | null; cityId?: number | null; eventType: "due" | "expiry"; afterData?: Record<string, unknown> };
 
 const startOfUtcDay = (value: Date) => new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
 const asDate = (value: Date) => value.toISOString().slice(0, 10);
@@ -21,6 +22,12 @@ async function persistIfNew(alert: NewAlert, dayStart: Date) {
   if (!database) throw new Error("Banco de dados indisponível para alertas operacionais.");
   const existing = await database.select({ id: notifications.id }).from(notifications).where(and(eq(notifications.category, alert.category), eq(notifications.entityType, alert.entityType), eq(notifications.entityId, alert.entityId), gte(notifications.createdAt, dayStart))).limit(1);
   if (existing.length) return false;
+  try {
+    const dispatchResult = await notifyConfiguredRules(database, { actorUserId: 0, regionalId: alert.regionalId ?? null, cityId: alert.cityId ?? null, entityType: alert.entityType, entityId: alert.entityId, action: alert.eventType, afterData: alert.afterData });
+    if (dispatchResult.matchedRules > 0) return true;
+  } catch (error) {
+    console.warn("Não foi possível aplicar regras configuráveis; usando alerta operacional padrão.", error);
+  }
   await database.insert(notifications).values({ category: alert.category, title: alert.title, message: alert.message, entityType: alert.entityType, entityId: alert.entityId, regionalId: alert.regionalId ?? null });
   return true;
 }
@@ -37,9 +44,9 @@ export async function runOperationalAlertSweep(now = new Date()) {
     database.select({ id: actions.id, name: actions.name, scheduledFor: actions.scheduledFor, regionalId: cities.regionalId }).from(actions).innerJoin(cities, eq(actions.cityId, cities.id)).where(and(eq(actions.status, "planned"), lte(actions.scheduledFor, now))),
   ]);
   const candidates: NewAlert[] = [
-    ...campaignRows.map(row => ({ category: "campaign_expiry" as const, title: "Campanha próxima do vencimento", message: `A campanha ${row.name} vence em ${new Date(`${row.endsOn}T12:00:00Z`).toLocaleDateString("pt-BR")}.`, entityType: "media_campaign", entityId: row.id, regionalId: row.regionalId })),
-    ...invoiceRows.map(row => ({ category: "payment_due" as const, title: "Pagamento pendente", message: `A nota fiscal ${row.invoiceNumber} vence em ${new Date(`${row.dueDate}T12:00:00Z`).toLocaleDateString("pt-BR")} no valor de R$ ${Number(row.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`, entityType: "invoice", entityId: row.id })),
-    ...actionRows.map(row => ({ category: "action_pending" as const, title: "Ação sem execução registrada", message: `A ação ${row.name}, prevista para ${row.scheduledFor.toLocaleString("pt-BR")}, ainda não possui execução concluída.`, entityType: "action", entityId: row.id, regionalId: row.regionalId })),
+    ...campaignRows.map(row => ({ category: "campaign_expiry" as const, eventType: "expiry" as const, title: "Campanha próxima do vencimento", message: `A campanha ${row.name} vence em ${new Date(`${row.endsOn}T12:00:00Z`).toLocaleDateString("pt-BR")}.`, entityType: "media_campaign", entityId: row.id, regionalId: row.regionalId, afterData: { name: row.name } })),
+    ...invoiceRows.map(row => ({ category: "payment_due" as const, eventType: "due" as const, title: "Pagamento pendente", message: `A nota fiscal ${row.invoiceNumber} vence em ${new Date(`${row.dueDate}T12:00:00Z`).toLocaleDateString("pt-BR")} no valor de R$ ${Number(row.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`, entityType: "invoice", entityId: row.id, afterData: { invoiceNumber: row.invoiceNumber } })),
+    ...actionRows.map(row => ({ category: "action_pending" as const, eventType: "due" as const, title: "Ação sem execução registrada", message: `A ação ${row.name}, prevista para ${row.scheduledFor.toLocaleString("pt-BR")}, ainda não possui execução concluída.`, entityType: "action", entityId: row.id, regionalId: row.regionalId, afterData: { name: row.name } })),
   ];
   const dayStart = startOfUtcDay(now);
   const generated: NewAlert[] = [];

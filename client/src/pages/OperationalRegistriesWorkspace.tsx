@@ -45,6 +45,7 @@ type RegistryCollection =
   | "campaignTypes"
   | "campaignSectors"
   | "financialCategories"
+  | "stockCategories"
   | "fiscalEntities"
   | "neighborhoods";
 
@@ -293,6 +294,16 @@ const registryItems: RegistryItem[] = [
     collection: "productTypes",
     icon: Package,
     relation: "Ofertas de fornecedores",
+  },
+  {
+    slug: "categorias-estoque",
+    title: "Categorias de estoque",
+    description: "Categorias globais ou específicas por empresa para organizar os materiais.",
+    group: "produtos-servicos",
+    route: "/cadastros/categorias-estoque",
+    collection: "stockCategories",
+    icon: Package,
+    relation: "Itens e movimentações de estoque",
   },
   {
     slug: "categorias-financeiras",

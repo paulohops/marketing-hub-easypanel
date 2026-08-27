@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { cities, commercialSupervisors, notifications, productTypes, regionals, stockBalances, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
+import { cities, commercialSupervisors, notifications, productTypes, regionals, stockBalances, stockCategories, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
+import { notifyConfiguredRules } from "../notificationDispatcher";
 import { hasSupportedFileSignature, storagePut } from "../storage";
 
 type Movement = { movementType: "entry" | "exit" | "adjustment"; quantity: string };
@@ -50,12 +51,14 @@ const inventoryListInput = z.object({
   regionalId: z.number().int().positive().optional(),
   cityId: z.number().int().positive().optional(),
   category: z.enum(stockCategoryValues).optional(),
+  stockCategoryId: z.number().int().positive().optional(),
   search: z.string().trim().max(120).optional(),
 }).optional();
 
 const stockItemUpdateInput = z.object({
   id: z.number().int().positive(),
   productTypeId: z.number().int().positive().nullable().optional(),
+  stockCategoryId: z.number().int().positive().nullable().optional(),
   sku: z.string().trim().min(2).max(64).toUpperCase(),
   name: z.string().trim().min(2).max(180),
   description: z.string().trim().max(2_000).optional(),
@@ -75,13 +78,14 @@ export const inventoryRouter = router({
   referenceData: protectedProcedure.query(async ({ ctx }) => {
     await assertPermission(ctx.user, "inventory.read");
     const database = await requireDatabase();
-    const [regionalRows, cityRows, supervisorRows, productRows] = await Promise.all([
+    const [regionalRows, cityRows, supervisorRows, productRows, stockCategoryRows] = await Promise.all([
       database.select().from(regionals).where(eq(regionals.active, true)).orderBy(asc(regionals.name)),
       database.select().from(cities).where(eq(cities.active, true)).orderBy(asc(cities.name)),
       database.select().from(commercialSupervisors).where(eq(commercialSupervisors.active, true)).orderBy(asc(commercialSupervisors.name)),
       database.select().from(productTypes).where(eq(productTypes.active, true)).orderBy(asc(productTypes.name)),
+      database.select().from(stockCategories).where(eq(stockCategories.active, true)).orderBy(asc(stockCategories.name)),
     ]);
-    return { regionals: regionalRows, cities: cityRows, supervisors: supervisorRows, productTypes: productRows };
+    return { regionals: regionalRows, cities: cityRows, supervisors: supervisorRows, productTypes: productRows, stockCategories: stockCategoryRows };
   }),
 
   list: protectedProcedure.input(inventoryListInput).query(async ({ ctx, input }) => {
@@ -91,18 +95,19 @@ export const inventoryRouter = router({
     if (input?.regionalId) conditions.push(eq(stockItems.regionalId, input.regionalId));
     if (input?.cityId) conditions.push(eq(stockItems.cityId, input.cityId));
     if (input?.category) conditions.push(eq(stockItems.category, input.category));
+    if (input?.stockCategoryId) conditions.push(eq(stockItems.stockCategoryId, input.stockCategoryId));
     if (input?.search) {
       const search = `%${input.search}%`;
       conditions.push(or(ilike(stockItems.name, search), ilike(stockItems.sku, search))!);
     }
     const where = conditions.length ? and(...conditions) : undefined;
     const [items, movements] = await Promise.all([
-      database.select({ item: stockItems, regionalName: regionals.name, cityName: cities.name, productName: productTypes.name, materializedBalance: stockBalances.quantity }).from(stockItems).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(productTypes, eq(stockItems.productTypeId, productTypes.id)).leftJoin(stockBalances, eq(stockBalances.stockItemId, stockItems.id)).where(where).orderBy(asc(stockItems.name)),
+      database.select({ item: stockItems, regionalName: regionals.name, cityName: cities.name, productName: productTypes.name, stockCategoryName: stockCategories.name, stockCategoryCompanyId: stockCategories.companyId, materializedBalance: stockBalances.quantity }).from(stockItems).innerJoin(regionals, eq(stockItems.regionalId, regionals.id)).leftJoin(cities, eq(stockItems.cityId, cities.id)).leftJoin(productTypes, eq(stockItems.productTypeId, productTypes.id)).leftJoin(stockCategories, eq(stockItems.stockCategoryId, stockCategories.id)).leftJoin(stockBalances, eq(stockBalances.stockItemId, stockItems.id)).where(where).orderBy(asc(stockItems.name)),
       database.select().from(stockMovements),
     ]);
-    return items.map(({ item, regionalName, cityName, productName, materializedBalance }) => {
+    return items.map(({ item, regionalName, cityName, productName, stockCategoryName, stockCategoryCompanyId, materializedBalance }) => {
       const relatedMovements = movements.filter(movement => movement.stockItemId === item.id);
-      return { ...item, regionalName, cityName, productName, balance: materializedBalance === null ? calculateStockBalance(relatedMovements) : Number(materializedBalance), movementCount: relatedMovements.length };
+      return { ...item, regionalName, cityName, productName, stockCategoryName, stockCategoryCompanyId, balance: materializedBalance === null ? calculateStockBalance(relatedMovements) : Number(materializedBalance), movementCount: relatedMovements.length };
     });
   }),
 
@@ -144,11 +149,15 @@ export const inventoryRouter = router({
     return { items: rows, total: Number(totalRows[0]?.total ?? 0), page: filters.page, pageSize: filters.pageSize };
   }),
 
-  createItem: protectedProcedure.input(z.object({ regionalId: z.number().int().positive(), cityId: z.number().int().positive().nullable(), productTypeId: z.number().int().positive().nullable().optional(), sku: z.string().trim().min(2).max(64).toUpperCase(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(2000).optional(), unit: z.string().trim().min(1).max(24).default("un"), category: z.enum(stockCategoryValues).default("material_suporte"), minimumQuantity: z.number().nonnegative().max(1_000_000).default(0) })).mutation(async ({ ctx, input }) => {
+  createItem: protectedProcedure.input(z.object({ regionalId: z.number().int().positive(), cityId: z.number().int().positive().nullable(), productTypeId: z.number().int().positive().nullable().optional(), stockCategoryId: z.number().int().positive().nullable().optional(), sku: z.string().trim().min(2).max(64).toUpperCase(), name: z.string().trim().min(2).max(180), description: z.string().trim().max(2000).optional(), unit: z.string().trim().min(1).max(24).default("un"), category: z.enum(stockCategoryValues).default("material_suporte"), minimumQuantity: z.number().nonnegative().max(1_000_000).default(0) })).mutation(async ({ ctx, input }) => {
     await assertPermission(ctx.user, "inventory.write");
     const database = await requireDatabase();
+    if (input.stockCategoryId) {
+      const [category] = await database.select({ id: stockCategories.id }).from(stockCategories).where(and(eq(stockCategories.id, input.stockCategoryId), eq(stockCategories.active, true))).limit(1);
+      if (!category) throw new TRPCError({ code: "NOT_FOUND", message: "Categoria de estoque não encontrada ou inativa." });
+    }
     const created = await database.transaction(async transaction => {
-      const [item] = await transaction.insert(stockItems).values({ ...input, description: input.description || null, minimumQuantity: input.minimumQuantity.toFixed(2) }).returning();
+      const [item] = await transaction.insert(stockItems).values({ ...input, stockCategoryId: input.stockCategoryId || null, description: input.description || null, minimumQuantity: input.minimumQuantity.toFixed(2) }).returning();
       await transaction.insert(stockBalances).values({ stockItemId: item.id, quantity: "0.00" }).onConflictDoNothing();
       return item;
     });
@@ -175,8 +184,13 @@ export const inventoryRouter = router({
     const database = await requireDatabase();
     const [before] = await database.select().from(stockItems).where(eq(stockItems.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Item de estoque não encontrado." });
+    if (input.stockCategoryId) {
+      const [category] = await database.select({ id: stockCategories.id }).from(stockCategories).where(and(eq(stockCategories.id, input.stockCategoryId), eq(stockCategories.active, true))).limit(1);
+      if (!category) throw new TRPCError({ code: "NOT_FOUND", message: "Categoria de estoque não encontrada ou inativa." });
+    }
     const [updated] = await database.update(stockItems).set({
       productTypeId: input.productTypeId ?? null,
+      stockCategoryId: input.stockCategoryId ?? null,
       sku: input.sku,
       name: input.name,
       description: input.description || null,
@@ -206,8 +220,17 @@ export const inventoryRouter = router({
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: item.regionalId, entityType: "stock_movement", entityId: created.id, action: "create", afterData: created });
     const minimum = Number(item.minimumQuantity);
     if (minimum > 0 && balance <= minimum) {
-      const existingAlert = await database.select({ id: notifications.id }).from(notifications).where(and(eq(notifications.category, "stock_minimum"), eq(notifications.entityType, "stock_item"), eq(notifications.entityId, item.id), isNull(notifications.readAt))).limit(1);
-      if (!existingAlert[0]) await database.insert(notifications).values({ regionalId: item.regionalId, cityId: item.cityId, category: "stock_minimum", title: `Estoque baixo: ${item.name}`, message: `O saldo de ${balance.toLocaleString("pt-BR")} ${item.unit} atingiu o mínimo configurado de ${minimum.toLocaleString("pt-BR")} ${item.unit}.`, entityType: "stock_item", entityId: item.id });
+      let handledByRule = false;
+      try {
+        const dispatchResult = await notifyConfiguredRules(database, { actorUserId: ctx.user.id, regionalId: item.regionalId, cityId: item.cityId, entityType: "stock_item", entityId: item.id, action: "minimum", afterData: { ...item, balance } });
+        handledByRule = dispatchResult.matchedRules > 0;
+      } catch (error) {
+        console.warn("Não foi possível aplicar regras de estoque mínimo; usando alerta padrão.", error);
+      }
+      if (!handledByRule) {
+        const existingAlert = await database.select({ id: notifications.id }).from(notifications).where(and(eq(notifications.category, "stock_minimum"), eq(notifications.entityType, "stock_item"), eq(notifications.entityId, item.id))).limit(1);
+        if (!existingAlert[0]) await database.insert(notifications).values({ regionalId: item.regionalId, cityId: item.cityId, category: "stock_minimum", title: `Estoque baixo: ${item.name}`, message: `O saldo de ${balance.toLocaleString("pt-BR")} ${item.unit} atingiu o mínimo configurado de ${minimum.toLocaleString("pt-BR")} ${item.unit}.`, entityType: "stock_item", entityId: item.id });
+      }
     }
     return created;
   }),
@@ -223,7 +246,7 @@ export const inventoryRouter = router({
       ]);
       if (!source[0] || !destination[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item de origem ou destino não encontrado." });
       if (!source[0].cityId || !destination[0].cityId || source[0].cityId === destination[0].cityId) throw new TRPCError({ code: "BAD_REQUEST", message: "A transferência deve ocorrer entre duas cidades diferentes." });
-      if (source[0].sku !== destination[0].sku || source[0].unit !== destination[0].unit || source[0].category !== destination[0].category) throw new TRPCError({ code: "BAD_REQUEST", message: "Os itens transferidos devem possuir o mesmo SKU, unidade e categoria." });
+      if (source[0].sku !== destination[0].sku || source[0].unit !== destination[0].unit || (source[0].stockCategoryId ?? `legacy:${source[0].category}`) !== (destination[0].stockCategoryId ?? `legacy:${destination[0].category}`)) throw new TRPCError({ code: "BAD_REQUEST", message: "Os itens transferidos devem possuir o mesmo SKU, unidade e categoria." });
       await transaction.insert(stockBalances).values([{ stockItemId: source[0].id, quantity: "0.00" }, { stockItemId: destination[0].id, quantity: "0.00" }]).onConflictDoNothing();
       const quantity = Number(input.quantity.toFixed(2));
       const [created] = await transaction.insert(stockTransfers).values({ sourceStockItemId: source[0].id, destinationStockItemId: destination[0].id, quantity: quantity.toFixed(2), transferredAt: input.occurredAt, notes: input.notes || null, responsibleCommercialSupervisorId: input.responsibleCommercialSupervisorId || null, recipientCommercialSupervisorId: input.recipientCommercialSupervisorId || null, performedByUserId: ctx.user.id }).returning();

@@ -17,6 +17,7 @@ import { trpc } from "@/lib/trpc";
 import ImageViewer from "@/components/ImageViewer";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
 import SearchableSelect from "@/components/SearchableSelect";
+import ContextTaskDialog from "@/components/ContextTaskDialog";
 import {
   AlertCircle,
   ArrowDownToLine,
@@ -96,6 +97,7 @@ export default function InventoryWorkspace() {
     regionalId: "",
     cityId: "",
     category: "",
+    stockCategoryId: "",
     search: "",
     availability: "",
   });
@@ -103,6 +105,7 @@ export default function InventoryWorkspace() {
     regionalId: "",
     cityId: "",
     productTypeId: "",
+    stockCategoryId: "",
     sku: "",
     name: "",
     unit: "un",
@@ -112,6 +115,7 @@ export default function InventoryWorkspace() {
   });
   const [editForm, setEditForm] = useState({
     productTypeId: "",
+    stockCategoryId: "",
     sku: "",
     name: "",
     unit: "un",
@@ -151,9 +155,8 @@ export default function InventoryWorkspace() {
         ? Number(filtersState.regionalId)
         : undefined,
       cityId: filtersState.cityId ? Number(filtersState.cityId) : undefined,
-      category: (filtersState.category || undefined) as
-        | StockCategory
-        | undefined,
+      category: filtersState.category.startsWith("legacy:") ? filtersState.category.slice(7) as StockCategory : undefined,
+      stockCategoryId: filtersState.category.startsWith("dynamic:") ? Number(filtersState.category.slice(8)) : undefined,
       search: filtersState.search || undefined,
     }),
     [filtersState]
@@ -172,6 +175,8 @@ export default function InventoryWorkspace() {
     });
   }, [filtersState.availability, inventory.data]);
   const references = trpc.inventory.referenceData.useQuery();
+  const dynamicCategoryOptions = useMemo(() => (references.data?.stockCategories ?? []).filter(category => category.active).map(category => ({ value: `dynamic:${category.id}`, label: `${category.name}${category.companyId ? " · Empresa específica" : " · Global"}`, id: category.id })), [references.data?.stockCategories]);
+  const categoryOptions = useMemo(() => [...stockCategories.map(category => ({ value: `legacy:${category.value}`, label: category.label, id: null })), ...dynamicCategoryOptions], [dynamicCategoryOptions]);
   const movementInput = useMemo(
     () => ({
       stockItemId: historyItemId ?? undefined,
@@ -239,6 +244,7 @@ export default function InventoryWorkspace() {
         regionalId: "",
         cityId: "",
         productTypeId: "",
+        stockCategoryId: "",
         sku: "",
         name: "",
         unit: "un",
@@ -305,6 +311,7 @@ export default function InventoryWorkspace() {
       category: itemForm.category,
       minimumQuantity: Number(itemForm.minimumQuantity),
       description: itemForm.description || undefined,
+      stockCategoryId: itemForm.stockCategoryId ? Number(itemForm.stockCategoryId) : null,
     });
   };
   const submitEditItem = (event: FormEvent) => {
@@ -313,6 +320,7 @@ export default function InventoryWorkspace() {
     updateStockItem.mutate({
       id: editingItemId,
       productTypeId: editForm.productTypeId ? Number(editForm.productTypeId) : null,
+      stockCategoryId: editForm.stockCategoryId ? Number(editForm.stockCategoryId) : null,
       sku: editForm.sku,
       name: editForm.name,
       unit: editForm.unit,
@@ -375,6 +383,7 @@ export default function InventoryWorkspace() {
     setEditPhoto(null);
     setEditForm({
       productTypeId: item.productTypeId ? String(item.productTypeId) : "",
+      stockCategoryId: item.stockCategoryId ? String(item.stockCategoryId) : "",
       sku: item.sku,
       name: item.name,
       unit: item.unit,
@@ -400,7 +409,7 @@ export default function InventoryWorkspace() {
           item.cityId !== transferSource.cityId &&
           item.sku === transferSource.sku &&
           item.unit === transferSource.unit &&
-          item.category === transferSource.category
+          (item.stockCategoryId ?? `legacy:${item.category}`) === (transferSource.stockCategoryId ?? `legacy:${transferSource.category}`)
       )
     : [];
   const totalQuantity = useMemo(
@@ -423,8 +432,8 @@ export default function InventoryWorkspace() {
       />
 
       <section className="hub-section-card">
-        <div className="flex flex-wrap items-center justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen(value => !value)} aria-expanded={filtersOpen}><Filter className="mr-2 h-4 w-4" />Filtros<ChevronDown className={`ml-2 h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} /></Button>{(filtersState.search || filtersState.regionalId || filtersState.cityId || filtersState.category || filtersState.availability) && <Button type="button" variant="ghost" size="sm" onClick={() => setFiltersState({ regionalId: "", cityId: "", category: "", search: "", availability: "" })}>Limpar</Button>}</div>
-        {filtersOpen && <div className="mt-4 grid gap-3 rounded-xl border border-border bg-secondary/30 p-4 sm:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-medium text-foreground sm:col-span-2 xl:col-span-4">Buscar material<div className="relative mt-1.5"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input id="inventory-filter-search" value={filtersState.search} onChange={event => setFiltersState({ ...filtersState, search: event.target.value })} placeholder="Nome do material ou SKU" className="h-9 pl-9" /></div></label><SearchableSelect id="inventory-filter-regional" label="Regional" value={filtersState.regionalId} onChange={value => setFiltersState({ ...filtersState, regionalId: value, cityId: "" })} placeholder="Todas as regionais" options={(references.data?.regionals ?? []).map(regional => ({ value: regional.id, label: regional.name }))} /><SearchableSelect id="inventory-filter-city" label="Cidade" value={filtersState.cityId} onChange={value => setFiltersState({ ...filtersState, cityId: value })} placeholder="Todas as cidades" options={(references.data?.cities ?? []).filter(city => !filtersState.regionalId || city.regionalId === Number(filtersState.regionalId)).map(city => ({ value: city.id, label: `${city.name} - ${city.state}` }))} /><SearchableSelect id="inventory-filter-availability" label="Situação" value={filtersState.availability} onChange={value => setFiltersState({ ...filtersState, availability: value })} placeholder="Todas as situações" options={[{ value: "out", label: "Sem saldo" }, { value: "low", label: "Estoque baixo" }, { value: "active", label: "Itens ativos" }, { value: "inactive", label: "Itens inativos" }]} /><SearchableSelect id="inventory-filter-category" label="Categoria" value={filtersState.category} onChange={value => setFiltersState({ ...filtersState, category: value })} placeholder="Todas as categorias" options={stockCategories.map(category => ({ value: category.value, label: category.label }))} /></div>}
+        <div className="flex flex-wrap items-center justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen(value => !value)} aria-expanded={filtersOpen}><Filter className="mr-2 h-4 w-4" />Filtros<ChevronDown className={`ml-2 h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} /></Button>{(filtersState.search || filtersState.regionalId || filtersState.cityId || filtersState.category || filtersState.stockCategoryId || filtersState.availability) && <Button type="button" variant="ghost" size="sm" onClick={() => setFiltersState({ regionalId: "", cityId: "", category: "", stockCategoryId: "", search: "", availability: "" })}>Limpar</Button>}</div>
+        {filtersOpen && <div className="mt-4 grid gap-3 rounded-xl border border-border bg-secondary/30 p-4 sm:grid-cols-2 xl:grid-cols-4"><label className="text-xs font-medium text-foreground sm:col-span-2 xl:col-span-4">Buscar material<div className="relative mt-1.5"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input id="inventory-filter-search" value={filtersState.search} onChange={event => setFiltersState({ ...filtersState, search: event.target.value })} placeholder="Nome do material ou SKU" className="h-9 pl-9" /></div></label><SearchableSelect id="inventory-filter-regional" label="Regional" value={filtersState.regionalId} onChange={value => setFiltersState({ ...filtersState, regionalId: value, cityId: "" })} placeholder="Todas as regionais" options={(references.data?.regionals ?? []).map(regional => ({ value: regional.id, label: regional.name }))} /><SearchableSelect id="inventory-filter-city" label="Cidade" value={filtersState.cityId} onChange={value => setFiltersState({ ...filtersState, cityId: value })} placeholder="Todas as cidades" options={(references.data?.cities ?? []).filter(city => !filtersState.regionalId || city.regionalId === Number(filtersState.regionalId)).map(city => ({ value: city.id, label: `${city.name} - ${city.state}` }))} /><SearchableSelect id="inventory-filter-availability" label="Situação" value={filtersState.availability} onChange={value => setFiltersState({ ...filtersState, availability: value })} placeholder="Todas as situações" options={[{ value: "out", label: "Sem saldo" }, { value: "low", label: "Estoque baixo" }, { value: "active", label: "Itens ativos" }, { value: "inactive", label: "Itens inativos" }]} /><SearchableSelect id="inventory-filter-category" label="Categoria" value={filtersState.category} onChange={value => setFiltersState({ ...filtersState, category: value, stockCategoryId: value.startsWith("dynamic:") ? value.slice(8) : "" })} placeholder="Todas as categorias" options={categoryOptions} /></div>}
       </section>
 
       {showCreate && (
@@ -470,7 +479,7 @@ export default function InventoryWorkspace() {
                 />
               </div>
               <div>
-                <SearchableSelect id="item-category" label="Categoria" value={itemForm.category} onChange={value => setItemForm({ ...itemForm, category: value as StockCategory })} options={stockCategories.map(category => ({ value: category.value, label: category.label }))} />
+                <SearchableSelect id="item-category" label="Categoria" value={itemForm.stockCategoryId ? `dynamic:${itemForm.stockCategoryId}` : `legacy:${itemForm.category}`} onChange={value => setItemForm({ ...itemForm, stockCategoryId: value.startsWith("dynamic:") ? value.slice(8) : "", category: (value.startsWith("legacy:") ? value.slice(7) : itemForm.category) as StockCategory })} options={categoryOptions} />
               </div>
               <div>
                 <Label htmlFor="item-unit">Unidade</Label>
@@ -723,7 +732,7 @@ export default function InventoryWorkspace() {
                             variant="outline"
                             className="border-border bg-background text-[10px] text-muted-foreground"
                           >
-                            {categoryLabel(item.category)}
+                            {item.stockCategoryName ?? categoryLabel(item.category)}
                           </Badge>
                           {!item.active && (
                             <Badge
@@ -765,6 +774,7 @@ export default function InventoryWorkspace() {
                         <span className="sm:hidden">Ficha</span>
                         <span className="hidden sm:inline">Ver ficha</span>
                       </Button>
+                      {can("tasks.create") ? <ContextTaskDialog entityType="stock_item" entityId={item.id} entityName={item.name} regionalId={item.regionalId} cityId={item.cityId} className="h-8 w-full rounded-lg text-xs sm:w-auto" /> : null}
                       {canWrite && (
                         <Button
                           variant="outline"
@@ -898,22 +908,19 @@ export default function InventoryWorkspace() {
                             </Label>
                             <select
                               id={`edit-item-category-${item.id}`}
-                              value={editForm.category}
-                              onChange={event =>
+                              value={editForm.stockCategoryId ? `dynamic:${editForm.stockCategoryId}` : `legacy:${editForm.category}`}
+                              onChange={event => {
+                                const value = event.target.value;
                                 setEditForm({
                                   ...editForm,
-                                  category: event.target.value as StockCategory,
-                                })
-                              }
+                                  stockCategoryId: value.startsWith("dynamic:") ? value.slice(8) : "",
+                                  category: (value.startsWith("legacy:") ? value.slice(7) : editForm.category) as StockCategory,
+                                });
+                              }}
                               className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                             >
-                              {stockCategories.map(category => (
-                                <option
-                                  key={category.value}
-                                  value={category.value}
-                                >
-                                  {category.label}
-                                </option>
+                              {categoryOptions.map(category => (
+                                <option key={category.value} value={category.value}>{category.label}</option>
                               ))}
                             </select>
                           </div>
@@ -1110,7 +1117,7 @@ export default function InventoryWorkspace() {
                         <div><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Identificação</p><p className="mt-1 font-medium text-foreground">{item.name}</p><p className="mt-0.5 text-muted-foreground">SKU: {item.sku}</p></div>
                         <div><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Saldo atual</p><p className="mt-1 font-semibold text-foreground">{item.balance.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {item.unit}</p><p className="mt-0.5 text-muted-foreground">Mínimo: {Number(item.minimumQuantity).toLocaleString("pt-BR")}</p></div>
                         <div><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Localização</p><p className="mt-1 font-medium text-foreground">{item.regionalName}</p><p className="mt-0.5 text-muted-foreground">{item.cityName ?? "Estoque regional"}</p></div>
-                        <div><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Categoria e status</p><p className="mt-1 font-medium text-foreground">{categoryLabel(item.category)}</p><p className="mt-0.5 text-muted-foreground">{item.active ? "Item ativo" : "Item inativo"}</p></div>
+                        <div><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Categoria e status</p><p className="mt-1 font-medium text-foreground">{item.stockCategoryName ?? categoryLabel(item.category)}</p><p className="mt-0.5 text-muted-foreground">{item.active ? "Item ativo" : "Item inativo"}</p></div>
                         {item.description && <div className="sm:col-span-2 xl:col-span-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Descrição</p><p className="mt-1 leading-5 text-muted-foreground">{item.description}</p></div>}
                       </div>
                       {movementHistory.isLoading ? (

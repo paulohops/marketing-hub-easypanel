@@ -8,7 +8,7 @@ const renewMutation = vi.hoisted(() => vi.fn());
 const updateUrbanMutation = vi.hoisted(() => vi.fn());
 
 const trpcStub = vi.hoisted(() => ({
-  useUtils: () => ({ media: { campaignDetails: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() }, list: { invalidate: vi.fn() } } }),
+  useUtils: () => ({ media: { campaignDetails: { invalidate: vi.fn() }, pointDetails: { invalidate: vi.fn() }, list: { invalidate: vi.fn() } }, tasks: { list: { invalidate: vi.fn() } } }),
   media: {
     campaignDetails: { useQuery: campaignDetailsQuery },
     referenceData: { useQuery: () => ({ data: { users: [], subserviceTypes: [] }, isLoading: false }) },
@@ -18,6 +18,7 @@ const trpcStub = vi.hoisted(() => ({
     updateUrbanVeiculation: { useMutation: () => ({ mutate: updateUrbanMutation, isPending: false }) },
   },
   campaigns: { list: { useQuery: () => ({ data: [], isLoading: false }) } },
+  tasks: { referenceData: { useQuery: () => ({ data: { users: [] }, isLoading: false }) }, create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: trpcStub }));

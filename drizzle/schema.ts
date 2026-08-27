@@ -187,6 +187,12 @@ export const notificationCategoryEnum = pgEnum("notification_category", [
   "payment_due",
   "action_pending",
   "stock_minimum",
+  "entity_created",
+  "entity_updated",
+  "entity_status_changed",
+  "entity_deleted",
+  "task_assigned",
+  "task_due",
 ]);
 export const taskStatusEnum = pgEnum("task_status", [
   "backlog",
@@ -197,7 +203,7 @@ export const taskStatusEnum = pgEnum("task_status", [
   "cancelled",
 ]);
 export const taskPriorityEnum = pgEnum("task_priority", ["low", "normal", "high", "urgent"]);
-export const taskSourceEnum = pgEnum("task_source", ["manual", "notification"]);
+export const taskSourceEnum = pgEnum("task_source", ["manual", "notification", "context"]);
 export const requestTypeEnum = pgEnum("request_type", ["action", "event", "media", "finance", "other"]);
 export const requestStatusEnum = pgEnum("request_status", ["draft", "submitted", "in_review", "approved", "rejected", "in_progress", "completed", "cancelled"]);
 export const requestPriorityEnum = pgEnum("request_priority", ["low", "normal", "high", "urgent"]);
@@ -1272,6 +1278,28 @@ export const supplierOfferingPriceHistory = pgTable(
   ]
 );
 
+export const stockCategories = pgTable(
+  "stock_categories",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("companyId").references(() => financeCompanies.id, {
+      onDelete: "set null",
+    }),
+    name: varchar("name", { length: 160 }).notNull(),
+    description: text("description"),
+    active: boolean("active").default(true).notNull(),
+    createdByUserId: integer("createdByUserId").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("stock_categories_company_name_uq").on(table.companyId, table.name).where(sql`${table.companyId} is not null`),
+    uniqueIndex("stock_categories_global_name_uq").on(table.name).where(sql`${table.companyId} is null`),
+  ]
+);
+
 export const stockItems = pgTable(
   "stock_items",
   {
@@ -1283,6 +1311,9 @@ export const stockItems = pgTable(
       onDelete: "set null",
     }),
     productTypeId: integer("productTypeId").references(() => productTypes.id, {
+      onDelete: "set null",
+    }),
+    stockCategoryId: integer("stockCategoryId").references(() => stockCategories.id, {
       onDelete: "set null",
     }),
     sku: varchar("sku", { length: 64 }).notNull(),
@@ -2339,11 +2370,56 @@ export const notifications = pgTable("notifications", {
     onDelete: "set null",
   }),
   actionUrl: text("actionUrl"),
-  actionLabel: varchar("actionLabel", { length: 120 }),
-  createdAt: timestamp("createdAt", { withTimezone: true })
+    actionLabel: varchar("actionLabel", { length: 120 }),
+    ruleId: integer("ruleId").references(() => notificationRules.id, { onDelete: "set null" }),
+    dedupeKey: varchar("dedupeKey", { length: 240 }),
+    createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+  },
+  table => [uniqueIndex("notifications_dedupe_key_uq").on(table.dedupeKey)]
+);
+
+export const notificationRules = pgTable(
+  "notification_rules",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 180 }).notNull(),
+    description: text("description"),
+    entityType: varchar("entityType", { length: 64 }).notNull(),
+    eventType: varchar("eventType", { length: 64 }).notNull(),
+    titleTemplate: varchar("titleTemplate", { length: 240 }).notNull().default("{{entity}} atualizado"),
+    messageTemplate: text("messageTemplate").notNull().default("O registro {{entity}} #{{entityId}} foi atualizado."),
+    category: notificationCategoryEnum("category").default("entity_updated").notNull(),
+    active: boolean("active").default(true).notNull(),
+    inAppEnabled: boolean("inAppEnabled").default(true).notNull(),
+    emailEnabled: boolean("emailEnabled").default(false).notNull(),
+    excludeActor: boolean("excludeActor").default(true).notNull(),
+    createdByUserId: integer("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [uniqueIndex("notification_rules_match_uq").on(table.entityType, table.eventType, table.name)]
+);
+
+export const notificationRuleRecipients = pgTable(
+  "notification_rule_recipients",
+  {
+    id: serial("id").primaryKey(),
+    ruleId: integer("ruleId").notNull().references(() => notificationRules.id, { onDelete: "cascade" }),
+    userId: integer("userId").references(() => users.id, { onDelete: "cascade" }),
+    regionalId: integer("regionalId").references(() => regionals.id, { onDelete: "cascade" }),
+    cityId: integer("cityId").references(() => cities.id, { onDelete: "cascade" }),
+    companyId: integer("companyId").references(() => financeCompanies.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("notification_rule_recipients_user_uq").on(table.ruleId, table.userId).where(sql`${table.userId} is not null`),
+    uniqueIndex("notification_rule_recipients_regional_uq").on(table.ruleId, table.regionalId).where(sql`${table.regionalId} is not null`),
+    uniqueIndex("notification_rule_recipients_city_uq").on(table.ruleId, table.cityId).where(sql`${table.cityId} is not null`),
+    uniqueIndex("notification_rule_recipients_company_uq").on(table.ruleId, table.companyId).where(sql`${table.companyId} is not null`),
+  ]
+);
 
 export const tasks = pgTable(
   "tasks",
