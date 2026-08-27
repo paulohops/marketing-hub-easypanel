@@ -498,6 +498,13 @@
       "when": 1787840000000,
       "tag": "0070_notifications_stock_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1787841000000,
+      "tag": "0071_notifications_stock_categories_data",
+      "breakpoints": true
     }
   ]
 }
