@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: marketing_hub_app
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=8978
+      - APP_ID=${APP_ID:-marketing-hub-easypanel}
+      - PUBLIC_APP_URL=${PUBLIC_APP_URL:-https://marketing.paulonho.site}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:Comidas01!@postgres_db:5432/trade_db}
+      - DATABASE_SSL=${DATABASE_SSL:-false}
+      - JWT_SECRET=${JWT_SECRET:-troque-este-segredo-em-producao}
+      - STORAGE_DIR=/data/storage
+      - RUN_MIGRATIONS=${RUN_MIGRATIONS:-true}
+      - RUN_ADMIN_BOOTSTRAP=${RUN_ADMIN_BOOTSTRAP:-true}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - ADMIN_NAME=${ADMIN_NAME:-Administrador Marketing HUB}
+      - ADMIN_RESET_PASSWORD=${ADMIN_RESET_PASSWORD:-false}
+      - TRELLO_API_KEY=${TRELLO_API_KEY:-}
+      - TRELLO_TOKEN=${TRELLO_TOKEN:-}
+      - NOTIFICATION_WEBHOOK_URL=${NOTIFICATION_WEBHOOK_URL:-}
+      - NOTIFICATION_WEBHOOK_TOKEN=${NOTIFICATION_WEBHOOK_TOKEN:-}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - storage_data:/data/storage
+    networks:
+      - traefik-net
+      - trade-db
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-net
+      - traefik.http.routers.marketing-hub.rule=Host(`${DOMAIN:-marketing.paulonho.site}`)
+      - traefik.http.routers.marketing-hub.entrypoints=websecure
+      - traefik.http.routers.marketing-hub.tls=true
+      - traefik.http.routers.marketing-hub.tls.certresolver=myresolver
+      - traefik.http.services.marketing-hub.loadbalancer.server.port=8978
+
+volumes:
+  storage_data:
+
+networks:
+  traefik-net:
+    external: true
+  trade-db:
+    external: true
+    name: postgres_trade_mkt_default
