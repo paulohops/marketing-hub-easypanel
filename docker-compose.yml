@@ -9,7 +9,7 @@ services:
       - NODE_ENV=production
       - PORT=8978
       - APP_ID=${APP_ID:-marketing-hub-easypanel}
-      - PUBLIC_APP_URL=${PUBLIC_APP_URL:-https://marketing.paulonho.site}
+      - PUBLIC_APP_URL=${PUBLIC_APP_URL:-https://hub.paulonho.site}
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:Comidas01!@postgres_db:5432/trade_db}
       - DATABASE_SSL=${DATABASE_SSL:-false}
       - JWT_SECRET=${JWT_SECRET:-troque-este-segredo-em-producao}
@@ -34,7 +34,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-net
-      - traefik.http.routers.marketing-hub.rule=Host(`${DOMAIN:-marketing.paulonho.site}`)
+      - traefik.http.routers.marketing-hub.rule=Host(`${DOMAIN:-hub.paulonho.site}`)
       - traefik.http.routers.marketing-hub.entrypoints=websecure
       - traefik.http.routers.marketing-hub.tls=true
       - traefik.http.routers.marketing-hub.tls.certresolver=myresolver
