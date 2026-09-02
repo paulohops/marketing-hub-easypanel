@@ -57,6 +57,8 @@ type RegistryRecord = Record<string, unknown> & {
 type EntityConfig = {
   singular: string;
   plural: string;
+  /** Artigo indefinido correto para o gênero: "um" ou "uma". */
+  article: "um" | "uma";
   collection: string;
   kind: string;
   importModule: string;
@@ -79,6 +81,7 @@ const entities: Record<string, EntityConfig> = {
   "empresas-fiscais": {
     singular: "Empresa fiscal",
     plural: "Empresas fiscais",
+    article: "uma",
     collection: "fiscalEntities",
     kind: "provider_fiscal_entity",
     importModule: "fiscalEntities",
@@ -88,6 +91,7 @@ const entities: Record<string, EntityConfig> = {
   empresas: {
     singular: "Empresa",
     plural: "Empresas",
+    article: "uma",
     collection: "providers",
     kind: "provider",
     importModule: "providers",
@@ -98,6 +102,7 @@ const entities: Record<string, EntityConfig> = {
   regionais: {
     singular: "Regional",
     plural: "Regionais",
+    article: "uma",
     collection: "regionals",
     kind: "regional",
     importModule: "regionals",
@@ -108,6 +113,7 @@ const entities: Record<string, EntityConfig> = {
   cidades: {
     singular: "Cidade",
     plural: "Cidades",
+    article: "uma",
     collection: "cities",
     kind: "city",
     importModule: "cities",
@@ -118,6 +124,7 @@ const entities: Record<string, EntityConfig> = {
   bairros: {
     singular: "Bairro",
     plural: "Bairros",
+    article: "um",
     collection: "neighborhoods",
     kind: "neighborhood",
     importModule: "neighborhoods",
@@ -127,6 +134,7 @@ const entities: Record<string, EntityConfig> = {
   lojas: {
     singular: "Loja",
     plural: "Lojas",
+    article: "uma",
     collection: "stores",
     kind: "store",
     importModule: "stores",
@@ -137,6 +145,7 @@ const entities: Record<string, EntityConfig> = {
   fornecedores: {
     singular: "Fornecedor",
     plural: "Fornecedores",
+    article: "um",
     collection: "suppliers",
     kind: "supplier",
     importModule: "suppliers",
@@ -147,6 +156,7 @@ const entities: Record<string, EntityConfig> = {
   "parceiros-comerciais": {
     singular: "Parceiro comercial",
     plural: "Parceiros comerciais",
+    article: "um",
     collection: "partners",
     kind: "partner",
     importModule: "partners",
@@ -156,6 +166,7 @@ const entities: Record<string, EntityConfig> = {
   supervisores: {
     singular: "Supervisor comercial",
     plural: "Supervisores comerciais",
+    article: "um",
     collection: "commercialSupervisors",
     kind: "supervisor",
     importModule: "commercialSupervisors",
@@ -165,6 +176,7 @@ const entities: Record<string, EntityConfig> = {
   servicos: {
     singular: "Serviço",
     plural: "Serviços",
+    article: "um",
     collection: "serviceTypes",
     kind: "service",
     importModule: "serviceTypes",
@@ -175,6 +187,7 @@ const entities: Record<string, EntityConfig> = {
   subservicos: {
     singular: "SubServiço",
     plural: "SubServiços",
+    article: "um",
     collection: "subserviceTypes",
     kind: "subservice",
     importModule: "subserviceTypes",
@@ -185,6 +198,7 @@ const entities: Record<string, EntityConfig> = {
   "tipos-de-produto": {
     singular: "Tipo de produto",
     plural: "Tipos de produto",
+    article: "um",
     collection: "productTypes",
     kind: "product",
     importModule: "productTypes",
@@ -195,6 +209,7 @@ const entities: Record<string, EntityConfig> = {
   "tipos-de-midia": {
     singular: "Tipo de mídia",
     plural: "Tipos de mídia",
+    article: "um",
     collection: "mediaTypes",
     kind: "media",
     importModule: "mediaTypes",
@@ -204,6 +219,7 @@ const entities: Record<string, EntityConfig> = {
   "tipos-de-acao": {
     singular: "Tipo de ação",
     plural: "Tipos de ação",
+    article: "um",
     collection: "actionTypes",
     kind: "action",
     importModule: "actionTypes",
@@ -213,6 +229,7 @@ const entities: Record<string, EntityConfig> = {
   "tipos-de-evento": {
     singular: "Tipo de evento",
     plural: "Tipos de evento",
+    article: "um",
     collection: "eventTypes",
     kind: "event",
     importModule: "eventTypes",
@@ -222,6 +239,7 @@ const entities: Record<string, EntityConfig> = {
   "tipos-de-campanha": {
     singular: "Atuação",
     plural: "Atuações",
+    article: "uma",
     collection: "campaignTypes",
     kind: "campaign",
     importModule: "campaignTypes",
@@ -232,6 +250,7 @@ const entities: Record<string, EntityConfig> = {
   "setores-de-campanha": {
     singular: "Setor",
     plural: "Setores",
+    article: "um",
     collection: "campaignSectors",
     kind: "campaign_sector",
     importModule: "campaignSectors",
@@ -242,6 +261,7 @@ const entities: Record<string, EntityConfig> = {
   "categorias-financeiras": {
     singular: "Categoria financeira",
     plural: "Categorias financeiras",
+    article: "uma",
     collection: "financialCategories",
     kind: "financial_category",
     importModule: "financialCategories",
@@ -252,6 +272,7 @@ const entities: Record<string, EntityConfig> = {
   "categorias-estoque": {
     singular: "Categoria de estoque",
     plural: "Categorias de estoque",
+    article: "uma",
     collection: "stockCategories",
     kind: "stock_category",
     importModule: "stockCategories",
@@ -1584,7 +1605,8 @@ export default function RegistryEntityWorkspace() {
           <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Novo {entity.singular.toLowerCase()}
+                {entity.article === "uma" ? "Nova" : "Novo"}{" "}
+                {entity.singular.toLowerCase()}
               </DialogTitle>
               <DialogDescription>
                 Preencha os dados principais e os vínculos deste cadastro.
