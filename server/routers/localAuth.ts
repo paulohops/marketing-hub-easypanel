@@ -25,6 +25,8 @@ const MAX_TRACKED_KEYS = 5_000;
 type FailedAttempt = { attempts: number; until: number };
 const attemptsByKey = new Map<string, FailedAttempt>();
 
+export const verificationAttempts = new Map<string, { count: number; lockedUntil?: number }>();
+
 function pruneExpiredAttempts(now = Date.now()) {
   attemptsByKey.forEach((value, key) => {
     if (value.until <= now) attemptsByKey.delete(key);
@@ -35,6 +37,66 @@ function pruneExpiredAttempts(now = Date.now()) {
     .slice(0, attemptsByKey.size - MAX_TRACKED_KEYS)
     .map(([key]) => key);
   oldestKeys.forEach(key => attemptsByKey.delete(key));
+}
+
+function checkVerificationLockout(email: string) {
+  const key = email.toLowerCase();
+  const record = verificationAttempts.get(key);
+  const now = Date.now();
+  if (record?.lockedUntil && record.lockedUntil > now) {
+    const remainingMinutes = Math.ceil((record.lockedUntil - now) / 60000);
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Muitas tentativas incorretas. Conta bloqueada temporariamente. Tente novamente em ${remainingMinutes} minuto(s).`,
+    });
+  }
+  if (record && record.lockedUntil && record.lockedUntil <= now) {
+    verificationAttempts.delete(key);
+  }
+}
+
+async function recordFailedVerificationAttempt(
+  database: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  email: string,
+  account?: typeof users.$inferSelect | null,
+) {
+  const key = email.toLowerCase();
+  const current = verificationAttempts.get(key);
+  const now = Date.now();
+  const currentCount = (current?.lockedUntil && current.lockedUntil <= now ? 0 : (current?.count ?? 0)) + 1;
+
+  if (currentCount >= MAX_ATTEMPTS) {
+    verificationAttempts.set(key, {
+      count: currentCount,
+      lockedUntil: now + LOCK_WINDOW_MS,
+    });
+    if (account) {
+      await database
+        .update(users)
+        .set({
+          authCodeHash: null,
+          authCodePurpose: null,
+          authCodeExpiresAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, account.id));
+    }
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Limite de tentativas excedido. O código temporário foi descartado e novas tentativas estão bloqueadas por 15 minutos.",
+    });
+  }
+
+  verificationAttempts.set(key, { count: currentCount });
+  const remaining = MAX_ATTEMPTS - currentCount;
+  throw new TRPCError({
+    code: "UNAUTHORIZED",
+    message: `Código inválido ou expirado. Restam ${remaining} tentativa(s) antes do bloqueio temporário.`,
+  });
+}
+
+function clearVerificationAttempts(email: string) {
+  verificationAttempts.delete(email.toLowerCase());
 }
 
 function registerFailedAttempt(key: string) {
@@ -71,9 +133,25 @@ async function issueCode(database: NonNullable<Awaited<ReturnType<typeof getDb>>
   await database.update(users).set({ authCodeHash: hashCode(code), authCodePurpose: purpose, authCodeExpiresAt: new Date(Date.now() + CODE_TTL_MS), updatedAt: new Date() }).where(eq(users.id, account.id));
 }
 async function assertCode(database: NonNullable<Awaited<ReturnType<typeof getDb>>>, email: string, code: string, purpose: "login" | "password_reset") {
-  const account = await findAccount(database, email);
-  if (!account || !account.isActive || account.authCodePurpose !== purpose || !account.authCodeExpiresAt || account.authCodeExpiresAt.getTime() < Date.now() || account.authCodeHash !== hashCode(code)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Código inválido ou expirado." });
-  return account;
+  const normalizedEmail = email.toLowerCase();
+  checkVerificationLockout(normalizedEmail);
+
+  const account = await findAccount(database, normalizedEmail);
+  const now = Date.now();
+  const isValid =
+    Boolean(account) &&
+    Boolean(account?.isActive) &&
+    account?.authCodePurpose === purpose &&
+    Boolean(account?.authCodeExpiresAt) &&
+    account!.authCodeExpiresAt!.getTime() >= now &&
+    account!.authCodeHash === hashCode(code);
+
+  if (!isValid) {
+    await recordFailedVerificationAttempt(database, normalizedEmail, account);
+  }
+
+  clearVerificationAttempts(normalizedEmail);
+  return account!;
 }
 async function createSession(ctx: { req: any; res: any }, database: NonNullable<Awaited<ReturnType<typeof getDb>>>, account: typeof users.$inferSelect) {
   const signedInAt = new Date();
@@ -108,8 +186,10 @@ export const localAuthRouter = router({
     return { success: true, ...session } as const;
   }),
   requestPasswordReset: publicProcedure.input(z.object({ email: z.string().trim().email("Informe um e-mail válido.").max(320) })).mutation(async ({ input }) => {
+    const normalizedEmail = input.email.toLowerCase();
+    checkVerificationLockout(normalizedEmail);
     const database = await getDb(); if (!database) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Banco de dados indisponível." });
-    const account = await findAccount(database, input.email.toLowerCase());
+    const account = await findAccount(database, normalizedEmail);
     if (account?.isActive && account.email && account.passwordHash) await issueCode(database, account, "password_reset");
     return { success: true } as const;
   }),
@@ -121,4 +201,10 @@ export const localAuthRouter = router({
   }),
 });
 
-export const __localAuthInternals = { hashCode, generateCode, pruneExpiredAttempts };
+export const __localAuthInternals = {
+  hashCode,
+  generateCode,
+  pruneExpiredAttempts,
+  verificationAttempts,
+  clearVerificationAttempts,
+};
