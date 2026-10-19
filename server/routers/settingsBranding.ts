@@ -55,6 +55,7 @@ const brandingInputSchema = z.object({
   fontFamily: z.enum(brandingFontIds),
   light: brandingThemeInputSchema.partial().optional(),
   dark: brandingThemeInputSchema.partial().optional(),
+  // Campos legados aceitos para que integrações antigas continuem funcionando.
   primaryColor: hexColorSchema.optional(),
   accentColor: hexColorSchema.optional(),
   backgroundColor: hexColorSchema.optional(),
@@ -65,8 +66,10 @@ const brandingInputSchema = z.object({
 });
 
 function isHexColor(value: unknown): value is string {
-  return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value);
+  return typeof value === "string" &&
+    /^#[0-9A-Fa-f]{6}$/.test(value);
 }
+
 
 function isBrandingFont(value: unknown): value is BrandingFontId {
   return (
@@ -74,6 +77,7 @@ function isBrandingFont(value: unknown): value is BrandingFontId {
     brandingFontIds.includes(value as BrandingFontId)
   );
 }
+
 
 export function normalizeAppBranding(value: unknown): AppBranding {
   const source =
@@ -170,6 +174,7 @@ function safeBrandingName(name: string) {
       .slice(0, 160) || "logo-aplicativo"
   );
 }
+
 export const settingsBrandingProcedures = {
   branding: publicProcedure.query(async () => {
     const database = await getDb();
@@ -184,7 +189,8 @@ export const settingsBrandingProcedures = {
 
   updateBranding: protectedProcedure
     .input(brandingInputSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async 
+{ ctx, input }) => {
       await assertPermission(ctx.user, "settings.write");
       const database = await requireDatabase();
       const [currentSetting] = await database
@@ -226,7 +232,8 @@ export const settingsBrandingProcedures = {
         theme: z.enum(["light", "dark"]).default("light"),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async 
+{ ctx, input }) => {
       await assertPermission(ctx.user, "settings.write");
       const database = await requireDatabase();
       const bytes = Buffer.from(input.dataBase64, "base64");
@@ -298,14 +305,14 @@ export const settingsBrandingProcedures = {
           message: "O favicon deve ter até 1 MB.",
         });
       const stored = await storagePut(
-        `trade/app-branding/favicon-${Date.now()}-${safeBrandingName(input.originalName)}`,
+        `trade/app-branding/favicon-${Date.now))}-${safeBrandingName(input.originalName)}`,
         bytes,
         input.mimeType
       );
       const [currentSetting] = await database
         .select()
         .from(appSettings)
-        .where(eq(appSettings.key, "app_branding"))
+        .where(eq(appSettings.key, "app_branding")
         .limit(1);
       const current = currentSetting
         ? parseBrandingValue(currentSetting.value)
@@ -364,7 +371,8 @@ export const settingsBrandingProcedures = {
     return parseBrandingValue(updated.value);
   }),
 
-  system: protectedProcedure.query(async ({ ctx }) => {
+  system: protectedProcedure.query(async 
+{ ctx }) => {
     await assertPermission(ctx.user, "settings.read");
     const database = await requireDatabase();
     const [setting] = await database
@@ -414,7 +422,8 @@ export const settingsBrandingProcedures = {
         emailLoginCodeEnabled: z.boolean(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async 
+{ ctx, input }) => {
       if (ctx.user.role !== "admin") {
         throw new TRPCError({
           code: "FORBIDDEN",

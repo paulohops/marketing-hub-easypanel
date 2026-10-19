@@ -34,7 +34,13 @@ try {
   const result = await pool.query(`
     SELECT
       to_regclass('public.users') AS users_table,
-      EXISTS (\n        SELECT 1\n        FROM information_schema.tables\n        WHERE table_schema IN ('drizzle', 'public')\n          AND table_name = '__drizzle_migrations'\n      ) AS migrations_table\n  `);
+      EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema IN ('drizzle', 'public')
+          AND table_name = '__drizzle_migrations'
+      ) AS migrations_table
+  `);
 
   const usersExist = Boolean(result.rows[0]?.users_table);
   const migrationHistoryExists = Boolean(result.rows[0]?.migrations_table);
