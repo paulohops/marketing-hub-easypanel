@@ -1712,6 +1712,7 @@ export const mediaCampaignSchedules = pgTable(
     programName: varchar("programName", { length: 180 }).notNull(),
     weekday: integer("weekday"),
     specificDate: date("specificDate"),
+    cityId: integer("cityId").references(() => cities.id, { onDelete: "set null" }),
     neighborhoodId: integer("neighborhoodId").references(() => neighborhoods.id, { onDelete: "set null" }),
     startsAt: varchar("startsAt", { length: 5 }).notNull(),
     endsAt: varchar("endsAt", { length: 5 }).notNull(),

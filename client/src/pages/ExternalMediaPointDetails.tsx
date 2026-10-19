@@ -61,7 +61,7 @@ export default function ExternalMediaPointDetails({ mediaPointId }: { mediaPoint
     if (!isSoundCar && (!schedules.length || form.schedules.some(item => item.programName.trim() && !item.specificDates?.length))) { toast.error("Adicione pelo menos uma data e horário para a panfletagem."); return; }
     const details = [!isSoundCar && form.materialFormat.trim() ? `Formato: ${form.materialFormat.trim()}` : "", !isSoundCar && form.materialQuantity ? `Quantidade: ${form.materialQuantity}` : "", isSoundCar && form.routeOrDistribution.trim() ? `Rota e horários: ${form.routeOrDistribution.trim()}` : ""].filter(Boolean).join("\n");
     const scheduleCityIds = Array.from(new Set(schedules.map(s => s.cityId).filter((id): id is number => typeof id === "number")));
-    const cityDistributions = scheduleCityIds.map(cityId => ({ cityId, sharePercentage: 100 }));
+    const cityDistributions = scheduleCityIds.map(cityId => ({ cityId, quantity: 1 }));
 
     createVeiculation.mutate({
       mediaPointId: point.id,
