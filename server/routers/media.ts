@@ -59,7 +59,16 @@ async function assertPointRelationships(database: Awaited<ReturnType<typeof requ
   const keepsExistingCityCoverage = existingPoint?.supplierId === input.supplierId && existingPoint.cityId === input.cityId;
   const keepsExistingMediaCoverage = existingPoint?.supplierId === input.supplierId && existingPoint.mediaTypeId === input.mediaTypeId;
   const keepsExistingServiceCoverage = Boolean(input.serviceTypeId && existingPoint?.supplierId === input.supplierId && existingPoint.serviceTypeId === input.serviceTypeId);
-  if (!cityCoverage[0] && !keepsExistingCityCoverage) throw new TRPCError({ code: "BAD_REQUEST", message: "O fornecedor não está habilitado para atender a cidade selecionada. Atualize a cobertura do fornecedor." });
+  let hasCityCoverage = Boolean(cityCoverage[0]) || keepsExistingCityCoverage;
+  if (!hasCityCoverage && input.operationCategory === "leafleting") {
+    const regionalCities = await database.select({ id: cities.id }).from(cities).where(and(eq(cities.regionalId, city[0].regionalId), eq(cities.active, true)));
+    const regionalCityIds = regionalCities.map(c => c.id);
+    if (regionalCityIds.length) {
+      const [regCoverage] = await database.select().from(supplierCities).where(and(eq(supplierCities.supplierId, input.supplierId), inArray(supplierCities.cityId, regionalCityIds))).limit(1);
+      if (regCoverage) hasCityCoverage = true;
+    }
+  }
+  if (!hasCityCoverage) throw new TRPCError({ code: "BAD_REQUEST", message: input.operationCategory === "leafleting" ? "O fornecedor não está habilitado para atender a regional selecionada. Atualize a cobertura do fornecedor." : "O fornecedor não está habilitado para atender a cidade selecionada. Atualize a cobertura do fornecedor." });
   if (!mediaCoverage[0] && !keepsExistingMediaCoverage) throw new TRPCError({ code: "BAD_REQUEST", message: "O fornecedor não está habilitado para este tipo de mídia. Atualize sua cobertura." });
   if (input.serviceTypeId && !serviceCoverage[0] && !keepsExistingServiceCoverage) throw new TRPCError({ code: "BAD_REQUEST", message: "O fornecedor não está habilitado para o serviço selecionado. Atualize sua cobertura." });
   if (!mediaType[0]) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione um tipo de mídia válido." });
