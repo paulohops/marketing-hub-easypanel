@@ -55,7 +55,7 @@ import {
 } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
-import { publicProcedure, protectedProcedure } from "../_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { writeAuditLog } from "../audit";
 import { storagePut } from "../storage";
 import {
@@ -3922,7 +3922,7 @@ export const settingsRegistryProcedures = {
       return { url: updated.value };
     }),
 
-  clearModuleData: protectedProcedure
+  clearModuleData: adminProcedure
     .input(
       z.object({
         modules: z.array(z.enum(["media", "actions", "campaigns", "inventory", "operational_catalogs"])).min(1),
@@ -3930,6 +3930,12 @@ export const settingsRegistryProcedures = {
       })
     )
     .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Apenas administradores podem executar a limpeza de dados operacionais em massa.",
+        });
+      }
       await assertPermission(ctx.user, "settings.write");
       const database = await requireDatabase();
       const selected = new Set(input.modules);
