@@ -57,8 +57,8 @@ import {
   PanelsTopLeft,
   Radio,
   Settings2,
+  Bot,
   Sun,
-  Trello,
   UserRound,
   Volume2,
 } from "lucide-react";
@@ -96,12 +96,6 @@ const quickAccessItems: NavItem[] = [
     permission: "dashboard.read",
   },
   {
-    label: "Trello",
-    path: "/trello",
-    icon: Trello,
-    permission: "settings.read",
-  },
-  {
     label: "Tarefas",
     path: "/tarefas",
     icon: ClipboardCheck,
@@ -118,12 +112,6 @@ const navigationGroups: NavGroup[] = [
         path: "/campanhas",
         icon: Flag,
         permission: "actions.read",
-      },
-      {
-        label: "Operações",
-        path: "/operacoes",
-        icon: Layers,
-        permission: "operations.read",
       },
       {
         label: "Panfletagem",
@@ -276,6 +264,12 @@ const navigationGroups: NavGroup[] = [
             label: "Sistema",
             path: "/configuracoes/sistema",
             icon: Settings2,
+            permission: "settings.read",
+          },
+          {
+            label: "Tokens MCP",
+            path: "/configuracoes/mcp",
+            icon: Bot,
             permission: "settings.read",
           },
           {

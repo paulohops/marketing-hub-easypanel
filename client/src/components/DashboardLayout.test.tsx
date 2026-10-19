@@ -29,7 +29,7 @@ vi.mock("@/lib/trpc", () => ({
                   "actions.read",
                   "events.read",
                   "settings.read",
-                  "operations.read",
+                  "tasks.read",
                 ]
               : [
                   "dashboard.read",
@@ -79,12 +79,13 @@ describe("DashboardLayout", () => {
     );
 
     expect(screen.getByText("Cadastros")).toBeInTheDocument();
-    expect(screen.getByText("Operações")).toBeInTheDocument();
+    expect(screen.getByText("Campanhas")).toBeInTheDocument();
+    expect(screen.getByText("Tarefas")).toBeInTheDocument();
     expect(screen.getAllByText("Trade").length).toBeGreaterThan(0);
     expect(screen.getByText("Gestão")).toBeInTheDocument();
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Ajuda e suporte" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Operações unificadas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Operações")).not.toBeInTheDocument();
   });
 
   it("expande Mídias e navega diretamente ao índice de Cadastros", () => {

@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useBranding } from "@/contexts/BrandingContext";
-import { BadgeCheck, Database, Network, Palette, Settings2, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Bot, Database, Network, Palette, Settings2, ShieldCheck } from "lucide-react";
 
 export function normalizeRegistryValue(value: string) {
   return value.trim().toLocaleLowerCase("pt-BR");
@@ -21,6 +21,7 @@ const administrativeAreas = [
   { title: "Central de Dados", description: "Importe cadastros e exporte relatórios operacionais em um único espaço.", href: "/configuracoes/central-de-dados", icon: Database, action: "Abrir Central de Dados" },
   { title: "Design", description: "Configure a identidade visual, as cores do tema claro e o fundo do tema escuro.", href: "/configuracoes/design", icon: Palette, action: "Abrir Design" },
   { title: "Sistema", description: "Cadastre o SMTP para e-mails e gerencie as chaves de API utilizadas pelas integrações.", href: "/configuracoes/sistema", icon: Settings2, action: "Abrir Sistema" },
+  { title: "Tokens e Integração MCP", description: "Gere e gerencie tokens de acesso para agentes de IA e clientes MCP externos operarem o Marketing HUB.", href: "/configuracoes/mcp", icon: Bot, action: "Configurar MCP" },
 ];
 
 export default function SettingsWorkspace() {

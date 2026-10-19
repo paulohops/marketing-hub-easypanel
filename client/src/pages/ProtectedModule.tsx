@@ -41,6 +41,7 @@ const CampaignsWorkspace = lazy(() => import("./CampaignsWorkspace"));
 const CampaignTemplatesWorkspace = lazy(() => import("./CampaignTemplatesWorkspace"));
 const ProcessesWorkspace = lazy(() => import("./ProcessesWorkspace"));
 const ActionTemplatesWorkspace = lazy(() => import("./ActionTemplatesWorkspace"));
+const McpSettingsWorkspace = lazy(() => import("./McpSettingsWorkspace"));
 const RegionalMediaPanel = lazy(() => import("@/components/RegionalMediaPanel"));
 const MediaCampaignLibrary = lazy(() => import("@/components/MediaCampaignLibrary"));
 const MediaCoverageExplorer = lazy(() => import("@/components/MediaCoverageExplorer"));
@@ -92,6 +93,7 @@ const definitions = {
   "central-de-dados": { permission: "settings.read", eyebrow: "Administração do sistema", title: "Central de Dados", description: "Importe cadastros e exporte relatórios.", icon: FileSpreadsheet, resources: [], accent: "var(--primary)" },
   design: { permission: "settings.read", eyebrow: "Identidade visual", title: "Design", description: "Personalize o tema e a identidade visual.", icon: Settings2, resources: [], accent: "var(--primary)" },
   sistema: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Sistema", description: "Configure SMTP, notificações por e-mail e chaves de integrações.", icon: Settings2, resources: [], accent: "var(--primary)" },
+  mcp: { permission: "settings.read", eyebrow: "Integrações e Inteligência Artificial", title: "Tokens e Integração MCP", description: "Gere e gerencie tokens de acesso para agentes de IA e clientes MCP externos operarem o Marketing HUB.", icon: Settings2, resources: [], accent: "var(--primary)" },
 } as const;
 
 export default function ProtectedModule({ module, topicId, processId }: { module: keyof typeof definitions; topicId?: string; processId?: string }) {
@@ -121,6 +123,7 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   if (module === "central-de-dados") return workspace(<DataCenterWorkspace />);
   if (module === "design") return workspace(<DesignWorkspace />);
   if (module === "sistema") return workspace(<SystemWorkspace />);
+  if (module === "mcp") return workspace(<McpSettingsWorkspace />);
   if (module === "cadastros") return workspace(<OperationalRegistriesWorkspace />);
   if (module === "modelos-campanha") return workspace(<CampaignTemplatesWorkspace />);
   if (module === "modelos-acao") return workspace(<ActionTemplatesWorkspace />);

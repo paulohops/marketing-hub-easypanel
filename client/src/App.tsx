@@ -23,7 +23,7 @@ function Router() {
     <Route path="/login" component={LoginPage} />
     <Route path="/estoque">{() => <ProtectedModule module="estoque" />}</Route>
     <Route path="/financeiro">{() => <ProtectedModule module="financeiro" />}</Route>
-    <Route path="/operacoes">{() => <ProtectedModule module="operacoes" />}</Route>
+    <Route path="/operacoes">{() => <Redirect to="/campanhas" replace />}</Route>
     <Route path="/campanhas/:campaignId">{() => <ProtectedModule module="campanhas" />}</Route>
     <Route path="/campanhas">{() => <ProtectedModule module="campanhas" />}</Route>
     <Route path="/midias/graficas">{() => <ProtectedModule module="midias-graficas" />}</Route>
@@ -83,7 +83,7 @@ function Router() {
     <Route path="/cadastros/:entity">{() => <ProtectedModule module="cadastro-entidade" />}</Route>
     <Route path="/empresas/:providerId">{() => <ProtectedModule module="empresas" />}</Route>
     <Route path="/empresas">{() => <ProtectedModule module="empresas" />}</Route>
-    <Route path="/trello">{() => <ProtectedModule module="trello" />}</Route>
+    <Route path="/trello">{() => <Redirect to="/tarefas" replace />}</Route>
     <Route path="/tarefas">{() => <ProtectedModule module="tarefas" />}</Route>
     <Route path="/processos/:processId">{({ processId }) => <ProtectedModule module="processos" processId={processId} />}</Route>
     <Route path="/processos">{() => <ProtectedModule module="processos" />}</Route>
@@ -95,6 +95,7 @@ function Router() {
     <Route path="/configuracoes/central-de-dados">{() => <ProtectedModule module="central-de-dados" />}</Route>
     <Route path="/configuracoes/design">{() => <ProtectedModule module="design" />}</Route>
     <Route path="/configuracoes/sistema">{() => <ProtectedModule module="sistema" />}</Route>
+    <Route path="/configuracoes/mcp">{() => <ProtectedModule module="mcp" />}</Route>
     <Route path="/configuracoes/notificacoes">{() => <ProtectedModule module="notificacoes-config" />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>
