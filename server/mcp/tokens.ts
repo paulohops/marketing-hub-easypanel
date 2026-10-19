@@ -83,7 +83,7 @@ export async function verifyMcpToken(rawToken: string): Promise<User | null> {
   // Atualiza lastUsedAt de forma assíncrona
   database
     .update(mcpTokens)
-    .set({ lastUsedAt: now, updatedAt: now })\
+    .set({ lastUsedAt: now, updatedAt: now })
     .where(eq(mcpTokens.id, row.token.id))
     .catch(err => console.error("[MCP] Erro ao atualizar lastUsedAt do token:", err));
 
