@@ -126,8 +126,14 @@ const blankForm = () => ({
   teamMemberIds: [] as number[],
   stockAllocations: [] as StockAllocation[],
 });
-const toDateField = (value: Date | string | null | undefined) =>
-  value ? new Date(value).toISOString().slice(0, 16) : "";
+export function formatLocalDateTime(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+const toDateField = (value: Date | string | null | undefined) => formatLocalDateTime(value);
 const coordinatePair = (latitude: number | string | null | undefined, longitude: number | string | null | undefined) => latitude == null || longitude == null ? "" : `${Number(latitude)}, ${Number(longitude)}`;
 const parseCoordinatePair = (value: string) => {
   const [latitude, longitude, ...extra] = value.split(",").map(item => item.trim());
@@ -181,7 +187,7 @@ export default function ActionsWorkspace() {
     saleCount: "0",
     renewalCount: "0",
     worthRepeating: true,
-    completedAt: new Date().toISOString().slice(0, 16),
+    completedAt: formatLocalDateTime(new Date()),
   });
   const [reschedule, setReschedule] = useState({
     scheduledFor: "",
@@ -474,7 +480,7 @@ export default function ActionsWorkspace() {
       const durationHours = Number(template.defaultDurationHours ?? 0);
       const startingAt = current.scheduledFor ? new Date(current.scheduledFor) : null;
       const calculatedEnd = startingAt && durationHours > 0 && !Number.isNaN(startingAt.getTime())
-        ? new Date(startingAt.getTime() + durationHours * 60 * 60 * 1000).toISOString().slice(0, 16)
+        ? formatLocalDateTime(new Date(startingAt.getTime() + durationHours * 60 * 60 * 1000))
         : current.endsAt;
       return {
         ...current,
