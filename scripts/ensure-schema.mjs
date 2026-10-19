@@ -34,13 +34,7 @@ try {
   const result = await pool.query(`
     SELECT
       to_regclass('public.users') AS users_table,
-      EXISTS (
-        SELECT 1
-        FROM information_schema.tables
-        WHERE table_schema IN ('drizzle', 'public')
-          AND table_name = '__drizzle_migrations'
-      ) AS migrations_table
-  `);
+      EXISTS (\n        SELECT 1\n        FROM information_schema.tables\n        WHERE table_schema IN ('drizzle', 'public')\n          AND table_name = '__drizzle_migrations'\n      ) AS migrations_table\n  `);
 
   const usersExist = Boolean(result.rows[0]?.users_table);
   const migrationHistoryExists = Boolean(result.rows[0]?.migrations_table);
@@ -136,6 +130,8 @@ try {
       "programName" VARCHAR(180) NOT NULL,
       "weekday" INTEGER,
       "specificDate" DATE,
+      "cityId" INTEGER REFERENCES "cities"("id") ON DELETE SET NULL,
+      "neighborhoodId" INTEGER REFERENCES "neighborhoods"("id") ON DELETE SET NULL,
       "startsAt" VARCHAR(5) NOT NULL,
       "endsAt" VARCHAR(5) NOT NULL,
       "notes" TEXT,
@@ -143,10 +139,30 @@ try {
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "cityId" INTEGER REFERENCES "cities"("id") ON DELETE SET NULL;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "neighborhoodId" INTEGER REFERENCES "neighborhoods"("id") ON DELETE SET NULL;
     CREATE UNIQUE INDEX IF NOT EXISTS "media_campaign_schedules_uq"
       ON "media_campaign_schedules" ("mediaCampaignId", "programName", "weekday", "specificDate", "startsAt", "endsAt");
   `);
   console.log("[Database] Tabela de programação tradicional verificada.");
+
+  await verificationPool.query(`
+    CREATE TABLE IF NOT EXISTS "mcp_tokens" (
+      "id" SERIAL PRIMARY KEY,
+      "userId" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+      "name" VARCHAR(120) NOT NULL,
+      "tokenHash" VARCHAR(64) NOT NULL UNIQUE,
+      "tokenPrefix" VARCHAR(24) NOT NULL,
+      "expiresAt" TIMESTAMPTZ,
+      "lastUsedAt" TIMESTAMPTZ,
+      "revokedAt" TIMESTAMPTZ,
+      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS "mcp_tokens_user_idx" ON "mcp_tokens" ("userId");
+    CREATE UNIQUE INDEX IF NOT EXISTS "mcp_tokens_hash_idx" ON "mcp_tokens" ("tokenHash");
+  `);
+  console.log("[Database] Tabela mcp_tokens verificada.");
 
   const requiredUserColumns = [
     "id",
@@ -222,7 +238,7 @@ try {
     supplier_media_types: ["supplierId", "mediaTypeId"],
     commercial_supervisor_cities: ["id", "commercialSupervisorId", "cityId"],
     product_media_types: ["id", "productTypeId", "mediaTypeId"],
-    media_campaign_schedules: ["id", "mediaCampaignId", "programName", "weekday", "specificDate", "startsAt", "endsAt", "notes", "createdByUserId", "createdAt", "updatedAt"],
+    media_campaign_schedules: ["id", "mediaCampaignId", "programName", "weekday", "specificDate", "cityId", "neighborhoodId", "startsAt", "endsAt", "notes", "createdByUserId", "createdAt", "updatedAt"],
   };
   const schemaRows = await verificationPool.query(
     `SELECT table_name, column_name

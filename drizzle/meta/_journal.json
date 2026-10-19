@@ -519,6 +519,20 @@
       "when": 1787843000000,
       "tag": "0073_seed_operations_permissions_repair",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1787844000000,
+      "tag": "0074_leafleting_schedule_city",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1787845000000,
+      "tag": "0075_mcp_tokens",
+      "breakpoints": true
     }
   ]
 }
