@@ -29,6 +29,7 @@ vi.mock("@/lib/trpc", () => ({
                   "actions.read",
                   "events.read",
                   "settings.read",
+                  "operations.read",
                 ]
               : [
                   "dashboard.read",
@@ -66,6 +67,7 @@ describe("DashboardLayout", () => {
       "group-data-[collapsible=icon]:mx-auto"
     );
     expect(screen.queryByText("Cadastros")).not.toBeInTheDocument();
+    expect(screen.queryByText("Operações")).not.toBeInTheDocument();
   });
 
   it("exibe Cadastros para o perfil administrador", () => {
@@ -77,6 +79,7 @@ describe("DashboardLayout", () => {
     );
 
     expect(screen.getByText("Cadastros")).toBeInTheDocument();
+    expect(screen.getByText("Operações")).toBeInTheDocument();
     expect(screen.getAllByText("Trade").length).toBeGreaterThan(0);
     expect(screen.getByText("Gestão")).toBeInTheDocument();
     expect(screen.getByText("Relatórios")).toBeInTheDocument();

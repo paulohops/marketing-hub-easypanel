@@ -48,7 +48,7 @@ describe("rotas protegidas", () => {
     ["/cadastros/tipos-de-acao", "cadastro-entidade"],
     ["/cadastros/tipos-de-evento", "cadastro-entidade"],
     ["/cadastros/tipos-de-midia", "cadastro-entidade"],
-    ["/cadastros/modelos", "cadastros"],
+    ["/cadastros/modelos-campanha", "modelos-campanha"],
     ["/cadastros/modelos-acoes", "modelos-acao"],
     ["/pontos-de-acao", "pontos-de-acao"],
     ["/configuracoes", "configuracoes"],
@@ -74,6 +74,7 @@ describe("rotas protegidas", () => {
     ["/midias", "/midias/graficas", "midias-graficas"],
     ["/cadastros", "/cadastros/territorio", "cadastros"],
     ["/cadastros/produtos_servicos", "/cadastros/produtos-servicos", "cadastros"],
+    ["/cadastros/modelos", "/cadastros/modelos-campanha", "modelos-campanha"],
   ])("redireciona a rota-pai %s para %s", async (path, destination, module) => {
     window.history.pushState({}, "", path);
     render(<App />);

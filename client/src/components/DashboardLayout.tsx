@@ -47,6 +47,7 @@ import {
   Handshake,
   History,
   Landmark,
+  Layers,
   LayoutDashboard,
   LogOut,
   MapPinned,
@@ -117,6 +118,12 @@ const navigationGroups: NavGroup[] = [
         path: "/campanhas",
         icon: Flag,
         permission: "actions.read",
+      },
+      {
+        label: "Operações",
+        path: "/operacoes",
+        icon: Layers,
+        permission: "operations.read",
       },
       {
         label: "Panfletagem",

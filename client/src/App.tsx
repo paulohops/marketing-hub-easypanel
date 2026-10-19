@@ -59,7 +59,8 @@ function Router() {
     <Route path="/cadastros/produtos_servicos">{() => <Redirect to="/cadastros/produtos-servicos" replace />}</Route>
     <Route path="/cadastros/categorias">{renderRegistries}</Route>
     <Route path="/cadastros/financeiro">{renderRegistries}</Route>
-    <Route path="/cadastros/modelos">{renderRegistries}</Route>
+    <Route path="/cadastros/modelos-campanha">{() => <ProtectedModule module="modelos-campanha" />}</Route>
+    <Route path="/cadastros/modelos">{() => <Redirect to="/cadastros/modelos-campanha" replace />}</Route>
     <Route path="/cadastros/regionais">{renderOperationalAlias}</Route>
     <Route path="/cadastros/cidades">{renderOperationalAlias}</Route>
     <Route path="/cadastros/lojas">{renderOperationalAlias}</Route>
