@@ -147,15 +147,31 @@ describe("detalhe de mídias", () => {
     expect(window.location.search).toBe("?nova=1");
   });
 
-  it("mantém Mídia Externa em uma ficha própria ao abrir nova veiculação", () => {
+  it("mantém Mídia Externa em uma ficha própria ao abrir nova panfletagem", () => {
     listQuery.mockReturnValue({ data: [{ id: 21, name: "Panfletagem Triângulo", supplierName: "Gráfica MG", mediaTypeName: "Panfleto", serviceTypeName: "Panfletagem", cityName: "Uberlândia", regionalName: "Triângulo", regionalId: 3, address: null, operationCategory: "leafleting", channelKind: "external", activeCampaign: null }], isLoading: false });
     detailQuery.mockReturnValue({ data: undefined, isLoading: false });
 
     render(<MediaWorkspace initialCategory="leafleting" />);
-    fireEvent.click(screen.getByRole("button", { name: "Nova veiculação" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nova panfletagem" }));
 
     expect(window.location.pathname).toBe("/midias/externa/21");
     expect(window.location.search).toBe("");
+  });
+
+  it("apresenta o botão Novo fornecedor e o campo Regional da panfletagem na categoria leafleting", () => {
+    referenceDataQuery.mockReturnValue({ data: { suppliers: [{ id: 10, displayName: "Fornecedor Panfletos" }], regionals: [{ id: 2, name: "Triângulo" }], cities: [{ city: { id: 11, name: "Uberlândia", regionalId: 2 }, regionalName: "Triângulo" }], mediaTypes: [{ id: 15, name: "Panfletos", operationCategory: "leafleting", parentMediaTypeId: null }], serviceTypes: [], supplierMediaTypes: [{ supplierId: 10, mediaTypeId: 15 }], supplierServiceTypes: [], supplierOfferings: [], supplierContracts: [] }, isLoading: false } as any);
+    listQuery.mockReturnValue({ data: [], isLoading: false });
+    detailQuery.mockReturnValue({ data: undefined, isLoading: false });
+
+    render(<MediaWorkspace initialCategory="leafleting" />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo fornecedor" }));
+
+    const modal = within(screen.getByRole("dialog"));
+    expect(modal.getByRole("heading", { name: "Novo fornecedor" })).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Regional da panfletagem" })).toBeInTheDocument();
+    expect(modal.queryByRole("button", { name: "Cidade do ponto" })).toBeNull();
+    expect(modal.getByLabelText("Nome do fornecedor")).toBeInTheDocument();
+    expect(modal.getByRole("button", { name: "Salvar fornecedor" })).toBeInTheDocument();
   });
 
   it("apresenta o formulário de Mídia Urbana sem serviço do fornecedor, com taxonomia, fornecedor, território e coordenadas", () => {
