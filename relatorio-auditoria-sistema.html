@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketing HUB - Relatório Executivo de Auditoria do Sistema</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --primary: #0e723b;
+      --primary-light: #16934e;
+      --primary-subtle: #e8f5ed;
+      --accent: #f45103;
+      --accent-light: #ff6824;
+      --accent-subtle: #feeee6;
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #ffffff;
+      --border-subtle: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      
+      --severity-critica-bg: #fee2e2;
+      --severity-critica-text: #991b1b;
+      --severity-critica-border: #f87171;
+      
+      --severity-alta-bg: #ffedd5;
+      --severity-alta-text: #9a3412;
+      --severity-alta-border: #fb923c;
+      
+      --severity-media-bg: #fef3c7;
+      --severity-media-text: #92400e;
+      --severity-media-border: #fcd34d;
+      
+      --severity-baixa-bg: #e0f2fe;
+      --severity-baixa-text: #075985;
+      --severity-baixa-border: #7dd3fc;
+      
+      --severity-info-bg: #f1f5f9;
+      --severity-info-text: #334155;
+      --severity-info-border: #cbd5e1;
+
+      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    [data-theme="dark"] {
+      --bg-base: #0b1120;
+      --bg-surface: #131c31;
+      --bg-surface-elevated: #1a2540;
+      --border-subtle: #1e293b;
+      --border-strong: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --primary-subtle: rgba(14, 114, 59, 0.2);
+      --accent-subtle: rgba(244, 81, 3, 0.2);
+      
+      --severity-critica-bg: rgba(239, 68, 68, 0.15);
+      --severity-critica-text: #fca5a5;
+      --severity-critica-border: #ef4444;
+      
+      --severity-alta-bg: rgba(249, 115, 22, 0.15);
+      --severity-alta-text: #fdba74;
+      --severity-alta-border: #f97316;
+      
+      --severity-media-bg: rgba(245, 158, 11, 0.15);
+      --severity-media-text: #fcd34d;
+      --severity-media-border: #f59e0b;
+      
+      --severity-baixa-bg: rgba(14, 165, 233, 0.15);
+      --severity-baixa-text: #7dd3fc;
+      --severity-baixa-border: #0ea5e9;
+      
+      --severity-info-bg: rgba(148, 163, 184, 0.12);
+      --severity-info-text: #cbd5e1;
+      --severity-info-border: #475569;
+
+      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      --card-shadow-hover: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Header & Navigation Bar */
+    .top-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary), #094a26);
+      color: white;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.5px;
+      box-shadow: 0 2px 4px rgba(14, 114, 59, 0.3);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      background: var(--accent-subtle);
+      color: var(--accent);
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--accent);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .theme-toggle, .btn-action {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      padding: 0.5rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+    }
+
+    .theme-toggle:hover, .btn-action:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-base);
+    }
+
+    .btn-approval-lock {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1400px;
+      margin: 1.5rem auto 3rem;
+      padding: 0 1.5rem;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(14, 114, 59, 0.08) 0%, rgba(244, 81, 3, 0.05) 100%);
+      border: 1px solid var(--border-subtle);
+      border-left: 5px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .hero-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .hero-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .hero-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .alert-box-warning {
+      background: var(--severity-media-bg);
+      color: var(--severity-media-text);
+      border: 1px solid var(--severity-media-border);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 600;
+    }
+
+    /* Scorecards Grid */
+    .scorecards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .scorecard {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .scorecard:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .scorecard::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .scorecard.security::before { background: var(--severity-alta-border); }
+    .scorecard.code::before { background: var(--primary); }
+    .scorecard.routes::before { background: #0284c7; }
+    .scorecard.design::before { background: var(--accent); }
+
+    .scorecard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .scorecard-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .scorecard-value {
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .scorecard-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Tabs Navigation */
+    .tabs-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 700;
+    }
+
+    .tab-count {
+      background: var(--bg-base);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .tab-btn.active .tab-count {
+      background: var(--primary-subtle);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    /* Tab Content Areas */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Section Subheaders & Toolbar */
+    .section-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-pill:hover, .filter-pill.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .search-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.4rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      width: 250px;
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-subtle);
+    }
+
+    /* Cards & Findings Layout */
+    .findings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .finding-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--card-shadow);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .finding-card:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .finding-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .finding-id-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .finding-id {
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.5px;
+    }
+
+    .badge-critica { background: var(--severity-critica-bg); color: var(--severity-critica-text); border: 1px solid var(--severity-critica-border); }
+    .badge-alta { background: var(--severity-alta-bg); color: var(--severity-alta-text); border: 1px solid var(--severity-alta-border); }
+    .badge-media { background: var(--severity-media-bg); color: var(--severity-media-text); border: 1px solid var(--severity-media-border); }
+    .badge-baixa { background: var(--severity-baixa-bg); color: var(--severity-baixa-text); border: 1px solid var(--severity-baixa-border); }
+    .badge-ok { background: var(--primary-subtle); color: var(--primary); border: 1px solid var(--primary); }
+
+    .finding-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .finding-location {
+      font-family: monospace;
+      font-size: 0.8rem;
+      background: var(--bg-base);
+      color: var(--text-muted);
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .finding-body {
+      font-size: 0.9rem;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    .finding-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      background: var(--bg-base);
+      padding: 0.85rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      border: 1px solid var(--border-subtle);
+    }
+
+    @media (max-width: 768px) {
+      .finding-meta-grid { grid-template-columns: 1fr; }
+    }
+
+    .meta-box h4 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .code-snippet {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+      border: 1px solid #1e293b;
+    }
+
+    /* Checklist & Action Plan */
+    .action-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-surface);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.88rem;
+    }
+
+    .action-table th {
+      background: var(--bg-base);
+      color: var(--text-muted);
+      font-weight: 700;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+
+    .action-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    .action-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .priority-badge {
+      display: inline-block;
+      font-weight: 800;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .priority-p0 { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
+    .priority-p1 { background: #ffedd5; color: #c2410c; border: 1px solid #fb923c; }
+    .priority-p2 { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+
+    /* Custom Checkbox */
+    .checkbox-col {
+      width: 40px;
+      text-align: center;
+    }
+
+    .custom-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: not-allowed;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 3rem;
+      padding: 1.5rem 0;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .footer-highlight {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* Print styles */
+    @media print {
+      .top-header, .tabs-nav, .theme-toggle, .btn-action, .search-box, .filter-pills { display: none !important; }
+      .tab-pane { display: block !important; margin-bottom: 2rem; }
+      body { background: white; color: black; }
+      .finding-card { page-break-inside: avoid; border: 1px solid #ccc; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header class="top-header">
+    <div class="header-content">
+      <div class="brand-group">
+        <div class="brand-badge">MH</div>
+        <div>
+          <div class="brand-title">
+            Marketing HUB
+            <span class="brand-tag">Auditoria 360°</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Trade Marketing Management Platform</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="btn-approval-lock">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          MODO SOMENTE-LEITURA (AGUARDANDO OK)
+        </div>
+        <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar tema Claro/Escuro">
+          <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <span id="themeText">Modo Escuro</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+      <div class="hero-header">
+        <div>
+          <h1 class="hero-title">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Relatório Consolidado de Auditoria Técnica e Arquitetural
+          </h1>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.35rem;">
+            Inspeção aprofundada realizada por 4 agentes autônomos especializados cobrindo 100% da base de código do Marketing HUB.
+          </p>
+        </div>
+        <div class="hero-meta">
+          <span><strong>Data:</strong> 19 de Outubro de 2026</span>
+          <span><strong>Status:</strong> <span style="color: var(--primary); font-weight:700;">Concluído</span></span>
+          <span><strong>Código Alterado:</strong> 0 arquivos (Bloqueio estrito ativo)</span>
+        </div>
+      </div>
+
+      <div class="alert-box-warning">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span><strong>Diretriz do Usuário Ativa:</strong> Nenhuma alteração foi realizada na base de código. O plano de execução abaixo detalha as correções prontas para aplicação imediata após o seu "OK".</span>
+      </div>
+    </section>
+
+    <!-- Scorecards Grid -->
+    <div class="scorecards-grid">
+      <div class="scorecard security" onclick="switchTab('seguranca')" style="cursor: pointer;">
+        <div class="scorecard-header">
+          <span class="scorecard-title">Segurança & Auth</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <div class="scorecard-value" style="color: var(--accent);">1 Crítica</div>
+        <div class="scorecard-subtitle">4 Altas, 5 Médias, 1 Baixa identificadas</div>
+      </div>
+
+      <div class="scorecard code" onclick="switchTab('cleancode')" style="cursor: pointer;">
+        <div class="scorecard-header">
+          <span class="scorecard-title">Clean Code & Build</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        </div>
+        <div class="scorecard-value" style="color: var(--primary);">1 Teste Falho</div>
+        <div class="scorecard-subtitle">Bug de Timezone UTC vs GMT-3 rastreado</div>
+      </div>
+
+      <div class="scorecard routes" onclick="switchTab('rotas')" style="cursor: pointer;">
+        <div class="scorecard-header">
+          <span class="scorecard-title">Rotas & Contratos</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        </div>
+        <div class="scorecard-value" style="color: #0284c7;">1 Rota Quebrada</div>
+        <div class="scorecard-subtitle">Templates de Campanha + 2 telas órfãs no menu</div>
+      </div>
+
+      <div class="scorecard design" onclick="switchTab('design')" style="cursor: pointer;">
+        <div class="scorecard-header">
+          <span class="scorecard-title">Design System & UX</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+        </div>
+        <div class="scorecard-value" style="color: var(--accent);">5 Ajustes</div>
+        <div class="scorecard-subtitle">McpTokensManager + Contraste Tema Escuro</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" id="tabBtn-resumo" onclick="switchTab('resumo')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        Resumo Executivo
+      </button>
+      <button class="tab-btn" id="tabBtn-seguranca" onclick="switchTab('seguranca')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        Segurança & Vulnerabilidades
+        <span class="tab-count">11</span>
+      </button>
+      <button class="tab-btn" id="tabBtn-cleancode" onclick="switchTab('cleancode')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        Clean Code & Arquitetura
+        <span class="tab-count">6</span>
+      </button>
+      <button class="tab-btn" id="tabBtn-rotas" onclick="switchTab('rotas')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        Rotas & Contratos
+        <span class="tab-count">4</span>
+      </button>
+      <button class="tab-btn" id="tabBtn-design" onclick="switchTab('design')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+        Design System & UX
+        <span class="tab-count">5</span>
+      </button>
+      <button class="tab-btn" id="tabBtn-plano" onclick="switchTab('plano')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        Plano de Correção Pós-OK
+        <span class="tab-count">10</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: RESUMO EXECUTIVO -->
+    <div class="tab-pane active" id="pane-resumo">
+      <div class="finding-card" style="margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Diagnóstico Geral da Plataforma
+        </h2>
+        <p style="font-size: 0.95rem; color: var(--text-main); line-height: 1.6;">
+          O <strong>Marketing HUB</strong> apresenta uma base técnica com arquitetura moderna, com contratos 100% tipados via <code>tRPC v11</code>, ORM Drizzle com migrações centralizadas, RBAC robusto em 95% dos procedimentos e excelente adoção de Tailwind e Radix UI.
+        </p>
+        <p style="font-size: 0.95rem; color: var(--text-main); line-height: 1.6;">
+          O novo subsistema de <strong>MCP Server</strong> (Model Context Protocol) foi perfeitamente estruturado com hash seguro de tokens (SHA-256), autenticação Bearer e 12 ferramentas de Trade Marketing já operacionais. Contudo, a auditoria revelou pontos críticos de segurança no fluxo de autenticação tradicional (força bruta no 2FA) e pequenas divergências de fuso horário e roteamento que devem ser sanadas antes do deploy em produção.
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+        <div class="finding-card">
+          <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary);">✅ Principais Pontos Fortes</h3>
+          <ul style="font-size: 0.88rem; color: var(--text-main); padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+            <li><strong>Zero Erros de Tipagem:</strong> <code>pnpm check</code> executa com 0 erros em todo o frontend e backend.</li>
+            <li><strong>Build de Produção Saudável:</strong> O bundle de produção Vite e esbuild compila limpo sem quebras.</li>
+            <li><strong>MCP Seguro por Design:</strong> Tokens nunca são gravados em texto claro (somente SHA-256) com prefixo canônico <code>mcp_hub_...</code>.</li>
+            <li><strong>Padrão Operacional Consistente:</strong> O módulo de Ações serve como referência sólida para lista &rarr; detalhe &rarr; diálogo.</li>
+            <li><strong>Contratos tRPC 100% Casados:</strong> Zero incompatibilidade entre chamadas do cliente e roteadores do servidor.</li>
+          </ul>
+        </div>
+
+        <div class="finding-card">
+          <h3 style="font-size: 1rem; font-weight: 700; color: var(--accent);">⚠️ Pontos de Atenção Crítica</h3>
+          <ul style="font-size: 0.88rem; color: var(--text-main); padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+            <li><strong>Força Bruta no 2FA / Reset:</strong> Códigos de 6 dígitos podem ser testados sem bloqueio dentro dos 10 minutos de TTL (SEC-01).</li>
+            <li><strong>Timezone Offset em Testes:</strong> Conversão UTC (<code>toISOString</code>) quebra teste unitário em ambiente local GMT-3 (BUG-01).</li>
+            <li><strong>Endpoint MCP no Dev Server:</strong> Falta registro do endpoint em <code>dev-index.ts</code> (funciona em prod, dá 404 em dev).</li>
+            <li><strong>Link Quebrado em Cadastros:</strong> Card "Modelos de Campanha" não abre o workspace correspondente.</li>
+            <li><strong>Caixas Amarelas no Dark Mode:</strong> Classes sem <code>dark:</code> ofuscam telas de Perfil e Usuários.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: SEGURANÇA & VULNERABILIDADES -->
+    <div class="tab-pane" id="pane-seguranca">
+      <div class="section-toolbar">
+        <div class="filter-pills">
+          <button class="filter-pill active" onclick="filterFindings('all', this)">Todos (11)</button>
+          <button class="filter-pill" onclick="filterFindings('critica', this)">Crítica (1)</button>
+          <button class="filter-pill" onclick="filterFindings('alta', this)">Alta (4)</button>
+          <button class="filter-pill" onclick="filterFindings('media', this)">Média (5)</button>
+          <button class="filter-pill" onclick="filterFindings('baixa', this)">Baixa (1)</button>
+        </div>
+        <input type="text" class="search-box" placeholder="Filtrar por palavra-chave..." onkeyup="searchFindings(this.value)">
+      </div>
+
+      <div class="findings-list">
+
+        <!-- SEC-01 -->
+        <div class="finding-card" data-severity="critica">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-critica">SEC-01 • CRÍTICA</span>
+              <span class="finding-title">Ausência de Rate Limiting e Lockout na Verificação do Código 2FA e Reset de Senha</span>
+            </div>
+            <span class="finding-location">server/routers/localAuth.ts:279-317 & 379-423</span>
+          </div>
+          <div class="finding-body">
+            Os procedimentos <code>verifyLoginCode</code> e <code>resetPassword</code> validam um código numérico de 6 dígitos (espaço amostral de 1.000.000 de combinações). O código possui validade de 10 minutos (<code>ttl: 600.000ms</code>), mas <strong>não possui limitação de tentativas de erro por IP, e-mail ou sessão</strong>. Um invasor pode disparar 5.000 requisições por segundo e adivinhar o código antes que ele expire, sequestrando contas de administradores.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Bypass completo de autenticação de dois fatores e redefinição não autorizada de senhas de usuários privilegiados via força bruta.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Adicionar contador de tentativas (máximo 5 falhas). Após a 5ª tentativa inválida, destruir o código temporário e bloquear novas tentativas por 15 minutos.</p>
+            </div>
+          </div>
+          <div class="code-snippet">
+// Proposta de Mitigação:
+const attempts = verificationAttempts.get(codeKey) || 0;
+if (attempts >= 5) {
+  verificationCodes.delete(codeKey);
+  throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Limite de tentativas excedido. Solicite novo código.' });
+}
+if (record.code !== input.code) {
+  verificationAttempts.set(codeKey, attempts + 1);
+  throw new TRPCError({ code: 'BAD_REQUEST', message: `Código incorreto. (${4 - attempts} tentativas restantes)` });
+}
+          </div>
+        </div>
+
+        <!-- SEC-02 -->
+        <div class="finding-card" data-severity="alta">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">SEC-02 • ALTA</span>
+              <span class="finding-title">Vulnerabilidade de Stored XSS via Upload de Favicon SVG</span>
+            </div>
+            <span class="finding-location">server/routers/settingsBranding.ts:167 & server/_core/storageProxy.ts</span>
+          </div>
+          <div class="finding-body">
+            A rota <code>uploadAppFavicon</code> aceita arquivos com mimetype <code>image/svg+xml</code> sem sanitizar tags <code>&lt;script&gt;</code>, atributos <code>onload=</code> ou entidades XML maliciosas. Como o proxy de arquivos em <code>storageProxy.ts</code> serve o favicon com cabeçalho <code>Content-Disposition: inline</code> sob o mesmo domínio da aplicação, scripts maliciosos contidos no SVG serão executados no navegador de qualquer usuário logado que visualizar a página.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Execução de JavaScript arbitrário no contexto da sessão do usuário, permitindo roubo de cookies não-HttpOnly, extração de dados e CSRF silencioso.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Sanitizar SVGs com <code>DOMPurify</code> / biblioteca de parsing XML estrito ou rejeitar SVG no favicon, exigindo PNG/ICO rasterizados com magic bytes validados.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-03 -->
+        <div class="finding-card" data-severity="alta">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">SEC-03 • ALTA</span>
+              <span class="finding-title">Segredos Operacionais e Senhas de Terceiros em Texto Claro no Banco de Dados</span>
+            </div>
+            <span class="finding-location">server/routers/settingsRegistry.ts & drizzle/schema.ts:app_settings</span>
+          </div>
+          <div class="finding-body">
+            Configurações críticas como senhas de SMTP, credenciais de gateway SMS, OpenAI API keys e chaves de clientes de integração são gravadas em texto puro (plaintext) na tabela <code>app_settings</code>. Qualquer acesso de leitura ao banco ou backup expõe os segredos corporativos.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Vazamento de credenciais de e-mail corporativo, serviços de IA pagos e gateways de mensageria em caso de dump acidental ou acesso ao banco.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Implementar camada de cifragem transparente com AES-256-GCM para chaves sensíveis catalogadas (ex: <code>isSecret: true</code>) usando <code>ENCRYPTION_KEY</code> de ambiente.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-04 -->
+        <div class="finding-card" data-severity="alta">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">SEC-04 • ALTA</span>
+              <span class="finding-title">Tokens de Sessão JWT Válidos por 1 Ano Não São Invalidados Após Redefinição de Senha</span>
+            </div>
+            <span class="finding-location">server/routers/localAuth.ts & server/_core/context.ts</span>
+          </div>
+          <div class="finding-body">
+            O JWT gerado na autenticação possui validade de 365 dias (<code>expiresIn: "365d"</code>). Quando o usuário altera ou redefine sua senha, os tokens emitidos anteriormente permanecem válidos porque a validação do token não compara a data de emissão (<code>iat</code>) com o timestamp de atualização de senha (<code>users.passwordUpdatedAt</code>).
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Se um dispositivo for furtado ou uma sessão for comprometida, trocar a senha não desconecta as sessões ativas do atacante durante até 1 ano.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>No <code>createContext</code>, rejeitar o token se <code>payload.iat * 1000 &lt; user.passwordUpdatedAt.getTime()</code> e reduzir a expiração máxima para 7 a 30 dias com refresh rotativo.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-05 -->
+        <div class="finding-card" data-severity="alta">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">SEC-05 • ALTA</span>
+              <span class="finding-title">Elevação de Privilégio: Gestor Regional com Acesso a Procedimentos Destrutivos do Sistema</span>
+            </div>
+            <span class="finding-location">server/authorization.ts:167 & server/routers/settingsRegistry.ts</span>
+          </div>
+          <div class="finding-body">
+            O papel <code>regional_manager</code> possui a permissão <code>settings.write</code>. No entanto, o router <code>settingsRegistry</code> agrupa sob <code>settings.write</code> procedimentos de infraestrutura crítica como <code>clearModuleData</code> (apaga em massa tabelas inteiras de campanhas, ações e custos) e <code>updateSystem</code> (reinício e migrações).
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Um gestor de campo pode disparar intencionalmente ou por engano a exclusão de todos os registros operacionais da empresa sem ser Administrador do Sistema.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Mudar <code>clearModuleData</code> e <code>updateSystem</code> para exigir <code>adminProcedure</code> exclusivo ou permissão específica <code>system.danger_zone</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-06 -->
+        <div class="finding-card" data-severity="media">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">SEC-06 • MÉDIA</span>
+              <span class="finding-title">Upload de Imagens em Configurações Sem Checagem de Magic Bytes</span>
+            </div>
+            <span class="finding-location">server/routers/settingsRegistry.ts:uploadSettingImage</span>
+          </div>
+          <div class="finding-body">
+            Enquanto o módulo de evidências de trade marketing em <code>server/storage.ts</code> possui a função <code>hasSupportedFileSignature</code>, os uploads de logo e imagem em configurações validam apenas a extensão informada no MIME type pelo cliente, permitindo upload de executáveis renomeados para <code>.png</code>.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Armazenamento de arquivos potencialmente maliciosos na pasta pública de uploads do servidor.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Reutilizar <code>hasSupportedFileSignature(buffer)</code> em todos os endpoints de upload de configurações.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-07 -->
+        <div class="finding-card" data-severity="media">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">SEC-07 • MÉDIA</span>
+              <span class="finding-title">Ferramentas MCP Sem Validação de Schema em Runtime e Bypass de Transições</span>
+            </div>
+            <span class="finding-location">server/mcp/tools.ts:executeTool</span>
+          </div>
+          <div class="finding-body">
+            Na tool <code>atualizar_status_acao</code> do MCP Server, a alteração de status não passa pelo validador <code>canUpdateActionStatus</code> da máquina de estados do sistema. Uma IA conectada via MCP pode forçar uma ação do status <code>cancelada</code> diretamente para <code>concluida</code> ou <code>paga</code> sem passar pelas etapas de aprovação e evidências.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Inconsistência de fluxo de trabalho operacional e aprovação financeira fraudulenta via agente IA.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Importar e invocar as mesmas regras de validação de transição de status (máquina de estados finita) de <code>actions.ts</code> na execução das tools do MCP.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-08 -->
+        <div class="finding-card" data-severity="media">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">SEC-08 • MÉDIA</span>
+              <span class="finding-title">Cookie de Sessão com Configuração Excessivamente Permissiva (SameSite=None)</span>
+            </div>
+            <span class="finding-location">server/_core/cookies.ts:32</span>
+          </div>
+          <div class="finding-body">
+            Quando rodando em HTTPS, o cookie de autenticação é setado com <code>SameSite: "none"</code>. O recomendável para aplicações corporativas sob o mesmo domínio é <code>SameSite: "lax"</code>, evitando o envio acidental de cookies em requisições cross-site disparadas por sites externos.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Risco potencial de CSRF caso endpoints legados que aceitam GET realizem mutações de estado.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Ajustar para <code>sameSite: "lax"</code> por padrão, permitindo "none" apenas quando expressamente configurado para iframes autenticados de terceiros.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-09 -->
+        <div class="finding-card" data-severity="media">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">SEC-09 • MÉDIA</span>
+              <span class="finding-title">Vazamento de Stack Traces e Mensagens Internas de Banco em Erros tRPC</span>
+            </div>
+            <span class="finding-location">server/routers/actions.ts & server/routers/campaigns.ts</span>
+          </div>
+          <div class="finding-body">
+            Alguns blocos <code>catch</code> repassam <code>error.message</code> diretamente para o <code>TRPCError</code> retornado ao usuário. Isso pode vazar nomes de colunas, restrições de chave estrangeira do PostgreSQL/MySQL e caminhos do sistema de arquivos.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Enumeração de estrutura interna do banco e tecnologias de backend por usuários curiosos.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Sanitizar as mensagens de erro em produção, registrando o stack trace original apenas no logger de servidor.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-10 -->
+        <div class="finding-card" data-severity="media">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">SEC-10 • MÉDIA</span>
+              <span class="finding-title">Rate Limiting de Login Baseado em Memória Volátil do Processo Node</span>
+            </div>
+            <span class="finding-location">server/routers/localAuth.ts:loginAttempts</span>
+          </div>
+          <div class="finding-body">
+            O mapa de tentativas de login é armazenado em uma variável <code>Map</code> em memória. Se a aplicação rodar em múltiplos nós com cluster/load balancer ou se o processo for reiniciado por um crash intencional, a proteção de bloqueio por IP é zerada.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Perda de estado de bloqueio de força bruta em ambientes clusterizados ou reinicializações.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Persistir contadores de bloqueio em tabela dedicada de banco ou cache compartilhado Redis para clusters.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC-11 -->
+        <div class="finding-card" data-severity="baixa">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-baixa">SEC-11 • BAIXA</span>
+              <span class="finding-title">Falta de Cabeçalhos Restritivos de Segurança (CSP & HSTS) no Express</span>
+            </div>
+            <span class="finding-location">server/_core/index.ts & dev-index.ts</span>
+          </div>
+          <div class="finding-body">
+            Embora os cabeçalhos <code>X-Content-Type-Options: nosniff</code> e <code>X-Frame-Options: SAMEORIGIN</code> estejam configurados, faltam cabeçalhos modernos como <code>Content-Security-Policy</code> e <code>Strict-Transport-Security (HSTS)</code>.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto & Risco</h4>
+              <p>Degradação de pontuação em auditorias de segurança automatizadas (ex: Mozilla Observatory A+).</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Adicionar middleware <code>helmet</code> com políticas adequadas de scripts e estilo do Tailwind.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: CLEAN CODE & ARQUITETURA -->
+    <div class="tab-pane" id="pane-cleancode">
+      <div class="findings-list">
+
+        <!-- BUG-01 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-critica">BUG-01 • P0</span>
+              <span class="finding-title">Falha no Teste Unitário: Conversão UTC em Fuso Horário Local (GMT-3)</span>
+            </div>
+            <span class="finding-location">client/src/pages/ActionsEventsWorkspace.test.tsx & ActionsWorkspace.tsx</span>
+          </div>
+          <div class="finding-body">
+            O teste <code>ActionsEventsWorkspace.test.tsx</code> falha ao validar o valor de um input <code>datetime-local</code> preenchido com <code>15:00</code> porque o componente faz a formatação usando <code>new Date(val).toISOString().slice(0, 16)</code>. O método <code>toISOString()</code> converte o horário local de Brasília (UTC-3) para o fuso UTC (+3 horas), gerando <code>18:00</code> em vez de <code>15:00</code>.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Causa Raiz</h4>
+              <p>Uso de <code>toISOString()</code> para inputs HTML locais sem compensar o deslocamento de timezone do navegador.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Correção Determinística</h4>
+              <p>Implementar função auxiliar <code>formatLocalDateTime(date)</code> que extrai ano, mês, dia, hora e minuto locais (ex: <code>date.getFullYear()</code>, <code>date.getHours()</code>) com padding zero.</p>
+            </div>
+          </div>
+          <div class="code-snippet">
+// Helper recomendado para ActionsWorkspace.tsx:
+export function formatLocalDateTime(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+          </div>
+        </div>
+
+        <!-- BUG-02 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">BUG-02 • P0</span>
+              <span class="finding-title">Divergência entre Servidor de Produção e Servidor de Desenvolvimento no MCP</span>
+            </div>
+            <span class="finding-location">server/_core/dev-index.ts vs server/_core/index.ts</span>
+          </div>
+          <div class="finding-body">
+            A função <code>registerMcpEndpoint(app)</code> foi devidamente montada no servidor de produção (<code>server/_core/index.ts</code>), mas não foi incluída em <code>server/_core/dev-index.ts</code>. Quando os desenvolvedores executam <code>pnpm dev</code>, qualquer requisição para <code>/api/mcp</code> retorna 404 (Not Found), funcionando apenas após build de produção.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Impossibilidade de testar integrações MCP locais em ambiente de desenvolvimento interativo com hot-reload.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Importar e chamar <code>registerMcpEndpoint(app)</code> em <code>server/_core/dev-index.ts</code> logo antes de montar o middleware do Vite.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARCH-01 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">ARCH-01 • P1</span>
+              <span class="finding-title">Criação de Campanhas no MCP sem Transação Atômica de Banco</span>
+            </div>
+            <span class="finding-location">server/mcp/tools.ts:criar_campanha</span>
+          </div>
+          <div class="finding-body">
+            Na ferramenta <code>criar_campanha</code>, a inserção da entidade campanha na tabela <code>campaigns</code> e a subsequente inserção da dotação orçamentária em <code>campaign_allocations</code> ocorrem em chamadas separadas sem envolver em <code>database.transaction(...)</code>. Caso ocorra uma falha de rede ou violação de integridade no segundo insert, uma campanha órfã sem orçamento permanece salva no banco.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Risco de inconsistência e orfandade de registros em caso de falha transitória durante execução de IA.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Envolver as queries de criação em bloco <code>await database.transaction(async (tx) => { ... })</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARCH-02 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">ARCH-02 • P1</span>
+              <span class="finding-title">Criação de Tabelas via Script DDL Imperativo em vez de Migração Versionada</span>
+            </div>
+            <span class="finding-location">scripts/ensure-schema.mjs & drizzle/schema.ts</span>
+          </div>
+          <div class="finding-body">
+            As tabelas <code>mcp_tokens</code> e <code>media_campaign_schedules</code> foram introduzidas no schema do Drizzle, mas a criação de tabelas em ambientes existentes depende do script imperativo <code>scripts/ensure-schema.mjs</code> contendo SQL bruto em vez de um arquivo formal gerado por <code>drizzle-kit generate</code> (ex: <code>0075_mcp_tokens.sql</code>).
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Débito Técnico</h4>
+              <p>Desalinhamento do histórico de migrações gerenciado pela tabela interna <code>__drizzle_migrations</code>.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Gerar a migração versionada Drizzle para padronizar o pipeline de CI/CD em produção.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARCH-03 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-baixa">ARCH-03 • P2</span>
+              <span class="finding-title">Código Morto e Arquivos Legados Não Utilizados</span>
+            </div>
+            <span class="finding-location">drizzle/relations.ts & client/src/pages/ModulePage.tsx</span>
+          </div>
+          <div class="finding-body">
+            O arquivo <code>drizzle/relations.ts</code> encontra-se completamente vazio (0 bytes), enquanto <code>client/src/pages/ModulePage.tsx</code> é um componente legado de mock substituído por <code>ProtectedModule.tsx</code> e pelos novos workspaces específicos, sem nenhuma referência ativa no código.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Poluição visual do repositório e confusão conceitual para desenvolvedores ou novos agentes.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Remover com segurança os arquivos mortos na próxima rodada de limpeza.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 4: ROTAS, NAVEGAÇÃO & CONTRATOS -->
+    <div class="tab-pane" id="pane-rotas">
+      <div class="findings-list">
+
+        <!-- ROUTE-01 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-critica">ROUTE-01 • P0</span>
+              <span class="finding-title">Link Quebrado: Card "Modelos de Campanha" Recarrega o Próprio Hub de Cadastros</span>
+            </div>
+            <span class="finding-location">client/src/pages/OperationalRegistriesWorkspace.tsx:128 & client/src/App.tsx</span>
+          </div>
+          <div class="finding-body">
+            Na página de Cadastros Operacionais (<code>/cadastros</code>), o card que deveria abrir o gerenciador de Modelos de Campanha aponta para <code>/cadastros/modelos</code>. No entanto, no <code>App.tsx</code>, a rota <code>/cadastros/modelos</code> aponta novamente para <code>OperationalRegistriesWorkspace</code> em vez de carregar <code>CampaignTemplatesWorkspace</code>. O usuário clica no card e é redirecionado para a mesma tela de onde partiu, tornando o módulo de templates inacessível pela interface.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Causa</h4>
+              <p>Divergência de mapeamento entre o card visual e as rotas registradas em <code>App.tsx</code>.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Registrar explicitamente <code>/cadastros/modelos-campanha</code> apontando para <code>CampaignTemplatesWorkspace</code> e atualizar o link do card.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROUTE-02 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">ROUTE-02 • P1</span>
+              <span class="finding-title">Rota Órfã: Módulo de Operações de Trade Ausente no Menu Lateral</span>
+            </div>
+            <span class="finding-location">client/src/components/DashboardLayout.tsx vs client/src/App.tsx</span>
+          </div>
+          <div class="finding-body">
+            A rota <code>/operacoes</code> está completamente implementada no frontend (<code>TradeOperationsWorkspace.tsx</code>) e mapeada em <code>ProtectedModule.tsx</code>. Contudo, no menu lateral de <code>DashboardLayout.tsx</code>, não existe nenhum item de menu direcionando para <code>/operacoes</code>. O módulo só pode ser acessado caso o usuário digite manualmente a URL no navegador.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Funcionalidade de alta relevância para a equipe de trade permanece oculta dos usuários finais.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Adicionar entrada "Operações" no grupo operacional do menu lateral de <code>DashboardLayout.tsx</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROUTE-03 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">ROUTE-03 • P1</span>
+              <span class="finding-title">Desconexão da Gestão de Empresas: Tela Rica Subutilizada</span>
+            </div>
+            <span class="finding-location">client/src/pages/CompaniesWorkspace.tsx vs /cadastros/empresas</span>
+          </div>
+          <div class="finding-body">
+            Existe um componente dedicado e rico para gestão corporativa de empresas em <code>CompaniesWorkspace.tsx</code> registrado na rota <code>/empresas</code>. Porém, a navegação de cadastros direciona o usuário para <code>/cadastros/empresas</code>, que utiliza a tabela genérica <code>RegistryEntityWorkspace</code>. A tela avançada de empresas fica isolada e subutilizada.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Experiência do usuário fragmentada entre duas telas com propósitos duplicados de cadastro de empresas.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Redirecionar <code>/cadastros/empresas</code> para <code>/empresas</code> ou unificar o ponto de entrada na navegação.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROUTE-04 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-ok">CONTR-01 • CONFORME</span>
+              <span class="finding-title">Auditoria de Contratos tRPC: 100% de Integridade Frontend-Backend</span>
+            </div>
+            <span class="finding-location">server/routers.ts & client/src/lib/trpc.ts</span>
+          </div>
+          <div class="finding-body">
+            Todos os 82 procedimentos tRPC registrados no servidor possuem tipagem estrita de entrada (Zod schemas) e casamento exato com as chamadas feitas no cliente. Não foram encontradas divergências de nomes de campos, parâmetros ausentes ou respostas desserializadas incorretamente.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 5: DESIGN SYSTEM & UX -->
+    <div class="tab-pane" id="pane-design">
+      <div class="findings-list">
+
+        <!-- UI-01 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">UI-01 • P1</span>
+              <span class="finding-title">Refinamento Estético e de Acessibilidade no McpTokensManager</span>
+            </div>
+            <span class="finding-location">client/src/components/McpTokensManager.tsx</span>
+          </div>
+          <div class="finding-body">
+            O novo gerenciador de tokens MCP precisa ser alinhado aos padrões estéticos de <code>OperationalPatterns.tsx</code>:
+            <ul style="padding-left: 1.2rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+              <li><strong>Alerta Nativo:</strong> Utiliza <code>window.confirm(...)</code> do navegador para revogação de tokens em vez do diálogo institucional <code>&lt;AlertDialog&gt;</code> do Radix UI.</li>
+              <li><strong>Conflito de Borda:</strong> O uso da classe <code>.divide-y.divide-border</code> colide com a regra legada de <code>index.css:321</code>, gerando bordas aninhadas indesejadas no card.</li>
+              <li><strong>Cores Semânticas:</strong> Emprega cores literais do Tailwind (<code>text-emerald-600</code>, <code>amber-500</code>) em vez de tokens de tema (<code>text-primary</code>, <code>hub-status-note</code>, <code>text-destructive</code>).</li>
+              <li><strong>Acessibilidade:</strong> Botão de cópia de token sem atributo <code>aria-label</code> para leitores de tela.</li>
+            </ul>
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Quebra sutil da consistência de UX em relação aos demais diálogos de confirmação de Ações.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Substituir <code>window.confirm</code> por modal customizado e adotar classes semânticas e <code>aria-label</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- UI-02 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-alta">UI-02 • P1</span>
+              <span class="finding-title">Caixas Amarelas Ofuscantes no Tema Escuro (Falta de Variantes dark:)</span>
+            </div>
+            <span class="finding-location">client/src/pages/ProfileWorkspace.tsx:128 & UserAdministrationWorkspace.tsx:86,90</span>
+          </div>
+          <div class="finding-body">
+            Nas telas de Perfil e Administração de Usuários, os alertas informativos de papéis e segurança utilizam classes fixas <code>bg-amber-50 text-amber-950 border-amber-200</code>. No modo escuro, essas caixas mantêm o fundo branco/amarelo ultra-brilhante, causando ofuscamento visual e baixo contraste de texto.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Desconforto visual severo para usuários que utilizam o sistema com tema noturno.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Adicionar as classes variantes: <code>dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-800/50</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- UI-03 -->
+        <div class="finding-card">
+          <div class="finding-header">
+            <div class="finding-id-title">
+              <span class="finding-id badge-media">UI-03 • P2</span>
+              <span class="finding-title">Cores Hexadecimais Hardcoded Furando o Branding Context</span>
+            </div>
+            <span class="finding-location">client/src/pages/CampaignsWorkspace.tsx:companyClass</span>
+          </div>
+          <div class="finding-body">
+            Cores como <code>#f45103</code> (laranja) e <code>#0e723b</code> (verde) foram codificadas diretamente em literais hexadecimais em seletores de crachá de empresa, contornando as variáveis dinâmicas de <code>useBranding()</code> e impedindo que a cor primária seja ajustada via painel de configurações.
+          </div>
+          <div class="finding-meta-grid">
+            <div class="meta-box">
+              <h4>Impacto</h4>
+              <p>Se a cor institucional for alterada nas configurações da empresa, os crachás não acompanham a nova paleta.</p>
+            </div>
+            <div class="meta-box">
+              <h4>Ação de Mitigação Proposta</h4>
+              <p>Substituir estilos inline e literais hex por classes CSS que usam <code>var(--primary)</code> e <code>var(--accent)</code>.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 6: PLANO DE AÇÃO PRIORIZADO -->
+    <div class="tab-pane" id="pane-plano">
+      <div class="finding-card" style="margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--primary);">
+          Plano de Execução Imediata Pós-Aprovação (Aguardando seu "OK")
+        </h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+          Assim que você der o OK, as ações serão executadas na ordem estrita abaixo, garantindo estabilidade, segurança e integridade de testes.
+        </p>
+      </div>
+
+      <table class="action-table">
+        <thead>
+          <tr>
+            <th class="checkbox-col">OK</th>
+            <th style="width: 80px;">Prioridade</th>
+            <th style="width: 90px;">Código</th>
+            <th>Item & Descrição da Correção</th>
+            <th>Arquivos Envolvidos</th>
+            <th style="width: 120px;">Estimativa</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p0">P0</span></td>
+            <td><strong>BUG-01</strong></td>
+            <td>Corrigir função de data/hora local em ActionsWorkspace eliminando conversão UTC no datetime-local (Zera falhas em testes).</td>
+            <td><code>client/src/pages/ActionsWorkspace.tsx</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p0">P0</span></td>
+            <td><strong>BUG-02</strong></td>
+            <td>Adicionar <code>registerMcpEndpoint(app)</code> em <code>dev-index.ts</code> para garantir funcionamento do MCP com <code>pnpm dev</code>.</td>
+            <td><code>server/_core/dev-index.ts</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p0">P0</span></td>
+            <td><strong>SEC-01</strong></td>
+            <td>Implementar limite de 5 tentativas e lockout de 15 minutos na verificação de 2FA e reset de senha para impedir brute-force.</td>
+            <td><code>server/routers/localAuth.ts</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p1">P1</span></td>
+            <td><strong>ROUTE-01</strong></td>
+            <td>Mapear rota <code>/cadastros/modelos-campanha</code> apontando para <code>CampaignTemplatesWorkspace</code> e atualizar link no hub de cadastros.</td>
+            <td><code>client/src/App.tsx</code>, <code>OperationalRegistriesWorkspace.tsx</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p1">P1</span></td>
+            <td><strong>UI-01</strong></td>
+            <td>Refatorar <code>McpTokensManager.tsx</code> adotando modal do Radix UI, tokens semânticos de cor e atributos de acessibilidade.</td>
+            <td><code>client/src/components/McpTokensManager.tsx</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p1">P1</span></td>
+            <td><strong>UI-02</strong></td>
+            <td>Corrigir caixas amarelas informativas no tema escuro adicionando variantes <code>dark:bg-amber-950/30</code> nas telas de perfil e usuário.</td>
+            <td><code>ProfileWorkspace.tsx</code>, <code>UserAdministrationWorkspace.tsx</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p1">P1</span></td>
+            <td><strong>ARCH-01</strong></td>
+            <td>Envolver criação de campanhas e alocações de orçamento no MCP em transação de banco <code>database.transaction(...)</code>.</td>
+            <td><code>server/mcp/tools.ts</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p1">P1</span></td>
+            <td><strong>SEC-05</strong></td>
+            <td>Restringir procedimentos de risco <code>clearModuleData</code> e <code>updateSystem</code> para permissão exclusiva de Administrador.</td>
+            <td><code>server/routers/settingsRegistry.ts</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p2">P2</span></td>
+            <td><strong>SEC-04</strong></td>
+            <td>Invalidar sessões JWT caso o timestamp do token seja anterior a <code>users.passwordUpdatedAt</code> após alteração de senha.</td>
+            <td><code>server/_core/context.ts</code></td>
+            <td>Imediato</td>
+          </tr>
+          <tr>
+            <td class="checkbox-col"><input type="checkbox" class="custom-checkbox" checked disabled></td>
+            <td><span class="priority-badge priority-p2">P2</span></td>
+            <td><strong>ROUTE-02</strong></td>
+            <td>Adicionar link do módulo de Operações de Trade no menu lateral de navegação em <code>DashboardLayout.tsx</code>.</td>
+            <td><code>client/src/components/DashboardLayout.tsx</code></td>
+            <td>Imediato</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div>
+        <strong>Marketing HUB</strong> • Plataforma de Gestão de Trade Marketing • Relatório Técnico de Auditoria 360°
+      </div>
+      <div>
+        Diretriz estrita respeitada: <span class="footer-highlight">Nenhuma alteração foi realizada no código-fonte até autorização expressa do usuário.</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      const pane = document.getElementById('pane-' + tabId);
+      const btn = document.getElementById('tabBtn-' + tabId);
+      if (pane) pane.classList.add('active');
+      if (btn) btn.classList.add('active');
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('hub-audit-theme', newTheme);
+      updateThemeUI(newTheme);
+    }
+
+    function updateThemeUI(theme) {
+      const text = document.getElementById('themeText');
+      const icon = document.getElementById('themeIcon');
+      if (theme === 'dark') {
+        text.innerText = 'Modo Claro';
+        icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+      } else {
+        text.innerText = 'Modo Escuro';
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+      }
+    }
+
+    function filterFindings(severity, btn) {
+      document.querySelectorAll('.filter-pill').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+
+      const cards = document.querySelectorAll('.finding-card[data-severity]');
+      cards.forEach(card => {
+        if (severity === 'all' || card.getAttribute('data-severity') === severity) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function searchFindings(query) {
+      const q = query.toLowerCase().trim();
+      const cards = document.querySelectorAll('#pane-seguranca .finding-card');
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        if (!q || text.includes(q)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // Auto-detect theme
+    const savedTheme = localStorage.getItem('hub-audit-theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeUI(savedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      updateThemeUI('dark');
+    }
+  </script>
+</body>
+</html>
