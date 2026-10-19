@@ -13,6 +13,7 @@ import { ensureStorageDir } from "../storage";
 import { getDb } from "../db";
 import { appError, appLog, registerProcessLogging } from "./logger";
 import { registerHttpTelemetry } from "./httpTelemetry";
+import { registerMcpEndpoint } from "../mcp/handler";
 
 registerProcessLogging();
 
@@ -48,6 +49,7 @@ async function startDevelopmentServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.post("/api/scheduled/operational-alerts", operationalAlertsHandler);
+  registerMcpEndpoint(app);
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
   await setupVite(app, server);
 

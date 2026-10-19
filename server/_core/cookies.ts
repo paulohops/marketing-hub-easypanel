@@ -24,30 +24,14 @@ function isSecureRequest(req: Request) {
 export function getSessionCookieOptions(
   req: Request
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  // const hostname = req.hostname;
-  // const shouldSetDomain =
-  //   hostname &&
-  //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
-
-  // const domain =
-  //   shouldSetDomain && !hostname.startsWith(".")
-  //     ? `.${hostname}`
-  //     : shouldSetDomain
-  //       ? hostname
-  //       : undefined;
-
   const secure = isSecureRequest(req);
 
   return {
     httpOnly: true,
     path: "/",
-    // SameSite=None is valid only together with Secure. On local HTTP or
-    // when a reverse proxy omits X-Forwarded-Proto, Lax keeps the session
-    // cookie usable without weakening the HTTPS production policy.
-    sameSite: secure ? "none" : "lax",
+    // SEC-08: SameSite=Lax protege o cookie de sessão contra CSRF
+    // tanto em ambiente local quanto em produção/HTTPS.
+    sameSite: "lax",
     secure,
   };
 }

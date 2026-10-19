@@ -16,18 +16,18 @@ describe("getSessionCookieOptions", () => {
     });
   });
 
-  it("emite cookie cross-site protegido em HTTPS direto", () => {
+  it("emite cookie protegido com sameSite lax em HTTPS direto (SEC-08)", () => {
     expect(getSessionCookieOptions(request("https"))).toMatchObject({
       httpOnly: true,
       path: "/",
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
     });
   });
 
-  it("reconhece HTTPS informado pelo proxy reverso", () => {
+  it("reconhece HTTPS informado pelo proxy reverso mantendo sameSite lax", () => {
     expect(getSessionCookieOptions(request("http", { "x-forwarded-proto": "https" }))).toMatchObject({
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
     });
   });

@@ -52,20 +52,19 @@ class SDKServer {
       name: payload.name,
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+      .setIssuedAt(Math.floor(issuedAt / 1000))
       .setExpirationTime(expirationSeconds)
       .sign(this.getSessionSecret());
   }
 
   async verifySession(
     cookieValue: string | undefined | null,
-  ): Promise<{ openId: string; appId: string; name: string } | null> {
+  ): Promise<{ openId: string; appId: string; name: string; iat?: number; payload?: Record<string, unknown> } | null> {
     if (!cookieValue) return null;
 
     try {
-      const { payload } = await jwtVerify(cookieValue, this.getSessionSecret(), {
-        algorithms: ["HS256"],
-      });
-      const { openId, appId, name } = payload as Record<string, unknown>;
+      const { payload } = await jwtVerify(cookieValue, this.getSessionSecret(), {\n        algorithms: ["HS256"],\n      });
+      const { openId, appId, name, iat } = payload as Record<string, unknown>;
 
       if (!isNonEmptyString(openId) || !isNonEmptyString(appId)) {
         return null;
@@ -75,6 +74,8 @@ class SDKServer {
         openId,
         appId,
         name: isNonEmptyString(name) ? name : "Trade HUB",
+        iat: typeof iat === "number" ? iat : undefined,
+        payload: payload as Record<string, unknown>,
       };
     } catch {
       return null;
@@ -85,7 +86,6 @@ class SDKServer {
     const cookies = parseCookieHeader(req.headers.cookie ?? "");
     let sessionToken = cookies[COOKIE_NAME];
 
-    // Também aceitamos Bearer para integrações internas e clientes de API.
     if (!sessionToken) {
       const authHeader = req.headers.authorization;
       if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
@@ -100,18 +100,35 @@ class SDKServer {
     if (!user) throw ForbiddenError("User not found");
     if (!user.isActive) throw ForbiddenError("Inactive user account");
 
+    if (user.passwordUpdatedAt && session.iat !== undefined) {
+      if (session.iat * 1000 < user.passwordUpdatedAt.getTime()) {
+        throw ForbiddenError("Sessão expirada: a senha foi alterada após a emissão do token.");
+      }
+    }
+
     await db.upsertUser({
       openId: user.openId,
       lastSignedIn: new Date(),
     });
 
-    return user;
+    return {
+      ...user,
+      tokenPayload: {
+        ...(session.payload ?? {}),
+        iat: session.iat,
+      },
+    };
   }
 }
 
 export type AuthenticatedUser = User & {
   taskUid?: string;
   isCron?: boolean;
+  tokenPayload?: {
+    iat?: number;
+    exp?: number;
+    [key: string]: unknown;
+  };
 };
 
 export const sdk = new SDKServer();
