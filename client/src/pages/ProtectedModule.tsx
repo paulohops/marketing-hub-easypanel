@@ -6,7 +6,6 @@ import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { ArrowLeft, LockKeyhole, Loader2 } from "lucide-react";
 import { Redirect, useLocation, useRoute } from "wouter";
 import LoginPage from "./LoginPage";
-import ModulePage from "./ModulePage";
 const FinanceWorkspace = lazy(() => import("./FinanceWorkspace"));
 const InventoryWorkspace = lazy(() => import("./InventoryWorkspace"));
 const SettingsWorkspace = lazy(() => import("./SettingsWorkspace"));
@@ -157,5 +156,5 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   if (module === "central-conhecimento") return workspace(topicId ? <KnowledgeTopicWorkspace topicId={topicId} /> : <HelpWorkspace />);
   if (module === "notificacoes") return workspace(<NotificationsWorkspace />);
   if (module === "notificacoes-config") return workspace(<NotificationSettingsWorkspace />);
-  return <DashboardLayout><div className="cluster-workspace"><ModulePage {...definition} /></div></DashboardLayout>;
+  return <Redirect to="/" replace />;
 }
