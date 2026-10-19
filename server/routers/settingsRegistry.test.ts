@@ -82,4 +82,64 @@ describe("action point deletion", () => {
 
     await expect(caller.settings.deleteActionPoint({ id: 999 })).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
+
+  it("impede que usuários não-admin executem clearModuleData (SEC-05)", async () => {
+    const managerContext: TrpcContext = {
+      user: {
+        id: 2,
+        openId: "manager-user",
+        name: "Gestor Regional",
+        email: "gestor@clustermg.com.br",
+        phone: null,
+        loginMethod: "manus",
+        role: "manager",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: {} as TrpcContext["res"],
+    };
+    const caller = appRouter.createCaller(managerContext);
+
+    await expect(
+      caller.settings.clearModuleData({ modules: ["actions"], confirmation: "APAGAR" })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("impede que usuários não-admin executem updateSystem (SEC-05)", async () => {
+    const managerContext: TrpcContext = {
+      user: {
+        id: 2,
+        openId: "manager-user",
+        name: "Gestor Regional",
+        email: "gestor@clustermg.com.br",
+        phone: null,
+        loginMethod: "manus",
+        role: "manager",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: {} as TrpcContext["res"],
+    };
+    const caller = appRouter.createCaller(managerContext);
+
+    await expect(
+      caller.settings.updateSystem({
+        smtpHost: "smtp.example.com",
+        smtpPort: "587",
+        smtpUser: "user",
+        smtpFrom: "test@example.com",
+        notificationEmailEnabled: true,
+        googleOAuthEnabled: false,
+        emailLoginCodeEnabled: false,
+      })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
 });

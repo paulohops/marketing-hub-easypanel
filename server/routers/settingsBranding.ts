@@ -6,7 +6,7 @@ import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { writeAuditLog } from "../audit";
 import { storagePut } from "../storage";
-import { publicProcedure, protectedProcedure } from "../_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure } from "../_core/trpc";
 import {
   BRANDING_FONT_OPTIONS,
   DEFAULT_APP_BRANDING,
@@ -55,7 +55,6 @@ const brandingInputSchema = z.object({
   fontFamily: z.enum(brandingFontIds),
   light: brandingThemeInputSchema.partial().optional(),
   dark: brandingThemeInputSchema.partial().optional(),
-  // Campos legados aceitos para que integrações antigas continuem funcionando.
   primaryColor: hexColorSchema.optional(),
   accentColor: hexColorSchema.optional(),
   backgroundColor: hexColorSchema.optional(),
@@ -397,7 +396,7 @@ export const settingsBrandingProcedures = {
     };
   }),
 
-  updateSystem: protectedProcedure
+  updateSystem: adminProcedure
     .input(
       z.object({
         smtpHost: z.string().trim().max(255),
@@ -416,6 +415,12 @@ export const settingsBrandingProcedures = {
       })
     )
     .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Apenas administradores podem alterar as configurações do sistema.",
+        });
+      }
       await assertPermission(ctx.user, "settings.write");
       const database = await requireDatabase();
       const [currentSetting] = await database
