@@ -24,7 +24,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: { role: "admin
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/components/EvidenceUpload", () => ({ default: ({ variant }: { variant?: string }) => <div data-testid="evidence-upload" data-variant={variant}>Evidências</div> }));
 
-import ActionsWorkspace from "./ActionsWorkspace";
+import ActionsWorkspace, { formatLocalDateTime } from "./ActionsWorkspace";
 import EventsWorkspace from "./EventsWorkspace";
 
 afterEach(() => { cleanup(); localStorage.removeItem("marketing_hub_list_density"); vi.clearAllMocks(); });
@@ -200,5 +200,16 @@ describe("formulários operacionais ampliados", () => {
     expect(screen.getByLabelText("Vale renovar")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Salvar debriefing" }));
     expect(savePostEvent).toHaveBeenCalledWith(expect.objectContaining({ eventId: 22, rating: null, worthRenewing: false, resultAchieved: false, status: "planned", leadCount: 0, saleCount: 0, renewalCount: 0 }));
+  });
+});
+
+describe("formatLocalDateTime", () => {
+  it("formata data/hora local sem deslocamento indevido de fuso horário UTC", () => {
+    expect(formatLocalDateTime(null)).toBe("");
+    expect(formatLocalDateTime(undefined)).toBe("");
+    expect(formatLocalDateTime("")).toBe("");
+    expect(formatLocalDateTime("data-invalida")).toBe("");
+    const localDate = new Date(2026, 7, 14, 15, 0); // 14 de agosto de 2026 às 15:00 local
+    expect(formatLocalDateTime(localDate)).toBe("2026-08-14T15:00");
   });
 });
