@@ -142,4 +142,266 @@ export function McpTokensManager() {
       </div>
 
       <div className="mt-5">
-        {tokensQuery.isLoading ? (\n          <div className="flex items-center justify-center py-8 text-muted-foreground">\n            <Loader2 className="h-5 w-5 animate-spin mr-2" />\n            Carregando tokens...\n          </div>\n        ) : !tokensQuery.data || tokensQuery.data.length === 0 ? (\n          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">\n            Nenhum token MCP ativo. Clique em \"Novo Token MCP\" para criar um token e conectar seu assistente de IA.\n          </div>\n        ) : (\n          <div className="flex flex-col gap-3">\n            {tokensQuery.data.map(tok => {\n              const isRevoked = Boolean(tok.revokedAt);\n              const isExpired = tok.expiresAt ? new Date(tok.expiresAt) < new Date() : false;\n              const isActive = !isRevoked && !isExpired;\n\n              return (\n                <div\n                  key={tok.id}\n                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5"\n                >\n                  <div className="space-y-1">\n                    <div className="flex items-center gap-2">\n                      <span className="font-medium text-foreground text-sm">{tok.name}</span>\n                      {isActive && (\n                        <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary text-[11px]">\n                          Ativo\n                        </Badge>\n                      )}\n                      {isRevoked && (\n                        <Badge variant="outline" className="border-destructive/40 text-destructive text-[11px]">\n                          Revogado\n                        </Badge>\n                      )}\n                      {isExpired && !isRevoked && (\n                        <Badge variant="outline" className="border-destructive/40 text-destructive text-[11px]">\n                          Expirado\n                        </Badge>\n                      )}\n                    </div>\n                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">\n                      <code>{tok.tokenPrefix}</code>\n                      <span>Criado em: {new Date(tok.createdAt).toLocaleDateString(\"pt-BR\")}</span>\n                      {tok.lastUsedAt && (\n                        <span>Último uso: {new Date(tok.lastUsedAt).toLocaleDateString(\"pt-BR\")}</span>\n                      )}\n                      {tok.expiresAt && (\n                        <span>Expira em: {new Date(tok.expiresAt).toLocaleDateString(\"pt-BR\")}</span>\n                      )}\n                    </div>\n                  </div>\n\n                  {isActive && (\n                    <Button\n                      variant=\"ghost\"\n                      size=\"sm\"\n                      className=\"text-destructive hover:bg-destructive/10 hover:text-destructive self-start sm:self-center\"\n                      onClick={() => setTokenToRevoke({ id: tok.id, name: tok.name })}\n                      disabled={revokeMutation.isPending}\n                    >\n                      <Trash2 className=\"h-4 w-4 mr-1.5\" />\n                      Revogar\n                    </Button>\n                  )}\n                </div>\n              );\n            })}\n          </div>\n        )}\n      </div>\n\n      {/* Diálogo de criação */}\n      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>\n        <DialogContent className=\"sm:max-w-md\">\n          <form onSubmit={handleCreate}>\n            <DialogHeader>\n              <DialogTitle className=\"flex items-center gap-2\">\n                <KeyRound className=\"h-5 w-5 text-primary\" />\n                Criar Token MCP\n              </DialogTitle>\n              <DialogDescription>\n                Gere um token de autenticação seguro para que assistentes de IA (Cursor, Antigravity, Claude) possam acessar o Marketing HUB via MCP.\n              </DialogDescription>\n            </DialogHeader>\n\n            <div className=\"space-y-4 py-4\">\n              <div className=\"space-y-1.5\">\n                <Label htmlFor=\"token-name\">Nome / Finalidade</Label>\n                <Input\n                  id=\"token-name\"\n                  placeholder=\"Ex: Cursor - Meu Computador, Claude Desktop, Agente de Trade\"\n                  value={name}\n                  onChange={e => setName(e.target.value)}\n                  maxLength={100}\n                  autoFocus\n                />\n              </div>\n\n              <div className=\"space-y-1.5\">\n                <Label htmlFor=\"token-expiry\">Validade</Label>\n                <Select value={expiresInDays} onValueChange={setExpiresInDays}>\n                  <SelectTrigger id=\"token-expiry\">\n                    <SelectValue placeholder=\"Selecione a validade\" />\n                  </SelectTrigger>\n                  <SelectContent>\n                    <SelectItem value=\"30\">30 dias</SelectItem>\n                    <SelectItem value=\"90\">90 dias (Recomendado)</SelectItem>\n                    <SelectItem value=\"180\">180 dias</SelectItem>\n                    <SelectItem value=\"365\">1 ano</SelectItem>\n                    <SelectItem value=\"never\">Sem expiração</SelectItem>\n                  </SelectContent>\n                </Select>\n              </div>\n            </div>\n\n            <DialogFooter>\n              <Button\n                type=\"button\"\n                variant=\"outline\"\n                onClick={() => setIsCreateOpen(false)}\n                disabled={createMutation.isPending}\n              >\n                Cancelar\n              </Button>\n              <Button type=\"submit\" disabled={createMutation.isPending}>\n                {createMutation.isPending ? (\n                  <>\n                    <Loader2 className=\"mr-2 h-4 w-4 animate-spin\" />\n                    Gerando...\n                  </>\n                ) : (\n                  \"Gerar Token\"\n                )}\n              </Button>\n            </DialogFooter>\n          </form>\n        </DialogContent>\n      </Dialog>\n\n      {/* Diálogo de exibição do token recém-criado */}\n      <Dialog\n        open={Boolean(createdTokenData)}\n        onOpenChange={open => {\n          if (!open) setCreatedTokenData(null);\n        }}\n      >\n        <DialogContent className=\"sm:max-w-lg\">\n          <DialogHeader>\n            <DialogTitle className=\"flex items-center gap-2 text-primary\">\n              <Bot className=\"h-5 w-5\" />\n              Token MCP Gerado com Sucesso\n            </DialogTitle>\n            <DialogDescription>\n              Copie o token abaixo agora. Por segurança, ele não poderá ser visualizado novamente após fechar esta janela.\n            </DialogDescription>\n          </DialogHeader>\n\n          {createdTokenData && (\n            <div className=\"space-y-4 py-2\">\n              <div className=\"hub-status-note flex items-start gap-2.5 text-xs text-foreground\">\n                <ShieldAlert className=\"h-4 w-4 shrink-0 mt-0.5 text-destructive\" />\n                <span>\n                  Guarde este token com cuidado. Qualquer pessoa ou assistente com ele poderá realizar ações de acordo com o seu perfil de acesso.\n                </span>\n              </div>\n\n              <div className=\"space-y-1.5\">\n                <Label>Token de Autenticação</Label>\n                <div className=\"flex items-center gap-2\">\n                  <Input\n                    readOnly\n                    value={createdTokenData.token}\n                    className=\"font-mono text-xs select-all bg-muted\"\n                  />\n                  <Button\n                    type=\"button\"\n                    size=\"sm\"\n                    variant=\"outline\"\n                    aria-label=\"Copiar token MCP\"\n                    onClick={() => copyToClipboard(createdTokenData.token, \"token\")}\n                  >\n                    {copiedToken ? <Check className=\"h-4 w-4 text-primary\" /> : <Copy className=\"h-4 w-4\" />}\n                  </Button>\n                </div>\n              </div>\n\n              <div className=\"space-y-1.5\">\n                <div className=\"flex items-center justify-between\">\n                  <Label className=\"text-xs\">Exemplo de configuração (mcp_config.json):</Label>\n                  <Button\n                    type=\"button\"\n                    variant=\"ghost\"\n                    size=\"sm\"\n                    className=\"h-7 text-xs\"\n                    onClick={() => copyToClipboard(sampleConfig, \"config\")}\n                  >\n                    {copiedConfig ? (\n                      <span className=\"flex items-center gap-1 text-primary\">\n                        <Check className=\"h-3.5 w-3.5\" /> Copiado\n                      </span>\n                    ) : (\n                      <span className=\"flex items-center gap-1\">\n                        <Copy className=\"h-3.5 w-3.5\" /> Copiar Configuração\n                      </span>\n                    )}\n                  </Button>\n                </div>\n                <pre className=\"rounded-xl border border-border bg-muted p-3 text-[11px] font-mono leading-relaxed overflow-x-auto text-foreground\">\n                  {sampleConfig}\n                </pre>\n              </div>\n            </div>\n          )}\n\n          <DialogFooter>\n            <Button\n              type=\"button\"\n              onClick={() => setCreatedTokenData(null)}\n            >\n              Concluído\n            </Button>\n          </DialogFooter>\n        </DialogContent>\n      </Dialog>\n\n      {/* Diálogo de confirmação de revogação de token */}\n      <AlertDialog\n        open={Boolean(tokenToRevoke)}\n        onOpenChange={open => {\n          if (!open) setTokenToRevoke(null);\n        }}\n      >\n        <AlertDialogContent>\n          <AlertDialogHeader>\n            <AlertDialogTitle>Revogar token MCP</AlertDialogTitle>\n            <AlertDialogDescription>\n              Deseja revogar o token \"{tokenToRevoke?.name}\"? As IAs conectadas com este token perderão o acesso imediatamente.\n            </AlertDialogDescription>\n          </AlertDialogHeader>\n          <AlertDialogFooter>\n            <AlertDialogCancel disabled={revokeMutation.isPending}>\n              Cancelar\n            </AlertDialogCancel>\n            <AlertDialogAction\n              className=\"bg-destructive text-destructive-foreground hover:bg-destructive/90\"\n              disabled={revokeMutation.isPending}\n              onClick={() => {\n                if (tokenToRevoke) {\n                  revokeMutation.mutate(\n                    { id: tokenToRevoke.id },\n                    { onSettled: () => setTokenToRevoke(null) }\n                  );\n                }\n              }}\n            >\n              {revokeMutation.isPending ? \"Revogando...\" : \"Revogar\"}\n            </AlertDialogAction>\n          </AlertDialogFooter>\n        </AlertDialogContent>\n      </AlertDialog>\n    </div>\n  );\n}\n
+        {tokensQuery.isLoading ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            Carregando tokens...
+          </div>
+        ) : !tokensQuery.data || tokensQuery.data.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Nenhum token MCP ativo. Clique em "Novo Token MCP" para criar um token e conectar seu assistente de IA.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {tokensQuery.data.map(tok => {
+              const isRevoked = Boolean(tok.revokedAt);
+              const isExpired = tok.expiresAt ? new Date(tok.expiresAt) < new Date() : false;
+              const isActive = !isRevoked && !isExpired;
+
+              return (
+                <div
+                  key={tok.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground text-sm">{tok.name}</span>
+                      {isActive && (
+                        <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary text-[11px]">
+                          Ativo
+                        </Badge>
+                      )}
+                      {isRevoked && (
+                        <Badge variant="outline" className="border-destructive/40 text-destructive text-[11px]">
+                          Revogado
+                        </Badge>
+                      )}
+                      {isExpired && !isRevoked && (
+                        <Badge variant="outline" className="border-destructive/40 text-destructive text-[11px]">
+                          Expirado
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <code>{tok.tokenPrefix}</code>
+                      <span>Criado em: {new Date(tok.createdAt).toLocaleDateString("pt-BR")}</span>
+                      {tok.lastUsedAt && (
+                        <span>Último uso: {new Date(tok.lastUsedAt).toLocaleDateString("pt-BR")}</span>
+                      )}
+                      {tok.expiresAt && (
+                        <span>Expira em: {new Date(tok.expiresAt).toLocaleDateString("pt-BR")}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isActive && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive self-start sm:self-center"
+                      onClick={() => setTokenToRevoke({ id: tok.id, name: tok.name })}
+                      disabled={revokeMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1.5" />
+                      Revogar
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Diálogo de criação */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCreate}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-primary" />
+                Criar Token MCP
+              </DialogTitle>
+              <DialogDescription>
+                Gere um token de autenticação seguro para que assistentes de IA (Cursor, Antigravity, Claude) possam acessar o Marketing HUB via MCP.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="token-name">Nome / Finalidade</Label>
+                <Input
+                  id="token-name"
+                  placeholder="Ex: Cursor - Meu Computador, Claude Desktop, Agente de Trade"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  maxLength={100}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="token-expiry">Validade</Label>
+                <Select value={expiresInDays} onValueChange={setExpiresInDays}>
+                  <SelectTrigger id="token-expiry">
+                    <SelectValue placeholder="Selecione a validade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 dias</SelectItem>
+                    <SelectItem value="90">90 dias (Recomendado)</SelectItem>
+                    <SelectItem value="180">180 dias</SelectItem>
+                    <SelectItem value="365">1 ano</SelectItem>
+                    <SelectItem value="never">Sem expiração</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateOpen(false)}
+                disabled={createMutation.isPending}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  "Gerar Token"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de exibição do token recém-criado */}
+      <Dialog
+        open={Boolean(createdTokenData)}
+        onOpenChange={open => {
+          if (!open) setCreatedTokenData(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <Bot className="h-5 w-5" />
+              Token MCP Gerado com Sucesso
+            </DialogTitle>
+            <DialogDescription>
+              Copie o token abaixo agora. Por segurança, ele não poderá ser visualizado novamente após fechar esta janela.
+            </DialogDescription>
+          </DialogHeader>
+
+          {createdTokenData && (
+            <div className="space-y-4 py-2">
+              <div className="hub-status-note flex items-start gap-2.5 text-xs text-foreground">
+                <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+                <span>
+                  Guarde este token com cuidado. Qualquer pessoa ou assistente com ele poderá realizar ações de acordo com o seu perfil de acesso.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Token de Autenticação</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={createdTokenData.token}
+                    className="font-mono text-xs select-all bg-muted"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-label="Copiar token MCP"
+                    onClick={() => copyToClipboard(createdTokenData.token, "token")}
+                  >
+                    {copiedToken ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Exemplo de configuração (mcp_config.json):</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => copyToClipboard(sampleConfig, "config")}
+                  >
+                    {copiedConfig ? (
+                      <span className="flex items-center gap-1 text-primary">
+                        <Check className="h-3.5 w-3.5" /> Copiado
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <Copy className="h-3.5 w-3.5" /> Copiar Configuração
+                      </span>
+                    )}
+                  </Button>
+                </div>
+                <pre className="rounded-xl border border-border bg-muted p-3 text-[11px] font-mono leading-relaxed overflow-x-auto text-foreground">
+                  {sampleConfig}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setCreatedTokenData(null)}
+            >
+              Concluído
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de confirmação de revogação de token */}
+      <AlertDialog
+        open={Boolean(tokenToRevoke)}
+        onOpenChange={open => {
+          if (!open) setTokenToRevoke(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revogar token MCP</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja revogar o token "{tokenToRevoke?.name}"? As IAs conectadas com este token perderão o acesso imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revokeMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={revokeMutation.isPending}
+              onClick={() => {
+                if (tokenToRevoke) {
+                  revokeMutation.mutate(
+                    { id: tokenToRevoke.id },
+                    { onSettled: () => setTokenToRevoke(null) }
+                  );
+                }
+              }}
+            >
+              {revokeMutation.isPending ? "Revogando..." : "Revogar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
