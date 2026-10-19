@@ -322,7 +322,7 @@ const registryItems: RegistryItem[] = [
     description:
       "Estruturas reutilizáveis para iniciar campanhas com menos retrabalho.",
     group: "modelos",
-    route: "/cadastros/modelos",
+    route: "/cadastros/modelos-campanha",
     icon: FileSpreadsheet,
     relation: "Campanhas",
   },
@@ -391,8 +391,7 @@ export default function OperationalRegistriesWorkspace() {
         className="rounded-xl border border-border bg-card p-2 shadow-sm"
       >
         <div className="flex flex-wrap gap-2">
-          {groupDefinitions.map(group => (
-            <Button
+          {groupDefinitions.map(group => (\n            <Button
               key={group.id}
               type="button"
               variant={group.id === activeGroup ? "default" : "outline"}
