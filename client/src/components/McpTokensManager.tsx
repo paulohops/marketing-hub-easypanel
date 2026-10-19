@@ -380,11 +380,11 @@ export function McpTokensManager() {
             <AlertDialogDescription>
               Deseja revogar o token "{tokenToRevoke?.name}"? As IAs conectadas com este token perderão o acesso imediatamente.
             </AlertDialogDescription>
-          </AlertDialogHeader>
+          </DialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={revokeMutation.isPending}>
+            <AlertDialogCancel disabled={createMutation.isPending}>
               Cancelar
-            </AlertDialogCancel>
+            </CalertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={revokeMutation.isPending}
