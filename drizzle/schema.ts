@@ -2763,5 +2763,30 @@ export const financialCostAllocations = pgTable(
   }
 );
 
+export const mcpTokens = pgTable(
+  "mcp_tokens",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    tokenHash: varchar("tokenHash", { length: 64 }).notNull().unique(),
+    tokenPrefix: varchar("tokenPrefix", { length: 24 }).notNull(),
+    expiresAt: timestamp("expiresAt", { withTimezone: true }),
+    lastUsedAt: timestamp("lastUsedAt", { withTimezone: true }),
+    revokedAt: timestamp("revokedAt", { withTimezone: true }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index("mcp_tokens_user_idx").on(table.userId),
+    uniqueIndex("mcp_tokens_hash_idx").on(table.tokenHash),
+  ]
+);
+
+export type McpToken = typeof mcpTokens.$inferSelect;
+export type InsertMcpToken = typeof mcpTokens.$inferInsert;
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
