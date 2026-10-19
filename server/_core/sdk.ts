@@ -63,7 +63,9 @@ class SDKServer {
     if (!cookieValue) return null;
 
     try {
-      const { payload } = await jwtVerify(cookieValue, this.getSessionSecret(), {\n        algorithms: ["HS256"],\n      });
+      const { payload } = await jwtVerify(cookieValue, this.getSessionSecret(), {
+        algorithms: ["HS256"],
+      });
       const { openId, appId, name, iat } = payload as Record<string, unknown>;
 
       if (!isNonEmptyString(openId) || !isNonEmptyString(appId)) {
@@ -86,6 +88,7 @@ class SDKServer {
     const cookies = parseCookieHeader(req.headers.cookie ?? "");
     let sessionToken = cookies[COOKIE_NAME];
 
+    // Também aceitamos Bearer para integrações internas e clientes de API.
     if (!sessionToken) {
       const authHeader = req.headers.authorization;
       if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
@@ -100,6 +103,7 @@ class SDKServer {
     if (!user) throw ForbiddenError("User not found");
     if (!user.isActive) throw ForbiddenError("Inactive user account");
 
+    // SEC-04: Rejeita token emitido antes da última alteração de senha
     if (user.passwordUpdatedAt && session.iat !== undefined) {
       if (session.iat * 1000 < user.passwordUpdatedAt.getTime()) {
         throw ForbiddenError("Sessão expirada: a senha foi alterada após a emissão do token.");
