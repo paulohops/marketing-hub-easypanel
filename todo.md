@@ -487,5 +487,5 @@
 - [x] Estruturar Panfletagem vinculada a Campanhas, promoções, planos, setores e distribuição territorial.
 - [x] Estruturar Carro de Som com cadastro de spots ativo/inativo, fornecedores, dias, horários, registros de rodagem e evidências.
 - [x] Adicionar Influencers aos Cadastros, incluindo dados de pagamento, agenda de postagens, grupos, comprovação publicada e evidências.
-- [x] Padronizar o debriefing para todas as operações específicas de Mídias.
 - [x] Cobrir a nova navegação e os fluxos iniciais de Mídias com testes e revisão responsiva.
+- [x] Adaptar panfletagem: Regional da panfletagem, Novo fornecedor, Nova panfletagem, calendário com cidades da regional e correção dos erros de build do Docker Easypanel.
