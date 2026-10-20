@@ -1,0 +1,59 @@
+{
+  "name": "cadastrar_despesa_financeira",
+  "description": "Lança despesa financeira/custo operacional vinculada a uma ação, evento ou mídia, com centro de custo, categoria e fornecedor.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "operationType": {
+        "type": "string",
+        "enum": [
+          "action",
+          "event",
+          "media_campaign",
+          "trade_operation"
+        ],
+        "description": "Tipo de operação vinculada (obrigatório)"
+      },
+      "operationId": {
+        "type": "number",
+        "description": "ID da operação correspondente (obrigatório)"
+      },
+      "budgetType": {
+        "type": "string",
+        "enum": [
+          "trade_events",
+          "branding_b2c"
+        ],
+        "description": "Centro de verba / categoria orçamentária (padrão: trade_events)"
+      },
+      "investmentBase": {
+        "type": "number",
+        "description": "Custo de investimento base/produção em R$ (padrão: 0)"
+      },
+      "permitCost": {
+        "type": "number",
+        "description": "Custo de alvará/taxas públicas em R$ (padrão: 0)"
+      },
+      "storeCost": {
+        "type": "number",
+        "description": "Custo de locação/ponto em R$ (padrão: 0)"
+      },
+      "otherCosts": {
+        "type": "number",
+        "description": "Outros custos operacionais em R$ (padrão: 0)"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Justificativa, centro de custo, fornecedor ou detalhes da despesa"
+      },
+      "submitForApproval": {
+        "type": "boolean",
+        "description": "Se true, envia a despesa para aprovação (status: pending_approval); se false, salva como rascunho (draft)"
+      }
+    },
+    "required": [
+      "operationType",
+      "operationId"
+    ]
+  }
+}

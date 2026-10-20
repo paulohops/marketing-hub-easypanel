@@ -1,0 +1,16 @@
+{
+  "name": "obter_detalhe_campanha",
+  "description": "Obtém todos os detalhes de uma campanha específica, incluindo regionais, cidades atendidas, promoções, planos e ações vinculadas.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "campaignId": {
+        "type": "number",
+        "description": "ID da campanha"
+      }
+    },
+    "required": [
+      "campaignId"
+    ]
+  }
+}

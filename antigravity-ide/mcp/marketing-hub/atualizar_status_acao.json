@@ -1,0 +1,44 @@
+{
+  "name": "atualizar_status_acao",
+  "description": "Atualiza o status de uma ação de trade (ex: iniciar execução, pausar, concluir ou cancelar) e opcionalmente adiciona debriefing.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "actionId": {
+        "type": "number",
+        "description": "ID da ação"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "planned",
+          "in_progress",
+          "paused",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Novo status da ação"
+      },
+      "debriefNotes": {
+        "type": "string",
+        "description": "Notas do debriefing da ação"
+      },
+      "debriefRating": {
+        "type": "number",
+        "description": "Nota de avaliação (1 a 5)"
+      },
+      "leadCount": {
+        "type": "number",
+        "description": "Quantidade de leads obtidos"
+      },
+      "saleCount": {
+        "type": "number",
+        "description": "Quantidade de vendas realizadas"
+      }
+    },
+    "required": [
+      "actionId",
+      "status"
+    ]
+  }
+}

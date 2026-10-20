@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
+import MultiDatePicker from "@/components/MultiDatePicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CalendarDays, Plus, Trash2, X } from "lucide-react";
@@ -77,7 +78,53 @@ export default function TraditionalScheduleEditor({ value, onChange, neighborhoo
         ) : neighborhoodOptions.length ? (
           <SearchableMultiSelect id={`schedule-neighborhood-${index}`} label="Bairro da rodada" options={neighborhoodOptions} values={item.neighborhoodId ? [item.neighborhoodId] : []} maxSelections={1} onChange={values => update(index, { neighborhoodId: values[0] ?? null })} placeholder="Selecionar bairro" emptyMessage="Nenhum bairro disponível" />
         ) : null}
-        {territorialMode ? <div className="space-y-1.5"><Label htmlFor={`schedule-date-picker-${index}`}>Dias da rodagem</Label><Input id={`schedule-date-picker-${index}`} type="date" onChange={event => { addDate(index, event.target.value); event.currentTarget.value = ""; }} /><div className="flex min-h-8 flex-wrap gap-1.5 pt-1">{(item.specificDates ?? []).map(date => <span key={date} className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">{new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR")}<button type="button" onClick={() => removeDate(index, date)} className="rounded-sm hover:bg-primary/15" aria-label={`Remover ${date}`}><X className="h-3 w-3" /></button></span>)}{!(item.specificDates ?? []).length && <span className="text-[11px] text-muted-foreground">Selecione uma ou mais datas.</span>}</div></div> : item.specificDate ? <label className="space-y-1.5"><Label htmlFor={`schedule-date-${index}`}>Data da entrevista ou inserção</Label><Input id={`schedule-date-${index}`} type="date" value={item.specificDate} onChange={event => update(index, { specificDate: event.target.value || null })} required /></label> : <div className="space-y-1.5"><Label>Dias da semana</Label><div className="flex flex-wrap gap-1.5">{weekdays.map(([day, label]) => { const selected = item.weekdays.includes(day); return <Button key={day} type="button" variant={selected ? "default" : "outline"} size="sm" onClick={() => update(index, { weekdays: selected ? item.weekdays.filter(value => value !== day) : [...item.weekdays, day], specificDate: null })} className="h-8 px-2 text-[11px]">{label.slice(0, 3)}</Button>; })}</div><p className="mt-1 text-[11px] text-muted-foreground">Selecione um ou mais dias.</p></div>}
+        {territorialMode ? (
+          <div className="md:col-span-2">
+            <MultiDatePicker
+              value={item.specificDates ?? []}
+              onChange={dates => update(index, { specificDates: dates, specificDate: null, weekdays: [] })}
+              label="Dias da rodagem / operação"
+              description="Selecione múltiplos dias no calendário ou adicione um período completo de uma só vez."
+            />
+          </div>
+        ) : item.specificDate || (item.specificDates && item.specificDates.length > 0) ? (
+          <div className="md:col-span-2 space-y-2">
+            <MultiDatePicker
+              value={item.specificDates?.length ? item.specificDates : item.specificDate ? [item.specificDate] : []}
+              onChange={dates => update(index, { specificDates: dates, specificDate: dates[0] ?? null, weekdays: [] })}
+              label="Datas da veiculação / inserção"
+              description="Selecione os dias específicos para inserções ou entrevistas."
+            />
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label>Dias da semana</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {weekdays.map(([day, label]) => {
+                const selected = item.weekdays.includes(day);
+                return (
+                  <Button
+                    key={day}
+                    type="button"
+                    variant={selected ? "default" : "outline"}
+                    size="sm"
+                    onClick={() =>
+                      update(index, {
+                        weekdays: selected ? item.weekdays.filter(value => value !== day) : [...item.weekdays, day],
+                        specificDate: null,
+                        specificDates: [],
+                      })
+                    }
+                    className="h-8 px-2 text-[11px]"
+                  >
+                    {label.slice(0, 3)}
+                  </Button>
+                );
+              })}
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">Selecione um ou mais dias.</p>
+          </div>
+        )}
         <label className="space-y-1.5 md:col-span-2"><Label htmlFor={`schedule-notes-${index}`}>{territorialMode ? "Observação da rodada" : "Observação"}</Label><Input id={`schedule-notes-${index}`} value={item.notes ?? ""} onChange={event => update(index, { notes: event.target.value })} placeholder={territorialMode ? "Ex.: rota da manhã, pontos comerciais" : "Ex.: entrevista ao vivo"} /></label>
       </div>
     </article>)}</div>}

@@ -48,6 +48,9 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
+google_ads_october*
+meta_ads_october*
+relatorio_auditoria_ads*
 *.lcov
 
 # nyc test coverage

@@ -76,6 +76,21 @@ describe("MCP Protocol Handler & Tools", () => {
     expect(toolNames).toContain("criar_acao");
     expect(toolNames).toContain("preencher_dados_trade_lote");
     expect(toolNames).toContain("obter_indicadores_trade");
+
+    // Novas ferramentas MCP operacionais
+    expect(toolNames).toContain("agendar_panfletagem");
+    expect(toolNames).toContain("cadastrar_ponto_midia");
+    expect(toolNames).toContain("cadastrar_veiculacao_midia");
+    expect(toolNames).toContain("cadastrar_midia_audiovisual");
+    expect(toolNames).toContain("cadastrar_midia_volante");
+    expect(toolNames).toContain("cadastrar_influenciador");
+    expect(toolNames).toContain("cadastrar_evento");
+    expect(toolNames).toContain("cadastrar_item_estoque");
+    expect(toolNames).toContain("lancar_movimentacao_estoque");
+    expect(toolNames).toContain("cadastrar_despesa_financeira");
+    expect(toolNames).toContain("obter_configuracoes_sistema");
+    expect(toolNames).toContain("atualizar_configuracoes_sistema");
+    expect(toolNames).toContain("cadastrar_bairro");
   });
 
   it("executa a ferramenta mcp_status via tools/call", async () => {
@@ -128,5 +143,35 @@ describe("MCP Protocol Handler & Tools", () => {
     const atualizarStatus = mcpTools.find(t => t.name === "atualizar_status_acao");
     expect(atualizarStatus).toBeDefined();
     expect(atualizarStatus?.inputSchema.required).toEqual(["actionId", "status"]);
+  });
+
+  it("expõe todas as 13 novas ferramentas com schemas e definições consistentes", () => {
+    const expectedNewTools = [
+      { name: "agendar_panfletagem", required: ["name", "startsOn"] },
+      { name: "cadastrar_ponto_midia", required: ["name", "supplierId", "cityId", "mediaTypeId"] },
+      { name: "cadastrar_veiculacao_midia", required: ["name", "mediaPointId", "startsOn", "endsOn"] },
+      { name: "cadastrar_midia_audiovisual", required: ["name", "startsOn", "endsOn"] },
+      { name: "cadastrar_midia_volante", required: ["name", "startsOn", "endsOn"] },
+      { name: "cadastrar_influenciador", required: ["name"] },
+      { name: "cadastrar_evento", required: ["name", "cityId", "startsAt"] },
+      { name: "cadastrar_item_estoque", required: ["name", "regionalId"] },
+      { name: "lancar_movimentacao_estoque", required: ["stockItemId", "movementType", "quantity"] },
+      { name: "cadastrar_despesa_financeira", required: ["operationType", "operationId"] },
+      { name: "obter_configuracoes_sistema", required: undefined },
+      { name: "atualizar_configuracoes_sistema", required: undefined },
+      { name: "cadastrar_bairro", required: ["cityId", "name"] },
+    ];
+
+    for (const item of expectedNewTools) {
+      const tool = mcpTools.find(t => t.name === item.name);
+      expect(tool, `Ferramenta ${item.name} deve existir`).toBeDefined();
+      expect(typeof tool?.description).toBe("string");
+      expect(tool?.description.length).toBeGreaterThan(10);
+      expect(tool?.inputSchema.type).toBe("object");
+      expect(typeof tool?.handler).toBe("function");
+      if (item.required) {
+        expect(tool?.inputSchema.required).toEqual(item.required);
+      }
+    }
   });
 });

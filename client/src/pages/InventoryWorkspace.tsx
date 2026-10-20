@@ -2,6 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { WorkspaceActions, WorkspaceHeader, WorkspaceShell } from "@/components/WorkspaceChrome";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,6 +43,7 @@ import {
   Search,
   Plus,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -82,11 +93,13 @@ export default function InventoryWorkspace() {
   const { user } = useAuth();
   const { can } = useEffectivePermissions();
   const canWrite = can("inventory.write");
+  const canDelete = can("inventory.delete");
   const [showCreate, setShowCreate] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [movementItemId, setMovementItemId] = useState<number | null>(null);
   const [transferSourceId, setTransferSourceId] = useState<number | null>(null);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<{ id: number; name: string } | null>(null);
   const [historyItemId, setHistoryItemId] = useState<number | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyDates, setHistoryDates] = useState({
@@ -295,6 +308,14 @@ export default function InventoryWorkspace() {
         responsibleCommercialSupervisorId: "",
         recipientCommercialSupervisorId: "",
       });
+    },
+    onError: error => toast.error(error.message),
+  });
+  const deleteItem = trpc.inventory.deleteItem.useMutation({
+    onSuccess: () => {
+      toast.success("Item de estoque excluído com sucesso.");
+      setConfirmDeleteItem(null);
+      refreshInventory();
     },
     onError: error => toast.error(error.message),
   });
@@ -824,6 +845,20 @@ export default function InventoryWorkspace() {
                           <span className="hidden sm:inline">Transferir</span>
                         </Button>
                       )}
+                      {canDelete && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-full min-w-0 overflow-hidden rounded-lg border-destructive/40 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"
+                          onClick={() =>
+                            setConfirmDeleteItem({ id: item.id, name: item.name })
+                          }
+                        >
+                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                          <span className="sm:hidden">Excluir</span>
+                          <span className="hidden sm:inline">Excluir</span>
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {isEditing && (
@@ -1303,6 +1338,27 @@ export default function InventoryWorkspace() {
           </div>
         )}
       </section>
+
+      <AlertDialog open={confirmDeleteItem !== null} onOpenChange={open => !open && setConfirmDeleteItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir item de estoque?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o item "{confirmDeleteItem?.name}"? Todas as movimentações, saldos e históricos vinculados a este item serão removidos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteItem.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteItem.isPending}
+              onClick={() => confirmDeleteItem && deleteItem.mutate({ id: confirmDeleteItem.id })}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteItem.isPending ? "Excluindo..." : "Excluir item"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </WorkspaceShell>
   );
 }

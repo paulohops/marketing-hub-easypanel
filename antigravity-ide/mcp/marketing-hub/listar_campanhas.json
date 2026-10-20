@@ -1,0 +1,31 @@
+{
+  "name": "listar_campanhas",
+  "description": "Lista as campanhas de trade marketing com opção de filtros por status, empresa, datas e busca textual.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "scheduled",
+          "active",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Status da campanha"
+      },
+      "providerId": {
+        "type": "number",
+        "description": "ID da empresa"
+      },
+      "search": {
+        "type": "string",
+        "description": "Busca textual no nome ou objetivo da campanha"
+      },
+      "limit": {
+        "type": "number",
+        "description": "Limite de resultados (padrão: 50)"
+      }
+    }
+  }
+}

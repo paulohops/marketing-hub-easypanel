@@ -1,0 +1,39 @@
+{
+  "name": "atualizar_status_campanha",
+  "description": "Atualiza o status de uma campanha e opcionalmente adiciona notas de debriefing e avaliação de resultado.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "campaignId": {
+        "type": "number",
+        "description": "ID da campanha"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "scheduled",
+          "active",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Novo status da campanha"
+      },
+      "debriefNotes": {
+        "type": "string",
+        "description": "Notas do debriefing da campanha"
+      },
+      "debriefRating": {
+        "type": "number",
+        "description": "Nota de avaliação (1 a 5)"
+      },
+      "debriefResult": {
+        "type": "string",
+        "description": "Resultado alcançado (ex: superou_meta, atingiu_meta, abaixo_meta)"
+      }
+    },
+    "required": [
+      "campaignId",
+      "status"
+    ]
+  }
+}

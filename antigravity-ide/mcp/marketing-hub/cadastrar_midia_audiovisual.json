@@ -1,0 +1,120 @@
+{
+  "name": "cadastrar_midia_audiovisual",
+  "description": "Cadastra veiculação audiovisual (emissoras de rádio e TV, programas, quantidade de spots, horários e custos de veiculação).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da veiculação audiovisual (obrigatório)"
+      },
+      "startsOn": {
+        "type": "string",
+        "description": "Data de início da veiculação (YYYY-MM-DD, obrigatório)"
+      },
+      "endsOn": {
+        "type": "string",
+        "description": "Data de término da veiculação (YYYY-MM-DD, obrigatório)"
+      },
+      "mediaPointId": {
+        "type": "number",
+        "description": "ID do ponto/programa audiovisual em mediaPoints (opcional)"
+      },
+      "supplierId": {
+        "type": "number",
+        "description": "ID da emissora / fornecedor (opcional)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade sede da emissora (opcional)"
+      },
+      "tradeCampaignId": {
+        "type": "number",
+        "description": "ID da campanha comercial vinculada (opcional)"
+      },
+      "programName": {
+        "type": "string",
+        "description": "Nome do programa na grade da emissora"
+      },
+      "airingSchedule": {
+        "type": "string",
+        "description": "Horários e frequência de exibição (ex: Seg a Sex às 12h e 19h)"
+      },
+      "spotCount": {
+        "type": "number",
+        "description": "Quantidade total de inserções / spots contratados"
+      },
+      "spotName": {
+        "type": "string",
+        "description": "Nome ou título da peça/spot de áudio ou vídeo"
+      },
+      "activeSpotId": {
+        "type": "number",
+        "description": "ID de spot já existente no catálogo mediaSpots"
+      },
+      "estimatedCost": {
+        "type": "number",
+        "description": "Custo total estimado da veiculação em R$"
+      },
+      "partnershipType": {
+        "type": "string",
+        "enum": [
+          "paid",
+          "barter",
+          "mixed"
+        ],
+        "description": "Tipo de parceria/pagamento (padrão: paid)"
+      },
+      "signalCityIds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "IDs das cidades atendidas pelo alcance do sinal"
+      },
+      "schedules": {
+        "type": "array",
+        "description": "Grade de inserções e programas",
+        "items": {
+          "type": "object",
+          "properties": {
+            "programName": {
+              "type": "string"
+            },
+            "weekday": {
+              "type": "number",
+              "description": "Dia da semana (0=Domingo, 1=Segunda, etc.)"
+            },
+            "specificDate": {
+              "type": "string"
+            },
+            "startsAt": {
+              "type": "string",
+              "description": "Horário inicial (HH:mm)"
+            },
+            "endsAt": {
+              "type": "string",
+              "description": "Horário final (HH:mm)"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "startsAt",
+            "endsAt"
+          ]
+        }
+      },
+      "notes": {
+        "type": "string",
+        "description": "Observações adicionais"
+      }
+    },
+    "required": [
+      "name",
+      "startsOn",
+      "endsOn"
+    ]
+  }
+}

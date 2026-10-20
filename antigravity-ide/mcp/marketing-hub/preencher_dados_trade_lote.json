@@ -1,0 +1,75 @@
+{
+  "name": "preencher_dados_trade_lote",
+  "description": "Ferramenta otimizada para importação/preenchimento automático a partir de planilhas de trade. Permite criar múltiplas ações e campanhas em lote, resolvendo nomes de cidades e tipos de ação automaticamente.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "campanha": {
+        "type": "object",
+        "description": "Opcional: criar uma campanha agregadora para as ações do lote",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "objetivo": {
+            "type": "string"
+          },
+          "empresaNome": {
+            "type": "string"
+          },
+          "dataInicio": {
+            "type": "string"
+          },
+          "dataFim": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome"
+        ]
+      },
+      "acoes": {
+        "type": "array",
+        "description": "Lista de ações extraídas da planilha para cadastro",
+        "items": {
+          "type": "object",
+          "properties": {
+            "nome": {
+              "type": "string"
+            },
+            "cidadeNome": {
+              "type": "string",
+              "description": "Nome da cidade para resolução automática"
+            },
+            "cidadeUf": {
+              "type": "string",
+              "description": "UF da cidade (opcional, ex: MG)"
+            },
+            "tipoAcaoNome": {
+              "type": "string",
+              "description": "Nome do tipo de ação (ex: Blitz, Panfletagem)"
+            },
+            "dataAgendada": {
+              "type": "string",
+              "description": "Data programada (YYYY-MM-DD ou ISO)"
+            },
+            "custoEstimado": {
+              "type": "number"
+            },
+            "objetivo": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "nome",
+            "cidadeNome",
+            "dataAgendada"
+          ]
+        }
+      }
+    },
+    "required": [
+      "acoes"
+    ]
+  }
+}

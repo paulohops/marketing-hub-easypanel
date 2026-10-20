@@ -1,6 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,12 +34,14 @@ import {
   ClipboardCheck,
   FolderUp,
   ImagePlus,
+  Loader2,
   MapPin,
   PackageCheck,
   Plus,
   Search,
   SlidersHorizontal,
   Star,
+  Trash2,
   UsersRound,
 } from "lucide-react";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -158,6 +170,8 @@ export default function ActionsWorkspace() {
   const [isDetailRoute, routeParams] = useRoute("/acoes/:actionId");
   const { can } = useEffectivePermissions();
   const canWrite = can("actions.write");
+  const canDelete = can("actions.delete");
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
   const { compact } = useListDensity();
   const utils = trpc.useUtils();
   const [form, setForm] = useState(blankForm);
@@ -342,6 +356,15 @@ export default function ActionsWorkspace() {
       utils.actions.list.invalidate();
       setRescheduleOpen(false);
       toast.success("Ação reagendada.");
+    },
+    onError: (error: { message: string }) => toast.error(error.message),
+  });
+  const removeAction = trpc.actions.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Ação excluída com sucesso.");
+      setConfirmDelete(null);
+      setLocation("/acoes");
+      void utils.actions.list.invalidate();
     },
     onError: (error: { message: string }) => toast.error(error.message),
   });
@@ -546,6 +569,9 @@ export default function ActionsWorkspace() {
         <ActionDetail
           row={selected}
           canWrite={canWrite}
+          canDelete={canDelete}
+          deleting={removeAction.isPending}
+          onDelete={() => setConfirmDelete({ id: selected.action.id, name: selected.action.name })}
           canCreateTask={can("tasks.create")}
           onBack={() => setLocation("/acoes")}
           onEdit={() => openEdit(selected)}
@@ -670,6 +696,29 @@ export default function ActionsWorkspace() {
             </form>
           </DialogContent>
         </Dialog>
+        <AlertDialog open={Boolean(confirmDelete)} onOpenChange={open => { if (!open && !removeAction.isPending) setConfirmDelete(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir ação?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a excluir a ação <strong>{confirmDelete?.name}</strong>. A exclusão é permanente e removerá vínculos, custos e registros desta ação.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={removeAction.isPending}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={removeAction.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (confirmDelete) removeAction.mutate({ id: confirmDelete.id });
+                }}
+              >
+                {removeAction.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Excluir ação
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </>
     );
   return (
@@ -919,6 +968,9 @@ type ActionFormProps = {
 function ActionDetail({
   row,
   canWrite,
+  canDelete = false,
+  deleting = false,
+  onDelete,
   canCreateTask,
   onBack,
   onEdit,
@@ -932,6 +984,9 @@ function ActionDetail({
 }: {
   row: ActionRow;
   canWrite: boolean;
+  canDelete?: boolean;
+  deleting?: boolean;
+  onDelete?: () => void;
   canCreateTask: boolean;
   onBack: () => void;
   onEdit: () => void;
@@ -1006,31 +1061,46 @@ function ActionDetail({
             <h1 className="mt-2 break-words font-display text-3xl font-bold text-foreground">{row.action.name}</h1>
           </div>
         </div>
-        {canWrite && (
+        {(canWrite || canDelete) && (
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
             {canCreateTask ? <ContextTaskDialog entityType="action" entityId={row.action.id} entityName={row.action.name} cityId={row.action.cityId} defaultDescription={`Acompanhar a ação ${row.action.name}.`} /> : null}
-            <Button variant="outline" onClick={onEdit}>
-                Editar ação
-            </Button>
-            <Button variant="outline" onClick={onReschedule}>
-                Reagendar
-            </Button>
-            <div className="min-w-[12.5rem]">
-              <SearchableMultiSelect
-                id="action-detail-status"
-                label="Alterar status"
-                hideLabel
-                maxSelections={1}
-                placeholder="Status"
-                triggerClassName="h-9 bg-background text-sm font-medium"
-                options={[{ id: 1, label: "Planejada" }, { id: 2, label: "Em execução" }, { id: 3, label: "Pausada" }, { id: 4, label: "Concluída" }, { id: 5, label: "Cancelada" }]}
-                values={[({ planned: 1, in_progress: 2, paused: 3, completed: 4, cancelled: 5 } as Record<string, number>)[row.action.status]]}
-                onChange={ids => {
-                  const selectedStatus = ({ 1: "planned", 2: "in_progress", 3: "paused", 4: "completed", 5: "cancelled" } as Record<number, "planned" | "in_progress" | "paused" | "completed" | "cancelled">)[ids[0]];
-                  if (selectedStatus) onStatus(selectedStatus);
-                }}
-              />
-            </div>
+            {canWrite && (
+              <>
+                <Button variant="outline" onClick={onEdit}>
+                    Editar ação
+                </Button>
+                <Button variant="outline" onClick={onReschedule}>
+                    Reagendar
+                </Button>
+                <div className="min-w-[12.5rem]">
+                  <SearchableMultiSelect
+                    id="action-detail-status"
+                    label="Alterar status"
+                    hideLabel
+                    maxSelections={1}
+                    placeholder="Status"
+                    triggerClassName="h-9 bg-background text-sm font-medium"
+                    options={[{ id: 1, label: "Planejada" }, { id: 2, label: "Em execução" }, { id: 3, label: "Pausada" }, { id: 4, label: "Concluída" }, { id: 5, label: "Cancelada" }]}
+                    values={[({ planned: 1, in_progress: 2, paused: 3, completed: 4, cancelled: 5 } as Record<string, number>)[row.action.status]]}
+                    onChange={ids => {
+                      const selectedStatus = ({ 1: "planned", 2: "in_progress", 3: "paused", 4: "completed", 5: "cancelled" } as Record<number, "planned" | "in_progress" | "paused" | "completed" | "cancelled">)[ids[0]];
+                      if (selectedStatus) onStatus(selectedStatus);
+                    }}
+                  />
+                </div>
+              </>
+            )}
+            {canDelete && onDelete && (
+              <Button
+                variant="outline"
+                className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={onDelete}
+                disabled={deleting}
+              >
+                {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                Excluir ação
+              </Button>
+            )}
           </div>
         )}
       </header>
@@ -1361,11 +1431,11 @@ function ActionForm({
           <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
             Objetivo
             <Textarea
-              required
               value={form.objective}
               onChange={event =>
                 setForm({ ...form, objective: event.target.value })
               }
+              placeholder="Descreva os objetivos da ação de trade (opcional)"
             />
           </label>
           <SearchableMultiSelect

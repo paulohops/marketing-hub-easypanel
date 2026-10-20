@@ -1,0 +1,58 @@
+{
+  "name": "criar_acao",
+  "description": "Cria uma nova ação de trade marketing vinculada a uma cidade, data e opcionalmente a uma campanha.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da ação (obrigatório)"
+      },
+      "tradeCampaignId": {
+        "type": "number",
+        "description": "ID da campanha vinculada (opcional)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade (obrigatório)"
+      },
+      "actionTypeId": {
+        "type": "number",
+        "description": "ID do tipo de ação (obrigatório)"
+      },
+      "scheduledFor": {
+        "type": "string",
+        "description": "Data/hora programada (formato ISO)"
+      },
+      "commercialSupervisorId": {
+        "type": "number",
+        "description": "ID do supervisor comercial responsável"
+      },
+      "objective": {
+        "type": "string",
+        "description": "Objetivo da ação"
+      },
+      "estimatedCost": {
+        "type": "number",
+        "description": "Custo estimado (R$)"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "planned",
+          "in_progress",
+          "paused",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Status inicial (padrão: planned)"
+      }
+    },
+    "required": [
+      "name",
+      "cityId",
+      "actionTypeId",
+      "scheduledFor"
+    ]
+  }
+}

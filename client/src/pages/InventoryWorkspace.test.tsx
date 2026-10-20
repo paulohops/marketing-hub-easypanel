@@ -29,6 +29,7 @@ const trpcStub = vi.hoisted(() => ({
     updateStockItem: { useMutation: () => ({ mutate: updateMutation, isPending: false }) },
     registerMovement: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     transfer: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    deleteItem: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
   },
 }));
 

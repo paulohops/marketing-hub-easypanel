@@ -1,0 +1,8 @@
+{
+  "name": "obter_indicadores_trade",
+  "description": "Calcula métricas agregadas da operação de trade: total de campanhas por status, ações realizadas vs planejadas, investimentos e cobertura de cidades.",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}

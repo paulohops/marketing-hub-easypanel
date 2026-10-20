@@ -1,0 +1,142 @@
+{
+  "name": "cadastrar_midia_volante",
+  "description": "Cadastra veiculação de mídia volante (carros de som, rotas, dias de rodagem, horários e custos).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da veiculação volante (obrigatório)"
+      },
+      "startsOn": {
+        "type": "string",
+        "description": "Data de início da rodagem (YYYY-MM-DD, obrigatório)"
+      },
+      "endsOn": {
+        "type": "string",
+        "description": "Data de término da rodagem (YYYY-MM-DD, obrigatório)"
+      },
+      "mediaPointId": {
+        "type": "number",
+        "description": "ID do ponto/veículo volante em mediaPoints (opcional)"
+      },
+      "supplierId": {
+        "type": "number",
+        "description": "ID do fornecedor de carro de som (opcional)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade de rodagem (opcional)"
+      },
+      "tradeCampaignId": {
+        "type": "number",
+        "description": "ID da campanha comercial vinculada (opcional)"
+      },
+      "dailyRoute": {
+        "type": "string",
+        "description": "Descrição do itinerário ou rota padrão de rodagem"
+      },
+      "circulationDays": {
+        "type": "number",
+        "description": "Quantidade total de dias de circulação"
+      },
+      "dailyRate": {
+        "type": "number",
+        "description": "Valor da diária do veículo em R$"
+      },
+      "estimatedCost": {
+        "type": "number",
+        "description": "Custo total estimado da veiculação"
+      },
+      "partnershipType": {
+        "type": "string",
+        "enum": [
+          "paid",
+          "barter",
+          "mixed"
+        ],
+        "description": "Tipo de parceria/pagamento (padrão: paid)"
+      },
+      "runs": {
+        "type": "array",
+        "description": "Lista de rodagens específicas programadas para soundCarRuns",
+        "items": {
+          "type": "object",
+          "properties": {
+            "drivenOn": {
+              "type": "string",
+              "description": "Data da rodagem (YYYY-MM-DD)"
+            },
+            "startsAt": {
+              "type": "string",
+              "description": "Horário inicial (HH:mm)"
+            },
+            "endsAt": {
+              "type": "string",
+              "description": "Horário final (HH:mm)"
+            },
+            "route": {
+              "type": "string",
+              "description": "Itinerário específico do dia"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "drivenOn"
+          ]
+        }
+      },
+      "schedules": {
+        "type": "array",
+        "description": "Grade de agendamentos por bairro ou horário em mediaCampaignSchedules",
+        "items": {
+          "type": "object",
+          "properties": {
+            "programName": {
+              "type": "string"
+            },
+            "weekday": {
+              "type": "number"
+            },
+            "specificDate": {
+              "type": "string"
+            },
+            "cityId": {
+              "type": "number"
+            },
+            "neighborhoodId": {
+              "type": "number"
+            },
+            "startsAt": {
+              "type": "string"
+            },
+            "endsAt": {
+              "type": "string"
+            },
+            "routeDescription": {
+              "type": "string"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "startsAt",
+            "endsAt"
+          ]
+        }
+      },
+      "notes": {
+        "type": "string",
+        "description": "Observações gerais"
+      }
+    },
+    "required": [
+      "name",
+      "startsOn",
+      "endsOn"
+    ]
+  }
+}

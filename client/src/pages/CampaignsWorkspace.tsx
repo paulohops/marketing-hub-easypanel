@@ -634,6 +634,7 @@ function Editor({
 function Detail({
   campaign,
   canWrite,
+  canDelete = false,
   canCreateTask,
   back,
   edit,
@@ -720,21 +721,27 @@ function Detail({
             </p>
           </div>
         </div>
-        {canWrite && (
+        {(canWrite || canDelete) && (
           <div className="flex flex-wrap gap-2 xl:justify-end">
             {canCreateTask ? <ContextTaskDialog entityType="media_campaign" entityId={campaign.id} entityName={campaign.name} defaultDescription={`Acompanhar a campanha ${campaign.name}.`} /> : null}
-            <Button variant="outline" onClick={() => { setRenewalStartsAt(""); setRenewalEndsAt(""); setRenewalOpen(true); }}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Renovar campanha
-            </Button>
-            <Button variant="outline" onClick={edit}>
-              <Edit3 className="mr-2 h-4 w-4" />
-              Editar campanha
-            </Button>
-            <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={deleting}>
-              {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-              Excluir campanha
-            </Button>
+            {canWrite && (
+              <>
+                <Button variant="outline" onClick={() => { setRenewalStartsAt(""); setRenewalEndsAt(""); setRenewalOpen(true); }}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Renovar campanha
+                </Button>
+                <Button variant="outline" onClick={edit}>
+                  <Edit3 className="mr-2 h-4 w-4" />
+                  Editar campanha
+                </Button>
+              </>
+            )}
+            {canDelete && (
+              <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={deleting}>
+                {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                Excluir campanha
+              </Button>
+            )}
           </div>
         )}
       </header>
@@ -1078,6 +1085,7 @@ export default function CampaignsWorkspace() {
   const [detail, params] = useRoute("/campanhas/:campaignId");
   const { can } = useEffectivePermissions();
   const canWrite = can("actions.write");
+  const canDelete = can("actions.delete");
   const { compact } = useListDensity();
   const [providerId, setProviderId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1258,6 +1266,7 @@ export default function CampaignsWorkspace() {
         <Detail
           campaign={selected}
           canWrite={canWrite}
+          canDelete={canDelete}
           canCreateTask={can("tasks.create")}
           back={() => setLocation("/campanhas")}
           edit={() => edit(selected)}

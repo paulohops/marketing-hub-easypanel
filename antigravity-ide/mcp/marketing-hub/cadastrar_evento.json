@@ -1,0 +1,126 @@
+{
+  "name": "cadastrar_evento",
+  "description": "Cadastra evento de trade/marketing com nome do evento, local/endereço, datas de início/fim, público estimado, alvará e custos.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do evento (obrigatório)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade do evento (obrigatório)"
+      },
+      "startsAt": {
+        "type": "string",
+        "description": "Data/hora de início em formato ISO (obrigatório)"
+      },
+      "endsAt": {
+        "type": "string",
+        "description": "Data/hora de término em formato ISO"
+      },
+      "eventTypeId": {
+        "type": "number",
+        "description": "ID do tipo de evento (opcional, usa padrão se omitido)"
+      },
+      "tradeCampaignId": {
+        "type": "number",
+        "description": "ID da campanha comercial vinculada (opcional)"
+      },
+      "address": {
+        "type": "string",
+        "description": "Endereço ou local do evento"
+      },
+      "estimatedCost": {
+        "type": "number",
+        "description": "Custo total estimado em R$"
+      },
+      "partnershipType": {
+        "type": "string",
+        "enum": [
+          "paid",
+          "barter",
+          "mixed"
+        ],
+        "description": "Tipo de parceria (padrão: paid)"
+      },
+      "commercialSupervisorId": {
+        "type": "number",
+        "description": "ID do supervisor comercial responsável"
+      },
+      "estimatedAudience": {
+        "type": "number",
+        "description": "Público estimado presente no evento"
+      },
+      "permitInfo": {
+        "type": "string",
+        "description": "Informações sobre alvará, licenças ou autorizações públicas"
+      },
+      "preEventNotes": {
+        "type": "string",
+        "description": "Notas e planejamento pré-evento"
+      },
+      "partnershipReason": {
+        "type": "string",
+        "description": "Justificativa da parceria ou investimento"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "planned",
+          "in_progress",
+          "paused",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Status do evento (padrão: planned)"
+      },
+      "supplierIds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "IDs de fornecedores vinculados ao evento"
+      },
+      "serviceTypeIds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "IDs de tipos de serviço contratados para o evento"
+      },
+      "teamMemberIds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "IDs de colaboradores da equipe de trade alocados"
+      },
+      "stockAllocations": {
+        "type": "array",
+        "description": "Materiais e brindes de estoque alocados",
+        "items": {
+          "type": "object",
+          "properties": {
+            "stockItemId": {
+              "type": "number"
+            },
+            "quantity": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "stockItemId",
+            "quantity"
+          ]
+        }
+      }
+    },
+    "required": [
+      "name",
+      "cityId",
+      "startsAt"
+    ]
+  }
+}

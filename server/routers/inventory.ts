@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { cities, commercialSupervisors, notifications, productTypes, regionals, stockBalances, stockCategories, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
+import { actionStockItems, cities, commercialSupervisors, documents, eventStockItems, notifications, productTypes, regionals, stockBalances, stockCategories, stockItems, stockMovements, stockTransfers, users } from "../../drizzle/schema";
 import { assertPermission } from "../authorization";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -262,5 +262,23 @@ export const inventoryRouter = router({
     });
     await writeAuditLog({ actorUserId: ctx.user.id, regionalId: transfer.source.regionalId, entityType: "stock_transfer", entityId: transfer.created.id, action: "create", beforeData: { sourceStockItemId: input.sourceStockItemId }, afterData: transfer.created });
     return transfer.created;
+  }),
+
+  deleteItem: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "inventory.delete");
+    const database = await requireDatabase();
+    const [before] = await database.select().from(stockItems).where(eq(stockItems.id, input.id)).limit(1);
+    if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Item de estoque não encontrado." });
+    await database.transaction(async transaction => {
+      await transaction.delete(stockBalances).where(eq(stockBalances.stockItemId, input.id));
+      await transaction.delete(stockMovements).where(eq(stockMovements.stockItemId, input.id));
+      await transaction.delete(stockTransfers).where(or(eq(stockTransfers.sourceStockItemId, input.id), eq(stockTransfers.destinationStockItemId, input.id)));
+      await transaction.delete(actionStockItems).where(eq(actionStockItems.stockItemId, input.id));
+      await transaction.delete(eventStockItems).where(eq(eventStockItems.stockItemId, input.id));
+      await transaction.delete(documents).where(and(eq(documents.entityType, "stock"), eq(documents.entityId, input.id)));
+      await transaction.delete(stockItems).where(eq(stockItems.id, input.id));
+    });
+    await writeAuditLog({ actorUserId: ctx.user.id, regionalId: before.regionalId, entityType: "stock_item", entityId: input.id, action: "delete", beforeData: before });
+    return { success: true } as const;
   }),
 });

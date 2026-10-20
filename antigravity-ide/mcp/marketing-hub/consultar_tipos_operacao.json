@@ -1,0 +1,8 @@
+{
+  "name": "consultar_tipos_operacao",
+  "description": "Retorna as taxonomias e tipos de operação cadastrados: tipos de ação, tipos de campanha, tipos de evento, supervisores comerciais e tipos de mídia.",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}

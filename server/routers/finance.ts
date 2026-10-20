@@ -816,4 +816,20 @@ export const financeRouter = router({
     await writeAuditLog({ actorUserId: ctx.user.id, entityType: "payment", entityId: created.id, action: "create", afterData: created });
     return { payment: created, invoiceStatus: nextStatus };
   }),
+
+  deleteCost: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    await assertPermission(ctx.user, "finance.delete");
+    const database = await requireDatabase();
+    const [invoice] = await database.select().from(invoices).where(eq(invoices.id, input.id)).limit(1);
+    if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Lançamento financeiro não encontrado." });
+    return database.transaction(async tx => {
+      if (invoice.billingId) await tx.update(financeBillings).set({ status: "planned", updatedAt: new Date() }).where(eq(financeBillings.id, invoice.billingId));
+      await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, input.id));
+      await tx.delete(payments).where(eq(payments.invoiceId, input.id));
+      await tx.delete(documents).where(and(eq(documents.entityType, "invoice"), eq(documents.entityId, input.id)));
+      await tx.delete(invoices).where(eq(invoices.id, input.id));
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "invoice", entityId: input.id, action: "delete", beforeData: invoice }, tx);
+      return { success: true as const };
+    });
+  }),
 });

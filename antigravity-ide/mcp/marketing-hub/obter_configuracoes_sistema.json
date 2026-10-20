@@ -1,0 +1,8 @@
+{
+  "name": "obter_configuracoes_sistema",
+  "description": "Retorna as configurações gerais e de branding ativas no sistema.",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}

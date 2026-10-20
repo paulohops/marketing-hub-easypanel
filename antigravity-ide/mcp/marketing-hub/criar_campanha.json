@@ -1,0 +1,109 @@
+{
+  "name": "criar_campanha",
+  "description": "Cria uma nova campanha de trade marketing com suporte a regionais, cidades, promoções e planos.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da campanha (obrigatório)"
+      },
+      "objective": {
+        "type": "string",
+        "description": "Objetivo ou descrição da campanha"
+      },
+      "providerId": {
+        "type": "number",
+        "description": "ID da empresa parceira"
+      },
+      "campaignTypeId": {
+        "type": "number",
+        "description": "ID do tipo de campanha"
+      },
+      "campaignSectorId": {
+        "type": "number",
+        "description": "ID do setor da campanha"
+      },
+      "regionalIds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Lista de IDs das regionais atendidas"
+      },
+      "cityIds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Lista de IDs das cidades atendidas"
+      },
+      "startsAt": {
+        "type": "string",
+        "description": "Data de início (formato ISO YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ssZ)"
+      },
+      "endsAt": {
+        "type": "string",
+        "description": "Data de término (formato ISO)"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "scheduled",
+          "active",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Status da campanha (padrão: scheduled)"
+      },
+      "promotions": {
+        "type": "array",
+        "description": "Lista de promoções e planos da campanha",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "cityIds": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "plans": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "speed": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "name",
+                  "price"
+                ]
+              }
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "lancar_movimentacao_estoque",
+  "description": "Registra movimentação de estoque (entrada, saída, ajuste) de um item para determinada cidade/regional.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "stockItemId": {
+        "type": "number",
+        "description": "ID do item de estoque (obrigatório)"
+      },
+      "movementType": {
+        "type": "string",
+        "enum": [
+          "entry",
+          "exit",
+          "adjustment"
+        ],
+        "description": "Tipo de movimentação: entry=entrada, exit=saída, adjustment=ajuste de inventário (obrigatório)"
+      },
+      "quantity": {
+        "type": "number",
+        "description": "Quantidade a movimentar (número positivo, obrigatório)"
+      },
+      "unitCost": {
+        "type": "number",
+        "description": "Custo unitário em R$ (opcional)"
+      },
+      "occurredAt": {
+        "type": "string",
+        "description": "Data/hora da movimentação em formato ISO (padrão: agora)"
+      },
+      "reference": {
+        "type": "string",
+        "description": "Referência documental (ex: NF 1234, Ação Centro)"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Justificativa ou notas da movimentação"
+      },
+      "responsibleCommercialSupervisorId": {
+        "type": "number",
+        "description": "ID do supervisor comercial responsável"
+      },
+      "recipientCommercialSupervisorId": {
+        "type": "number",
+        "description": "ID do supervisor comercial destinatário"
+      }
+    },
+    "required": [
+      "stockItemId",
+      "movementType",
+      "quantity"
+    ]
+  }
+}

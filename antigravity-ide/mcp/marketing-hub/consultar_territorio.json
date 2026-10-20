@@ -1,0 +1,17 @@
+{
+  "name": "consultar_territorio",
+  "description": "Consulta empresas, regionais e cidades cadastradas no Marketing HUB. Essencial para mapear nomes de cidades ou códigos de regional vindos de planilhas de trade.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "providerId": {
+        "type": "number",
+        "description": "Opcional: filtrar por ID da empresa"
+      },
+      "regionalId": {
+        "type": "number",
+        "description": "Opcional: filtrar por ID da regional"
+      }
+    }
+  }
+}

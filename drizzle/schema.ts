@@ -1717,6 +1717,16 @@ export const mediaCampaignSchedules = pgTable(
     startsAt: varchar("startsAt", { length: 5 }).notNull(),
     endsAt: varchar("endsAt", { length: 5 }).notNull(),
     notes: text("notes"),
+    routeDescription: text("routeDescription"),
+    distributionVolume: integer("distributionVolume"),
+    debriefStatus: varchar("debriefStatus", { length: 30 }),
+    debriefNotes: text("debriefNotes"),
+    debriefRating: integer("debriefRating"),
+    debriefLearnings: text("debriefLearnings"),
+    debriefAt: timestamp("debriefAt", { withTimezone: true }),
+    debriefedByUserId: integer("debriefedByUserId").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: integer("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),

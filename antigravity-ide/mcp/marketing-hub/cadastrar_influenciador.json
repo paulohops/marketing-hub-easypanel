@@ -1,0 +1,60 @@
+{
+  "name": "cadastrar_influenciador",
+  "description": "Cadastra influenciadores, cidades de atuação, rede social, @, pacotes de postagens/stories e cachês.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do influenciador ou criador de conteúdo (obrigatório)"
+      },
+      "socialHandle": {
+        "type": "string",
+        "description": "@ no Instagram, TikTok ou perfil de rede social"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone / WhatsApp de contato"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail de contato"
+      },
+      "paymentMethod": {
+        "type": "string",
+        "description": "Forma de pagamento (ex: PIX, Transferência, Boleto)"
+      },
+      "paymentFrequency": {
+        "type": "string",
+        "description": "Frequência de pagamento (ex: Mensal, Por entrega, Avulso)"
+      },
+      "paymentDay": {
+        "type": "number",
+        "description": "Dia do mês para pagamento (1 a 31)"
+      },
+      "cacheValue": {
+        "type": "number",
+        "description": "Valor de cachê ou pacote de divulgação em R$"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Observações, pacotes de entregáveis (stories, reels), cidades de atuação"
+      },
+      "groupId": {
+        "type": "number",
+        "description": "ID de grupo de influenciadores para vinculação imediata (opcional)"
+      },
+      "profileImageUrl": {
+        "type": "string",
+        "description": "URL da foto de perfil ou mídia kit"
+      },
+      "active": {
+        "type": "boolean",
+        "description": "Se o cadastro está ativo (padrão: true)"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

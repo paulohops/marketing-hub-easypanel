@@ -1,0 +1,36 @@
+{
+  "name": "listar_acoes",
+  "description": "Lista as ações de trade marketing com filtros por campanha, cidade, tipo de ação, status e datas.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "tradeCampaignId": {
+        "type": "number",
+        "description": "Filtrar por campanha"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "Filtrar por cidade"
+      },
+      "actionTypeId": {
+        "type": "number",
+        "description": "Filtrar por tipo de ação"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "planned",
+          "in_progress",
+          "paused",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Status da ação"
+      },
+      "limit": {
+        "type": "number",
+        "description": "Limite de resultados (padrão: 50)"
+      }
+    }
+  }
+}

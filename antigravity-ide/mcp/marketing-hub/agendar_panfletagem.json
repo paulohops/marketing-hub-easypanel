@@ -1,0 +1,144 @@
+{
+  "name": "agendar_panfletagem",
+  "description": "Agenda uma operação de panfletagem (leafleting) com volume de panfletos, rotas, datas, bairros (opcional), equipes de distribuição e vínculo com campanha comercial (tradeCampaignId).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da operação de panfletagem (obrigatório)"
+      },
+      "startsOn": {
+        "type": "string",
+        "description": "Data de início da panfletagem (YYYY-MM-DD, obrigatório)"
+      },
+      "endsOn": {
+        "type": "string",
+        "description": "Data de término (YYYY-MM-DD, padrão: mesma de início)"
+      },
+      "totalVolume": {
+        "type": "number",
+        "description": "Volume total de panfletos a distribuir"
+      },
+      "tradeCampaignId": {
+        "type": "number",
+        "description": "ID da campanha comercial de trade vinculada (opcional)"
+      },
+      "mediaPointId": {
+        "type": "number",
+        "description": "ID do ponto/fornecedor de panfletagem em mediaPoints (opcional)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade principal de distribuição (opcional)"
+      },
+      "supplierId": {
+        "type": "number",
+        "description": "ID do fornecedor de distribuição (opcional)"
+      },
+      "dailyRoute": {
+        "type": "string",
+        "description": "Descrição das rotas ou itinerário de distribuição"
+      },
+      "deliveryInstructions": {
+        "type": "string",
+        "description": "Instruções operacionais para as equipes de panfletagem"
+      },
+      "estimatedCost": {
+        "type": "number",
+        "description": "Custo estimado total da operação em R$"
+      },
+      "partnershipType": {
+        "type": "string",
+        "enum": [
+          "paid",
+          "barter",
+          "mixed"
+        ],
+        "description": "Tipo de parceria/pagamento (padrão: paid)"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Observações gerais sobre a operação"
+      },
+      "cityDistributions": {
+        "type": "array",
+        "description": "Distribuição das cotas de panfletos por cidade",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cityId": {
+              "type": "number"
+            },
+            "quantity": {
+              "type": "number"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "cityId",
+            "quantity"
+          ]
+        }
+      },
+      "neighborhoodIds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "IDs dos bairros onde haverá panfletagem"
+      },
+      "schedules": {
+        "type": "array",
+        "description": "Agendamentos detalhados de equipes e rotas",
+        "items": {
+          "type": "object",
+          "properties": {
+            "programName": {
+              "type": "string"
+            },
+            "weekday": {
+              "type": "number"
+            },
+            "specificDate": {
+              "type": "string"
+            },
+            "cityId": {
+              "type": "number"
+            },
+            "neighborhoodId": {
+              "type": "number"
+            },
+            "startsAt": {
+              "type": "string",
+              "description": "Horário de início (HH:mm)"
+            },
+            "endsAt": {
+              "type": "string",
+              "description": "Horário de término (HH:mm)"
+            },
+            "routeDescription": {
+              "type": "string"
+            },
+            "distributionVolume": {
+              "type": "number"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "startsAt",
+            "endsAt"
+          ]
+        }
+      }
+    },
+    "required": [
+      "name",
+      "startsOn"
+    ]
+  }
+}

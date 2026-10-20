@@ -1,0 +1,25 @@
+{
+  "name": "cadastrar_bairro",
+  "description": "Cadastra um novo bairro vinculado a uma cidade (cityId, name).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade à qual o bairro pertence (obrigatório)"
+      },
+      "name": {
+        "type": "string",
+        "description": "Nome do bairro (obrigatório)"
+      },
+      "code": {
+        "type": "string",
+        "description": "Código ou identificador do bairro (opcional)"
+      }
+    },
+    "required": [
+      "cityId",
+      "name"
+    ]
+  }
+}

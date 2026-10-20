@@ -1,0 +1,812 @@
+[
+  {
+    "id": 3,
+    "nome": "Betim",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 4,
+    "nome": "Bom Despacho",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 5,
+    "nome": "Perdigão",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 6,
+    "nome": "Pará de Minas",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 7,
+    "nome": "Dores do Indaiá",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 8,
+    "nome": "Luz",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 9,
+    "nome": "Araújos",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 10,
+    "nome": "Moema",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 11,
+    "nome": "Igaratinga",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 12,
+    "nome": "Martinho Campos",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 13,
+    "nome": "Abaeté",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 14,
+    "nome": "Pitangui",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 15,
+    "nome": "São José da Varginha",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 16,
+    "nome": "Paineiras",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 17,
+    "nome": "Leandro Ferreira",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 18,
+    "nome": "Quartel Geral",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 19,
+    "nome": "Conceição do Pará",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 20,
+    "nome": "Biquinhas",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 21,
+    "nome": "Araçaí",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 22,
+    "nome": "Cedro do Abaeté",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 23,
+    "nome": "Onça de Pitangui",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 24,
+    "nome": "Curvelo",
+    "uf": "MG",
+    "regionalId": 3
+  },
+  {
+    "id": 25,
+    "nome": "Belo Horizonte",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 26,
+    "nome": "Contagem",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 27,
+    "nome": "Florestal",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 28,
+    "nome": "Igarapé",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 29,
+    "nome": "Itaguara",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 30,
+    "nome": "Juatuba",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 31,
+    "nome": "São Joaquim de Bicas",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 32,
+    "nome": "Mateus Leme",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 33,
+    "nome": "Esmeraldas",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 34,
+    "nome": "Itatiaiuçu",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 35,
+    "nome": "Piracema",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 36,
+    "nome": "Crucilândia",
+    "uf": "MG",
+    "regionalId": 7
+  },
+  {
+    "id": 37,
+    "nome": "Nova Lima",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 38,
+    "nome": "Itabirito",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 39,
+    "nome": "Sarzedo",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 40,
+    "nome": "Brumadinho",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 41,
+    "nome": "Mário Campos",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 42,
+    "nome": "Ibirité",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 43,
+    "nome": "Rio Manso",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 44,
+    "nome": "Belo Vale",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 45,
+    "nome": "Moeda",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 46,
+    "nome": "Bonfim",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 47,
+    "nome": "Piedade dos Gerais",
+    "uf": "MG",
+    "regionalId": 6
+  },
+  {
+    "id": 48,
+    "nome": "Lagoa Santa",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 49,
+    "nome": "Sete Lagoas",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 50,
+    "nome": "Matozinhos",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 51,
+    "nome": "Capim Branco",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 52,
+    "nome": "Inhaúma",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 53,
+    "nome": "Prudente de Morais",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 54,
+    "nome": "Fortuna de Minas",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 55,
+    "nome": "Cachoeira da Prata",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 56,
+    "nome": "Jaboticatubas",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 57,
+    "nome": "Paraopeba",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 58,
+    "nome": "Baldim",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 59,
+    "nome": "Funilândia",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 60,
+    "nome": "Cordisburgo",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 61,
+    "nome": "Jequitibá",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 62,
+    "nome": "Santana de Pirapama",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 63,
+    "nome": "Divinópolis",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 64,
+    "nome": "Lagoa da Prata",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 65,
+    "nome": "Nova Serrana",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 66,
+    "nome": "Itaúna",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 67,
+    "nome": "Piumhi",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 68,
+    "nome": "Santo Antônio do Monte",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 69,
+    "nome": "Bambuí",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 70,
+    "nome": "Cláudio",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 71,
+    "nome": "Carmópolis de Minas",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 72,
+    "nome": "Iguatama",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 73,
+    "nome": "Itapecerica",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 74,
+    "nome": "Carmo do Cajuru",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 75,
+    "nome": "São Gonçalo do Pará",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 76,
+    "nome": "Japaraíba",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 77,
+    "nome": "Doresópolis",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 78,
+    "nome": "Camacho",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 79,
+    "nome": "Pedra do Indaiá",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 80,
+    "nome": "Pimenta",
+    "uf": "MG",
+    "regionalId": 9
+  },
+  {
+    "id": 81,
+    "nome": "Arcos",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 82,
+    "nome": "Campo Belo",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 83,
+    "nome": "Formiga",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 84,
+    "nome": "Oliveira",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 85,
+    "nome": "Pains",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 86,
+    "nome": "Carmo da Mata",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 87,
+    "nome": "Cristais",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 88,
+    "nome": "Santana do Jacaré",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 89,
+    "nome": "Candeias",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 90,
+    "nome": "São Francisco de Paula",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 91,
+    "nome": "Córrego Fundo",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 92,
+    "nome": "Cana Verde",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 93,
+    "nome": "Aguanil",
+    "uf": "MG",
+    "regionalId": 4
+  },
+  {
+    "id": 94,
+    "nome": "Lavras",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 95,
+    "nome": "Três Corações",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 96,
+    "nome": "São João Del Rei",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 97,
+    "nome": "Ribeirão Vermelho",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 98,
+    "nome": "Ijaci",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 99,
+    "nome": "Perdões",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 100,
+    "nome": "Carmo da Cachoeira",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 101,
+    "nome": "Santo Antônio do Amparo",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 102,
+    "nome": "São Bento Abade",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 103,
+    "nome": "Ibituruna",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 104,
+    "nome": "Nepomuceno",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 105,
+    "nome": "Bom Sucesso",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 106,
+    "nome": "Passa Tempo",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 107,
+    "nome": "Itumirim",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 108,
+    "nome": "Nazareno",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 109,
+    "nome": "Itutinga",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 110,
+    "nome": "São Tiago",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 111,
+    "nome": "Carrancas",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 112,
+    "nome": "Luminárias",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 113,
+    "nome": "Ingaí",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 114,
+    "nome": "São Thomé das Letras",
+    "uf": "MG",
+    "regionalId": 8
+  },
+  {
+    "id": 115,
+    "nome": "Patos de Minas",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 116,
+    "nome": "São Gonçalo Do Abaeté",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 117,
+    "nome": "Patrocínio",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 118,
+    "nome": "Três Marias",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 119,
+    "nome": "Várzea da Palma",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 120,
+    "nome": "Varjão De Minas",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 121,
+    "nome": "Pirapora",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 122,
+    "nome": "Buritizeiro",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 123,
+    "nome": "Lagoa Formosa",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 124,
+    "nome": "João Pinheiro",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 125,
+    "nome": "Presidente Olegário",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 126,
+    "nome": "Guimarânia",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 127,
+    "nome": "Cruzeiro Da Fortaleza",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 128,
+    "nome": "Abadia dos Dourados",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 129,
+    "nome": "Iraí de Minas",
+    "uf": "MG",
+    "regionalId": 1
+  },
+  {
+    "id": 130,
+    "nome": "Uberlândia",
+    "uf": "MG",
+    "regionalId": 2
+  },
+  {
+    "id": 131,
+    "nome": "Monte Alegre De Minas",
+    "uf": "MG",
+    "regionalId": 2
+  },
+  {
+    "id": 132,
+    "nome": "Prata",
+    "uf": "MG",
+    "regionalId": 2
+  },
+  {
+    "id": 133,
+    "nome": "Tupaciguara",
+    "uf": "MG",
+    "regionalId": 2
+  },
+  {
+    "id": 134,
+    "nome": "Araguari",
+    "uf": "MG",
+    "regionalId": 2
+  },
+  {
+    "id": 135,
+    "nome": "São José de Almeida",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 136,
+    "nome": "São Vicente",
+    "uf": "MG",
+    "regionalId": 5
+  },
+  {
+    "id": 137,
+    "nome": "Pompeu",
+    "uf": "MG",
+    "regionalId": 3
+  }
+]

@@ -1,0 +1,86 @@
+{
+  "name": "cadastrar_veiculacao_midia",
+  "description": "Registra veiculação de campanha em ponto de mídia urbana ou tradicional com datas de início/fim e valores.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da veiculação (obrigatório)"
+      },
+      "mediaPointId": {
+        "type": "number",
+        "description": "ID do ponto de mídia (obrigatório)"
+      },
+      "startsOn": {
+        "type": "string",
+        "description": "Data de início da veiculação (YYYY-MM-DD, obrigatório)"
+      },
+      "endsOn": {
+        "type": "string",
+        "description": "Data de término da veiculação (YYYY-MM-DD, obrigatório)"
+      },
+      "tradeCampaignId": {
+        "type": "number",
+        "description": "ID da campanha comercial de trade vinculada (opcional)"
+      },
+      "serviceTypeId": {
+        "type": "number",
+        "description": "ID do serviço vinculado (opcional)"
+      },
+      "subserviceTypeId": {
+        "type": "number",
+        "description": "ID do subserviço vinculado (opcional)"
+      },
+      "productTypeId": {
+        "type": "number",
+        "description": "ID do tipo de produto divulgado (opcional)"
+      },
+      "responsibleUserId": {
+        "type": "number",
+        "description": "ID do usuário responsável (opcional)"
+      },
+      "estimatedCost": {
+        "type": "number",
+        "description": "Custo estimado da veiculação em R$"
+      },
+      "partnershipType": {
+        "type": "string",
+        "enum": [
+          "paid",
+          "barter",
+          "mixed"
+        ],
+        "description": "Tipo de parceria/pagamento (padrão: paid)"
+      },
+      "objective": {
+        "type": "string",
+        "description": "Objetivo da veiculação"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Observações gerais"
+      },
+      "campaignDetails": {
+        "type": "string",
+        "description": "Detalhes e briefing da veiculação"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "scheduled",
+          "active",
+          "completed",
+          "cancelled"
+        ],
+        "description": "Status da veiculação (se omitido, calculado automaticamente conforme a data)"
+      }
+    },
+    "required": [
+      "name",
+      "mediaPointId",
+      "startsOn",
+      "endsOn"
+    ]
+  }
+}

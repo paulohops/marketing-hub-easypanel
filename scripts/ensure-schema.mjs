@@ -147,6 +147,14 @@ try {
     );
     ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "cityId" INTEGER REFERENCES "cities"("id") ON DELETE SET NULL;
     ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "neighborhoodId" INTEGER REFERENCES "neighborhoods"("id") ON DELETE SET NULL;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "routeDescription" TEXT;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "distributionVolume" INTEGER;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "debriefStatus" VARCHAR(30);
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "debriefNotes" TEXT;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "debriefRating" INTEGER;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "debriefLearnings" TEXT;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "debriefAt" TIMESTAMPTZ;
+    ALTER TABLE "media_campaign_schedules" ADD COLUMN IF NOT EXISTS "debriefedByUserId" INTEGER REFERENCES "users"("id") ON DELETE SET NULL;
     CREATE UNIQUE INDEX IF NOT EXISTS "media_campaign_schedules_uq"
       ON "media_campaign_schedules" ("mediaCampaignId", "programName", "weekday", "specificDate", "startsAt", "endsAt");
   `);
@@ -276,6 +284,36 @@ try {
         "Verifique DATABASE_URL e o histórico de migrations; nenhuma alteração manual foi executada."
     );
   }
+  // Povoamento defensivo de bairros para as 135 cidades cadastradas
+  try {
+    const existingCountRes = await verificationPool.query('SELECT count(*)::int as count FROM neighborhoods');
+    const currentNeighborhoodsCount = existingCountRes.rows[0]?.count || 0;
+    if (currentNeighborhoodsCount < 1000) {
+      console.log(`[Database] Povoando bairros das 135 cidades (atual: ${currentNeighborhoodsCount})...`);
+      const { NEIGHBORHOODS_DATA } = await import('./neighborhoods_data.mjs');
+      let inserted = 0;
+      for (const [cityIdStr, bairros] of Object.entries(NEIGHBORHOODS_DATA)) {
+        const cityId = Number(cityIdStr);
+        for (const name of bairros) {
+          const res = await verificationPool.query(
+            `INSERT INTO neighborhoods ("name", "cityId", "active")
+             SELECT $1, $2, true
+             WHERE NOT EXISTS (
+               SELECT 1 FROM neighborhoods WHERE LOWER("name") = LOWER($1) AND "cityId" = $2
+             )`,
+            [name, cityId]
+          );
+          if (res.rowCount && res.rowCount > 0) inserted++;
+        }
+      }
+      console.log(`[Database] Povoamento concluído: ${inserted} novos bairros inseridos com sucesso.`);
+    } else {
+      console.log(`[Database] Bairros já povoados (${currentNeighborhoodsCount} bairros cadastrados).`);
+    }
+  } catch (err) {
+    console.warn("[Database] Aviso ao povoar bairros:", err.message);
+  }
+
   console.log("[Database] Verificação do schema de parceiros concluída.");
 } finally {
   await verificationPool.end();

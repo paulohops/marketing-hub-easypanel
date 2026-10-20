@@ -1,0 +1,41 @@
+{
+  "name": "atualizar_configuracoes_sistema",
+  "description": "Atualiza parâmetros de configuração do sistema e branding.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "appName": {
+        "type": "string",
+        "description": "Nome da aplicação / sistema (mínimo 2 caracteres)"
+      },
+      "appSubtitle": {
+        "type": "string",
+        "description": "Subtítulo ou slogan da aplicação"
+      },
+      "fontFamily": {
+        "type": "string",
+        "description": "Família tipográfica (ex: inter, roboto, outfit)"
+      },
+      "primaryColor": {
+        "type": "string",
+        "description": "Cor primária no formato hexadecimal #RRGGBB"
+      },
+      "accentColor": {
+        "type": "string",
+        "description": "Cor de destaque no formato hexadecimal #RRGGBB"
+      },
+      "backgroundColor": {
+        "type": "string",
+        "description": "Cor de fundo (tema claro) #RRGGBB"
+      },
+      "darkBackgroundColor": {
+        "type": "string",
+        "description": "Cor de fundo (tema escuro) #RRGGBB"
+      },
+      "customSettings": {
+        "type": "object",
+        "description": "Dicionário de chaves e valores para outras configurações do sistema em appSettings"
+      }
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "name": "cadastrar_item_estoque",
+  "description": "Cadastra item no catálogo de materiais de estoque (tendas, uniformes, brindes, panfletos, faixas) e saldo inicial por cidade/regional.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do material ou brinde (obrigatório)"
+      },
+      "regionalId": {
+        "type": "number",
+        "description": "ID da regional à qual o item pertence (obrigatório)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade (opcional, caso seja estoque específico de cidade)"
+      },
+      "sku": {
+        "type": "string",
+        "description": "Código SKU único do material (opcional, gerado automaticamente se omitido)"
+      },
+      "category": {
+        "type": "string",
+        "enum": [
+          "brinde_relacionamento",
+          "brinde_vip",
+          "material_suporte"
+        ],
+        "description": "Categoria do material (padrão: material_suporte)"
+      },
+      "unit": {
+        "type": "string",
+        "description": "Unidade de medida (ex: un, kit, cx, pct, m; padrão: un)"
+      },
+      "minimumQuantity": {
+        "type": "number",
+        "description": "Estoque mínimo / ponto de ressuprimento (padrão: 0)"
+      },
+      "initialQuantity": {
+        "type": "number",
+        "description": "Saldo inicial a creditar no estoque (padrão: 0)"
+      },
+      "unitCost": {
+        "type": "number",
+        "description": "Custo unitário em R$"
+      },
+      "description": {
+        "type": "string",
+        "description": "Descrição detalhada do material"
+      },
+      "productTypeId": {
+        "type": "number",
+        "description": "ID do tipo de produto relacionado (opcional)"
+      },
+      "stockCategoryId": {
+        "type": "number",
+        "description": "ID da categoria customizada de estoque (opcional)"
+      }
+    },
+    "required": [
+      "name",
+      "regionalId"
+    ]
+  }
+}

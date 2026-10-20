@@ -240,28 +240,22 @@ export const campaignsRouter = router({
   }),
 
   delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "actions.write");
+    await assertPermission(ctx.user, "actions.delete");
     const database = await requireDatabase();
     const [before] = await database.select().from(tradeCampaigns).where(eq(tradeCampaigns.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Campanha não encontrada." });
-    if (before.status === "completed" || before.debriefAt || before.debriefRating != null || before.debriefNotes || before.debriefResult)
-      throw new TRPCError({
-        code: "CONFLICT",
-        message:
-          "Campanhas concluídas ou com debriefing não podem ser excluídas. Inative-as para preservar o histórico.",
-      });
-    const [linkedActions, linkedEvents, linkedMedia, linkedPosts] = await Promise.all([
+    const [actionLink, eventLink, mediaLink, influencerLink] = await Promise.all([
       database.select({ id: actions.id }).from(actions).where(eq(actions.tradeCampaignId, input.id)).limit(1),
       database.select({ id: events.id }).from(events).where(eq(events.tradeCampaignId, input.id)).limit(1),
       database.select({ id: mediaCampaigns.id }).from(mediaCampaigns).where(eq(mediaCampaigns.tradeCampaignId, input.id)).limit(1),
       database.select({ id: influencerPosts.id }).from(influencerPosts).where(eq(influencerPosts.tradeCampaignId, input.id)).limit(1),
     ]);
-    if (linkedActions[0] || linkedEvents[0] || linkedMedia[0] || linkedPosts[0])
+    if (actionLink.length || eventLink.length || mediaLink.length || influencerLink.length) {
       throw new TRPCError({
         code: "CONFLICT",
-        message:
-          "Esta campanha possui ações, eventos, mídias ou publicações vinculadas. Inative-a ou remova esses vínculos de forma independente para preservar o histórico.",
+        message: "Não é possível excluir uma campanha que possui ações, eventos, mídias ou postagens vinculadas.",
       });
+    }
     await database.transaction(async transaction => {
       await transaction.delete(campaignCities).where(eq(campaignCities.campaignId, input.id));
       await transaction.delete(campaignRegionals).where(eq(campaignRegionals.campaignId, input.id));

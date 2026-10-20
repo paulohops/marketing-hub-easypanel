@@ -1,0 +1,114 @@
+{
+  "name": "cadastrar_ponto_midia",
+  "description": "Cadastra ponto de mídia urbana (outdoors, frontlights, painéis, painel de led, etc.), endereço, cidade, fornecedor e valores.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome ou identificação do ponto de mídia (obrigatório)"
+      },
+      "supplierId": {
+        "type": "number",
+        "description": "ID do fornecedor do ponto de mídia (obrigatório)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade onde se localiza o ponto (obrigatório)"
+      },
+      "mediaTypeId": {
+        "type": "number",
+        "description": "ID do tipo de mídia (obrigatório)"
+      },
+      "mediaVariationTypeId": {
+        "type": "number",
+        "description": "ID da variação/subtipo de mídia (opcional)"
+      },
+      "serviceTypeId": {
+        "type": "number",
+        "description": "ID do tipo de serviço vinculado (opcional)"
+      },
+      "operationCategory": {
+        "type": "string",
+        "enum": [
+          "graphics",
+          "audio_video",
+          "leafleting",
+          "sound_car",
+          "influencers"
+        ],
+        "description": "Categoria da operação de mídia (padrão: graphics)"
+      },
+      "address": {
+        "type": "string",
+        "description": "Endereço completo ou localização física"
+      },
+      "latitude": {
+        "type": "number",
+        "description": "Latitude geográfica"
+      },
+      "longitude": {
+        "type": "number",
+        "description": "Longitude geográfica"
+      },
+      "signalRangeKm": {
+        "type": "number",
+        "description": "Alcance do sinal em quilômetros (se aplicável)"
+      },
+      "replacementFrequency": {
+        "type": "string",
+        "enum": [
+          "weekly",
+          "biweekly",
+          "monthly",
+          "quarterly",
+          "semiannual",
+          "annual",
+          "custom"
+        ],
+        "description": "Frequência de troca ou veiculação"
+      },
+      "partnershipType": {
+        "type": "string",
+        "enum": [
+          "paid",
+          "barter",
+          "mixed"
+        ],
+        "description": "Tipo de parceria/pagamento (padrão: paid)"
+      },
+      "contractStartsOn": {
+        "type": "string",
+        "description": "Data de início do contrato (YYYY-MM-DD)"
+      },
+      "contractEndsOn": {
+        "type": "string",
+        "description": "Data de término do contrato (YYYY-MM-DD)"
+      },
+      "contractValue": {
+        "type": "number",
+        "description": "Valor contratual acordado (mensal ou total)"
+      },
+      "contractReference": {
+        "type": "string",
+        "description": "Código ou referência do contrato"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "active",
+          "inactive",
+          "maintenance",
+          "cancelled"
+        ],
+        "description": "Status do ponto de mídia (padrão: active)"
+      }
+    },
+    "required": [
+      "name",
+      "supplierId",
+      "cityId",
+      "mediaTypeId"
+    ]
+  }
+}

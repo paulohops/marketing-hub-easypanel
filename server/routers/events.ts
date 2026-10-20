@@ -222,18 +222,28 @@ export const eventsRouter = router({
   }),
 
   delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
-    await assertPermission(ctx.user, "events.write");
+    await assertPermission(ctx.user, "events.delete");
     const database = await requireDatabase();
     const [before] = await database.select().from(events).where(eq(events.id, input.id)).limit(1);
     if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Evento não encontrado." });
-    if (before.status !== "planned" && before.status !== "cancelled") throw new TRPCError({ code: "CONFLICT", message: "Somente eventos planejados ou cancelados podem ser excluídos. Preserve o histórico de eventos em andamento ou concluídos." });
+    if (!["planned", "cancelled"].includes(before.status)) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Somente eventos planejados ou cancelados podem ser excluídos. Para preservar o histórico, mantenha o evento no sistema.",
+      });
+    }
     const [linkedAction, linkedRequest, linkedInvoice, linkedDocument] = await Promise.all([
       database.select({ id: actions.id }).from(actions).where(eq(actions.eventId, input.id)).limit(1),
       database.select({ id: requests.id }).from(requests).where(eq(requests.eventId, input.id)).limit(1),
       database.select({ id: invoices.id }).from(invoices).where(and(eq(invoices.operationType, "event"), eq(invoices.operationId, input.id))).limit(1),
       database.select({ id: documents.id }).from(documents).where(and(eq(documents.entityType, "event"), eq(documents.entityId, input.id))).limit(1),
     ]);
-    if (linkedAction[0] || linkedRequest[0] || linkedInvoice[0] || linkedDocument[0]) throw new TRPCError({ code: "CONFLICT", message: "Este evento possui ações, solicitações, faturas ou evidências vinculadas. Remova ou encerre esses vínculos de forma independente para preservar o histórico." });
+    if (linkedAction[0] || linkedRequest[0] || linkedInvoice[0] || linkedDocument[0]) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Este evento possui ações, solicitações, faturas ou evidências vinculadas. Remova ou encerre esses vínculos de forma independente para preservar o histórico.",
+      });
+    }
     await database.transaction(async transaction => {
       await transaction.delete(eventTeamMembers).where(eq(eventTeamMembers.eventId, input.id));
       await transaction.delete(eventStockItems).where(eq(eventStockItems.eventId, input.id));

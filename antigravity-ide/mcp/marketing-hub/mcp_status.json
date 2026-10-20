@@ -1,0 +1,8 @@
+{
+  "name": "mcp_status",
+  "description": "Retorna o status da instância do Marketing HUB, a versão, o usuário autenticado e suas permissões ativas.",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}
