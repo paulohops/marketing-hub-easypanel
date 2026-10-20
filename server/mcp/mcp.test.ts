@@ -91,6 +91,8 @@ describe("MCP Protocol Handler & Tools", () => {
     expect(toolNames).toContain("obter_configuracoes_sistema");
     expect(toolNames).toContain("atualizar_configuracoes_sistema");
     expect(toolNames).toContain("cadastrar_bairro");
+    expect(toolNames).toContain("atualizar_regional");
+    expect(toolNames).toContain("atualizar_cidade");
   });
 
   it("executa a ferramenta mcp_status via tools/call", async () => {

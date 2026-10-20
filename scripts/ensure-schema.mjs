@@ -315,6 +315,14 @@ try {
   }
 
   console.log("[Database] Verificação do schema de parceiros concluída.");
+
+  // Sincronização canônica de Regionais e Vínculos Territoriais
+  try {
+    const { syncTerritory } = await import("./update_territory_regionals.mjs");
+    await syncTerritory(verificationPool);
+  } catch (err) {
+    console.warn("[Database] Aviso ao sincronizar território:", err.message);
+  }
 } finally {
   await verificationPool.end();
 }

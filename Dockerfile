@@ -24,9 +24,7 @@ RUN pnpm install --prod --frozen-lockfile && pnpm store prune
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=build /app/scripts/bootstrap-admin.mjs ./scripts/bootstrap-admin.mjs
-COPY --from=build /app/scripts/ensure-schema.mjs ./scripts/ensure-schema.mjs
-COPY --from=build /app/scripts/entrypoint.sh ./scripts/entrypoint.sh
+COPY --from=build /app/scripts ./scripts
 RUN chmod +x scripts/entrypoint.sh
 
 VOLUME ["/data/storage"]

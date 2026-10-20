@@ -2537,4 +2537,125 @@ export const mcpTools: McpToolDefinition[] = [
       };
     },
   },
+  {
+    name: "atualizar_regional",
+    description: "Atualiza informações de uma regional existente (nome, código, empresa/provedor, status ativo).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID da regional a ser atualizada (obrigatório)" },
+        name: { type: "string", description: "Novo nome da regional (mínimo 2 caracteres)" },
+        code: { type: "string", description: "Novo código da regional (ex: SMPM1)" },
+        providerId: { type: "number", description: "ID da empresa/provedor proprietário (ex: 1 para OnNet, 2 para Sempre)" },
+        active: { type: "boolean", description: "Se a regional está ativa ou inativa" },
+      },
+      required: ["id"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [before] = await database
+        .select()
+        .from(regionals)
+        .where(eq(regionals.id, args.id))
+        .limit(1);
+
+      if (!before) {
+        throw new Error(`Regional #${args.id} não encontrada.`);
+      }
+
+      const patch: Record<string, any> = {};
+      if (args.name !== undefined) patch.name = args.name.trim();
+      if (args.code !== undefined) patch.code = args.code.trim().toUpperCase();
+      if (args.providerId !== undefined) patch.providerId = args.providerId;
+      if (args.active !== undefined) patch.active = args.active;
+
+      const [updated] = await database
+        .update(regionals)
+        .set(patch)
+        .where(eq(regionals.id, args.id))
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        regionalId: args.id,
+        entityType: "regional",
+        entityId: args.id,
+        action: "update",
+        beforeData: before,
+        afterData: updated,
+      });
+
+      return {
+        sucesso: true,
+        mensagem: `Regional #${args.id} atualizada com sucesso para "${updated.name}"!`,
+        regional: updated,
+      };
+    },
+  },
+  {
+    name: "atualizar_cidade",
+    description: "Atualiza os dados de uma cidade cadastrada (nome, regional vinculada, UF, notas de localização/B2B, status).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID da cidade a ser atualizada (obrigatório)" },
+        name: { type: "string", description: "Nome da cidade" },
+        regionalId: { type: "number", description: "ID da nova regional vinculada" },
+        state: { type: "string", description: "UF do estado (ex: MG)" },
+        locationNotes: { type: "string", description: "Notas de localização ou observações (ex: Exclusivo B2B)" },
+        active: { type: "boolean", description: "Se a cidade está ativa ou inativa" },
+      },
+      required: ["id"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [before] = await database
+        .select()
+        .from(cities)
+        .where(eq(cities.id, args.id))
+        .limit(1);
+
+      if (!before) {
+        throw new Error(`Cidade #${args.id} não encontrada.`);
+      }
+
+      const patch: Record<string, any> = {
+        updatedAt: new Date(),
+      };
+      if (args.name !== undefined) patch.name = args.name.trim();
+      if (args.regionalId !== undefined) patch.regionalId = args.regionalId;
+      if (args.state !== undefined) patch.state = args.state.trim().toUpperCase();
+      if (args.locationNotes !== undefined) patch.locationNotes = args.locationNotes?.trim() || null;
+      if (args.active !== undefined) patch.active = args.active;
+
+      const [updated] = await database
+        .update(cities)
+        .set(patch)
+        .where(eq(cities.id, args.id))
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        cityId: args.id,
+        regionalId: updated.regionalId,
+        entityType: "city",
+        entityId: args.id,
+        action: "update",
+        beforeData: before,
+        afterData: updated,
+      });
+
+      return {
+        sucesso: true,
+        mensagem: `Cidade #${args.id} ("${updated.name}") atualizada com sucesso (Regional #${updated.regionalId})!`,
+        cidade: updated,
+      };
+    },
+  },
 ];

@@ -1,0 +1,30 @@
+{
+  "name": "atualizar_regional",
+  "description": "Atualiza informações de uma regional existente (nome, código, empresa/provedor, status ativo).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "description": "ID da regional a ser atualizada (obrigatório)",
+        "type": "number"
+      },
+      "name": {
+        "description": "Novo nome da regional (mínimo 2 caracteres)",
+        "type": "string"
+      },
+      "code": {
+        "description": "Novo código da regional (ex: SMPM1)",
+        "type": "string"
+      },
+      "providerId": {
+        "description": "ID da empresa/provedor proprietário (ex: 1 para OnNet, 2 para Sempre)",
+        "type": "number"
+      },
+      "active": {
+        "description": "Se a regional está ativa ou inativa",
+        "type": "boolean"
+      }
+    },
+    "required": ["id"]
+  }
+}
