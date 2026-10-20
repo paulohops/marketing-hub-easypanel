@@ -51,6 +51,8 @@ coverage/
 google_ads_october*
 meta_ads_october*
 relatorio_auditoria_ads*
+scratch_*
+sempre_*
 *.lcov
 
 # nyc test coverage
