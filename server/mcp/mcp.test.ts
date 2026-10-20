@@ -93,6 +93,35 @@ describe("MCP Protocol Handler & Tools", () => {
     expect(toolNames).toContain("cadastrar_bairro");
     expect(toolNames).toContain("atualizar_regional");
     expect(toolNames).toContain("atualizar_cidade");
+
+    // Novas ferramentas de Configurações e Cadastros
+    expect(toolNames).toContain("cadastrar_empresa");
+    expect(toolNames).toContain("atualizar_empresa");
+    expect(toolNames).toContain("cadastrar_regional");
+    expect(toolNames).toContain("cadastrar_cidade");
+    expect(toolNames).toContain("cadastrar_loja");
+    expect(toolNames).toContain("atualizar_loja");
+    expect(toolNames).toContain("cadastrar_fornecedor");
+    expect(toolNames).toContain("atualizar_fornecedor");
+    expect(toolNames).toContain("cadastrar_parceiro_comercial");
+    expect(toolNames).toContain("cadastrar_supervisor_comercial");
+    expect(toolNames).toContain("cadastrar_tipo_servico");
+    expect(toolNames).toContain("cadastrar_tipo_produto");
+    expect(toolNames).toContain("cadastrar_tipo_midia");
+    expect(toolNames).toContain("cadastrar_categoria_estoque");
+    expect(toolNames).toContain("cadastrar_categoria_financeira");
+    expect(toolNames).toContain("cadastrar_tipo_acao");
+    expect(toolNames).toContain("cadastrar_tipo_evento");
+    expect(toolNames).toContain("listar_cadastros");
+    expect(toolNames).toContain("listar_usuarios");
+    expect(toolNames).toContain("atualizar_usuario");
+    expect(toolNames).toContain("consultar_logs_auditoria");
+    expect(toolNames).toContain("obter_resumo_central_dados");
+    expect(toolNames).toContain("listar_tokens_mcp");
+    expect(toolNames).toContain("criar_token_mcp");
+    expect(toolNames).toContain("revogar_token_mcp");
+    expect(toolNames).toContain("listar_notificacoes");
+    expect(toolNames).toContain("enviar_notificacao");
   });
 
   it("executa a ferramenta mcp_status via tools/call", async () => {

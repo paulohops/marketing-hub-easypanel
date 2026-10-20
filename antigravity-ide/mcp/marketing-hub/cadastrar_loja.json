@@ -1,0 +1,38 @@
+{
+  "name": "cadastrar_loja",
+  "description": "Cadastra uma Loja física no território vinculada a uma Cidade.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome ou identificação da loja"
+      },
+      "code": {
+        "type": "string",
+        "description": "Código único da loja (ex: LJ01)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade onde a loja está situada"
+      },
+      "address": {
+        "type": "string",
+        "description": "Endereço completo"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone de contato"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail de contato"
+      }
+    },
+    "required": [
+      "name",
+      "code",
+      "cityId"
+    ]
+  }
+}

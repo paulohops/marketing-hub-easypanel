@@ -5,30 +5,32 @@
     "type": "object",
     "properties": {
       "id": {
-        "description": "ID da cidade a ser atualizada (obrigatório)",
-        "type": "number"
+        "type": "number",
+        "description": "ID da cidade a ser atualizada (obrigatório)"
       },
       "name": {
-        "description": "Nome da cidade",
-        "type": "string"
+        "type": "string",
+        "description": "Nome da cidade"
       },
       "regionalId": {
-        "description": "ID da nova regional vinculada",
-        "type": "number"
+        "type": "number",
+        "description": "ID da nova regional vinculada"
       },
       "state": {
-        "description": "UF do estado (ex: MG)",
-        "type": "string"
+        "type": "string",
+        "description": "UF do estado (ex: MG)"
       },
       "locationNotes": {
-        "description": "Notas de localização ou observações (ex: Exclusivo B2B)",
-        "type": "string"
+        "type": "string",
+        "description": "Notas de localização ou observações (ex: Exclusivo B2B)"
       },
       "active": {
-        "description": "Se a cidade está ativa ou inativa",
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Se a cidade está ativa ou inativa"
       }
     },
-    "required": ["id"]
+    "required": [
+      "id"
+    ]
   }
 }

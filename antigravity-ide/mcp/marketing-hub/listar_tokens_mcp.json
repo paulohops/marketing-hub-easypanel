@@ -1,0 +1,8 @@
+{
+  "name": "listar_tokens_mcp",
+  "description": "Lista os tokens MCP cadastrados e seus status (Tokens MCP).",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}

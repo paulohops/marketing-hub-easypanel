@@ -1,0 +1,36 @@
+{
+  "name": "atualizar_usuario",
+  "description": "Atualiza papel, status ativo, cargo ou gestor direto de um usuário (Acessos e Equipes).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number",
+        "description": "ID do usuário a atualizar"
+      },
+      "role": {
+        "type": "string",
+        "description": "Novo papel: admin, regional_manager, operator, viewer"
+      },
+      "isActive": {
+        "type": "boolean",
+        "description": "Status da conta (ativo/inativo)"
+      },
+      "jobTitle": {
+        "type": "string",
+        "description": "Cargo / função na empresa"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone de contato"
+      },
+      "managerUserId": {
+        "type": "number",
+        "description": "ID do gestor direto no organograma de equipes"
+      }
+    },
+    "required": [
+      "id"
+    ]
+  }
+}

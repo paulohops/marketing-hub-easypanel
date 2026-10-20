@@ -1,0 +1,40 @@
+{
+  "name": "atualizar_loja",
+  "description": "Atualiza os dados de uma Loja física existente.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number",
+        "description": "ID da loja a ser atualizada"
+      },
+      "name": {
+        "type": "string",
+        "description": "Nome da loja"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade"
+      },
+      "address": {
+        "type": "string",
+        "description": "Endereço"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail"
+      },
+      "active": {
+        "type": "boolean",
+        "description": "Status ativo/inativo"
+      }
+    },
+    "required": [
+      "id"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "cadastrar_supervisor_comercial",
+  "description": "Cadastra um Supervisor Comercial para acompanhamento territorial.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome completo do supervisor"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail corporativo"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone de contato"
+      },
+      "userId": {
+        "type": "number",
+        "description": "ID do usuário do sistema vinculado (opcional)"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

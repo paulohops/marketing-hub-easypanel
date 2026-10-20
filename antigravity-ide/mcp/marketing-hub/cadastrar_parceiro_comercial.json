@@ -1,0 +1,40 @@
+{
+  "name": "cadastrar_parceiro_comercial",
+  "description": "Cadastra um Parceiro Comercial institucional ou de permuta.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do parceiro comercial"
+      },
+      "legalName": {
+        "type": "string",
+        "description": "Razão social"
+      },
+      "document": {
+        "type": "string",
+        "description": "CNPJ ou CPF"
+      },
+      "contactName": {
+        "type": "string",
+        "description": "Nome do contato principal"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone de contato"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade sede (opcional)"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

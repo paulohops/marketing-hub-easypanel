@@ -1,0 +1,16 @@
+{
+  "name": "cadastrar_tipo_acao",
+  "description": "Cadastra um Tipo de Ação operacional no sistema (ex: Blitz, Degustação, Panfletagem, PDV).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do tipo de ação"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

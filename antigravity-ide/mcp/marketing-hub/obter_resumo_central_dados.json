@@ -1,0 +1,8 @@
+{
+  "name": "obter_resumo_central_dados",
+  "description": "Retorna um resumo quantitativo consolidado de todas as bases de dados e cadastros do sistema (Central de Dados).",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}

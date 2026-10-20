@@ -1,0 +1,36 @@
+{
+  "name": "cadastrar_empresa",
+  "description": "Cadastra uma nova Empresa/Provedor operacional no território.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da empresa (mínimo 2 caracteres)"
+      },
+      "legalName": {
+        "type": "string",
+        "description": "Razão social"
+      },
+      "billingCnpj": {
+        "type": "string",
+        "description": "CNPJ da empresa"
+      },
+      "contactName": {
+        "type": "string",
+        "description": "Nome do contato principal"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone de contato"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail de contato"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "enviar_notificacao",
+  "description": "Dispara uma nova notificação operacional ou alerta do sistema (Central de Notificações).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Título da notificação"
+      },
+      "message": {
+        "type": "string",
+        "description": "Mensagem detalhada"
+      },
+      "category": {
+        "type": "string",
+        "description": "Categoria da notificação (ex: entity_created, entity_updated, task_assigned)"
+      },
+      "userId": {
+        "type": "number",
+        "description": "ID do usuário destinatário (opcional)"
+      },
+      "regionalId": {
+        "type": "number",
+        "description": "ID da regional relacionada (opcional)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade relacionada (opcional)"
+      }
+    },
+    "required": [
+      "title",
+      "message"
+    ]
+  }
+}

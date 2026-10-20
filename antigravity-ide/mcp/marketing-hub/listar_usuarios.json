@@ -1,0 +1,25 @@
+{
+  "name": "listar_usuarios",
+  "description": "Lista os usuários, papéis e hierarquias do sistema (Acessos e Equipes).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "busca": {
+        "type": "string",
+        "description": "Filtro por nome ou e-mail"
+      },
+      "role": {
+        "type": "string",
+        "description": "Filtro por papel (admin, regional_manager, operator, viewer)"
+      },
+      "apenasAtivos": {
+        "type": "boolean",
+        "description": "Se deve retornar apenas usuários ativos"
+      },
+      "limite": {
+        "type": "number",
+        "description": "Limite de usuários (padrão 50)"
+      }
+    }
+  }
+}

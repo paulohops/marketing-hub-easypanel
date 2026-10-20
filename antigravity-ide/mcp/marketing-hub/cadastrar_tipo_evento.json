@@ -1,0 +1,16 @@
+{
+  "name": "cadastrar_tipo_evento",
+  "description": "Cadastra um Tipo de Evento no calendário do Trade (ex: Feira, Show, Patrocínio, Inauguração).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do tipo de evento"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "listar_notificacoes",
+  "description": "Lista notificações e alertas operacionais do sistema (Central de Notificações).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "limite": {
+        "type": "number",
+        "description": "Limite de notificações (padrão 50)"
+      },
+      "apenasNaoLidas": {
+        "type": "boolean",
+        "description": "Se deve listar apenas não lidas"
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "listar_cadastros",
+  "description": "Consulta e lista registros de qualquer coleção de cadastros do sistema (empresas, regionais, cidades, lojas, fornecedores, parceiros, supervisores, servicos, produtos, midias, tipos_acao, tipos_evento, categorias_estoque, categorias_financeiras, bairros).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "tipo": {
+        "type": "string",
+        "description": "Coleção a listar: empresas, regionais, cidades, lojas, fornecedores, parceiros, supervisores, servicos, produtos, midias, tipos_acao, tipos_evento, categorias_estoque, categorias_financeiras, bairros"
+      },
+      "busca": {
+        "type": "string",
+        "description": "Termo de busca para filtrar por nome"
+      },
+      "regionalId": {
+        "type": "number",
+        "description": "Filtrar por regional (para cidades, lojas, etc.)"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "Filtrar por cidade (para bairros, lojas, etc.)"
+      },
+      "limite": {
+        "type": "number",
+        "description": "Limite de resultados (padrão 50, máx 200)"
+      }
+    },
+    "required": [
+      "tipo"
+    ]
+  }
+}

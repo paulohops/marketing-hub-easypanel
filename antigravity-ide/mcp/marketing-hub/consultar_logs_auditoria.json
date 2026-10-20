@@ -1,0 +1,21 @@
+{
+  "name": "consultar_logs_auditoria",
+  "description": "Consulta os registros de auditoria e histórico de alterações operacionais do sistema (Central de Dados).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "entityType": {
+        "type": "string",
+        "description": "Tipo de entidade (ex: campaign, action, regional, city, supplier, store, user)"
+      },
+      "action": {
+        "type": "string",
+        "description": "Ação (create, update, delete, status_change)"
+      },
+      "limite": {
+        "type": "number",
+        "description": "Limite de registros retornados (padrão 50, máx 200)"
+      }
+    }
+  }
+}

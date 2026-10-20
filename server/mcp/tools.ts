@@ -38,7 +38,18 @@ import {
   suppliers,
   tradeCampaigns,
   type User,
+  auditLogs,
+  financialCategories,
+  mcpTokens,
+  notifications,
+  partners,
+  productTypes,
+  serviceTypes,
+  stockCategories,
+  stores,
+  users,
 } from "../../drizzle/schema";
+import { generateMcpToken, listUserMcpTokens, revokeMcpToken } from "./tokens";
 import { writeAuditLog } from "../audit";
 import { assertPermission, effectivePermissionKeys } from "../authorization";
 import { getDb } from "../db";
@@ -2656,6 +2667,1062 @@ export const mcpTools: McpToolDefinition[] = [
         mensagem: `Cidade #${args.id} ("${updated.name}") atualizada com sucesso (Regional #${updated.regionalId})!`,
         cidade: updated,
       };
+    },
+  },
+  // ==========================================
+  // MÓDULO CONFIGURAÇÕES: CADASTROS (Território, Parceiros, Produtos/Serviços, Categorias)
+  // ==========================================
+  {
+    name: "cadastrar_empresa",
+    description: "Cadastra uma nova Empresa/Provedor operacional no território.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome da empresa (mínimo 2 caracteres)" },
+        legalName: { type: "string", description: "Razão social" },
+        billingCnpj: { type: "string", description: "CNPJ da empresa" },
+        contactName: { type: "string", description: "Nome do contato principal" },
+        phone: { type: "string", description: "Telefone de contato" },
+        email: { type: "string", description: "E-mail de contato" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(providers)
+        .values({
+          name: args.name.trim(),
+          legalName: args.legalName?.trim() || null,
+          billingCnpj: args.billingCnpj?.trim() || null,
+          contactName: args.contactName?.trim() || null,
+          phone: args.phone?.trim() || null,
+          email: args.email?.trim() || null,
+          active: true,
+        })
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "provider",
+        entityId: created.id,
+        action: "create",
+        afterData: created,
+      });
+
+      return { sucesso: true, mensagem: `Empresa "${created.name}" cadastrada com sucesso!`, empresa: created };
+    },
+  },
+  {
+    name: "atualizar_empresa",
+    description: "Atualiza os dados de uma Empresa/Provedor existente.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID da empresa a ser atualizada" },
+        name: { type: "string", description: "Nome da empresa" },
+        legalName: { type: "string", description: "Razão social" },
+        billingCnpj: { type: "string", description: "CNPJ" },
+        contactName: { type: "string", description: "Nome do contato" },
+        phone: { type: "string", description: "Telefone" },
+        email: { type: "string", description: "E-mail" },
+        active: { type: "boolean", description: "Status ativo/inativo" },
+      },
+      required: ["id"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [before] = await database.select().from(providers).where(eq(providers.id, args.id)).limit(1);
+      if (!before) throw new Error(`Empresa #${args.id} não encontrada.`);
+
+      const patch: Record<string, any> = {};
+      if (args.name !== undefined) patch.name = args.name.trim();
+      if (args.legalName !== undefined) patch.legalName = args.legalName.trim();
+      if (args.billingCnpj !== undefined) patch.billingCnpj = args.billingCnpj.trim();
+      if (args.contactName !== undefined) patch.contactName = args.contactName.trim();
+      if (args.phone !== undefined) patch.phone = args.phone.trim();
+      if (args.email !== undefined) patch.email = args.email.trim();
+      if (args.active !== undefined) patch.active = args.active;
+
+      const [updated] = await database.update(providers).set(patch).where(eq(providers.id, args.id)).returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "provider",
+        entityId: args.id,
+        action: "update",
+        beforeData: before,
+        afterData: updated,
+      });
+
+      return { sucesso: true, mensagem: `Empresa #${args.id} atualizada com sucesso!`, empresa: updated };
+    },
+  },
+  {
+    name: "cadastrar_regional",
+    description: "Cadastra uma nova Regional no território vinculada a uma Empresa.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome da regional (ex: Metropolitana SUB 1)" },
+        code: { type: "string", description: "Código único da regional (ex: SMPM1)" },
+        providerId: { type: "number", description: "ID da Empresa proprietária" },
+      },
+      required: ["name", "code"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(regionals)
+        .values({
+          name: args.name.trim(),
+          code: args.code.trim().toUpperCase(),
+          providerId: args.providerId ?? null,
+          active: true,
+        })
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        regionalId: created.id,
+        entityType: "regional",
+        entityId: created.id,
+        action: "create",
+        afterData: created,
+      });
+
+      return { sucesso: true, mensagem: `Regional "${created.name}" cadastrada com sucesso!`, regional: created };
+    },
+  },
+  {
+    name: "cadastrar_cidade",
+    description: "Cadastra uma nova Cidade vinculada a uma Regional existente.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome da cidade" },
+        regionalId: { type: "number", description: "ID da regional à qual a cidade pertence" },
+        state: { type: "string", description: "UF do estado (padrão: MG)" },
+        ibgeCode: { type: "string", description: "Código IBGE (opcional)" },
+        locationNotes: { type: "string", description: "Notas de localização ou observações (ex: Exclusivo B2B)" },
+      },
+      required: ["name", "regionalId"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(cities)
+        .values({
+          name: args.name.trim(),
+          regionalId: args.regionalId,
+          state: (args.state || "MG").trim().toUpperCase(),
+          ibgeCode: args.ibgeCode?.trim() || null,
+          locationNotes: args.locationNotes?.trim() || null,
+          active: true,
+        })
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        regionalId: args.regionalId,
+        cityId: created.id,
+        entityType: "city",
+        entityId: created.id,
+        action: "create",
+        afterData: created,
+      });
+
+      return { sucesso: true, mensagem: `Cidade "${created.name}" cadastrada com sucesso na Regional #${args.regionalId}!`, cidade: created };
+    },
+  },
+  {
+    name: "cadastrar_loja",
+    description: "Cadastra uma Loja física no território vinculada a uma Cidade.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome ou identificação da loja" },
+        code: { type: "string", description: "Código único da loja (ex: LJ01)" },
+        cityId: { type: "number", description: "ID da cidade onde a loja está situada" },
+        address: { type: "string", description: "Endereço completo" },
+        phone: { type: "string", description: "Telefone de contato" },
+        email: { type: "string", description: "E-mail de contato" },
+      },
+      required: ["name", "code", "cityId"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(stores)
+        .values({
+          name: args.name.trim(),
+          code: args.code.trim().toUpperCase(),
+          cityId: args.cityId,
+          address: args.address?.trim() || null,
+          phone: args.phone?.trim() || null,
+          email: args.email?.trim() || null,
+          active: true,
+        })
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        cityId: args.cityId,
+        entityType: "store",
+        entityId: created.id,
+        action: "create",
+        afterData: created,
+      });
+
+      return { sucesso: true, mensagem: `Loja "${created.name}" cadastrada com sucesso!`, loja: created };
+    },
+  },
+  {
+    name: "atualizar_loja",
+    description: "Atualiza os dados de uma Loja física existente.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID da loja a ser atualizada" },
+        name: { type: "string", description: "Nome da loja" },
+        cityId: { type: "number", description: "ID da cidade" },
+        address: { type: "string", description: "Endereço" },
+        phone: { type: "string", description: "Telefone" },
+        email: { type: "string", description: "E-mail" },
+        active: { type: "boolean", description: "Status ativo/inativo" },
+      },
+      required: ["id"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [before] = await database.select().from(stores).where(eq(stores.id, args.id)).limit(1);
+      if (!before) throw new Error(`Loja #${args.id} não encontrada.`);
+
+      const patch: Record<string, any> = { updatedAt: new Date() };
+      if (args.name !== undefined) patch.name = args.name.trim();
+      if (args.cityId !== undefined) patch.cityId = args.cityId;
+      if (args.address !== undefined) patch.address = args.address.trim();
+      if (args.phone !== undefined) patch.phone = args.phone.trim();
+      if (args.email !== undefined) patch.email = args.email.trim();
+      if (args.active !== undefined) patch.active = args.active;
+
+      const [updated] = await database.update(stores).set(patch).where(eq(stores.id, args.id)).returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        cityId: updated.cityId,
+        entityType: "store",
+        entityId: args.id,
+        action: "update",
+        beforeData: before,
+        afterData: updated,
+      });
+
+      return { sucesso: true, mensagem: `Loja #${args.id} atualizada com sucesso!`, loja: updated };
+    },
+  },
+  {
+    name: "cadastrar_fornecedor",
+    description: "Cadastra um Fornecedor parceiro na rede operacional.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        displayName: { type: "string", description: "Nome comercial / de exibição do fornecedor" },
+        document: { type: "string", description: "CNPJ ou CPF do fornecedor" },
+        phone: { type: "string", description: "Telefone de contato" },
+        email: { type: "string", description: "E-mail de contato" },
+        partnershipType: { type: "string", description: "Tipo de parceria (ex: Mídia, Gráfica, Eventos)" },
+        address: { type: "string", description: "Endereço ou sede" },
+        cityId: { type: "number", description: "ID da cidade sede (opcional)" },
+        providerId: { type: "number", description: "ID da empresa vinculada (opcional)" },
+      },
+      required: ["displayName"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(suppliers)
+        .values({
+          displayName: args.displayName.trim(),
+          document: args.document?.trim() || null,
+          phone: args.phone?.trim() || null,
+          email: args.email?.trim() || null,
+          partnershipType: args.partnershipType?.trim() || null,
+          address: args.address?.trim() || null,
+          cityId: args.cityId ?? null,
+          providerId: args.providerId ?? null,
+          active: true,
+        })
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "supplier",
+        entityId: created.id,
+        action: "create",
+        afterData: created,
+      });
+
+      return { sucesso: true, mensagem: `Fornecedor "${created.displayName}" cadastrado com sucesso!`, fornecedor: created };
+    },
+  },
+  {
+    name: "atualizar_fornecedor",
+    description: "Atualiza os dados de um Fornecedor parceiro.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID do fornecedor a ser atualizado" },
+        displayName: { type: "string", description: "Nome comercial" },
+        document: { type: "string", description: "CNPJ ou CPF" },
+        phone: { type: "string", description: "Telefone" },
+        email: { type: "string", description: "E-mail" },
+        partnershipType: { type: "string", description: "Tipo de parceria" },
+        active: { type: "boolean", description: "Status ativo/inativo" },
+      },
+      required: ["id"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [before] = await database.select().from(suppliers).where(eq(suppliers.id, args.id)).limit(1);
+      if (!before) throw new Error(`Fornecedor #${args.id} não encontrado.`);
+
+      const patch: Record<string, any> = { updatedAt: new Date() };
+      if (args.displayName !== undefined) patch.displayName = args.displayName.trim();
+      if (args.document !== undefined) patch.document = args.document.trim();
+      if (args.phone !== undefined) patch.phone = args.phone.trim();
+      if (args.email !== undefined) patch.email = args.email.trim();
+      if (args.partnershipType !== undefined) patch.partnershipType = args.partnershipType.trim();
+      if (args.active !== undefined) patch.active = args.active;
+
+      const [updated] = await database.update(suppliers).set(patch).where(eq(suppliers.id, args.id)).returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "supplier",
+        entityId: args.id,
+        action: "update",
+        beforeData: before,
+        afterData: updated,
+      });
+
+      return { sucesso: true, mensagem: `Fornecedor #${args.id} atualizado com sucesso!`, fornecedor: updated };
+    },
+  },
+  {
+    name: "cadastrar_parceiro_comercial",
+    description: "Cadastra um Parceiro Comercial institucional ou de permuta.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do parceiro comercial" },
+        legalName: { type: "string", description: "Razão social" },
+        document: { type: "string", description: "CNPJ ou CPF" },
+        contactName: { type: "string", description: "Nome do contato principal" },
+        phone: { type: "string", description: "Telefone de contato" },
+        email: { type: "string", description: "E-mail" },
+        cityId: { type: "number", description: "ID da cidade sede (opcional)" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(partners)
+        .values({
+          name: args.name.trim(),
+          legalName: args.legalName?.trim() || null,
+          document: args.document?.trim() || null,
+          contactName: args.contactName?.trim() || null,
+          phone: args.phone?.trim() || null,
+          email: args.email?.trim() || null,
+          cityId: args.cityId ?? null,
+          active: true,
+        })
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "partner",
+        entityId: created.id,
+        action: "create",
+        afterData: created,
+      });
+
+      return { sucesso: true, mensagem: `Parceiro "${created.name}" cadastrado com sucesso!`, parceiro: created };
+    },
+  },
+  {
+    name: "cadastrar_supervisor_comercial",
+    description: "Cadastra um Supervisor Comercial para acompanhamento territorial.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome completo do supervisor" },
+        email: { type: "string", description: "E-mail corporativo" },
+        phone: { type: "string", description: "Telefone de contato" },
+        userId: { type: "number", description: "ID do usuário do sistema vinculado (opcional)" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(commercialSupervisors)
+        .values({
+          name: args.name.trim(),
+          email: args.email?.trim() || null,
+          phone: args.phone?.trim() || null,
+          userId: args.userId ?? null,
+          active: true,
+        })
+        .returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "commercial_supervisor",
+        entityId: created.id,
+        action: "create",
+        afterData: created,
+      });
+
+      return { sucesso: true, mensagem: `Supervisor Comercial "${created.name}" cadastrado com sucesso!`, supervisor: created };
+    },
+  },
+  {
+    name: "cadastrar_tipo_servico",
+    description: "Cadastra um Tipo de Serviço no catálogo (ex: Panfletagem, Som Volante, Impressão).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do tipo de serviço" },
+        mediaTypeId: { type: "number", description: "ID do tipo de mídia relacionado (opcional)" },
+        parentServiceTypeId: { type: "number", description: "ID do serviço pai se for subserviço (opcional)" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(serviceTypes)
+        .values({
+          name: args.name.trim(),
+          mediaTypeId: args.mediaTypeId ?? null,
+          parentServiceTypeId: args.parentServiceTypeId ?? null,
+          active: true,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: `Tipo de serviço "${created.name}" cadastrado com sucesso!`, servico: created };
+    },
+  },
+  {
+    name: "cadastrar_tipo_produto",
+    description: "Cadastra uma classificação de produto no catálogo do Trade.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do tipo de produto" },
+        description: { type: "string", description: "Descrição ou notas" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(productTypes)
+        .values({
+          name: args.name.trim(),
+          description: args.description?.trim() || null,
+          active: true,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: `Tipo de produto "${created.name}" cadastrado com sucesso!`, produto: created };
+    },
+  },
+  {
+    name: "cadastrar_tipo_midia",
+    description: "Cadastra um formato ou canal de mídia no sistema.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do canal de mídia (ex: Outdoor, Rádio, Frontlight, Mídia Volante)" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(mediaTypes)
+        .values({
+          name: args.name.trim(),
+          active: true,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: `Tipo de mídia "${created.name}" cadastrado com sucesso!`, midia: created };
+    },
+  },
+  {
+    name: "cadastrar_categoria_estoque",
+    description: "Cadastra uma categoria de materiais para o estoque de trade.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome da categoria de estoque (ex: Brindes, Uniformes, Tendas, Impressos)" },
+        description: { type: "string", description: "Descrição da categoria" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(stockCategories)
+        .values({
+          name: args.name.trim(),
+          description: args.description?.trim() || null,
+          active: true,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: `Categoria de estoque "${created.name}" cadastrada com sucesso!`, categoria: created };
+    },
+  },
+  {
+    name: "cadastrar_categoria_financeira",
+    description: "Cadastra uma categoria contábil/financeira para custos e despesas.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome da categoria financeira (ex: Mídia Urbana, Eventos, Operacional)" },
+        description: { type: "string", description: "Descrição da categoria" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(financialCategories)
+        .values({
+          name: args.name.trim(),
+          description: args.description?.trim() || null,
+          active: true,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: `Categoria financeira "${created.name}" cadastrada com sucesso!`, categoria: created };
+    },
+  },
+  {
+    name: "cadastrar_tipo_acao",
+    description: "Cadastra um Tipo de Ação operacional no sistema (ex: Blitz, Degustação, Panfletagem, PDV).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do tipo de ação" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(actionTypes)
+        .values({
+          name: args.name.trim(),
+          active: true,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: `Tipo de ação "${created.name}" cadastrado com sucesso!`, tipoAcao: created };
+    },
+  },
+  {
+    name: "cadastrar_tipo_evento",
+    description: "Cadastra um Tipo de Evento no calendário do Trade (ex: Feira, Show, Patrocínio, Inauguração).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do tipo de evento" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(eventTypes)
+        .values({
+          name: args.name.trim(),
+          active: true,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: `Tipo de evento "${created.name}" cadastrado com sucesso!`, tipoEvento: created };
+    },
+  },
+  {
+    name: "listar_cadastros",
+    description: "Consulta e lista registros de qualquer coleção de cadastros do sistema (empresas, regionais, cidades, lojas, fornecedores, parceiros, supervisores, servicos, produtos, midias, tipos_acao, tipos_evento, categorias_estoque, categorias_financeiras, bairros).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tipo: {
+          type: "string",
+          description: "Coleção a listar: empresas, regionais, cidades, lojas, fornecedores, parceiros, supervisores, servicos, produtos, midias, tipos_acao, tipos_evento, categorias_estoque, categorias_financeiras, bairros",
+        },
+        busca: { type: "string", description: "Termo de busca para filtrar por nome" },
+        regionalId: { type: "number", description: "Filtrar por regional (para cidades, lojas, etc.)" },
+        cityId: { type: "number", description: "Filtrar por cidade (para bairros, lojas, etc.)" },
+        limite: { type: "number", description: "Limite de resultados (padrão 50, máx 200)" },
+      },
+      required: ["tipo"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.read");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const limit = Math.min(args.limite || 50, 200);
+      const busca = args.busca?.trim().toLowerCase();
+
+      switch (args.tipo) {
+        case "empresas": {
+          const list = await database.select().from(providers).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "regionais": {
+          const list = await database.select().from(regionals).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "cidades": {
+          let list = await database.select().from(cities).limit(limit);
+          if (args.regionalId) list = list.filter(c => c.regionalId === args.regionalId);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "lojas": {
+          let list = await database.select().from(stores).limit(limit);
+          if (args.cityId) list = list.filter(s => s.cityId === args.cityId);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "fornecedores": {
+          const list = await database.select().from(suppliers).limit(limit);
+          const filtered = busca ? list.filter(i => i.displayName.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "parceiros": {
+          const list = await database.select().from(partners).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "supervisores": {
+          const list = await database.select().from(commercialSupervisors).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "servicos": {
+          const list = await database.select().from(serviceTypes).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "produtos": {
+          const list = await database.select().from(productTypes).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "midias": {
+          const list = await database.select().from(mediaTypes).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "tipos_acao": {
+          const list = await database.select().from(actionTypes).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "tipos_evento": {
+          const list = await database.select().from(eventTypes).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "categorias_estoque": {
+          const list = await database.select().from(stockCategories).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "categorias_financeiras": {
+          const list = await database.select().from(financialCategories).limit(limit);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        case "bairros": {
+          let list = await database.select().from(neighborhoods).limit(limit);
+          if (args.cityId) list = list.filter(b => b.cityId === args.cityId);
+          const filtered = busca ? list.filter(i => i.name.toLowerCase().includes(busca)) : list;
+          return { sucesso: true, total: filtered.length, registros: filtered };
+        }
+        default:
+          throw new Error(`Tipo de cadastro inválido: "${args.tipo}". Use: empresas, regionais, cidades, lojas, fornecedores, parceiros, supervisores, servicos, produtos, midias, tipos_acao, tipos_evento, categorias_estoque, categorias_financeiras, bairros.`);
+      }
+    },
+  },
+
+  // ==========================================
+  // MÓDULO CONFIGURAÇÕES: ACESSOS E EQUIPES
+  // ==========================================
+  {
+    name: "listar_usuarios",
+    description: "Lista os usuários, papéis e hierarquias do sistema (Acessos e Equipes).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        busca: { type: "string", description: "Filtro por nome ou e-mail" },
+        role: { type: "string", description: "Filtro por papel (admin, regional_manager, operator, viewer)" },
+        apenasAtivos: { type: "boolean", description: "Se deve retornar apenas usuários ativos" },
+        limite: { type: "number", description: "Limite de usuários (padrão 50)" },
+      },
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.read");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      let list = await database
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+          role: users.role,
+          jobTitle: users.jobTitle,
+          managerUserId: users.managerUserId,
+          isActive: users.isActive,
+          createdAt: users.createdAt,
+          lastSignedIn: users.lastSignedIn,
+        })
+        .from(users)
+        .limit(Math.min(args.limite || 50, 100));
+
+      if (args.apenasAtivos) list = list.filter(u => u.isActive);
+      if (args.role) list = list.filter(u => u.role === args.role);
+      if (args.busca) {
+        const b = args.busca.toLowerCase();
+        list = list.filter(u => (u.name || "").toLowerCase().includes(b) || (u.email || "").toLowerCase().includes(b));
+      }
+
+      return { sucesso: true, total: list.length, usuarios: list };
+    },
+  },
+  {
+    name: "atualizar_usuario",
+    description: "Atualiza papel, status ativo, cargo ou gestor direto de um usuário (Acessos e Equipes).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID do usuário a atualizar" },
+        role: { type: "string", description: "Novo papel: admin, regional_manager, operator, viewer" },
+        isActive: { type: "boolean", description: "Status da conta (ativo/inativo)" },
+        jobTitle: { type: "string", description: "Cargo / função na empresa" },
+        phone: { type: "string", description: "Telefone de contato" },
+        managerUserId: { type: "number", description: "ID do gestor direto no organograma de equipes" },
+      },
+      required: ["id"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [target] = await database.select().from(users).where(eq(users.id, args.id)).limit(1);
+      if (!target) throw new Error(`Usuário #${args.id} não encontrado.`);
+
+      const patch: Record<string, any> = { updatedAt: new Date() };
+      if (args.role !== undefined) patch.role = args.role;
+      if (args.isActive !== undefined) patch.isActive = args.isActive;
+      if (args.jobTitle !== undefined) patch.jobTitle = args.jobTitle.trim();
+      if (args.phone !== undefined) patch.phone = args.phone.trim();
+      if (args.managerUserId !== undefined) patch.managerUserId = args.managerUserId;
+
+      const [updated] = await database.update(users).set(patch).where(eq(users.id, args.id)).returning();
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "user",
+        entityId: args.id,
+        action: "update",
+        beforeData: target,
+        afterData: updated,
+      });
+
+      return { sucesso: true, mensagem: `Usuário "${updated.name}" atualizado com sucesso!`, usuario: updated };
+    },
+  },
+
+  // ==========================================
+  // MÓDULO CONFIGURAÇÕES: CENTRAL DE DADOS & AUDITORIA
+  // ==========================================
+  {
+    name: "consultar_logs_auditoria",
+    description: "Consulta os registros de auditoria e histórico de alterações operacionais do sistema (Central de Dados).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        entityType: { type: "string", description: "Tipo de entidade (ex: campaign, action, regional, city, supplier, store, user)" },
+        action: { type: "string", description: "Ação (create, update, delete, status_change)" },
+        limite: { type: "number", description: "Limite de registros retornados (padrão 50, máx 200)" },
+      },
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.read");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      let list = await database
+        .select()
+        .from(auditLogs)
+        .orderBy(desc(auditLogs.occurredAt))
+        .limit(Math.min(args.limite || 50, 200));
+
+      if (args.entityType) list = list.filter(l => l.entityType === args.entityType);
+      if (args.action) list = list.filter(l => l.action === args.action);
+
+      return { sucesso: true, total: list.length, logs: list };
+    },
+  },
+  {
+    name: "obter_resumo_central_dados",
+    description: "Retorna um resumo quantitativo consolidado de todas as bases de dados e cadastros do sistema (Central de Dados).",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.read");
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [regCount] = await database.select({ count: sql`count(*)::int` }).from(regionals);
+      const [cityCount] = await database.select({ count: sql`count(*)::int` }).from(cities);
+      const [neighCount] = await database.select({ count: sql`count(*)::int` }).from(neighborhoods);
+      const [provCount] = await database.select({ count: sql`count(*)::int` }).from(providers);
+      const [storeCount] = await database.select({ count: sql`count(*)::int` }).from(stores);
+      const [suppCount] = await database.select({ count: sql`count(*)::int` }).from(suppliers);
+      const [campCount] = await database.select({ count: sql`count(*)::int` }).from(tradeCampaigns);
+      const [actCount] = await database.select({ count: sql`count(*)::int` }).from(actions);
+      const [medCount] = await database.select({ count: sql`count(*)::int` }).from(mediaPoints);
+      const [usrCount] = await database.select({ count: sql`count(*)::int` }).from(users);
+      const [auditCount] = await database.select({ count: sql`count(*)::int` }).from(auditLogs);
+
+      return {
+        sucesso: true,
+        estatisticas: {
+          regionais: regCount?.count || 0,
+          cidades: cityCount?.count || 0,
+          bairros: neighCount?.count || 0,
+          empresas: provCount?.count || 0,
+          lojas: storeCount?.count || 0,
+          fornecedores: suppCount?.count || 0,
+          campanhas: campCount?.count || 0,
+          acoes: actCount?.count || 0,
+          pontosMidia: medCount?.count || 0,
+          usuarios: usrCount?.count || 0,
+          logsAuditoria: auditCount?.count || 0,
+        },
+      };
+    },
+  },
+
+  // ==========================================
+  // MÓDULO CONFIGURAÇÕES: TOKENS MCP
+  // ==========================================
+  {
+    name: "listar_tokens_mcp",
+    description: "Lista os tokens MCP cadastrados e seus status (Tokens MCP).",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.read");
+      const tokens = await listUserMcpTokens(user.id);
+      return { sucesso: true, total: tokens.length, tokens };
+    },
+  },
+  {
+    name: "criar_token_mcp",
+    description: "Gera um novo token de integração MCP para o sistema (Tokens MCP).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome ou finalidade do token (ex: Claude Desktop, N8N, Antigravity)" },
+        expiresInDays: { type: "number", description: "Dias de validade do token (opcional)" },
+      },
+      required: ["name"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const generated = await generateMcpToken({
+        userId: user.id,
+        name: args.name,
+        expiresInDays: args.expiresInDays,
+      });
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        entityType: "mcp_token",
+        entityId: generated.id,
+        action: "create",
+        afterData: { id: generated.id, name: generated.name, prefix: generated.tokenPrefix },
+      });
+
+      return {
+        sucesso: true,
+        mensagem: `Token MCP "${generated.name}" gerado com sucesso!`,
+        token: generated.token,
+        prefixo: generated.tokenPrefix,
+        expiraEm: generated.expiresAt,
+      };
+    },
+  },
+  {
+    name: "revogar_token_mcp",
+    description: "Revoga e desativa um token MCP existente (Tokens MCP).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID do token a ser revogado" },
+      },
+      required: ["id"],
+    },
+    handler: async (args, user) => {
+      await assertPermission(user, "settings.write");
+      const success = await revokeMcpToken(args.id, user.id);
+      if (success) {
+        await writeAuditLog({
+          actorUserId: user.id,
+          entityType: "mcp_token",
+          entityId: args.id,
+          action: "revoke",
+        });
+      }
+      return { sucesso: success, mensagem: success ? "Token revogado com sucesso." : "Token não encontrado ou já revogado." };
+    },
+  },
+
+  // ==========================================
+  // MÓDULO CONFIGURAÇÕES: CENTRAL DE NOTIFICAÇÕES
+  // ==========================================
+  {
+    name: "listar_notificacoes",
+    description: "Lista notificações e alertas operacionais do sistema (Central de Notificações).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limite: { type: "number", description: "Limite de notificações (padrão 50)" },
+        apenasNaoLidas: { type: "boolean", description: "Se deve listar apenas não lidas" },
+      },
+    },
+    handler: async (args, user) => {
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      let list = await database
+        .select()
+        .from(notifications)
+        .orderBy(desc(notifications.id))
+        .limit(Math.min(args.limite || 50, 100));
+
+      if (args.apenasNaoLidas) list = list.filter(n => !n.readAt);
+
+      return { sucesso: true, total: list.length, notificacoes: list };
+    },
+  },
+  {
+    name: "enviar_notificacao",
+    description: "Dispara uma nova notificação operacional ou alerta do sistema (Central de Notificações).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Título da notificação" },
+        message: { type: "string", description: "Mensagem detalhada" },
+        category: { type: "string", description: "Categoria da notificação (ex: entity_created, entity_updated, task_assigned)" },
+        userId: { type: "number", description: "ID do usuário destinatário (opcional)" },
+        regionalId: { type: "number", description: "ID da regional relacionada (opcional)" },
+        cityId: { type: "number", description: "ID da cidade relacionada (opcional)" },
+      },
+      required: ["title", "message"],
+    },
+    handler: async (args, user) => {
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const [created] = await database
+        .insert(notifications)
+        .values({
+          title: args.title.trim(),
+          message: args.message.trim(),
+          category: (args.category as any) || "entity_created",
+          userId: args.userId ?? null,
+          regionalId: args.regionalId ?? null,
+          cityId: args.cityId ?? null,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: "Notificação enviada com sucesso!", notificacao: created };
     },
   },
 ];

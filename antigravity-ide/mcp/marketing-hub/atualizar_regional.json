@@ -5,26 +5,28 @@
     "type": "object",
     "properties": {
       "id": {
-        "description": "ID da regional a ser atualizada (obrigatório)",
-        "type": "number"
+        "type": "number",
+        "description": "ID da regional a ser atualizada (obrigatório)"
       },
       "name": {
-        "description": "Novo nome da regional (mínimo 2 caracteres)",
-        "type": "string"
+        "type": "string",
+        "description": "Novo nome da regional (mínimo 2 caracteres)"
       },
       "code": {
-        "description": "Novo código da regional (ex: SMPM1)",
-        "type": "string"
+        "type": "string",
+        "description": "Novo código da regional (ex: SMPM1)"
       },
       "providerId": {
-        "description": "ID da empresa/provedor proprietário (ex: 1 para OnNet, 2 para Sempre)",
-        "type": "number"
+        "type": "number",
+        "description": "ID da empresa/provedor proprietário (ex: 1 para OnNet, 2 para Sempre)"
       },
       "active": {
-        "description": "Se a regional está ativa ou inativa",
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Se a regional está ativa ou inativa"
       }
     },
-    "required": ["id"]
+    "required": [
+      "id"
+    ]
   }
 }

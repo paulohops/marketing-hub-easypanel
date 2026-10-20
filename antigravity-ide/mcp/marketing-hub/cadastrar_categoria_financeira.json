@@ -1,0 +1,20 @@
+{
+  "name": "cadastrar_categoria_financeira",
+  "description": "Cadastra uma categoria contábil/financeira para custos e despesas.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da categoria financeira (ex: Mídia Urbana, Eventos, Operacional)"
+      },
+      "description": {
+        "type": "string",
+        "description": "Descrição da categoria"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "cadastrar_tipo_midia",
+  "description": "Cadastra um formato ou canal de mídia no sistema.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do canal de mídia (ex: Outdoor, Rádio, Frontlight, Mídia Volante)"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

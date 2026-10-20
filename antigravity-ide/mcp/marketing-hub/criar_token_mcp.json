@@ -1,0 +1,20 @@
+{
+  "name": "criar_token_mcp",
+  "description": "Gera um novo token de integração MCP para o sistema (Tokens MCP).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome ou finalidade do token (ex: Claude Desktop, N8N, Antigravity)"
+      },
+      "expiresInDays": {
+        "type": "number",
+        "description": "Dias de validade do token (opcional)"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "atualizar_fornecedor",
+  "description": "Atualiza os dados de um Fornecedor parceiro.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number",
+        "description": "ID do fornecedor a ser atualizado"
+      },
+      "displayName": {
+        "type": "string",
+        "description": "Nome comercial"
+      },
+      "document": {
+        "type": "string",
+        "description": "CNPJ ou CPF"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail"
+      },
+      "partnershipType": {
+        "type": "string",
+        "description": "Tipo de parceria"
+      },
+      "active": {
+        "type": "boolean",
+        "description": "Status ativo/inativo"
+      }
+    },
+    "required": [
+      "id"
+    ]
+  }
+}

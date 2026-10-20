@@ -1,0 +1,20 @@
+{
+  "name": "cadastrar_categoria_estoque",
+  "description": "Cadastra uma categoria de materiais para o estoque de trade.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da categoria de estoque (ex: Brindes, Uniformes, Tendas, Impressos)"
+      },
+      "description": {
+        "type": "string",
+        "description": "Descrição da categoria"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

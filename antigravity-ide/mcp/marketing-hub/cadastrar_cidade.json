@@ -1,0 +1,33 @@
+{
+  "name": "cadastrar_cidade",
+  "description": "Cadastra uma nova Cidade vinculada a uma Regional existente.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da cidade"
+      },
+      "regionalId": {
+        "type": "number",
+        "description": "ID da regional à qual a cidade pertence"
+      },
+      "state": {
+        "type": "string",
+        "description": "UF do estado (padrão: MG)"
+      },
+      "ibgeCode": {
+        "type": "string",
+        "description": "Código IBGE (opcional)"
+      },
+      "locationNotes": {
+        "type": "string",
+        "description": "Notas de localização ou observações (ex: Exclusivo B2B)"
+      }
+    },
+    "required": [
+      "name",
+      "regionalId"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "cadastrar_tipo_servico",
+  "description": "Cadastra um Tipo de Serviço no catálogo (ex: Panfletagem, Som Volante, Impressão).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do tipo de serviço"
+      },
+      "mediaTypeId": {
+        "type": "number",
+        "description": "ID do tipo de mídia relacionado (opcional)"
+      },
+      "parentServiceTypeId": {
+        "type": "number",
+        "description": "ID do serviço pai se for subserviço (opcional)"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

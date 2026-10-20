@@ -1,0 +1,16 @@
+{
+  "name": "revogar_token_mcp",
+  "description": "Revoga e desativa um token MCP existente (Tokens MCP).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number",
+        "description": "ID do token a ser revogado"
+      }
+    },
+    "required": [
+      "id"
+    ]
+  }
+}

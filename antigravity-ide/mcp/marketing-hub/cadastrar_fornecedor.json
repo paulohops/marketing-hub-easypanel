@@ -1,0 +1,44 @@
+{
+  "name": "cadastrar_fornecedor",
+  "description": "Cadastra um Fornecedor parceiro na rede operacional.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "displayName": {
+        "type": "string",
+        "description": "Nome comercial / de exibição do fornecedor"
+      },
+      "document": {
+        "type": "string",
+        "description": "CNPJ ou CPF do fornecedor"
+      },
+      "phone": {
+        "type": "string",
+        "description": "Telefone de contato"
+      },
+      "email": {
+        "type": "string",
+        "description": "E-mail de contato"
+      },
+      "partnershipType": {
+        "type": "string",
+        "description": "Tipo de parceria (ex: Mídia, Gráfica, Eventos)"
+      },
+      "address": {
+        "type": "string",
+        "description": "Endereço ou sede"
+      },
+      "cityId": {
+        "type": "number",
+        "description": "ID da cidade sede (opcional)"
+      },
+      "providerId": {
+        "type": "number",
+        "description": "ID da empresa vinculada (opcional)"
+      }
+    },
+    "required": [
+      "displayName"
+    ]
+  }
+}

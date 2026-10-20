@@ -1,0 +1,20 @@
+{
+  "name": "cadastrar_tipo_produto",
+  "description": "Cadastra uma classificação de produto no catálogo do Trade.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome do tipo de produto"
+      },
+      "description": {
+        "type": "string",
+        "description": "Descrição ou notas"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  }
+}

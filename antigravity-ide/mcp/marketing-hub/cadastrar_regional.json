@@ -1,0 +1,25 @@
+{
+  "name": "cadastrar_regional",
+  "description": "Cadastra uma nova Regional no território vinculada a uma Empresa.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Nome da regional (ex: Metropolitana SUB 1)"
+      },
+      "code": {
+        "type": "string",
+        "description": "Código único da regional (ex: SMPM1)"
+      },
+      "providerId": {
+        "type": "number",
+        "description": "ID da Empresa proprietária"
+      }
+    },
+    "required": [
+      "name",
+      "code"
+    ]
+  }
+}
