@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import SearchableMultiSelect from "@/components/SearchableMultiSelect";
+import MultiDatePicker from "@/components/MultiDatePicker";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -443,12 +444,12 @@ export function ScheduleRouteDialog({
   const references = trpc.media.referenceData.useQuery(undefined, { enabled: open });
   const utils = trpc.useUtils();
 
-  const [programName, setProgramName] = useState("Panfletagem");
-  const [specificDate, setSpecificDate] = useState("");
+  const [programName, setProgramName] = useState("Rota de lançamento");
   const [startsAt, setStartsAt] = useState("08:00");
-  const [endsAt, setEndsAt] = useState("12:00");
+  const [endsAt, setEndsAt] = useState("08:30");
   const [cityId, setCityId] = useState<number | null>(null);
   const [neighborhoodId, setNeighborhoodId] = useState<number | null>(null);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [routeDescription, setRouteDescription] = useState("");
   const [distributionVolume, setDistributionVolume] = useState("");
   const [notes, setNotes] = useState("");
@@ -457,32 +458,38 @@ export function ScheduleRouteDialog({
 
   if (open && editingSchedule && editingSchedule.id !== lastEditingId) {
     setLastEditingId(editingSchedule.id);
-    setProgramName(editingSchedule.programName || "Panfletagem");
-    setSpecificDate(editingSchedule.specificDate ? editingSchedule.specificDate.slice(0, 10) : "");
+    setProgramName(editingSchedule.programName || "Rota de lançamento");
     setStartsAt(editingSchedule.startsAt || "08:00");
-    setEndsAt(editingSchedule.endsAt || "12:00");
+    setEndsAt(editingSchedule.endsAt || "08:30");
     setCityId(editingSchedule.cityId ?? null);
     setNeighborhoodId(editingSchedule.neighborhoodId ?? null);
+    setSelectedDates(editingSchedule.specificDate ? [editingSchedule.specificDate.slice(0, 10)] : []);
     setRouteDescription(editingSchedule.routeDescription || "");
     setDistributionVolume(editingSchedule.distributionVolume ? String(editingSchedule.distributionVolume) : "");
     setNotes(editingSchedule.notes || "");
   } else if (open && !editingSchedule && lastEditingId !== null) {
     setLastEditingId(null);
-    setProgramName("Panfletagem");
-    setSpecificDate(new Date().toISOString().slice(0, 10));
+    setProgramName("Rota de lançamento");
     setStartsAt("08:00");
-    setEndsAt("12:00");
+    setEndsAt("08:30");
     setCityId(null);
     setNeighborhoodId(null);
+    setSelectedDates([new Date().toISOString().slice(0, 10)]);
     setRouteDescription("");
-    setDistributionVolume("1000");
+    setDistributionVolume("");
     setNotes("");
   }
 
-  const regionalCities = useMemo(() => {
+  const regionalCityOptions = useMemo(() => {
     if (!references.data?.cities) return [];
-    if (!regionalId) return references.data.cities.map(item => item.city);
-    return references.data.cities.filter(item => item.city.regionalId === regionalId).map(item => item.city);
+    const source = !regionalId
+      ? references.data.cities
+      : references.data.cities.filter(item => item.city.regionalId === regionalId);
+    return source.map(({ city, regionalName }) => ({
+      id: city.id,
+      label: city.name,
+      description: regionalName,
+    }));
   }, [references.data?.cities, regionalId]);
 
   const availableNeighborhoods = useMemo(() => {
@@ -492,7 +499,7 @@ export function ScheduleRouteDialog({
 
   const addRoute = trpc.media.addScheduleRoute.useMutation({
     onSuccess: () => {
-      toast.success("Nova rota adicionada ao calendário da operação.");
+      toast.success(selectedDates.length > 1 ? `${selectedDates.length} rotas adicionadas ao calendário.` : "Nova rota adicionada ao calendário.");
       utils.media.pointDetails.invalidate();
       utils.media.campaignDetails.invalidate();
       onOpenChange(false);
@@ -522,8 +529,8 @@ export function ScheduleRouteDialog({
     if (editingSchedule) {
       updateRoute.mutate({
         scheduleId: editingSchedule.id,
-        programName: programName.trim() || "Panfletagem",
-        specificDate: specificDate || null,
+        programName: programName.trim() || "Rota de lançamento",
+        specificDate: selectedDates[0] || null,
         startsAt,
         endsAt,
         cityId: cityId ?? null,
@@ -533,10 +540,14 @@ export function ScheduleRouteDialog({
         notes: notes.trim() || null,
       });
     } else {
+      if (!selectedDates.length) {
+        toast.error("Selecione pelo menos um dia no calendário da operação.");
+        return;
+      }
       addRoute.mutate({
         mediaCampaignId,
-        programName: programName.trim() || "Panfletagem",
-        specificDate: specificDate || null,
+        programName: programName.trim() || "Rota de lançamento",
+        specificDates: selectedDates,
         startsAt,
         endsAt,
         cityId: cityId ?? null,
@@ -552,143 +563,170 @@ export function ScheduleRouteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <CalendarDays className="h-5 w-5 text-primary" />
-            {editingSchedule ? "Editar Rota no Calendário" : "Adicionar Rota no Calendário"}
+            {editingSchedule ? "Editar Rota / Horário" : "Adicionar Rota / Horário"}
           </DialogTitle>
           <DialogDescription>
-            Defina data, horários, território, descrição da rota e o volume de distribuição planejado.
+            {editingSchedule
+              ? "Atualize as informações, horários e data desta rodada de panfletagem."
+              : "Defina a atividade, horários, cidade e selecione os dias da rodagem no calendário."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 pt-2 sm:grid-cols-2">
-          <label className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="route-name">Identificação da rota / equipe</Label>
-            <Input
-              id="route-name"
-              required
-              value={programName}
-              onChange={e => setProgramName(e.target.value)}
-              placeholder="Ex.: Rota Centro - Manhã ou Equipe Calçadão"
-            />
-          </label>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <article className="rounded-lg border border-border bg-card p-3">
+            {/* ROW 1: Veiculação ou atividade, Início, Fim */}
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1.6fr)_110px_110px_auto] sm:items-end">
+              <label className="space-y-1.5">
+                <Label htmlFor="route-program">Veiculação ou atividade</Label>
+                <Input
+                  id="route-program"
+                  required
+                  value={programName}
+                  onChange={e => setProgramName(e.target.value)}
+                  placeholder="Ex.: Rota de lançamento"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <Label htmlFor="route-start">Início</Label>
+                <Input
+                  id="route-start"
+                  required
+                  type="time"
+                  value={startsAt}
+                  onChange={e => setStartsAt(e.target.value)}
+                />
+              </label>
+              <label className="space-y-1.5">
+                <Label htmlFor="route-end">Fim</Label>
+                <Input
+                  id="route-end"
+                  required
+                  type="time"
+                  value={endsAt}
+                  onChange={e => setEndsAt(e.target.value)}
+                />
+              </label>
+              {editingSchedule && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onOpenChange(false)}
+                  className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                  title="Fechar"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
 
-          <label className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="route-date">Data da operação</Label>
-            <Input
-              id="route-date"
-              required
-              type="date"
-              value={specificDate}
-              onChange={e => setSpecificDate(e.target.value)}
-            />
-          </label>
+            {/* ROW 2: Cidade da rodada */}
+            <div className="mt-3">
+              <SearchableMultiSelect
+                id="route-city"
+                label="Cidade da rodada"
+                options={regionalCityOptions}
+                values={cityId ? [cityId] : []}
+                maxSelections={1}
+                onChange={values => {
+                  setCityId(values[0] ?? null);
+                  setNeighborhoodId(null);
+                }}
+                placeholder="Selecionar cidade"
+                emptyMessage="Nenhuma cidade disponível nesta regional"
+              />
+            </div>
 
-          <label className="space-y-1.5">
-            <Label htmlFor="route-start">Horário de início</Label>
-            <Input
-              id="route-start"
-              required
-              type="time"
-              value={startsAt}
-              onChange={e => setStartsAt(e.target.value)}
-            />
-          </label>
+            {/* ROW 3: Dias da rodagem / operação */}
+            <div className="mt-3">
+              <MultiDatePicker
+                value={selectedDates}
+                onChange={setSelectedDates}
+                label="Dias da rodagem / operação"
+                description="Selecione múltiplos dias no calendário ou adicione um período completo de uma só vez."
+              />
+            </div>
 
-          <label className="space-y-1.5">
-            <Label htmlFor="route-end">Horário de término</Label>
-            <Input
-              id="route-end"
-              required
-              type="time"
-              value={endsAt}
-              onChange={e => setEndsAt(e.target.value)}
-            />
-          </label>
+            {/* ROW 4: Observação da rodada */}
+            <div className="mt-3">
+              <label className="space-y-1.5 block">
+                <Label htmlFor="route-notes">Observação da rodada</Label>
+                <Input
+                  id="route-notes"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Ex.: rota da manhã, pontos comerciais"
+                />
+              </label>
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="route-city">Cidade</Label>
-            <select
-              id="route-city"
-              value={cityId ?? ""}
-              onChange={e => {
-                const val = e.target.value ? Number(e.target.value) : null;
-                setCityId(val);
-                setNeighborhoodId(null);
-              }}
-              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">Selecionar cidade</option>
-              {regionalCities.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* CAMPOS ADICIONAIS OPCIONAIS */}
+            <details className="mt-3 group rounded-lg border border-border/70 bg-secondary/30 p-3 text-xs">
+              <summary className="cursor-pointer font-medium text-foreground hover:text-primary transition">
+                Informações adicionais (volume de panfletos, bairro e percurso detalhado)
+              </summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="route-volume" className="text-xs">Volume planejado de panfletos (opcional)</Label>
+                  <Input
+                    id="route-volume"
+                    type="number"
+                    min="0"
+                    value={distributionVolume}
+                    onChange={e => setDistributionVolume(e.target.value)}
+                    placeholder="Ex.: 1500"
+                    className="h-9 text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="route-neighborhood" className="text-xs">Bairro (opcional)</Label>
+                  <select
+                    id="route-neighborhood"
+                    disabled={!cityId}
+                    value={neighborhoodId ?? ""}
+                    onChange={e => setNeighborhoodId(e.target.value ? Number(e.target.value) : null)}
+                    className="h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none disabled:opacity-50"
+                  >
+                    <option value="">{cityId ? "Selecionar bairro (opcional)" : "Selecione a cidade primeiro"}</option>
+                    {availableNeighborhoods.map(n => (
+                      <option key={n.id} value={n.id}>{n.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="route-desc" className="text-xs">Percurso / Rota de distribuição (opcional)</Label>
+                  <Input
+                    id="route-desc"
+                    value={routeDescription}
+                    onChange={e => setRouteDescription(e.target.value)}
+                    placeholder="Ex.: Saída da Praça Central, descendo pelo calçadão comercial até o terminal"
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </div>
+            </details>
+          </article>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="route-neighborhood">Bairro (opcional)</Label>
-            <select
-              id="route-neighborhood"
-              disabled={!cityId}
-              value={neighborhoodId ?? ""}
-              onChange={e => setNeighborhoodId(e.target.value ? Number(e.target.value) : null)}
-              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-            >
-              <option value="">{cityId ? "Selecionar bairro (opcional)" : "Selecione a cidade primeiro"}</option>
-              {availableNeighborhoods.map(n => (
-                <option key={n.id} value={n.id}>
-                  {n.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <label className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="route-volume">Volume planejado de panfletos</Label>
-            <Input
-              id="route-volume"
-              type="number"
-              min="0"
-              value={distributionVolume}
-              onChange={e => setDistributionVolume(e.target.value)}
-              placeholder="Ex.: 1500"
-            />
-          </label>
-
-          <label className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="route-desc">Percurso / Rota de distribuição</Label>
-            <Textarea
-              id="route-desc"
-              value={routeDescription}
-              onChange={e => setRouteDescription(e.target.value)}
-              placeholder="Ex.: Saída da Praça Central, descendo pelo calçadão comercial até o terminal rodoviário"
-            />
-          </label>
-
-          <label className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="route-notes">Observações operacionais</Label>
-            <Textarea
-              id="route-notes"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Pontos de apoio, contato dos promotores, horários de pico, abastecimento de material"
-            />
-          </label>
-
-          <DialogFooter className="sm:col-span-2">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button
               type="submit"
-              disabled={isPending || !startsAt || !endsAt}
+              disabled={isPending || !startsAt || !endsAt || (!editingSchedule && !selectedDates.length)}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {isPending ? "Salvando..." : editingSchedule ? "Salvar alterações" : "Adicionar rota"}
+              {isPending
+                ? "Salvando..."
+                : editingSchedule
+                ? "Salvar alterações"
+                : selectedDates.length > 1
+                ? `Adicionar ${selectedDates.length} rotas`
+                : "Adicionar rota"}
             </Button>
           </DialogFooter>
         </form>

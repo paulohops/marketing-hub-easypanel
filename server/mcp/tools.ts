@@ -1898,6 +1898,13 @@ export const mcpTools: McpToolDefinition[] = [
         permitInfo: { type: "string", description: "Informações sobre alvará, licenças ou autorizações públicas" },
         preEventNotes: { type: "string", description: "Notas e planejamento pré-evento" },
         partnershipReason: { type: "string", description: "Justificativa da parceria ou investimento" },
+        postEventNotes: { type: "string", description: "Notas pós-evento, contrapartidas e observações de debriefing" },
+        resultSummary: { type: "string", description: "Resumo executivo do resultado alcançado" },
+        leadCount: { type: "number", description: "Quantidade de leads coletados no evento" },
+        positives: { type: "string", description: "Pontos positivos do evento" },
+        negatives: { type: "string", description: "Pontos negativos ou a melhorar" },
+        worthRenewing: { type: "boolean", description: "Se vale a pena renovar o patrocínio na próxima edição" },
+        rating: { type: "number", description: "Nota de avaliação (1 a 5)" },
         status: {
           type: "string",
           enum: ["planned", "in_progress", "paused", "completed", "cancelled"],
@@ -1977,6 +1984,14 @@ export const mcpTools: McpToolDefinition[] = [
           estimatedCost: args.estimatedCost != null ? String(args.estimatedCost) : "0.00",
           partnershipReason: args.partnershipReason?.trim() || null,
           preEventNotes: notes || null,
+          postEventNotes: args.postEventNotes?.trim() || null,
+          resultSummary: args.resultSummary?.trim() || null,
+          leadCount: args.leadCount != null ? Number(args.leadCount) : 0,
+          positives: args.positives?.trim() || null,
+          negatives: args.negatives?.trim() || null,
+          worthRenewing: args.worthRenewing != null ? Boolean(args.worthRenewing) : null,
+          rating: args.rating != null ? Number(args.rating) : null,
+          completedAt: args.status === "completed" ? (args.endsAt ? new Date(args.endsAt) : startsAt) : null,
           status: args.status || "planned",
         })
         .returning();

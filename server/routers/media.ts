@@ -452,10 +452,18 @@ export const mediaRouter = router({
     if (input.signalNeighborhoodIds.length) { const validNeighborhoods = await database.select({ id: neighborhoods.id, cityId: neighborhoods.cityId }).from(neighborhoods).innerJoin(cities, eq(neighborhoods.cityId, cities.id)).where(and(eq(neighborhoods.active, true), eq(cities.active, true), eq(neighborhoods.cityId, point.cityId), inArray(neighborhoods.id, input.signalNeighborhoodIds))); if (validNeighborhoods.length !== input.signalNeighborhoodIds.length) throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione apenas bairros ativos da cidade do ponto." }); }
     if (input.tradeCampaignId) { const [tradeCampaign] = await database.select({ id: tradeCampaigns.id }).from(tradeCampaigns).where(eq(tradeCampaigns.id, input.tradeCampaignId)); if (!tradeCampaign) throw new TRPCError({ code: "BAD_REQUEST", message: "Campanha comercial inexistente." }); }
     const createdList: any[] = [];
+    const cityDistributionsToInsert = [...input.cityDistributions];
+    const registeredCityIds = new Set(cityDistributionsToInsert.map(item => item.cityId));
+    for (const schedule of input.schedules) {
+      if (schedule.cityId && !registeredCityIds.has(schedule.cityId)) {
+        registeredCityIds.add(schedule.cityId);
+        cityDistributionsToInsert.push({ cityId: schedule.cityId, quantity: 1, notes: "Cidade vinculada à rota da panfletagem" });
+      }
+    }
     const created = await database.transaction(async transaction => {
       for (const targetId of targetPointIds) {
         const [campaign] = await transaction.insert(mediaCampaigns).values({ mediaPointId: targetId, tradeCampaignId: input.tradeCampaignId ?? null, mediaServiceCatalogId: input.mediaServiceCatalogId ?? null, subserviceTypeId: input.subserviceTypeId ?? null, productTypeId: input.productTypeId ?? null, name: input.name, startsOn: input.startsOn, endsOn: input.endsOn, partnershipType: input.partnershipType, estimatedCost: input.estimatedCost.toFixed(2), notes: input.notes || null, campaignDetails: input.campaignDetails || null, campaignConfig: input.campaignConfig, status }).returning();
-        if (input.cityDistributions.length) await transaction.insert(mediaCampaignCityDistributions).values(input.cityDistributions.map(item => ({ mediaCampaignId: campaign.id, cityId: item.cityId, quantity: item.quantity, notes: item.notes || null })));
+        if (cityDistributionsToInsert.length) await transaction.insert(mediaCampaignCityDistributions).values(cityDistributionsToInsert.map(item => ({ mediaCampaignId: campaign.id, cityId: item.cityId, quantity: item.quantity, notes: item.notes || null })));
         if (input.signalNeighborhoodIds.length) await transaction.insert(mediaCampaignNeighborhoodDistributions).values(input.signalNeighborhoodIds.map(neighborhoodId => ({ mediaCampaignId: campaign.id, neighborhoodId, quantity: 1, notes: "Bairro da operação externa" })));
         if (input.schedules.length) await transaction.insert(mediaCampaignSchedules).values(input.schedules.map(schedule => ({ mediaCampaignId: campaign.id, programName: schedule.programName, weekday: schedule.weekday ?? null, specificDate: schedule.specificDate ?? null, cityId: schedule.cityId ?? null, neighborhoodId: schedule.neighborhoodId ?? null, startsAt: schedule.startsAt, endsAt: schedule.endsAt, notes: schedule.notes || null, routeDescription: schedule.routeDescription || null, distributionVolume: schedule.distributionVolume ?? null, createdByUserId: ctx.user.id })));
         createdList.push(campaign);
@@ -463,7 +471,7 @@ export const mediaRouter = router({
       return createdList[0];
     });
     for (const c of createdList) {
-      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_campaign", entityId: c.id, action: status === "scheduled" ? "schedule" : "create", afterData: { ...c, cityDistributions: input.cityDistributions, signalNeighborhoodIds: input.signalNeighborhoodIds, schedules: input.schedules } });
+      await writeAuditLog({ actorUserId: ctx.user.id, entityType: "media_campaign", entityId: c.id, action: status === "scheduled" ? "schedule" : "create", afterData: { ...c, cityDistributions: cityDistributionsToInsert, signalNeighborhoodIds: input.signalNeighborhoodIds, schedules: input.schedules } });
     }
     return created;
   }),
@@ -601,6 +609,7 @@ export const mediaRouter = router({
     mediaCampaignId: z.number().int().positive(),
     programName: z.string().trim().max(180).optional(),
     specificDate: z.string().date().nullable().optional(),
+    specificDates: z.array(z.string().date()).optional(),
     weekday: z.number().int().min(0).max(6).nullable().optional(),
     cityId: z.number().int().positive().nullable().optional(),
     neighborhoodId: z.number().int().positive().nullable().optional(),
@@ -616,31 +625,56 @@ export const mediaRouter = router({
     const [campaign] = await database.select().from(mediaCampaigns).where(eq(mediaCampaigns.id, input.mediaCampaignId)).limit(1);
     if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campanha ou ação de panfletagem não encontrada." });
 
-    const programName = input.programName?.trim() || "Panfletagem";
+    const programName = input.programName?.trim() || "Rota de lançamento";
+    const datesToInsert = input.specificDates && input.specificDates.length > 0
+      ? input.specificDates
+      : (input.specificDate ? [input.specificDate] : [null]);
 
-    const [created] = await database.insert(mediaCampaignSchedules).values({
-      mediaCampaignId: input.mediaCampaignId,
-      programName,
-      specificDate: input.specificDate ?? null,
-      weekday: input.weekday ?? null,
-      cityId: input.cityId ?? null,
-      neighborhoodId: input.neighborhoodId ?? null,
-      startsAt: input.startsAt,
-      endsAt: input.endsAt,
-      routeDescription: input.routeDescription?.trim() || null,
-      distributionVolume: input.distributionVolume ?? null,
-      notes: input.notes?.trim() || null,
-      createdByUserId: ctx.user.id,
-    }).returning();
+    const createdRows = await database.transaction(async tx => {
+      const rows = [];
+      for (const targetDate of datesToInsert) {
+        const [created] = await tx.insert(mediaCampaignSchedules).values({
+          mediaCampaignId: input.mediaCampaignId,
+          programName,
+          specificDate: targetDate,
+          weekday: input.weekday ?? null,
+          cityId: input.cityId ?? null,
+          neighborhoodId: input.neighborhoodId ?? null,
+          startsAt: input.startsAt,
+          endsAt: input.endsAt,
+          routeDescription: input.routeDescription?.trim() || null,
+          distributionVolume: input.distributionVolume ?? null,
+          notes: input.notes?.trim() || null,
+          createdByUserId: ctx.user.id,
+        }).returning();
+        rows.push(created);
+      }
 
-    await writeAuditLog({
-      actorUserId: ctx.user.id,
-      entityType: "media_campaign_schedule",
-      entityId: created.id,
-      action: "create",
-      afterData: created,
+      if (input.cityId) {
+        const existing = await tx.select().from(mediaCampaignCityDistributions).where(and(eq(mediaCampaignCityDistributions.mediaCampaignId, input.mediaCampaignId), eq(mediaCampaignCityDistributions.cityId, input.cityId))).limit(1);
+        if (!existing.length) {
+          await tx.insert(mediaCampaignCityDistributions).values({
+            mediaCampaignId: input.mediaCampaignId,
+            cityId: input.cityId,
+            quantity: input.distributionVolume ?? 1,
+            notes: "Registrado via agendamento de rota",
+          });
+        }
+      }
+
+      return rows;
     });
-    return created;
+
+    for (const row of createdRows) {
+      await writeAuditLog({
+        actorUserId: ctx.user.id,
+        entityType: "media_campaign_schedule",
+        entityId: row.id,
+        action: "create",
+        afterData: row,
+      });
+    }
+    return createdRows[0];
   }),
   updateScheduleRoute: protectedProcedure.input(z.object({
     scheduleId: z.number().int().positive(),
@@ -676,6 +710,18 @@ export const mediaRouter = router({
       distributionVolume: input.distributionVolume !== undefined ? input.distributionVolume : before.distributionVolume,
       notes: input.notes !== undefined ? (input.notes?.trim() || null) : before.notes,
     }).where(eq(mediaCampaignSchedules.id, input.scheduleId)).returning();
+
+    if (input.cityId) {
+      const existing = await database.select().from(mediaCampaignCityDistributions).where(and(eq(mediaCampaignCityDistributions.mediaCampaignId, before.mediaCampaignId), eq(mediaCampaignCityDistributions.cityId, input.cityId))).limit(1);
+      if (!existing.length) {
+        await database.insert(mediaCampaignCityDistributions).values({
+          mediaCampaignId: before.mediaCampaignId,
+          cityId: input.cityId,
+          quantity: input.distributionVolume ?? 1,
+          notes: "Registrado via agendamento de rota",
+        });
+      }
+    }
 
     await writeAuditLog({
       actorUserId: ctx.user.id,
