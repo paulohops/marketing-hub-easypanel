@@ -48,7 +48,12 @@ const MediaCoverageExplorer = lazy(() => import("@/components/MediaCoverageExplo
 const UrbanVeiculationPage = lazy(() => import("./UrbanVeiculationPage"));
 const TraditionalProgramDetails = lazy(() => import("./TraditionalProgramDetails"));
 const ExternalMediaPointDetails = lazy(() => import("./ExternalMediaPointDetails"));
-import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, ClipboardList, FileSpreadsheet, Flag, Inbox, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound } from "lucide-react";
+const SocialCalendarWorkspace = lazy(() => import("./SocialCalendarWorkspace"));
+const SocialAnalyticsWorkspace = lazy(() => import("./SocialAnalyticsWorkspace"));
+const GmbWorkspace = lazy(() => import("./GmbWorkspace"));
+const SocialAccountsWorkspace = lazy(() => import("./SocialAccountsWorkspace"));
+const SocialApiSettingsWorkspace = lazy(() => import("./SocialApiSettingsWorkspace"));
+import { BarChart3, BellRing, Boxes, Building2, CalendarDays, CircleHelp, ClipboardList, FileSpreadsheet, Flag, Inbox, Landmark, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UserRound, Store, Users, Share2 } from "lucide-react";
 
 const definitions = {
   estoque: { permission: "inventory.read", eyebrow: "Operação e materiais", title: "Estoque de materiais", description: "Controle entradas, saídas, saldo, transferências e histórico de materiais por regional e cidade.", icon: Boxes, resources: [{ title: "Catálogo de materiais", description: "Itens, SKU, categoria, unidade e estoque mínimo." }, { title: "Movimentações", description: "Entradas, saídas, ajustes e responsáveis." }, { title: "Saldo por território", description: "Visão consolidada por regional e cidade." }], accent: "var(--primary)" },
@@ -94,6 +99,11 @@ const definitions = {
   design: { permission: "settings.read", eyebrow: "Identidade visual", title: "Design", description: "Personalize o tema e a identidade visual.", icon: Settings2, resources: [], accent: "var(--primary)" },
   sistema: { permission: "settings.read", eyebrow: "Administração do sistema", title: "Sistema", description: "Configure SMTP, notificações por e-mail e chaves de integrações.", icon: Settings2, resources: [], accent: "var(--primary)" },
   mcp: { permission: "settings.read", eyebrow: "Integrações e Inteligência Artificial", title: "Tokens e Integração MCP", description: "Gere e gerencie tokens de acesso para agentes de IA e clientes MCP externos operarem o Marketing HUB.", icon: Settings2, resources: [], accent: "var(--primary)" },
+  "social-agendamento": { permission: "media.read", eyebrow: "Social Media Hub", title: "Agendamento & Publicação", description: "Agende publicações para Instagram, Facebook, LinkedIn, TikTok e Google Meu Negócio.", icon: CalendarDays, resources: [], accent: "var(--primary)" },
+  "social-relatorios": { permission: "media.read", eyebrow: "Social Media Hub", title: "Relatórios & Métricas", description: "Acompanhe métricas atualizadas via API de todas as redes e do Google Meu Negócio.", icon: BarChart3, resources: [], accent: "var(--primary)" },
+  "social-gmb": { permission: "media.read", eyebrow: "Social Media Hub", title: "Google Meu Negócio", description: "Gerencie e edite fichas, horários e fotos de múltiplas unidades físicas.", icon: Store, resources: [], accent: "var(--primary)" },
+  "social-contas": { permission: "media.read", eyebrow: "Social Media Hub", title: "Contas Conectadas", description: "Gerencie múltiplos perfis e páginas sociais conectadas.", icon: Users, resources: [], accent: "var(--primary)" },
+  "social-configuracoes": { permission: "settings.read", eyebrow: "Social Media Hub", title: "Configurações de APIs Sociais", description: "Cadastre as chaves de API das redes sociais.", icon: Share2, resources: [], accent: "var(--primary)" },
 } as const;
 
 export default function ProtectedModule({ module, topicId, processId }: { module: keyof typeof definitions; topicId?: string; processId?: string }) {
@@ -124,6 +134,11 @@ export default function ProtectedModule({ module, topicId, processId }: { module
   if (module === "design") return workspace(<DesignWorkspace />);
   if (module === "sistema") return workspace(<SystemWorkspace />);
   if (module === "mcp") return workspace(<McpSettingsWorkspace />);
+  if (module === "social-agendamento") return workspace(<SocialCalendarWorkspace />);
+  if (module === "social-relatorios") return workspace(<SocialAnalyticsWorkspace />);
+  if (module === "social-gmb") return workspace(<GmbWorkspace />);
+  if (module === "social-contas") return workspace(<SocialAccountsWorkspace />);
+  if (module === "social-configuracoes") return workspace(<SocialApiSettingsWorkspace />);
   if (module === "cadastros") return workspace(<OperationalRegistriesWorkspace />);
   if (module === "modelos-campanha") return workspace(<CampaignTemplatesWorkspace />);
   if (module === "modelos-acao") return workspace(<ActionTemplatesWorkspace />);

@@ -95,8 +95,14 @@ function Router() {
     <Route path="/configuracoes/central-de-dados">{() => <ProtectedModule module="central-de-dados" />}</Route>
     <Route path="/configuracoes/design">{() => <ProtectedModule module="design" />}</Route>
     <Route path="/configuracoes/sistema">{() => <ProtectedModule module="sistema" />}</Route>
+    <Route path="/configuracoes/social">{() => <ProtectedModule module="social-configuracoes" />}</Route>
     <Route path="/configuracoes/mcp">{() => <ProtectedModule module="mcp" />}</Route>
     <Route path="/configuracoes/notificacoes">{() => <ProtectedModule module="notificacoes-config" />}</Route>
+    <Route path="/social/agendamento">{() => <ProtectedModule module="social-agendamento" />}</Route>
+    <Route path="/social/relatorios">{() => <ProtectedModule module="social-relatorios" />}</Route>
+    <Route path="/social/gmb">{() => <ProtectedModule module="social-gmb" />}</Route>
+    <Route path="/social/contas">{() => <ProtectedModule module="social-contas" />}</Route>
+    <Route path="/social">{() => <Redirect to="/social/agendamento" replace />}</Route>
     <Route path="/perfil">{() => <ProtectedModule module="perfil" />}</Route>
     <Route path="/usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>
     <Route path="/administracao-usuarios">{() => <Redirect to="/configuracoes/acessos" replace />}</Route>

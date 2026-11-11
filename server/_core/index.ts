@@ -14,6 +14,7 @@ import { getDb } from "../db";
 import { appError, appLog, registerProcessLogging } from "./logger";
 import { registerHttpTelemetry } from "./httpTelemetry";
 import { registerMcpEndpoint } from "../mcp/handler";
+import { runScheduledPostsPublisher, syncAllActiveAccounts } from "../social/apiService";
 
 registerProcessLogging();
 
@@ -68,6 +69,21 @@ async function startServer() {
 
   server.listen(port, "0.0.0.0", () => {
     appLog("INFO", "Servidor iniciado", { port });
+
+    // Social Media Background Workers
+    // 1. Publisher: Checks every 60s for scheduled posts ready to dispatch
+    setInterval(() => {
+      runScheduledPostsPublisher().catch(err => {
+        appLog("WARN", "[Social Publisher Worker] Erro ao verificar posts agendados", { error: err?.message });
+      });
+    }, 60 * 1000);
+
+    // 2. Metrics Sync: Checks every 60m for automated metrics sync via official APIs
+    setInterval(() => {
+      syncAllActiveAccounts().catch(err => {
+        appLog("WARN", "[Social Metrics Worker] Erro ao sincronizar métricas", { error: err?.message });
+      });
+    }, 60 * 60 * 1000);
   });
 }
 

@@ -2798,5 +2798,183 @@ export const mcpTokens = pgTable(
 export type McpToken = typeof mcpTokens.$inferSelect;
 export type InsertMcpToken = typeof mcpTokens.$inferInsert;
 
+export const socialPlatformEnum = pgEnum("social_platform", [
+  "instagram",
+  "facebook",
+  "linkedin",
+  "tiktok",
+  "google_business",
+]);
+
+export const socialPostStatusEnum = pgEnum("social_post_status", [
+  "draft",
+  "scheduled",
+  "publishing",
+  "published",
+  "failed",
+  "cancelled",
+]);
+
+export const socialPostTypeEnum = pgEnum("social_post_type", [
+  "feed",
+  "reel",
+  "story",
+  "carousel",
+  "article",
+  "gmb_update",
+  "gmb_offer",
+]);
+
+export const socialAccounts = pgTable(
+  "social_accounts",
+  {
+    id: serial("id").primaryKey(),
+    platform: socialPlatformEnum("platform").notNull(),
+    accountName: text("accountName").notNull(),
+    accountIdentifier: varchar("accountIdentifier", { length: 255 }).notNull(),
+    avatarUrl: text("avatarUrl"),
+    profileUrl: text("profileUrl"),
+    externalId: varchar("externalId", { length: 255 }),
+    isActive: boolean("isActive").default(true).notNull(),
+    accessToken: text("accessToken"),
+    refreshToken: text("refreshToken"),
+    tokenExpiresAt: timestamp("tokenExpiresAt", { withTimezone: true }),
+    settings: text("settings"),
+    lastSyncAt: timestamp("lastSyncAt", { withTimezone: true }),
+    lastSyncStatus: varchar("lastSyncStatus", { length: 50 }).default("pending").notNull(),
+    lastSyncError: text("lastSyncError"),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index("social_accounts_platform_idx").on(table.platform),
+    index("social_accounts_active_idx").on(table.isActive),
+  ]
+);
+
+export const socialPosts = pgTable(
+  "social_posts",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }),
+    content: text("content").notNull(),
+    postType: socialPostTypeEnum("postType").default("feed").notNull(),
+    mediaUrls: text("mediaUrls"),
+    status: socialPostStatusEnum("status").default("draft").notNull(),
+    scheduledFor: timestamp("scheduledFor", { withTimezone: true }),
+    publishedAt: timestamp("publishedAt", { withTimezone: true }),
+    campaignId: integer("campaignId").references(() => mediaCampaigns.id, { onDelete: "set null" }),
+    targetAccountIds: text("targetAccountIds").default("[]").notNull(),
+    gmbActionUrl: text("gmbActionUrl"),
+    gmbActionType: varchar("gmbActionType", { length: 50 }),
+    notes: text("notes"),
+    createdById: integer("createdById").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index("social_posts_status_idx").on(table.status),
+    index("social_posts_scheduled_for_idx").on(table.scheduledFor),
+  ]
+);
+
+export const socialPostDispatches = pgTable(
+  "social_post_dispatches",
+  {
+    id: serial("id").primaryKey(),
+    postId: integer("postId")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    accountId: integer("accountId")
+      .notNull()
+      .references(() => socialAccounts.id, { onDelete: "cascade" }),
+    status: socialPostStatusEnum("status").default("scheduled").notNull(),
+    externalPostId: varchar("externalPostId", { length: 255 }),
+    externalPostUrl: text("externalPostUrl"),
+    publishedAt: timestamp("publishedAt", { withTimezone: true }),
+    errorMessage: text("errorMessage"),
+    retryCount: integer("retryCount").default(0).notNull(),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index("social_dispatches_post_idx").on(table.postId),
+    index("social_dispatches_account_idx").on(table.accountId),
+    index("social_dispatches_status_idx").on(table.status),
+  ]
+);
+
+export const socialMetricsHistory = pgTable(
+  "social_metrics_history",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("accountId")
+      .notNull()
+      .references(() => socialAccounts.id, { onDelete: "cascade" }),
+    postId: integer("postId").references(() => socialPosts.id, { onDelete: "set null" }),
+    recordedDate: date("recordedDate").notNull(),
+    followersCount: integer("followersCount").default(0).notNull(),
+    impressions: integer("impressions").default(0).notNull(),
+    reach: integer("reach").default(0).notNull(),
+    engagement: integer("engagement").default(0).notNull(),
+    clicks: integer("clicks").default(0).notNull(),
+    videoViews: integer("videoViews").default(0).notNull(),
+    gmbCalls: integer("gmbCalls").default(0).notNull(),
+    gmbDirectionRequests: integer("gmbDirectionRequests").default(0).notNull(),
+    gmbWebsiteClicks: integer("gmbWebsiteClicks").default(0).notNull(),
+    rawPayload: text("rawPayload"),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index("social_metrics_account_idx").on(table.accountId),
+    index("social_metrics_date_idx").on(table.recordedDate),
+  ]
+);
+
+export const gmbLocations = pgTable(
+  "gmb_locations",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("accountId")
+      .notNull()
+      .references(() => socialAccounts.id, { onDelete: "cascade" }),
+    storeId: integer("storeId").references(() => stores.id, { onDelete: "set null" }),
+    locationName: text("locationName").notNull(),
+    googleLocationId: varchar("googleLocationId", { length: 255 }).notNull(),
+    address: text("address"),
+    phone: varchar("phone", { length: 50 }),
+    websiteUri: text("websiteUri"),
+    regularHours: text("regularHours"),
+    specialHours: text("specialHours"),
+    status: varchar("status", { length: 50 }).default("OPEN").notNull(),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }),
+    rating: numeric("rating", { precision: 3, scale: 2 }),
+    reviewCount: integer("reviewCount").default(0).notNull(),
+    lastSyncAt: timestamp("lastSyncAt", { withTimezone: true }),
+    createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index("gmb_locations_account_idx").on(table.accountId),
+    uniqueIndex("gmb_locations_google_id_idx").on(table.googleLocationId),
+  ]
+);
+
+export type SocialAccount = typeof socialAccounts.$inferSelect;
+export type InsertSocialAccount = typeof socialAccounts.$inferInsert;
+
+export type SocialPost = typeof socialPosts.$inferSelect;
+export type InsertSocialPost = typeof socialPosts.$inferInsert;
+
+export type SocialPostDispatch = typeof socialPostDispatches.$inferSelect;
+export type InsertSocialPostDispatch = typeof socialPostDispatches.$inferInsert;
+
+export type SocialMetricHistory = typeof socialMetricsHistory.$inferSelect;
+export type InsertSocialMetricHistory = typeof socialMetricsHistory.$inferInsert;
+
+export type GmbLocation = typeof gmbLocations.$inferSelect;
+export type InsertGmbLocation = typeof gmbLocations.$inferInsert;
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

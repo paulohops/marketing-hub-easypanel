@@ -61,6 +61,8 @@ import {
   Sun,
   UserRound,
   Volume2,
+  Store,
+  Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -164,6 +166,35 @@ const navigationGroups: NavGroup[] = [
         path: "/eventos",
         icon: MapPinned,
         permission: "events.read",
+      },
+    ],
+  },
+  {
+    label: "Social media",
+    items: [
+      {
+        label: "Agendamento & Feed",
+        path: "/social/agendamento",
+        icon: CalendarDays,
+        permission: "media.read",
+      },
+      {
+        label: "Relatórios & Métricas",
+        path: "/social/relatorios",
+        icon: BarChart3,
+        permission: "media.read",
+      },
+      {
+        label: "Google Meu Negócio",
+        path: "/social/gmb",
+        icon: Store,
+        permission: "media.read",
+      },
+      {
+        label: "Contas Conectadas",
+        path: "/social/contas",
+        icon: Users,
+        permission: "media.read",
       },
     ],
   },
