@@ -15,6 +15,9 @@ import type {
   MetricSnapshot,
   PublishResult,
   SocialPlatform,
+  SocialPostType,
+  AiGeneratedContent,
+  ScriptBlock,
 } from "./types";
 
 const SETTINGS_KEY = "social_api_keys";
@@ -767,4 +770,383 @@ export async function runScheduledPostsPublisher(): Promise<{ checked: number; p
   }
 
   return { checked: pendingPosts.length, published: publishedCount };
+}
+
+// -----------------------------------------------------------
+// 7. Sincronização de Posts Agendados e Publicados da Meta (API)
+// -----------------------------------------------------------
+
+export async function importMetaPosts(targetAccountId?: number): Promise<{
+  success: boolean;
+  importedCount: number;
+  message: string;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+
+  const conditions = [
+    inArray(socialAccounts.platform, ["instagram", "facebook"]),
+    eq(socialAccounts.isActive, true),
+  ];
+  if (targetAccountId) {
+    conditions.push(eq(socialAccounts.id, targetAccountId));
+  }
+
+  const accounts = await db
+    .select()
+    .from(socialAccounts)
+    .where(and(...conditions));
+
+  if (accounts.length === 0) {
+    return {
+      success: true,
+      importedCount: 0,
+      message: "Nenhuma conta ativa do Instagram ou Facebook encontrada para sincronizar.",
+    };
+  }
+
+  let totalImported = 0;
+
+  for (const acc of accounts) {
+    if (!acc.accessToken || !acc.accountIdentifier) continue;
+
+    try {
+      if (acc.platform === "facebook") {
+        // 1. Puxar Posts Agendados da Página no Facebook
+        const scheduledUrl = `https://graph.facebook.com/v21.0/${encodeURIComponent(acc.accountIdentifier)}/scheduled_posts?fields=id,message,scheduled_publish_time,created_time,attachments{media,type,url}&access_token=${encodeURIComponent(acc.accessToken)}`;
+        const schedResp = await fetch(scheduledUrl);
+        if (schedResp.ok) {
+          const data = (await schedResp.json()) as {
+            data?: Array<{
+              id: string;
+              message?: string;
+              scheduled_publish_time?: number;
+              created_time?: string;
+              attachments?: { data?: Array<{ media?: { image?: { src?: string } }; type?: string }> };
+            }>;
+          };
+
+          if (Array.isArray(data?.data)) {
+            for (const item of data.data) {
+              const existing = await db
+                .select({ id: socialPosts.id })
+                .from(socialPosts)
+                .where(eq(socialPosts.metaPostId, item.id))
+                .limit(1);
+
+              if (existing.length === 0) {
+                const scheduledDate = item.scheduled_publish_time
+                  ? new Date(item.scheduled_publish_time * 1000)
+                  : new Date();
+                const mediaUrl = item.attachments?.data?.[0]?.media?.image?.src;
+
+                const [newPost] = await db
+                  .insert(socialPosts)
+                  .values({
+                    title: (item.message || "Post Agendado na Meta").slice(0, 80),
+                    content: item.message || "Publicação agendada no Facebook.",
+                    postType: "feed",
+                    status: "scheduled",
+                    scheduledFor: scheduledDate,
+                    targetAccountIds: JSON.stringify([acc.id]),
+                    metaPostId: item.id,
+                    mediaUrls: mediaUrl ? JSON.stringify([mediaUrl]) : null,
+                    brand: acc.accountName.toLowerCase().includes("onnet") ? "onnet" : "sempre",
+                  })
+                  .returning({ id: socialPosts.id });
+
+                await db.insert(socialPostDispatches).values({
+                  postId: newPost.id,
+                  accountId: acc.id,
+                  status: "scheduled",
+                  externalPostId: item.id,
+                });
+
+                totalImported++;
+              }
+            }
+          }
+        }
+
+        // 2. Puxar Últimos Posts Publicados do Facebook
+        const pubUrl = `https://graph.facebook.com/v21.0/${encodeURIComponent(acc.accountIdentifier)}/published_posts?limit=15&fields=id,message,created_time,attachments{media,type,url}&access_token=${encodeURIComponent(acc.accessToken)}`;
+        const pubResp = await fetch(pubUrl);
+        if (pubResp.ok) {
+          const pubData = (await pubResp.json()) as {
+            data?: Array<{
+              id: string;
+              message?: string;
+              created_time?: string;
+              attachments?: { data?: Array<{ media?: { image?: { src?: string } }; type?: string }> };
+            }>;
+          };
+
+          if (Array.isArray(pubData?.data)) {
+            for (const item of pubData.data) {
+              const existing = await db
+                .select({ id: socialPosts.id })
+                .from(socialPosts)
+                .where(eq(socialPosts.metaPostId, item.id))
+                .limit(1);
+
+              if (existing.length === 0) {
+                const pubDate = item.created_time ? new Date(item.created_time) : new Date();
+                const mediaUrl = item.attachments?.data?.[0]?.media?.image?.src;
+
+                const [newPost] = await db
+                  .insert(socialPosts)
+                  .values({
+                    title: (item.message || "Post do Facebook").slice(0, 80),
+                    content: item.message || "Publicação importada do Facebook.",
+                    postType: "feed",
+                    status: "published",
+                    publishedAt: pubDate,
+                    targetAccountIds: JSON.stringify([acc.id]),
+                    metaPostId: item.id,
+                    mediaUrls: mediaUrl ? JSON.stringify([mediaUrl]) : null,
+                    brand: acc.accountName.toLowerCase().includes("onnet") ? "onnet" : "sempre",
+                  })
+                  .returning({ id: socialPosts.id });
+
+                await db.insert(socialPostDispatches).values({
+                  postId: newPost.id,
+                  accountId: acc.id,
+                  status: "published",
+                  externalPostId: item.id,
+                  publishedAt: pubDate,
+                });
+
+                totalImported++;
+              }
+            }
+          }
+        }
+      } else if (acc.platform === "instagram") {
+        // Puxar Mídias Publicadas no Instagram Business
+        const igUrl = `https://graph.facebook.com/v21.0/${encodeURIComponent(acc.accountIdentifier)}/media?limit=25&fields=id,caption,media_type,media_url,permalink,timestamp,thumbnail_url&access_token=${encodeURIComponent(acc.accessToken)}`;
+        const igResp = await fetch(igUrl);
+        if (igResp.ok) {
+          const igData = (await igResp.json()) as {
+            data?: Array<{
+              id: string;
+              caption?: string;
+              media_type?: string;
+              media_url?: string;
+              thumbnail_url?: string;
+              permalink?: string;
+              timestamp?: string;
+            }>;
+          };
+
+          if (Array.isArray(igData?.data)) {
+            for (const item of igData.data) {
+              const existing = await db
+                .select({ id: socialPosts.id })
+                .from(socialPosts)
+                .where(eq(socialPosts.metaPostId, item.id))
+                .limit(1);
+
+              if (existing.length === 0) {
+                const pubDate = item.timestamp ? new Date(item.timestamp) : new Date();
+                const mediaUrl = item.media_url || item.thumbnail_url;
+                const postType = item.media_type === "VIDEO" ? "reel" : item.media_type === "CAROUSEL_ALBUM" ? "carousel" : "feed";
+
+                const [newPost] = await db
+                  .insert(socialPosts)
+                  .values({
+                    title: (item.caption || "Post do Instagram").slice(0, 80),
+                    content: item.caption || "Publicação importada do Instagram.",
+                    postType,
+                    status: "published",
+                    publishedAt: pubDate,
+                    targetAccountIds: JSON.stringify([acc.id]),
+                    metaPostId: item.id,
+                    mediaUrls: mediaUrl ? JSON.stringify([mediaUrl]) : null,
+                    brand: acc.accountName.toLowerCase().includes("onnet") ? "onnet" : "sempre",
+                  })
+                  .returning({ id: socialPosts.id });
+
+                await db.insert(socialPostDispatches).values({
+                  postId: newPost.id,
+                  accountId: acc.id,
+                  status: "published",
+                  externalPostId: item.id,
+                  externalPostUrl: item.permalink || null,
+                  publishedAt: pubDate,
+                });
+
+                totalImported++;
+              }
+            }
+          }
+        }
+      }
+    } catch (err: unknown) {
+      console.warn(`[Meta Import] Erro ao sincronizar conta ${acc.accountName}:`, (err as Error)?.message);
+    }
+  }
+
+  return {
+    success: true,
+    importedCount: totalImported,
+    message: totalImported > 0
+      ? `${totalImported} publicações foram sincronizadas com sucesso da Meta!`
+      : "Sincronização concluída. Nenhum post novo pendente na Meta.",
+  };
+}
+
+// -----------------------------------------------------------
+// 8. Assistente de Inteligência Artificial para Posts & Carrosséis
+// -----------------------------------------------------------
+
+export async function generateSocialMediaAiContent(params: {
+  prompt: string;
+  network?: SocialPlatform;
+  postType?: SocialPostType;
+  pilar?: string;
+  brand?: string;
+  tone?: string;
+}): Promise<AiGeneratedContent> {
+  const {
+    prompt,
+    network = "instagram",
+    postType = "feed",
+    pilar = "",
+    brand = "sempre",
+    tone = "didatico",
+  } = params;
+
+  const brandName = brand === "onnet" ? "OnNet Telecom" : brand === "sempre" ? "Sempre Internet" : "Sempre Internet & OnNet Telecom";
+  const brandSlogan = brand === "onnet" ? "Tecnologia do Futuro Hoje" : "Sempre ao seu lado";
+
+  const systemPrompt = `Você é o estrategista-chefe de Social Media para provedores de internet fibra óptica (ISP), responsável pela marca ${brandName} (Slogan: "${brandSlogan}").
+Diretrizes Obrigatórias:
+- Sem ofertas agressivas de preço no Instagram ou foco puramente comercial; o foco é autoridade, retenção, tecnologia e conexão.
+- O tom deve ser: ${tone}.
+- Quadro/Pilar editorial: ${pilar || "Tecnologia & Conexão"}.
+- Rede de destino: ${network}. Formato: ${postType}.
+
+Retorne ESTRITAMENTE um JSON válido com esta estrutura exata, sem explicações fora do JSON:
+{
+  "hook": "Gancho magnético de 1 linha para prender a atenção nos primeiros 3 segundos",
+  "suggestedTitle": "Título objetivo do conteúdo",
+  "caption": "Texto completo da legenda com quebras de linha duplas, emojis estratégicos e chamada de encerramento",
+  "firstComment": "Primeiro comentário estratégico com hashtags agrupadas e pergunta para engajar",
+  "hashtags": ["#FibraOptica", "#Ultravelocidade", ...],
+  "script": [
+    {
+      "time": "00:00 - 00:05",
+      "visual": "Descrição da cena ou Slide 1",
+      "audio": "Trilha ou locução",
+      "text": "Texto que aparece na tela"
+    }
+  ]
+}`;
+
+  const userMessage = `Tema / Ideia: "${prompt}". Crie o conteúdo completo no formato ${postType} para a rede ${network}.`;
+
+  try {
+    const { invokeLLM } = await import("../_core/llm");
+    const result = await invokeLLM({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+    });
+
+    const clean = result.content.replace(/```json/gi, "").replace(/```/gi, "").trim();
+    const parsed = JSON.parse(clean);
+
+    return {
+      hook: parsed.hook || "",
+      suggestedTitle: parsed.suggestedTitle || prompt.slice(0, 60),
+      caption: parsed.caption || "",
+      firstComment: parsed.firstComment || "",
+      hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : ["#FibraOptica", "#InternetRapida", "#" + brandName.replace(/\s+/g, "")],
+      script: Array.isArray(parsed.script) ? parsed.script : [],
+    };
+  } catch {
+    // Fallback inteligente caso LLM não esteja acessível
+    return buildFallbackAiContent({ prompt, network, postType, pilar, brandName, brandSlogan });
+  }
+}
+
+function buildFallbackAiContent(opts: {
+  prompt: string;
+  network: SocialPlatform;
+  postType: SocialPostType;
+  pilar: string;
+  brandName: string;
+  brandSlogan: string;
+}): AiGeneratedContent {
+  const isVideo = opts.postType === "reel" || opts.postType === "story";
+  const isCarousel = opts.postType === "carousel";
+
+  const hashtags = [
+    "#" + opts.brandName.replace(/\s+/g, ""),
+    "#FibraOptica",
+    "#Ultraestabilidade",
+    "#InternetDeVerdade",
+    "#Conectividade",
+    "#Tecnologia",
+  ];
+
+  let script: ScriptBlock[] = [];
+  if (isVideo) {
+    script = [
+      {
+        time: "00:00 - 00:04",
+        visual: "Cena dinâmica em alta definição com iluminação neon e movimento rápido de câmera.",
+        audio: "Trilha moderna e enérgica. Locução de abertura: 'Você já parou para pensar nisso?'",
+        text: opts.prompt.slice(0, 45).toUpperCase() + " ⚡",
+      },
+      {
+        time: "00:04 - 00:15",
+        visual: "Demonstração prática da conexão ultraestável ou rotina técnica com equipamentos de ponta.",
+        audio: "Locução explicativa e dinâmica detalhando a importância da fibra de alta capacidade.",
+        text: "Mais velocidade e zero oscilações! 🚀",
+      },
+      {
+        time: "00:15 - 00:20",
+        visual: "Encerramento com a assinatura visual da marca " + opts.brandName + " e o selo " + opts.brandSlogan + ".",
+        audio: "Locução de encerramento convidando a seguir a página e conferir o link da bio.",
+        text: opts.brandName + " • " + opts.brandSlogan,
+      },
+    ];
+  } else if (isCarousel) {
+    script = [
+      {
+        time: "Slide 1 (Capa)",
+        visual: "Design limpo, tipografia imponente e contraste alto. Elemento visual em 3D.",
+        text: opts.prompt.slice(0, 50) + " (Arraste para o lado 👉)",
+      },
+      {
+        time: "Slide 2 (Problema)",
+        visual: "Ilustração do desafio comum do dia a dia do usuário conectado.",
+        text: "Por que isso acontece na sua rotina?",
+      },
+      {
+        time: "Slide 3 (Solução)",
+        visual: "Explicação técnica simplificada em bullets fáceis de ler.",
+        text: "Dicas de ouro para manter seu sinal no máximo!",
+      },
+      {
+        time: "Slide 4 (CTA)",
+        visual: "Card final com os botões de ação: Salvar, Curtir e Compartilhar.",
+        text: "Salve esse post para consultar sempre que precisar! 📲",
+      },
+    ];
+  }
+
+  const caption = `${opts.prompt} ⚡💡\n\nQuando o assunto é conexão estável, cada detalhe faz a diferença para quem joga online, trabalha em home office ou maratona séries em 4K.\n\nNa ${opts.brandName}, nossa rede 100% fibra óptica foi projetada para entregar estabilidade do primeiro ao último minuto.\n\n✈️ Compartilhe esse conteúdo com quem precisa saber disso!\n📌 Salve para não esquecer!\n🔗 Dúvidas? Fale com nosso suporte pelo link da bio.\n\n${hashtags.join(" ")}`;
+
+  return {
+    hook: `Descubra como transformar sua experiência digital com ${opts.brandName}! 🚀`,
+    suggestedTitle: opts.prompt.slice(0, 60),
+    caption,
+    firstComment: `Qual é o seu app favorito para usar na nossa ultravelocidade? Conta pra gente nos comentários! 👇\n\n${hashtags.slice(0, 4).join(" ")}`,
+    hashtags,
+    script,
+  };
 }

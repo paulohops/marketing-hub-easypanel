@@ -299,6 +299,15 @@ try {
     );
     CREATE INDEX IF NOT EXISTS "gmb_locations_account_idx" ON "gmb_locations" ("accountId");
     CREATE UNIQUE INDEX IF NOT EXISTS "gmb_locations_google_id_idx" ON "gmb_locations" ("googleLocationId");
+
+    ALTER TABLE "social_posts" ADD COLUMN IF NOT EXISTS "firstComment" TEXT;
+    ALTER TABLE "social_posts" ADD COLUMN IF NOT EXISTS "pilar" VARCHAR(150);
+    ALTER TABLE "social_posts" ADD COLUMN IF NOT EXISTS "brand" VARCHAR(50) DEFAULT 'geral';
+    ALTER TABLE "social_posts" ADD COLUMN IF NOT EXISTS "script" TEXT;
+    ALTER TABLE "social_posts" ADD COLUMN IF NOT EXISTS "metaPostId" VARCHAR(255);
+    CREATE INDEX IF NOT EXISTS "social_posts_pilar_idx" ON "social_posts" ("pilar");
+    CREATE INDEX IF NOT EXISTS "social_posts_brand_idx" ON "social_posts" ("brand");
+    CREATE INDEX IF NOT EXISTS "social_posts_meta_id_idx" ON "social_posts" ("metaPostId");
   `);
   console.log("[Database] Tabelas de Social Media e Google Meu Negócio verificadas.");
 

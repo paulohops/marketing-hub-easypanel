@@ -60,3 +60,19 @@ export interface PublishResult {
   externalPostUrl?: string;
   error?: string;
 }
+
+export interface ScriptBlock {
+  time?: string;
+  visual: string;
+  audio?: string;
+  text?: string;
+}
+
+export interface AiGeneratedContent {
+  hook: string;
+  caption: string;
+  firstComment: string;
+  suggestedTitle: string;
+  script?: ScriptBlock[];
+  hashtags: string[];
+}

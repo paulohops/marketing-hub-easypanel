@@ -48,6 +48,8 @@ import {
   stockCategories,
   stores,
   users,
+  socialPosts,
+  socialAccounts,
 } from "../../drizzle/schema";
 import { generateMcpToken, listUserMcpTokens, revokeMcpToken } from "./tokens";
 import { writeAuditLog } from "../audit";
@@ -3738,6 +3740,230 @@ export const mcpTools: McpToolDefinition[] = [
         .returning();
 
       return { sucesso: true, mensagem: "Notificação enviada com sucesso!", notificacao: created };
+    },
+  },
+  {
+    name: "cadastrar_pauta_editorial",
+    description: "Cadastra ou atualiza uma peça na Pauta Editorial de Social Media (com roteiro em tabela cena a cena, copy, marca, pilar editorial e data) sem precisar gerar HTML.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "number", description: "ID da pauta se for atualização (opcional)" },
+        title: { type: "string", description: "Título da publicação/pauta" },
+        copy: { type: "string", description: "Texto completo da legenda (com quebras de linha e hashtags)" },
+        firstComment: { type: "string", description: "Primeiro comentário sugerido com hashtags extras ou pergunta" },
+        brand: { type: "string", enum: ["sempre", "onnet", "geral"], description: "Marca/Empresa da pauta" },
+        pilar: { type: "string", description: "Quadro/Pilar editorial (ex: '🦹‍♂️ Os Vilões da Conexão', '💡 Você fala Tech?', '🛒 Black Friday Conectada')" },
+        format: { type: "string", enum: ["Reels", "Carrossel", "Post Estático", "Stories", "Canal WhatsApp"], description: "Formato do conteúdo" },
+        scheduledDate: { type: "string", description: "Data de agendamento (YYYY-MM-DD ou DD/MM)" },
+        targetCTA: { type: "string", description: "Chamada para ação / Destino (ex: 'Feed • Compartilhe no Direct / Link da Bio')" },
+        script: {
+          type: "array",
+          description: "Roteiro em tabela com blocos de cena",
+          items: {
+            type: "object",
+            properties: {
+              time: { type: "string", description: "Tempo ou Bloco (ex: '00:00 - 00:06' ou 'Slide 1')" },
+              visual: { type: "string", description: "Descrição visual da cena ou imagem do slide" },
+              audio: { type: "string", description: "Locução, fala ou trilha sonora" },
+              text: { type: "string", description: "Texto que aparece na tela" },
+            },
+            required: ["visual"],
+          },
+        },
+      },
+      required: ["title", "copy"],
+    },
+    handler: async (args, user) => {
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const postType = args.format?.toLowerCase().includes("reel")
+        ? "reel"
+        : args.format?.toLowerCase().includes("carrossel")
+          ? "carousel"
+          : args.format?.toLowerCase().includes("storie")
+            ? "story"
+            : "feed";
+
+      let scheduledFor: Date | null = null;
+      if (args.scheduledDate) {
+        if (args.scheduledDate.includes("-")) {
+          scheduledFor = new Date(args.scheduledDate + "T11:00:00Z");
+        } else if (args.scheduledDate.includes("/")) {
+          const [d, m] = args.scheduledDate.split("/").map(Number);
+          if (d && m) scheduledFor = new Date(2026, m - 1, d, 11, 0, 0);
+        }
+      }
+
+      const scriptJson = args.script ? JSON.stringify(args.script) : null;
+      const brand = args.brand || "sempre";
+
+      if (args.id) {
+        const [updated] = await database
+          .update(socialPosts)
+          .set({
+            title: args.title,
+            content: args.copy,
+            firstComment: args.firstComment || null,
+            pilar: args.pilar || null,
+            brand,
+            postType,
+            script: scriptJson,
+            scheduledFor,
+            notes: args.targetCTA || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(socialPosts.id, args.id))
+          .returning();
+
+        return { sucesso: true, mensagem: "Pauta editorial atualizada com sucesso!", pauta: updated };
+      }
+
+      const [created] = await database
+        .insert(socialPosts)
+        .values({
+          title: args.title,
+          content: args.copy,
+          firstComment: args.firstComment || null,
+          pilar: args.pilar || null,
+          brand,
+          postType,
+          script: scriptJson,
+          scheduledFor,
+          status: "draft",
+          notes: args.targetCTA || null,
+          createdById: user.id,
+        })
+        .returning();
+
+      return { sucesso: true, mensagem: "Pauta editorial criada com sucesso!", pauta: created };
+    },
+  },
+  {
+    name: "listar_pautas_editoriais",
+    description: "Lista as publicações e roteiros da Pauta Editorial de Social Media.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        brand: { type: "string", enum: ["all", "sempre", "onnet"], description: "Filtrar por marca" },
+        pilar: { type: "string", description: "Filtrar por quadro/pilar editorial" },
+        limit: { type: "number", description: "Quantidade máxima de registros (padrão 50)" },
+      },
+    },
+    handler: async (args) => {
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      const conditions = [];
+      if (args.brand && args.brand !== "all") {
+        conditions.push(eq(socialPosts.brand, args.brand));
+      }
+      if (args.pilar && args.pilar !== "all") {
+        conditions.push(eq(socialPosts.pilar, args.pilar));
+      }
+
+      const rows = await database
+        .select()
+        .from(socialPosts)
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(desc(socialPosts.scheduledFor), desc(socialPosts.createdAt))
+        .limit(args.limit || 50);
+
+      const items = rows.map(r => {
+        let script = [];
+        try {
+          if (r.script) script = JSON.parse(r.script);
+        } catch {}
+        return {
+          id: r.id,
+          title: r.title,
+          brand: r.brand,
+          pilar: r.pilar,
+          postType: r.postType,
+          scheduledFor: r.scheduledFor,
+          status: r.status,
+          targetCTA: r.notes,
+          copy: r.content,
+          firstComment: r.firstComment,
+          script,
+        };
+      });
+
+      return { total: items.length, pautas: items };
+    },
+  },
+  {
+    name: "importar_lote_pautas_editoriais",
+    description: "Importa um lote completo de pautas com roteiros em tabela e copys (ex: planejamento do mês inteiro), alimentando o sistema sem gerar HTML.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pautas: {
+          type: "array",
+          description: "Lista de peças a serem cadastradas na pauta",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              copy: { type: "string" },
+              brand: { type: "string", enum: ["sempre", "onnet", "geral"] },
+              pilar: { type: "string" },
+              format: { type: "string" },
+              scheduledDate: { type: "string" },
+              targetCTA: { type: "string" },
+              script: { type: "array" },
+            },
+            required: ["title", "copy"],
+          },
+        },
+      },
+      required: ["pautas"],
+    },
+    handler: async (args, user) => {
+      const database = await getDb();
+      if (!database) throw new Error("Banco de dados indisponível.");
+
+      let imported = 0;
+      for (const item of args.pautas) {
+        const postType = item.format?.toLowerCase().includes("reel")
+          ? "reel"
+          : item.format?.toLowerCase().includes("carrossel")
+            ? "carousel"
+            : item.format?.toLowerCase().includes("storie")
+              ? "story"
+              : "feed";
+
+        let scheduledFor: Date | null = null;
+        if (item.scheduledDate) {
+          if (item.scheduledDate.includes("-")) {
+            scheduledFor = new Date(item.scheduledDate + "T11:00:00Z");
+          } else if (item.scheduledDate.includes("/")) {
+            const [d, m] = item.scheduledDate.split("/").map(Number);
+            if (d && m) scheduledFor = new Date(2026, m - 1, d, 11, 0, 0);
+          }
+        }
+
+        const scriptJson = item.script ? JSON.stringify(item.script) : null;
+        const brand = item.brand || "sempre";
+
+        await database.insert(socialPosts).values({
+          title: item.title,
+          content: item.copy,
+          firstComment: item.firstComment || null,
+          pilar: item.pilar || null,
+          brand,
+          postType,
+          script: scriptJson,
+          scheduledFor,
+          status: "draft",
+          notes: item.targetCTA || null,
+          createdById: user.id,
+        });
+        imported++;
+      }
+
+      return { sucesso: true, totalImportadas: imported, mensagem: `${imported} peças de pauta importadas com sucesso no sistema!` };
     },
   },
 ];

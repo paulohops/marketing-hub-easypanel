@@ -547,6 +547,13 @@
       "when": 1787847000000,
       "tag": "0077_social_media_core",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1787848000000,
+      "tag": "0078_social_media_enhancements",
+      "breakpoints": true
     }
   ]
 }
